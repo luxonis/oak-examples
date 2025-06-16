@@ -10,11 +10,8 @@ from utils.helper_functions import extract_text_embeddings
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 
-from frontend_server import FrontendServer
-
 _, args = initialize_argparser()
 
-FRONTEND_DIRECTORY = Path(__file__).parent / "frontend" / "dist"
 IP = args.ip or "localhost"
 PORT = args.port or 8080
 
@@ -22,10 +19,6 @@ MODEL = "yolo-world-l:640x640-host-decoding"
 CLASS_NAMES = ["person", "chair", "TV"]
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.1
-
-frontend_server = FrontendServer(IP, PORT, FRONTEND_DIRECTORY)
-print(f"Serving frontend at http://{IP}:{PORT}")
-frontend_server.start()
 
 visualizer = dai.RemoteConnection(serveFrontend=False)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()

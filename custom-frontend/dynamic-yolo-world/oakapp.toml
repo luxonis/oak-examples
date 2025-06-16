@@ -1,13 +1,30 @@
-identifier = "com.luxonis.custom-frontend.dynamic-yolo-world"
-app_version = "0.1.0"
+identifier = "com.luxonis.customfrontend.dynamicyoloworld"
+entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+app_version = "1.0.0"
 
 prepare_container = [
-    { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3-pip net-tools" },
+    { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
+    { type = "RUN", command = "python3.12 -m pip install -r /app/backend/src/requirements.txt --break-system-packages"}
 ]
 
-build_steps = ["pip3 install -r /app/requirements.txt --break-system-packages"]
+build_steps = [
+    "mkdir -p /etc/service/backend",
+    "cp /app/backend-run.sh /etc/service/backend/run",
+    "chmod +x /etc/service/backend/run",
+]
 
-prepare_build_container = []
+[static_frontend]
+dist_path = "./frontend/dist"
 
-entrypoint = ["bash", "-c", "python3 -u /app/main.py --ip $(hostname -I | awk '{print $1}')"]
+[static_frontend.build]
+source_path = "./frontend"
+steps = ["bash -c 'echo \"Frontend has to be prebuild before building the container\"'"]
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.3"
