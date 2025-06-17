@@ -13,7 +13,7 @@ for DepthAI.
 1. Build the FE - `npm run build`
 1. Install Python dependencies - `cd ../ && pip install -r ./requirements.txt`
 1. Run the example script - `python3 ./main.py`
-1. In your browser open `http://localhost:8080`
+1. In your browser open `http://localhost:8082`
 
 ## Get started with your own custom Front-End
 

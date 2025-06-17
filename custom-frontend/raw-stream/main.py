@@ -8,7 +8,7 @@ _, args = initialize_argparser()
 
 FRONTEND_DIRECTORY = Path(__file__).parent / "frontend" / "dist"
 IP = args.ip or "localhost"
-PORT = args.port or 8080
+PORT = args.port or 8082
 
 frontend_server = FrontendServer(IP, PORT, FRONTEND_DIRECTORY)
 print(f"Serving frontend at http://{IP}:{PORT}")
