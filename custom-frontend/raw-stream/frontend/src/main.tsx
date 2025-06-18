@@ -14,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
                 <DepthAIContext activeServices={
                     // @ts-ignore - We're using an example service here which isn't part of the DAI services enum
                     ['Custom Service']
-                }>
+                }
+                withDebugLogs
+                >
                 <Routes>
                     <Route path="/" element={<App/>}/>
                 </Routes>
