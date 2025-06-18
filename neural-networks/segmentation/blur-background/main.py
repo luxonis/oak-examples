@@ -6,8 +6,6 @@ from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.blur_detections import BlurBackground
 
-SEG_MODEL = "luxonis/deeplab-v3-plus:512x288"
-
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -29,7 +27,9 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # person segmentation model
-    seg_model_description = dai.NNModelDescription(SEG_MODEL, platform=platform)
+    seg_model_description = dai.NNModelDescription.fromYamlFile(
+        f"deeplab_v3_plus.{platform}.yaml"
+    )
     seg_model_nn_archive = dai.NNArchive(
         dai.getModelFromZoo(seg_model_description, useCached=False)
     )
