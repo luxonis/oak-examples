@@ -1,7 +1,7 @@
 # Local Frontend Example using @luxonis/depthai-viewer-common
 
-This example project shows how to use `@luxonis/depthai-viewer-common` package to build custom front-end app
-for DepthAI.
+This example project shows how to use `@luxonis/depthai-viewer-common` package to build simple custom front-end app
+for DepthAI v3.
 
 ## Demo
 
@@ -14,6 +14,8 @@ for DepthAI.
 1. Install Python dependencies - `cd ../ && pip install -r ./requirements.txt`
 1. Run the example script - `python3 ./main.py`
 1. In your browser open `http://localhost:8080`
+
+This example uses a simple internal Python-based web server. For scenarios involving remote access via WebRTC and support for stream encoding, which requires HTTPS access, it is recommended to use the advanced example [dynamic-yolo-world](../dynamic-yolo-world/README.md).
 
 ## Get started with your own custom Front-End
 

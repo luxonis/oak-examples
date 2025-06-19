@@ -1,5 +1,5 @@
 depthai==3.0.0rc2
-depthai-nodes==0.3.0
+git+https://github.com/luxonis/depthai-nodes.git@fix/float_confidence
 opencv-python-headless~=4.10.0
 numpy>=1.22
 onnxruntime

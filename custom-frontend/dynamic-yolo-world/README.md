@@ -1,19 +1,24 @@
 # Local Frontend Example using @luxonis/depthai-viewer-common
 
-This example project shows how to use `@luxonis/depthai-viewer-common` package to build custom front-end app
-for DepthAI.
+This example project demonstrates how to use the `@luxonis/depthai-viewer-common` package to build a custom front-end app with DepthAI v3 and OAK 4. It is combined with the [default oakapp docker image](https://hub.docker.com/r/luxonis/oakapp-base), which enables remote access via WebRTC.
 
-## Demo
+## Prerequisities
 
-[![Custom Request](media/message_sending.gif)](media/message_sending.gif)
+- [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl/)
+- [OAK 4 device](https://docs.luxonis.com/hardware/platform/deploy/oak4-deployment-guide/)
+- [Luxonis Hub](https://hub.luxonis.com/)  
 
 ## Running the example
 
 1. Install FE dependencies - `cd frontend/ && npm i`
 1. Build the FE - `npm run build`
-1. Install Python dependencies - `cd ../ && pip install -r ./requirements.txt`
-1. Run the example script - `python3 ./main.py`
-1. In your browser open `http://localhost:8080`
+1. Run application  - `cd ../backend && oakctl app run .`
+1. In your browser open `https://OAK4_IP:9000/`
+
+## Remote access
+
+1. You can upload oakapp to Luxonis Hub via oakctl
+1. And then you can just remotly open App UI via App detail
 
 ## Get started with your own custom Front-End
 
