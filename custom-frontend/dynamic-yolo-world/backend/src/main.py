@@ -122,7 +122,7 @@ with dai.Pipeline(device) as pipeline:
         """Changes confidence threshold based on the user input"""
         CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
         nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
-        print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
+        print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}")
 
     visualizer.registerService("Class Update Service", class_update_service)
     visualizer.registerService(

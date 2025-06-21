@@ -1,121 +1,52 @@
-# Local Frontend Example using @luxonis/depthai-viewer-common
+# Dynamic YOLO World
 
-This example project demonstrates how to use the `@luxonis/depthai-viewer-common` package to build a custom front-end app with DepthAI v3 and OAK 4. It is combined with the [default oakapp docker image](https://hub.docker.com/r/luxonis/oakapp-base), which enables remote access via WebRTC.
+This example demonstrates an advanced use of a custom frontend. On the DepthAI backend, it runs the YOLO-World model on-device, with configurable class labels and confidence threshold — both controllable via the frontend.
+The frontend, built using the `@luxonis/depthai-viewer-common` package, displays a real-time video stream with detections. It is combined with the [default oakapp docker image](https://hub.docker.com/r/luxonis/oakapp-base), which enables remote access via WebRTC.
 
-## Prerequisities
+> **Note:** This example works only on RVC4 in standalone mode.
 
-- [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl/)
-- [OAK 4 device](https://docs.luxonis.com/hardware/platform/deploy/oak4-deployment-guide/)
-- [Luxonis Hub](https://hub.luxonis.com/)  
+## Demo
 
-## Running the example
-
-1. Install FE dependencies - `cd frontend/ && npm i`
-1. Build the FE - `npm run build`
-1. Run application  - `cd ../backend && oakctl app run .`
-1. In your browser open `https://OAK4_IP:9000/`
-
-## Remote access
-
-1. You can upload oakapp to Luxonis Hub via oakctl
-1. And then you can just remotly open App UI via App detail
-
-## Get started with your own custom Front-End
-
-### Prepare your project
-
-This package is meant to be used inside a React application.
-We highly recommend using [Vite](https://vite.dev/guide/) to scaffold your project using `react-ts` template.
-
-### Install dependencies
-
-To use `@luxonis/depthai-viewer-common` library simply install it using `npm install @luxonis/depthai-viewer-common` (or
-any other package manager you prefer).
-
-This library is dependent on our components lib - `@luxonis/common-fe-components`. To use this library you have to
-use [PandaCSS](https://panda-css.com/). You also have to import preset from our components lib.
-See [panda.config.ts](./panda.config.ts).
-
-### Update `window.d.ts`
-
-Visualizer lib requires `__basepath` window variable to be defined.
-If you're using TypeScript edit your `window.d.ts` file like this:
-
-```
-declare global {
-	interface Window {
-		__basePath: string;
-	}
-}
-
-export {};
-```
-
-### Edit `vite.config.ts`
-
-To use this lib, you also have to edit `vite.config.ts` for everything to work properly:
-
-- For [FoxGlove](https://foxglove.dev/) to work, we have to define globals like this:
-
-```
-define: {
-    global: {},
-},
-```
-
-- Use `esm` for workers and bundling
-
-```
-	worker: {
-		format: "es",
-	},
-	build: {
-		rollupOptions: {
-			output: {
-				format: "esm",
-			},
-		},
-	},
-```
-
-Example vite.config.ts can be found in [this repository](./vite.config.ts).
-
-### Import library styles
-
-In your application entrypoint (e.g. `main.tsx`) import the following styles:
-
-```
-import '@luxonis/depthai-viewer-common/styles';
-import '@luxonis/common-fe-components/styles';
-import '@luxonis/depthai-pipeline-lib/styles';
-```
-
-### Insert @luxonis/depthai-viewer-common component
-
-To use streams from our library, best aprpoach is to use `<DepthAIEntrypoint />` component (see [App.tsx](./src/App.tsx)
-for example usage)
+![dynamic-yolo-world](media/TODO.gif)
 
 ## Usage
 
-`@luxonis/depthai-viewer-common` expects to be running on the device directly. This means that it will automatically try
-to connect to `ws://localhost:8765`.
-If this URL isn't available, you will have to enter a connection URL manually.
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
-### Styling
-
-Since `@luxonis/common-fe-components` if dependent on PandaCSS it's a good idea to use this package in your project as
-well.
-It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started).
-
-TLDR: use `css()` function imported from `styled-system/css/css.mjs` like we do in [App.tsx](./src/App.tsx).
-
-## Known issues
-
-### `vite` running out of memory during build
-
-Depending on your machine, you might run into `vite` running out of memory during build. To fix this, try increasing the
-Node.js memory limit by modifying your build command:
+Here is a list of all available parameters:
 
 ```
-NODE_OPTIONS=--max-old-space-size=8192 npm run build
+-d DEVICE, --device DEVICE
+					Optional name, DeviceID or IP of the camera to connect to. (default: None)
+-fps FPS_LIMIT, --fps-limit FPS_LIMIT
+					FPS limit. (default: None)
+-ip IP, --ip IP       IP address to serve the frontend on. (default: None)
+-p PORT, --port PORT  Port to serve the frontend on. (default: None)
 ```
+
+Before running the example you’ll need to first build the frontend. Follow these steps:
+
+1. Install FE dependencies: `cd frontend/ && npm i`
+1. Build the FE: `npm run build`
+1. Move back to origin directory: `cd ..`
+
+## Standalone Mode (RVC4 only)
+
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+
+The app can then be run with:
+
+```bash
+oakctl connect <DEVICE_IP>
+oakctl app run .
+```
+
+Once the app is built and running, an authentication link for the DepthAI Remote Viewer will appear in the terminal. Click that link to authenticate. Afterward, you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
+
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
+
+### Remote access
+
+1. You can upload oakapp to Luxonis Hub via oakctl
+1. And then you can just remotly open App UI via App detail
