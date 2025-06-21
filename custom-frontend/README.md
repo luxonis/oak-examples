@@ -6,7 +6,7 @@ This section includes examples demonstrating how to integrate your DepthAI appli
 
 | Name                                      | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | Notes                                                                        |
 | ----------------------------------------- | ---- | ----------------- | ----------------- | ---------------------------------------------------------------------------- |
-| [raw-stream](raw_stream/)                 | ✅   | ✅                | ✅                |                                                                              |
+| [raw-stream](raw-stream/)                 | ✅   | ✅                | ✅                |                                                                              |
 | [dynamic-yolo-world](dynamic-yolo-world/) | ❌   | ❌                | ✅                | Model available only for RVC4 and example aimed for standalone applications. |
 
 ✅: available; ❌: not available; 🚧: work in progress
