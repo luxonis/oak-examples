@@ -16,6 +16,10 @@
             "reason": "Failed to start the HTTP server",
             "platform": "all"
         },
+        "custom-frontend/dynamic-yolo-world": {
+            "reason": "Only works in standalone",
+            "platform": "all"
+        },
         "integrations/roboflow-integration": {
             "reason": "Can't run without arguments (e.g. roboflow api-key)",
             "platform": "all"

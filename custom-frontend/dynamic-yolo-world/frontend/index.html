@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Frontend Example</title>
+
+    <script>
+      // TODO: We have to get rid of this
+      global = globalThis;
+      const _Worker = window.Worker;
+      class WindowDynamicBaseWorker extends _Worker {
+        DEBUG_IS_DYNAMIC_POLYFILL = true;
+
+        constructor(scriptUrl, options) {
+          const url = new URL(scriptUrl);
+          url.pathname = `${window.__basePath}${url.pathname}`;
+          super(url, options);
+        }
+
+        postMessage(message, transfer) {
+          super.postMessage(message, transfer);
+        }
+      }
+      window.Worker = WindowDynamicBaseWorker;
+
+      // NOTE: Inject `__basePath` to window for dynamic base name support
+      const segments = window.location.pathname.split("/").filter(Boolean);
+      const page = segments.at(-1) === "pipeline"
+              ? "pipeline"
+              : "streams";
+      window.__basePath = segments.slice(0, page === "pipeline" ? -1 : undefined).join("/");
+      if (window.__basePath) {
+        window.__basePath = `/${window.__basePath}`
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
