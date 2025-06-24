@@ -10,7 +10,7 @@ import {DepthAIContext} from "@luxonis/depthai-viewer-common";
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-            <BrowserRouter>
+            <BrowserRouter basename={window.__basePath}>
                 <DepthAIContext activeServices={
                     // @ts-ignore - We're using an example service here which isn't part of the DAI services enum
                     ['Custom Service']
