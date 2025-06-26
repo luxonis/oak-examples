@@ -10,8 +10,8 @@ QUANT_SCALE = 0.003925696481
 
 def extract_text_embeddings(class_names, max_num_classes=80):
     tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-    text = tokenizer(text=class_names, return_tensors="pt", padding=True)
-    text_onnx = text["input_ids"].detach().cpu().numpy().astype(np.int64)
+    text = tokenizer(text=class_names, return_tensors="np", padding=True)
+    text_onnx = text["input_ids"].astype(np.int64)
     attention_mask = (text_onnx != 0).astype(np.int64)
 
     textual_onnx_model_path = download_model(

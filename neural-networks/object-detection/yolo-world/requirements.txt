@@ -1,9 +1,7 @@
 depthai==3.0.0rc2
-depthai-nodes==0.3.0
-numpy
-onnxruntime
-torch
-transformers
-opencv-python~=4.10.0
+git+https://github.com/luxonis/depthai-nodes.git
+opencv-python-headless~=4.10.0
 numpy>=1.22
+onnxruntime
+transformers
 requests

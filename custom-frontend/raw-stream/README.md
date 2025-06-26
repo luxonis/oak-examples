@@ -1,116 +1,69 @@
-# Local Frontend Example using @luxonis/depthai-viewer-common
+# Raw Stream
 
-This example project shows how to use `@luxonis/depthai-viewer-common` package to build custom front-end app
-for DepthAI.
+This example project demonstrates how to use the `@luxonis/depthai-viewer-common` package to build a simple custom frontend application for DepthAIv3. It showcases how to stream data to a custom UI that includes a text input, allowing two-way communication between the frontend and the backend application. It uses a simple internal Python-based web server. For scenarios involving remote access via WebRTC and support for stream encoding, which requires HTTPS access, it is recommended to use the advanced example [dynamic-yolo-world](../dynamic-yolo-world/README.md).
 
 ## Demo
 
-[![Custom Request](media/message_sending.gif)](media/message_sending.gif)
-
-## Running the example
-
-1. Install FE dependencies - `cd frontend/ && npm i`
-1. Build the FE - `npm run build`
-1. Install Python dependencies - `cd ../ && pip install -r ./requirements.txt`
-1. Run the example script - `python3 ./main.py`
-1. In your browser open `http://localhost:8082`
-
-## Get started with your own custom Front-End
-
-### Prepare your project
-
-This package is meant to be used inside a React application.
-We highly recommend using [Vite](https://vite.dev/guide/) to scaffold your project using `react-ts` template.
-
-### Install dependencies
-
-To use `@luxonis/depthai-viewer-common` library simply install it using `npm install @luxonis/depthai-viewer-common` (or
-any other package manager you prefer).
-
-This library is dependent on our components lib - `@luxonis/common-fe-components`. To use this library you have to
-use [PandaCSS](https://panda-css.com/). You also have to import preset from our components lib.
-See [panda.config.ts](./panda.config.ts).
-
-### Update `window.d.ts`
-
-Visualizer lib requires `__basepath` window variable to be defined.
-If you're using TypeScript edit your `window.d.ts` file like this:
-
-```
-declare global {
-	interface Window {
-		__basePath: string;
-	}
-}
-
-export {};
-```
-
-### Edit `vite.config.ts`
-
-To use this lib, you also have to edit `vite.config.ts` for everything to work properly:
-
-- For [FoxGlove](https://foxglove.dev/) to work, we have to define globals like this:
-
-```
-define: {
-    global: {},
-},
-```
-
-- Use `esm` for workers and bundling
-
-```
-	worker: {
-		format: "es",
-	},
-	build: {
-		rollupOptions: {
-			output: {
-				format: "esm",
-			},
-		},
-	},
-```
-
-Example vite.config.ts can be found in [this repository](./vite.config.ts).
-
-### Import library styles
-
-In your application entrypoint (e.g. `main.tsx`) import the following styles:
-
-```
-import '@luxonis/depthai-viewer-common/styles';
-import '@luxonis/common-fe-components/styles';
-import '@luxonis/depthai-pipeline-lib/styles';
-```
-
-### Insert @luxonis/depthai-viewer-common component
-
-To use streams from our library, best aprpoach is to use `<DepthAIEntrypoint />` component (see [App.tsx](./src/App.tsx)
-for example usage)
+![Custom Request](media/message_sending.gif)
 
 ## Usage
 
-`@luxonis/depthai-viewer-common` expects to be running on the device directly. This means that it will automatically try
-to connect to `ws://localhost:8765`.
-If this URL isn't available, you will have to enter a connection URL manually.
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
-### Styling
+You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
-Since `@luxonis/common-fe-components` if dependent on PandaCSS it's a good idea to use this package in your project as
-well.
-It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started).
-
-TLDR: use `css()` function imported from `styled-system/css/css.mjs` like we do in [App.tsx](./src/App.tsx).
-
-## Known issues
-
-### `vite` running out of memory during build
-
-Depending on your machine, you might run into `vite` running out of memory during build. To fix this, try increasing the
-Node.js memory limit by modifying your build command:
+Here is a list of all available parameters:
 
 ```
-NODE_OPTIONS=--max-old-space-size=8192 npm run build
+-d DEVICE, --device DEVICE
+					Optional name, DeviceID or IP of the camera to connect to. (default: None)
+-fps FPS_LIMIT, --fps-limit FPS_LIMIT
+					FPS limit. (default: None)
+-ip IP, --ip IP       IP address to serve the frontend on. (default: None)
+-p PORT, --port PORT  Port to serve the frontend on. (default: None)
 ```
+
+Before running the example in either mode, you’ll need to first build the frontend. Follow these steps:
+
+1. Install FE dependencies: `cd frontend/ && npm i`
+1. Build the FE: `npm run build`
+1. Move back to origin directory: `cd ..`
+
+## Peripheral Mode
+
+### Installation
+
+You need to first prepare a **Python 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/),
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
+```
+
+Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
+
+### Examples
+
+```bash
+python3 main.py
+```
+
+This will run the example, and you’ll be able to access the frontend in your browser at `http://localhost:8080`.
+
+## Standalone Mode (RVC4 only)
+
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+
+The app can then be run with:
+
+```bash
+oakctl connect <DEVICE_IP>
+oakctl app run .
+```
+
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
