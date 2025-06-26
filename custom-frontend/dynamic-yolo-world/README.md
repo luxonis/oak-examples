@@ -7,7 +7,7 @@ The frontend, built using the `@luxonis/depthai-viewer-common` package, displays
 
 ## Demo
 
-![dynamic-yolo-world](media/TODO.gif)
+![dynamic-yolo-world](media/dynamic_yolo_world.gif)
 
 ## Usage
 
@@ -42,7 +42,7 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-Once the app is built and running, an authentication link for the DepthAI Remote Viewer will appear in the terminal. Click that link to authenticate. Afterward, you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
+Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
 This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
 

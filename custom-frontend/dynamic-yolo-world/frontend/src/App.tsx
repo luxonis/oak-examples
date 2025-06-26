@@ -43,7 +43,7 @@ function App() {
         })}>
             {/* Left: Stream Viewer */}
             <div className={css({ flex: 1 })}>
-                <Streams hideToolbar />
+                <Streams />
             </div>
 
             {/* Vertical Divider */}
