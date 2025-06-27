@@ -3,7 +3,7 @@ identifier = "com.example.uvc_app"
 app_version = "0.1.0"
 
 # Command to run when the container starts
-entrypoint = ["bash", "-c", "echo entrypoint: && ls /app && /app/uvc_example"]
+entrypoint = ["bash", "-c", "/app/uvc_example"]
 
 # Here is the place where you can install all the dependencies that are needed at run-time
 prepare_container = [
@@ -11,30 +11,12 @@ prepare_container = [
     { type = "RUN", command = "chmod +x /app/uvc-start.sh" },
     { type = "RUN", command = "apt-get update" },
     { type = "RUN", command = "apt-get install -y libusb-1.0-0" },
-    { type = "RUN", command = "bash -c 'echo Listing configfs... && ls /sys/kernel/config/usb_gadget -R'" },
-    { type = "RUN", command = "bash -c 'echo Listing video devices... && ls /dev/video* -R'" },
-    { type = "RUN", command = "bash -c 'mount'" },
 ]
 
 # Here is the place where you can install all the dependencies that are needed at build-time
 prepare_build_container = [
     { type = "RUN", command = "apt-get update" },
     { type = "RUN", command = "apt-get install -y git build-essential cmake pkg-config libusb-1.0-0-dev libudev-dev curl tar unzip libssl-dev ninja-build" },
-
-    # { type = "RUN", command = "git clone https://github.com/luxonis/depthai-core.git /app/depthai-core" },
-    # { type = "RUN", command = "bash -c 'pushd /app/depthai-core && git checkout feature/rvc4_uvc && git submodule update --init --recursive && popd'" },
-
-    # { type = "RUN", command = "bash -c 'pushd /app/depthai-core && cmake -S . -B build -DDEPTHAI_ENABLE_CURL=OFF -DDEPTHAI_ENABLE_REMOTE_CONNECTION=OFF -DDEPTHAI_ENABLE_EVENTS_MANAGER=OFF -DDEPTHAI_ENABLE_PROTOBUF=OFF -DDEPTHAI_OPENCV_SUPPORT=OFF -DDEPTHAI_BUILD_EXAMPLES=ON && cmake --build build --target uvc_example --parallel 4 && popd'" },
-
-    # { type = "RUN", command = "cp /app/depthai-core/build/examples/cpp/UVC/uvc_example /app" },
-    # { type = "RUN", command = "cp /app/depthai-core/build/examples/cpp/UVC/uvc-gadget/lib/libuvcgadget.so /usr/lib" },
-    # { type = "RUN", command = "cp /app/depthai-core/build/examples/cpp/UVC/uvc-gadget/lib/libuvcgadget.so.0.4.0 /usr/lib" },
-
-    # { type = "RUN", command = "/app/uvc-start.sh start" },
-    # { type = "RUN", command = "bash -c 'sleep 3 && echo listing video devices: && ls /dev/video*'" },
-    # { type = "RUN", command = "bash -c 'echo Listing /app: && ls /app'" },
-
-    # { type = "RUN", command = "bash -c '/app/uvc_example'" },
 ]
 
 # Commands to execute after all files (including this TOML) are in /app
@@ -45,35 +27,6 @@ build_steps = [
     "bash -c 'cp /app/depthai-core/build/examples/cpp/UVC/uvc_example /app'",
     "bash -c 'cp /app/depthai-core/build/examples/cpp/UVC/uvc-gadget/lib/libuvcgadget.so /usr/lib'",
     "bash -c 'cp /app/depthai-core/build/examples/cpp/UVC/uvc-gadget/lib/libuvcgadget.so.0.4.0 /usr/lib'",
-    "bash -c 'echo Listing /app: && ls -l /app'",
     "bash -c 'chmod +x /app/uvc-start.sh'",
     "bash -c '/app/uvc-start.sh start'",
-    "bash -c 'sleep 3 && echo listing video devices: && ls /dev/video*'",
 ]
-
-# required_mounts = [
-#     "/sys/kernel/config:/sys/kernel/config:rw",
-#     "/dev:/dev:rw",
-# ]
-
-# additional_mounts = [
-#     { source = "/dev", target = "/dev", type = "none", options = [
-#         "mode=777",
-#         "bind",
-#         "rw",
-#     ], required = true },
-#     { source = "/sys/kernel/config", target = "/sys/kernel/config", type = "none", options = [
-#         "mode=777",
-#         "bind",
-#         "rw",
-#     ], required = true },
-# ]
-
-# [base_image]
-# api_url = "https://registry-1.docker.io"
-# service = "registry.docker.io"
-# oauth_url = "https://auth.docker.io/token"
-# auth_type = "repository"
-# auth_name = "library/ubuntu"
-# image_name = "library/ubuntu"
-# image_tag = "24.04"
