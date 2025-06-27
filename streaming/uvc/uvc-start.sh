@@ -14,13 +14,12 @@ fi
 
 MANUF="Luxonis"
 PRODUCT="Luxonis UVC Camera"
-BOARD=$(strings /proc/device-tree/model)
 UDC=$(ls /sys/class/udc) # will identify the 'first' UDC
 
 echo "Detecting platform:"
-echo "  board : $BOARD"
-echo "  udc   : $UDC"
-echo "  serial: $SERIAL"
+echo "  product : $PRODUCT"
+echo "  udc     : $UDC"
+echo "  serial  : $SERIAL"
 
 remove_all_gadgets() {
     echo Removing all gadget configs
@@ -28,7 +27,7 @@ remove_all_gadgets() {
     systemctl disable usb
     systemctl disable adbd
     mount -o remount,rw /
-    mv /sbin/launch_adbd.bak /sbin/launch_adbd.bak 2>/dev/null
+    mv /sbin/launch_adbd /sbin/launch_adbd.bak 2>/dev/null
     mv /sbin/start_usb /sbin/start_usb.bak 2>/dev/null
     mount -o remount,ro /
 
