@@ -28,15 +28,6 @@ on:
         description: 'Platform to use for testing. By default both RVC2 and RVC4 are used but you can use only one by passing only `rvc2` or `rvc4`(use lowercase).'
         default: "all"
         required: false
-      log_level:
-        description: 'Log level to use for pytest.'
-        type: choice
-        options:
-          - ERROR
-          - INFO
-          - DEBUG
-        default: INFO
-        required: false
       root_dir:
         decription: 'Root directory of the experiments you want to test. Defaults to all experiments.'
         default: "."
@@ -140,7 +131,7 @@ jobs:
             --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
             --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
             --env PYTHON_VERSION_ENV=${{ matrix.python-version }} \
-            --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
+            --env LOG_LEVEL="DEBUG" \
             --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
 
@@ -183,7 +174,7 @@ jobs:
             --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
             --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
             --env PYTHON_VERSION_ENV="3.12" \
-            --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
+            --env LOG_LEVEL="DEBUG" \
             --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
 
