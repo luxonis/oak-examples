@@ -95,7 +95,7 @@ jobs:
   test_peripheral:
     needs: [setup, update-hil]
     runs-on: ["self-hosted", "testbed-runner"]
-
+    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'peripheral'}}
     strategy:
       matrix:
         python-version: ${{ fromJSON(needs.setup.outputs.matrix_python) }}
@@ -152,7 +152,7 @@ jobs:
               --docker-run-args "$ENV_VARS"
 
   test_standalone:
-    if: ${{ inputs.subtests="all" ||  }}
+    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'standalone'}}
     needs: [setup, update-hil]
     runs-on: ["self-hosted", "testbed-runner"]
     steps:
