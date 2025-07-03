@@ -97,26 +97,26 @@ def run_example(example_dir: Path, args: dict) -> bool:
     oakctl_path = shutil.which("oakctl")
     assert oakctl_path is not None, "'oakctl' command is not available in PATH"
 
-    #SHOULD ALREADY BE CONNECTED
-    # connect_timeout = 60
-    # try:
-    #     result = subprocess.run(
-    #         ["oakctl", "connect", args["device"]],
-    #         check=True,
-    #         stdout=subprocess.PIPE,
-    #         stderr=subprocess.PIPE,
-    #         timeout=connect_timeout,
-    #     )
-    #     device_info = re.sub(r"\s+", " ", result.stdout.decode().strip())
-    #     logger.debug(f"Connected to device: {device_info}")
-    # except subprocess.CalledProcessError as e:
-    #     logger.error(f"Failed to connect to device `{args['device']}`: {e}")
-    #     return False
-    # except subprocess.TimeoutExpired:
-    #     logger.error(
-    #         f"Timeout ({connect_timeout}s) while trying to connect to device `{args['device']}`"
-    #     )
-    #     return False
+    
+    connect_timeout = 60
+    try:
+        result = subprocess.run(
+            ["oakctl", f"--password {args['device_password']}", "connect", "info"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=connect_timeout,
+        )
+        device_info = re.sub(r"\s+", " ", result.stdout.decode().strip())
+        logger.debug(f"Connected to device: {device_info}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to connect to device `{args['device']}`: {e}")
+        return False
+    except subprocess.TimeoutExpired:
+        logger.error(
+            f"Timeout ({connect_timeout}s) while trying to connect to device `{args['device']}`"
+        )
+        return False
 
     run_duration = args.get("timeout")
     startup_timeout = (

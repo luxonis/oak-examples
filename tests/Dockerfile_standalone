@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     xorg \
     ffmpeg \
     libzbar-dev \
+    ntpdate \ 
     sudo \
     udev \
     ca-certificates \
@@ -32,6 +33,8 @@ WORKDIR /tmp/oak-examples
 # Define the entrypoint script
 ENTRYPOINT ["sh", "-c", "\
     set -e && \
+    echo 'Syncing container clock...' && \
+    ntpdate -u pool.ntp.org && \
     if [ -z \"$PLATFORM\" ]; then \
     echo 'Error: PLATFORM environment variable is required' && exit 1; \
     fi && \
@@ -47,4 +50,5 @@ ENTRYPOINT ["sh", "-c", "\
     --virtual-display \
     --platform=${PLATFORM} \
     --python-version=${PYTHON_VERSION_ENV} \
+    --device-password=${DEVICE_PASSWORD} \
     tests/test_examples_standalone.py"]

@@ -152,6 +152,7 @@ jobs:
               --docker-run-args "$ENV_VARS"
 
   test_standalone:
+    if: ${{ inputs.subtests="all" ||  }}
     needs: [setup, update-hil]
     runs-on: ["self-hosted", "testbed-runner"]
     steps:
@@ -176,7 +177,8 @@ jobs:
             --env PYTHON_VERSION_ENV="3.12" \
             --env LOG_LEVEL="DEBUG" \
             --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
-            --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
+            --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \
+            --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}"
 
           if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
                 RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"

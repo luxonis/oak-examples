@@ -77,6 +77,11 @@ def pytest_addoption(parser):
         choices=["all", "peripheral", "standalone"],
         help="Specify if should run only peripheral, only standalone or both.",
     )
+    parser.addoption(
+        "--device-password",
+        type=str,
+        help="Specify device password",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -90,6 +95,7 @@ def test_args(request):
         "virtual_display": request.config.getoption("--virtual-display"),
         "platform": request.config.getoption("--platform"),
         "python_version": request.config.getoption("--python-version"),
+        "device_password": request.config.getoption("--device-password"),
         "strict_mode": True
         if request.config.getoption("--strict-mode") == "yes"
         else False,
