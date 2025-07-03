@@ -39,8 +39,8 @@ You can also pass other custom options to the pytest command. Here is a list of 
   --strict-mode={yes,no}
                         If set to 'yes', tests will fail on DepthAI warnings.
   --device=DEVICE       Device to perform standalone tests on. If testing just peripheral then not required.
-  --subtests={all,peripheral,standalone}
-                        Specify if should run only peripheral, only standalone or both.
+  --device_password=DEVICE_PASSWORD
+                        Specify password for the device if running standalone tests.
 ```
 
 **Note:** The platform and Python values are only used for filtering examples that are known to fail on some combinations when run locally. When run through GitHub workflow on a HIL setup these are taken into account (we build an image with a specific Python version and take a device from the specified platform).
