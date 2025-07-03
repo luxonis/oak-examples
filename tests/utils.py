@@ -1,8 +1,10 @@
+from __future__ import annotations   # importing this so tests work on 3.8
 from packaging import version
 from pathlib import Path
 import logging
 from contextlib import contextmanager
 import os
+
 
 
 logger = logging.getLogger()
