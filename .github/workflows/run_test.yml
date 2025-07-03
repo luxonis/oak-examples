@@ -189,7 +189,7 @@ jobs:
             fi
             
 
-          exec hil --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
+          exec hil --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --oakctl --sync-workspace \
               --dockerfile ./tests/Dockerfile_standalone \
-              --docker-build-args "--build-arg PYTHON_VERSION=${{ matrix.python-version }}" \
+              --docker-build-args "--build-arg PYTHON_VERSION=3.12" \
               --docker-run-args "$ENV_VARS"
