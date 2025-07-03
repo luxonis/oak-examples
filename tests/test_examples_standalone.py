@@ -101,7 +101,7 @@ def run_example(example_dir: Path, args: dict) -> bool:
     connect_timeout = 60
     try:
         result = subprocess.run(
-            ["oakctl", "--password ", args["device_password"], "device", "info"],
+            ["oakctl", "--password", args["device_password"], "device", "info"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -126,7 +126,7 @@ def run_example(example_dir: Path, args: dict) -> bool:
         logger.debug(f"Installing {example_dir} app")
 
         process = subprocess.Popen(
-            ["oakctl", "--password ", args["device_password"], "app", "run", "."],
+            ["oakctl", "--password", args["device_password"], "app", "run", "."],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -211,7 +211,7 @@ def run_example(example_dir: Path, args: dict) -> bool:
 def get_app_status(app_id: str, args: dict):
     try:
         result = subprocess.run(
-            ["oakctl", "--password ", args["device_password"], "app", "list", "--format=json"],
+            ["oakctl", "--password", args["device_password"], "app", "list", "--format=json"],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -240,7 +240,7 @@ def teardown(args: dict):
     # Delete app on device
     try:
         result = subprocess.run(
-            ["oakctl", "--password ", args["device_password"], "app", "delete", APP_ID],
+            ["oakctl", "--password", args["device_password"], "app", "delete", APP_ID],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
