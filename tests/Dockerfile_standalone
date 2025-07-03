@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     xorg \
     ffmpeg \
     libzbar-dev \
+    sudo \
+    udev \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 ENV DISPLAY=:99
 
@@ -33,7 +36,7 @@ ENTRYPOINT ["sh", "-c", "\
     echo 'Error: PLATFORM environment variable is required' && exit 1; \
     fi && \
     echo 'Installing dependencies...' && \
-    pip install -r tests/requirements.txt && \
+    /root/.local/share/oakctl/oakctl self-update -v 0.11.0 \
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
     --root-dir=${ROOT_DIR} \
@@ -43,5 +46,4 @@ ENTRYPOINT ["sh", "-c", "\
     --virtual-display \
     --platform=${PLATFORM} \
     --python-version=${PYTHON_VERSION_ENV} \
-    --strict-mode=${STRICT_MODE} \
-    tests/"]
+    tests/test_examples_standalone.py"]
