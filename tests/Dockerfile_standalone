@@ -36,6 +36,7 @@ ENTRYPOINT ["sh", "-c", "\
     echo 'Error: PLATFORM environment variable is required' && exit 1; \
     fi && \
     echo 'Installing dependencies...' && \
+    pip install -r tests/requirements.txt && \
     /root/.local/share/oakctl/oakctl self-update -v 0.11.0 &&\
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
