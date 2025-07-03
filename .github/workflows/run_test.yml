@@ -131,7 +131,7 @@ jobs:
             --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
             --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
             --env PYTHON_VERSION_ENV=${{ matrix.python-version }} \
-            --env LOG_LEVEL="DEBUG" \
+            --env LOG_LEVEL="INFO" \
             --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
 
@@ -175,7 +175,7 @@ jobs:
             --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
             --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
             --env PYTHON_VERSION_ENV="3.12" \
-            --env LOG_LEVEL="DEBUG" \
+            --env LOG_LEVEL="INFO" \
             --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \
             --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}"
