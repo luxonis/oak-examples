@@ -40,10 +40,16 @@ You can also pass other custom options to the pytest command. Here is a list of 
                         If set to 'yes', tests will fail on DepthAI warnings.
   --device=DEVICE       Device to perform standalone tests on. If testing just peripheral then not required.
   --device_password=DEVICE_PASSWORD
-                        Specify password for the device if running standalone tests.
+                        Specify device password. If testing just peripheral then not required.
 ```
 
 **Note:** The platform and Python values are only used for filtering examples that are known to fail on some combinations when run locally. When run through GitHub workflow on a HIL setup these are taken into account (we build an image with a specific Python version and take a device from the specified platform).
+
+**Note:** If you want to run only peripheral or only standalone tests then set full path to those tests in pytest command. Eg. to only test peripheral:
+
+```bash
+pytest -v -r a --log-cli-level=INFO --log-file=out.log --color=yes --root-dir=. tests/test_examples_peripheral.py
+```
 
 If you for example want to run the test on a single example you can do it like this which will run it only on the `generic example`.
 

@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os
 import subprocess
 import shutil
@@ -8,8 +7,11 @@ import time
 from pathlib import Path
 from venv import EnvBuilder
 import logging
+from typing import Optional, Dict, List
 
 from utils import adjust_requirements, is_valid, change_and_restore_dir
+from constants import KNOWN_FAILING, IGNORED_WARNINGS
+
 
 logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +29,8 @@ def test_example_runs_in_peripheral(example_dir, test_args):
 
     success, reason = is_valid(
         example_dir=example_dir,
-        known_failing_examples=test_args["examples_metadata"]["known_failing_examples"],
+        known_failing_examples=KNOWN_FAILING,
+        desired_mode="peripheral",
         desired_platform=test_args["platform"],
         desired_py=test_args["python_version"],
         desired_dai=test_args["depthai_version"],
@@ -89,8 +92,8 @@ def setup_virtual_display():
 def setup_virtual_env(
     venv_dir: Path,
     requirements_path: Path,
-    depthai_version: str | None,
-    depthai_nodes_version: str | None,
+    depthai_version: Optional[str],
+    depthai_nodes_version: Optional[str],
 ):
     """Creates and sets up a virtual environment with the required dependencies."""
     logger.debug(f"Setting up virtual environment for {venv_dir.parent}...")
@@ -132,7 +135,7 @@ def setup_virtual_env(
         os.remove(new_req_path)
 
 
-def run_example(env_exe: Path, example_dir: Path, args: dict, max_retries: int = 3):
+def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int = 3):
     """Runs the main.py script for the given timeout duration."""
     timeout = args["timeout"]
     env_vars = args["environment_variables"]
@@ -174,9 +177,7 @@ def run_example(env_exe: Path, example_dir: Path, args: dict, max_retries: int =
 
                 if args["strict_mode"]:
                     all_output = stdout.splitlines() + stderr.splitlines()
-                    dai_warnings = filter_warnings(
-                        all_output, args["examples_metadata"]["known_warnings"]
-                    )
+                    dai_warnings = filter_warnings(all_output, IGNORED_WARNINGS)
                     if len(dai_warnings) > 0:
                         logger.error(f"Unexpected DepthAI warnings: {dai_warnings}")
                         return False
@@ -213,7 +214,7 @@ def run_example(env_exe: Path, example_dir: Path, args: dict, max_retries: int =
     return False
 
 
-def filter_warnings(output: list[str], ignored_warnings: list[str]):
+def filter_warnings(output: List[str], ignored_warnings: List[str]):
     """Filter out warnings that are from DAI and shouldn't be ignored"""
     dai_warnings = [
         line for line in output if "[warning]" in line or "DeprecationWarning" in line

@@ -9,8 +9,10 @@ import threading
 import queue
 import re
 import json
+from typing import Optional, Dict
 
 from utils import adjust_requirements, is_valid, change_and_restore_dir
+from constants import KNOWN_FAILING
 
 logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
@@ -34,8 +36,9 @@ def test_example_runs_in_standalone(example_dir, test_args):
 
     success, reason = is_valid(
         example_dir=example_dir,
-        known_failing_examples=test_args["examples_metadata"]["known_failing_examples"],
-        desired_platform="RVC4",
+        known_failing_examples=KNOWN_FAILING,
+        desired_mode="standalone",
+        desired_platform=test_args["platform"],
         desired_py=test_args["python_version"],
         desired_dai=test_args["depthai_version"],
     )
@@ -70,8 +73,8 @@ def test_example_runs_in_standalone(example_dir, test_args):
 def setup_env(
     base_dir: Path,
     requirements_path: Path,
-    depthai_version: str | None,
-    depthai_nodes_version: str | None,
+    depthai_version: Optional[str],
+    depthai_nodes_version: Optional[str],
 ):
     """Sets up the envrionment with the new requirements"""
     new_requirements = adjust_requirements(
@@ -93,29 +96,13 @@ def enqueue_output(out, q):
     out.close()
 
 
-def run_example(example_dir: Path, args: dict) -> bool:
+def run_example(example_dir: Path, args: Dict) -> bool:
     oakctl_path = shutil.which("oakctl")
     assert oakctl_path is not None, "'oakctl' command is not available in PATH"
 
-    
-    connect_timeout = 60
-    try:
-        result = subprocess.run(
-            ["oakctl", "--password", args["device_password"], "device", "info"],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=connect_timeout,
-        )
-        device_info = re.sub(r"\s+", " ", result.stdout.decode().strip())
-        logger.debug(f"Connected to device: {device_info}")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to connect to device `{args['device']}`: {e}")
-        return False
-    except subprocess.TimeoutExpired:
-        logger.error(
-            f"Timeout ({connect_timeout}s) while trying to connect to device `{args['device']}`"
-        )
+    if not connect_to_device(
+        device=args["device"], device_password=args["device_password"]
+    ):
         return False
 
     run_duration = args.get("timeout")
@@ -208,10 +195,68 @@ def run_example(example_dir: Path, args: dict) -> bool:
         return False
 
 
-def get_app_status(app_id: str, args: dict):
+def connect_to_device(device: str, device_password: str):
+    """Try to connect to the device by first trying the password method and if that fails trying the direct IP method"""
+    connect_timeout = 60
+    failed_logs = []
+
+    # First try to connect to device using password
     try:
         result = subprocess.run(
-            ["oakctl", "--password", args["device_password"], "app", "list", "--format=json"],
+            ["oakctl", "--password", device_password, "device", "info"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=connect_timeout,
+        )
+        device_info = re.sub(r"\s+", " ", result.stdout.decode().strip())
+        logger.debug(f"Connected to device: {device_info}")
+        return True
+    except subprocess.CalledProcessError as e:
+        log = "Failed to connect to device using password"
+        failed_logs.append(log)
+        logger.debug(f"{log}: {e}")
+    except subprocess.TimeoutExpired:
+        log = f"Timeout ({connect_timeout}s) while trying to connect to device using password."
+        failed_logs.append(log)
+        logger.debug(log)
+
+    # If this fails then try to connect to specific device ip
+    try:
+        result = subprocess.run(
+            ["oakctl", "--password", device_password, "connect", device],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=connect_timeout,
+        )
+        device_info = re.sub(r"\s+", " ", result.stdout.decode().strip())
+        logger.debug(f"Connected to device: {device_info}")
+        return True
+    except subprocess.CalledProcessError as e:
+        log = f"Failed to connect to device using IP `{device}`"
+        failed_logs.append(log)
+        logger.debug(f"{log}: {e}")
+    except subprocess.TimeoutExpired:
+        log = f"Timeout ({connect_timeout}s) while trying to connect to device using IP `{device}`."
+        failed_logs.append(log)
+        logger.debug(log)
+
+    logger.error(f"Connection to device failed, logs: {failed_logs}")
+    return False
+
+
+def get_app_status(app_id: str, args: Dict):
+    try:
+        result = subprocess.run(
+            [
+                "oakctl",
+                "--password",
+                args["device_password"],
+                "app",
+                "list",
+                "--format=json",
+            ],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -227,7 +272,7 @@ def get_app_status(app_id: str, args: dict):
         return None
 
 
-def teardown(args: dict):
+def teardown(args: Dict):
     """Cleans up everything after the test"""
     # Clean up requirements.txt
     if os.path.exists("requirements.txt"):

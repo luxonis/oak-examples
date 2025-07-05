@@ -1,7 +1,6 @@
 import pytest
 from pathlib import Path
 import os
-import json
 import logging
 
 logger = logging.getLogger()
@@ -73,7 +72,8 @@ def pytest_addoption(parser):
     parser.addoption(
         "--device-password",
         type=str,
-        help="Specify device password",
+        default="",
+        help="Specify device password. If testing just peripheral then not required.",
     )
 
 
@@ -92,19 +92,10 @@ def test_args(request):
         "strict_mode": True
         if request.config.getoption("--strict-mode") == "yes"
         else False,
-        "device": request.config.getoption("--device")
+        "device": request.config.getoption("--device"),
     }
 
     logger.info(f"Test arguments: {args}")
-
-    script_dir = Path(__file__).parent
-    file_path = script_dir / "examples_metadata.json"
-
-    with open(file_path) as f:
-        examples_metadata = json.load(f)
-
-    args["examples_metadata"] = examples_metadata
-
     return args
 
 
