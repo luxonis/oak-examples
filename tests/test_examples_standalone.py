@@ -65,7 +65,7 @@ def test_example_runs_in_standalone(example_dir, test_args):
     with change_and_restore_dir(example_dir):
         time.sleep(10)  # to stabilize device
         success = run_example(example_dir=example_dir, args=test_args)
-        teardown(test_args)
+        teardown()
 
     assert success, f"Test failed for {example_dir}"
 
@@ -113,7 +113,7 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         logger.debug(f"Installing {example_dir} app")
 
         process = subprocess.Popen(
-            ["oakctl", "--password", args["device_password"], "app", "run", "."],
+            ["oakctl", "app", "run", "."],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -272,7 +272,7 @@ def get_app_status(app_id: str, args: Dict):
         return None
 
 
-def teardown(args: Dict):
+def teardown():
     """Cleans up everything after the test"""
     # Clean up requirements.txt
     if os.path.exists("requirements.txt"):
@@ -285,7 +285,7 @@ def teardown(args: Dict):
     # Delete app on device
     try:
         result = subprocess.run(
-            ["oakctl", "--password", args["device_password"], "app", "delete", APP_ID],
+            ["oakctl", "app", "delete", APP_ID],
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
