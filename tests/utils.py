@@ -68,7 +68,7 @@ def is_valid(
                     )
                 return (
                     False,
-                    known_failing_examples[exp].get(["reason"], "No reason set."),
+                    known_failing_examples[exp].get("reason", "No reason set."),
                 )
 
     return (True, "")
