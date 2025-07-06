@@ -4,7 +4,7 @@ This section contains step-by-step guides and educational content to help you ge
 
 ## Platform Compatibility
 
-| Name                                        | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | Gen2                                                                                                     | Notes                                                 |
+| Name                                        | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | DepthAIv2                                                                                                | Notes                                                 |
 | ------------------------------------------- | ---- | ----------------- | ----------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | [camera-demo](camera-demo/)                 | ✅   | ✅                | 🚧                | [gen2-camera-demo](https://github.com/luxonis/oak-examples/tree/master/gen2-camera-demo)                 | Basic tutorial showing how to use the camera features |
 | [camera-stere-depth](camera-stereo-depth/)  | ✅   | ✅                | 🚧                | [gen2-camera-demo](https://github.com/luxonis/oak-examples/tree/master/gen2-camera-demo)                 | Basic tutorial showing stereo depth                   |

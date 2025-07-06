@@ -1,0 +1,29 @@
+native
+README.md
+*.Dockerfile
+.gitignore
+.gitlab-ci.yml
+Dockerfile
+node_modules
+.cache
+
+*.oakapp
+
+# Python
+**/venv/
+**/.venv/
+**/.mypy_cache/
+**/.ruff_cache/
+
+# Node.js
+**/node_modules/
+
+# VCS
+**/.git/
+**/.github/
+**/.gitlab/
+
+# IDE files
+**/.idea
+**/.vscode
+**/.zed

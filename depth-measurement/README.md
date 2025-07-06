@@ -4,7 +4,7 @@ This section contains examples demonstrating depth perception capabilities and s
 
 ## Platform Compatibility
 
-| Name                                                              | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | Gen2                                                                                                         | Notes                                                                |
+| Name                                                              | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | DepthAIv2                                                                                                    | Notes                                                                |
 | ----------------------------------------------------------------- | ---- | ----------------- | ----------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
 | [3d-measurement/box-measurement](3d-measurement/box-measurement/) | ✅   | 🚧                | 🚧                | [gen2-box_measurement](https://github.com/luxonis/oak-examples/tree/master/gen2-box_measurement)             | Example measuring box dimensions using depth information             |
 | [3d-measurement/pointcloud](3d-measurement/pointcloud/)           | ✅   | 🚧                | 🚧                | [gen2-pointcloud](https://github.com/luxonis/oak-examples/tree/master/gen2-pointcloud)                       | Demonstration of 3D point cloud generation from depth data           |

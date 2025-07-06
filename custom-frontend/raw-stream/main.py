@@ -8,17 +8,19 @@ _, args = initialize_argparser()
 
 FRONTEND_DIRECTORY = Path(__file__).parent / "frontend" / "dist"
 IP = args.ip or "localhost"
-PORT = args.port or 8080
+PORT = args.port or 8082
 
 frontend_server = FrontendServer(IP, PORT, FRONTEND_DIRECTORY)
 print(f"Serving frontend at http://{IP}:{PORT}")
 frontend_server.start()
 
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 visualizer = dai.RemoteConnection(serveFrontend=False)
-with dai.Pipeline() as pipeline:
+
+with dai.Pipeline(device) as pipeline:
     cam = pipeline.create(dai.node.Camera).build()
     raw_stream = cam.requestOutput(
-        (640, 480), dai.ImgFrame.Type.NV12, fps=30 or args.fps_limit
+        (640, 400), dai.ImgFrame.Type.NV12, fps=30 or args.fps_limit
     )
     visualizer.addTopic("Raw Stream", raw_stream)
 
