@@ -1,6 +1,7 @@
 import numpy as np
 import depthai as dai
 import re
+from typing import Tuple
 from utils.constants import Config
 from depthai_nodes.utils import AnnotationHelper
 from whisper.decoding import get_tokenizer
@@ -32,7 +33,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             background_color=dai.Color(0, 0, 0, 0.5),
         )
 
-    def parser_text(self, text: str) -> tuple[str, str]:
+    def parser_text(self, text: str) -> Tuple[str, str]:
         """Parses text into tuples of (str, color) and returns the new color of LED (None if not detected or multiple detected)."""
         words = text.split()
         words = [re.sub(r"[^\w]", "", word.lower()) for word in words]

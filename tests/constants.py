@@ -9,23 +9,23 @@
 
 KNOWN_FAILING = {
     "tutorials/multiple-devices/multi-cam-calibration": {
-        "reason": "Standalone not setup yet",
-        "mode": ["standalone"],
+        "reason": "Needs --include-ip flag turned to work on RVC4.",
+        "platform": ["rvc4"],
     },
     "tutorials/multiple-devices/multiple-devices-preview": {
-        "reason": "Standalone not setup yet",
-        "mode": ["standalone"],
+        "reason": "Needs --include-ip flag turned to work on RVC4.",
+        "platform": ["rvc4"],
     },
     "tutorials/multiple-devices/spatial-detection-fusion": {
         "reason": "Not ported to latest DAI yet",
         "platform": "all",
     },
-    # "custom-frontend/raw-stream": {
-    #     "reason": "Failed to start the HTTP server",
-    #     "mode": ["peripheral"],
-    # },
-    "custom-frontend/dynamic-yolo-world": {
+    "custom-frontend/raw-stream": {
         "reason": "Failed to start the HTTP server",
+        "mode": ["peripheral"],
+    },
+    "custom-frontend/dynamic-yolo-world": {
+        "reason": "Not supported for peripheral",
         "mode": ["peripheral"],
     },
     "integrations/roboflow-integration": {
