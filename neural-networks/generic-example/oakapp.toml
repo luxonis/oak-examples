@@ -2,8 +2,6 @@ identifier = "com.luxonis.generic-example"
 app_version = "1.0.0"
 
 prepare_container = [
-    { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3" },
 ]
 
 prepare_build_container = []
