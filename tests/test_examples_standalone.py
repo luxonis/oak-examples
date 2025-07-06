@@ -4,6 +4,7 @@ import shutil
 import pytest
 import time
 from pathlib import Path
+from collections import deque
 import logging
 import threading
 import queue
@@ -155,10 +156,12 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         t.start()
 
         passed = True
+        recent_lines = deque(maxlen=10)
         while True and app_started:
             try:
-                line = q.get_nowait()
-                logger.debug(f"[app output]: {line.strip()}")
+                line = q.get_nowait().strip()
+                recent_lines.append(line)
+                logger.debug(f"[app output]: {line}")
             except queue.Empty:
                 pass
 
@@ -168,6 +171,9 @@ def run_example(example_dir: Path, args: Dict) -> bool:
                 logger.error(
                     f"App status switched to '{status}' after {time.time() - start_time:.2f}s but should run for {run_duration}s."
                 )
+                logger.error("Last 10 log lines from device:")
+                for log_line in recent_lines:
+                    logger.error(f"  {log_line}")
                 passed = False
                 break
 

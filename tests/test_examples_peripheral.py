@@ -4,6 +4,7 @@ import shutil
 import sys
 import pytest
 import time
+from collections import deque
 from pathlib import Path
 from venv import EnvBuilder
 import logging
@@ -186,6 +187,23 @@ def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int =
 
             # If it finishes early (not ideal), check exit code and logs
             if process.returncode == 0:
+                last_stdout_lines = deque(stdout.splitlines(), maxlen=10)
+                last_stderr_lines = deque(stderr.splitlines(), maxlen=10)
+
+                logger.error(
+                    f"{example_dir} ran for less than {timeout} seconds before terminating (exit code 0)."
+                )
+
+                if last_stdout_lines:
+                    logger.error("Last stdout lines:")
+                    for line in last_stdout_lines:
+                        logger.error(f"  {line}")
+
+                if last_stderr_lines:
+                    logger.error("Last stderr lines:")
+                    for line in last_stderr_lines:
+                        logger.error(f"  {line}")
+
                 logger.error(
                     f"{example_dir} ran for less than {timeout} seconds before terminating (exit code 0)."
                 )

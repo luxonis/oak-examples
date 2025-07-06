@@ -1,11 +1,12 @@
 import cv2
 import numpy as np
 import depthai as dai
+from typing import Tuple
 from depthai_nodes import (
     ImgDetectionsExtended,
 )
-from typing import Tuple
-from .annotation_helper import AnnotationHelper
+from depthai_nodes.utils import AnnotationHelper
+
 from .stereo_inference import StereoInference
 
 
