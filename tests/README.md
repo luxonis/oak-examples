@@ -31,7 +31,7 @@ You can also pass other custom options to the pytest command. Here is a list of 
                         Specify a depthai-nodes version to override requirements.txt. Can be either released version or branch from GH.
   --environment-variables=ENVIRONMENT_VARIABLES
                         List of additional environment variables (format: VAR1=VAL1 VAR2=VAL2).
-  --virtual-display     Enable virtual display (sets DISPLAY=':99').
+  --virtual-display     Enable virtual display (sets DISPLAY=':99'). Only used for peripheral tests.
   --platform={rvc2,rvc4}
                         Specify a platform this is tested on (rvc2 or rvc4). Only used for filtering test examples.
   --python-version={3.8,3.10,3.12}

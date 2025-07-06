@@ -1,4 +1,4 @@
-name: Gen3 Experiments Runnability Test
+name: Runnability tests for DAIv3 oak-examples
 
 on:
   workflow_dispatch:
@@ -178,7 +178,7 @@ jobs:
             --env PLATFORM="rvc4" \
             --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
             --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
-            --env PYTHON_VERSION_ENV="3.12" \
+            --env PYTHON_VERSION_ENV="3.10" \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
             --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \

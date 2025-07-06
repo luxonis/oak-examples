@@ -40,7 +40,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--virtual-display",
         action="store_true",
-        help="Enable virtual display (sets DISPLAY=':99').",
+        help="Enable virtual display (sets DISPLAY=':99'). Only used for peripheral tests.",
     )
     parser.addoption(
         "--platform",

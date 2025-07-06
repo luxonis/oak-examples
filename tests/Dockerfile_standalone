@@ -11,17 +11,11 @@ ENV STRICT_MODE="no"
 
 # Install Virtual Display
 RUN apt-get update && apt-get install -y \
-    xvfb \
-    x11-utils \
-    xorg \
-    ffmpeg \
-    libzbar-dev \
     ntpdate \
     sudo \
     udev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-ENV DISPLAY=:99
 
 # Copy your project files into the container
 # NOTE: If ran inside GH workflow or with HIL --sync-workspace this is not needed
@@ -47,7 +41,6 @@ ENTRYPOINT ["sh", "-c", "\
     --depthai-version=${DAI_VERSION} \
     --depthai-nodes-version=${DAI_NODES_VERSION} \
     --environment-variables=DEPTHAI_PLATFORM=${PLATFORM} \
-    --virtual-display \
     --platform=${PLATFORM} \
     --python-version=${PYTHON_VERSION_ENV} \
     --device-password=${DEVICE_PASSWORD} \
