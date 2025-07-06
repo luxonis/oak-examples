@@ -4,6 +4,8 @@ This example runs [Whisper Tiny EN Network](https://models.luxonis.com/luxonis/w
 
 **Audio is currently recorded on the host computer.**
 
+> **NOTE:** This example works only on `RVC4` devices.
+
 ## Demo
 
 ![demo](assets/demo.gif)

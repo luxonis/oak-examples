@@ -2,7 +2,7 @@ import depthai as dai
 import cv2
 import os
 import time
-from .img_annotation_helper import AnnotationHelper
+from depthai_nodes.utils import AnnotationHelper
 from typing import Optional, Tuple
 import numpy as np
 from types import SimpleNamespace
