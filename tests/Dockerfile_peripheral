@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     xorg \
     ffmpeg \
     libzbar-dev \
+    portaudio19-dev \
+    libportaudio2 \
     && rm -rf /var/lib/apt/lists/*
 ENV DISPLAY=:99
 
