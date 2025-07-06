@@ -47,7 +47,6 @@ KNOWN_FAILING = {
     },
     "neural-networks/object-detection/thermal-detection": {
         "reason": "Needs thermal camera",
-        "mode": "all",
         "platform": "all",
     },
     "neural-networks/object-tracking/kalman": {
@@ -70,16 +69,6 @@ KNOWN_FAILING = {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
         "platform": ["rvc4"],
     },
-    # "integrations/rerun": {
-    #     "reason": "Failed loading `libxkbcommon-x11.so.0",
-    #     "mode": "all",
-    #     "platform": ["rvc4"],
-    # },
-    # "integrations/foxglove": {
-    #     "reason": "Loaded model is for RVC2, but the device is RVC4",
-    #     "mode": "all",
-    #     "platform": ["rvc4"],
-    # },
     "integrations/hub-snaps-events": {
         "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method - Needs to be set by the user.",
         "mode": "all",
