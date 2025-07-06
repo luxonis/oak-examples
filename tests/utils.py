@@ -74,14 +74,14 @@ def is_valid(
     return (True, "")
 
 
-def check_general(have: str, failing: Union[str, list[str]]):
+def check_general(have: str, failing: Union[str, List[str]]):
     """Returns True if test will pass"""
     if failing == "all":
         return False
     return have not in failing
 
 
-def check_dai(have, failing):
+def check_dai(have: str, failing: str):
     """Returns True if DAI version we have is not failing"""
     if have is None or have == "":
         # if not explicitly set we assume it should pass with one specified in requirements
