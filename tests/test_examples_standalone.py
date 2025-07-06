@@ -130,7 +130,7 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             logger.debug(f"[app output]: {line}")
 
             # Look for build error in logs
-            if "BuilderError" in line:
+            if "Failed to read develop logs" in line:
                 process.terminate()
                 logger.error(f"Error during build: {line}")
                 return False
