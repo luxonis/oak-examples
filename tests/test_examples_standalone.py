@@ -92,9 +92,17 @@ def setup_env(
 
 
 def enqueue_output(out, q):
-    for line in iter(out.readline, ""):
-        q.put(line)
-    out.close()
+    try:
+        for line in iter(out.readline, ""):
+            q.put(line)
+    except ValueError:
+        # This happens if 'out' is closed while reading.
+        pass
+    finally:
+        try:
+            out.close()
+        except Exception:
+            pass  # Ignore if already closed
 
 
 def run_example(example_dir: Path, args: Dict) -> bool:
@@ -124,16 +132,11 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         app_started = False
         start_time = None
         signal_start = time.time()
-
+        recent_lines = deque(maxlen=10)
         for line in process.stdout:
             line = line.strip()
+            recent_lines.append(line)
             logger.debug(f"[app output]: {line}")
-
-            # Look for build error in logs
-            if "BuilderError" in line:
-                process.terminate()
-                logger.error(f"Error during build: {line}")
-                return False
 
             # Detect app start trigger
             if "App output:" in line:
@@ -147,6 +150,18 @@ def run_example(example_dir: Path, args: Dict) -> bool:
                 process.terminate()
                 logger.error(f"Timeout waiting for app start after {startup_timeout}s.")
                 return False
+
+        # At this point, either app started, or process.stdout hit EOF
+        process.stdout.close()
+        process.wait()
+        if not app_started:
+            logger.error(
+                f"Process exited before app started (code: {process.returncode})"
+            )
+            logger.error("Last 10 log lines from device:")
+            for log_line in recent_lines:
+                logger.error(f"  {log_line}")
+            return False
 
         # Setup threading to keep reading app outputs
         q = queue.Queue()

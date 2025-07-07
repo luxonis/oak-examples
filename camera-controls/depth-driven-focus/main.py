@@ -33,6 +33,7 @@ with dai.Pipeline(device) as pipeline:
     )
 
     stereo = pipeline.create(dai.node.StereoDepth).build(left=left_out, right=right_out)
+    stereo.setDepthAlign(align=dai.StereoDepthConfig.AlgorithmControl.DepthAlign.CENTER)
     stereo.setLeftRightCheck(True)
     stereo.setRectification(True)
     stereo.setExtendedDisparity(True)
