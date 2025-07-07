@@ -17,12 +17,22 @@ def initialize_argparser():
     )
 
     parser.add_argument(
-        "-r",
-        "--recording",
-        help="Path to the recording directory you aim to run the experiment on. Recording should contain left.mp4 and right.mp4 files and calib.json file.",
+        "-a",
+        "--axis",
+        help="Axis for cumulative counting.",
         required=False,
-        default=None,
+        default="y",
+        choices=["x", "y"],
         type=str,
+    )
+
+    parser.add_argument(
+        "-roi",
+        "--roi_position",
+        help="Position of the axis (if 0.5, axis is placed in the middle of the frame).",
+        required=False,
+        default=0.5,
+        type=float,
     )
 
     args = parser.parse_args()

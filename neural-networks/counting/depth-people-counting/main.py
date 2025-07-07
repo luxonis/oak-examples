@@ -1,14 +1,26 @@
 import depthai as dai
-
 from pathlib import Path
-from displayPeopleCounter import DisplayPeopleCounter
-from hostNodes import FrameEditor, InputsConnector
+
+from hostNodes import FrameEditor
+
+from utils.arguments import initialize_argparser
+from utils.disparity_to_dets import DisparityToDetections
+from utils.annotation_node import AnnotationNode
+
+from depthai_nodes.node import ApplyColormap
+
+
+_, args = initialize_argparser()
 
 PATH = (Path(__file__).parent / "resources").resolve().absolute()
 SIZE = (1280, 800)
 
+visualizer = dai.RemoteConnection(httpPort=8082)
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+platform = device.getPlatformAsString()
+print(f"Platform: {platform}")
 
-with dai.Pipeline() as pipeline:
+with dai.Pipeline(device) as pipeline:
     pipeline.setCalibrationData(dai.CalibrationHandler(str(PATH / "calib.json")))
 
     left = pipeline.create(dai.node.ReplayVideo)
@@ -35,30 +47,40 @@ with dai.Pipeline() as pipeline:
     stereo.setLeftRightCheck(True)
     stereo.setSubpixel(False)
 
-    object_tracker = pipeline.create(dai.node.ObjectTracker)
-    object_tracker.inputTrackerFrame.setBlocking(True)
-    object_tracker.inputDetectionFrame.setBlocking(True)
-    object_tracker.inputDetections.setBlocking(True)
-    object_tracker.setDetectionLabelsToTrack([1])  # track only person
-    object_tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
-    object_tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
-
-    connect_node = pipeline.create(
-        InputsConnector
-    )  # need one InputQueue for two inputs
-    connect_node.output.link(object_tracker.inputDetectionFrame)
-    connect_node.output.link(object_tracker.inputTrackerFrame)
-
-    disparity_multiplier = 255 / stereo.initialConfig.getMaxDisparity()
-
-    pipeline.create(DisplayPeopleCounter).build(
-        depth_in=stereo.disparity,
-        tracklets_in=object_tracker.out,
-        det_in_q=object_tracker.inputDetections.createInputQueue(),
-        frame_in_q=connect_node.input.createInputQueue(),
-        disparity_multiplier=disparity_multiplier,
+    detection_generator = pipeline.create(DisparityToDetections).build(
+        disparity=stereo.disparity,
+        max_disparity=stereo.initialConfig.getMaxDisparity(),
+        roi=(50, 50, 550, 350),
     )
 
+    # object tracking
+    objectTracker = pipeline.create(dai.node.ObjectTracker)
+    objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    objectTracker.setTrackerIdAssignmentPolicy(
+        dai.TrackerIdAssignmentPolicy.SMALLEST_ID
+    )
+
+    color_transform_disparity = pipeline.create(ApplyColormap).build(stereo.disparity)
+    color_transform_disparity.out.link(objectTracker.inputTrackerFrame)
+    color_transform_disparity.out.link(objectTracker.inputDetectionFrame)
+    detection_generator.out.link(objectTracker.inputDetections)
+
+    # annotation
+    annotation_node = pipeline.create(AnnotationNode).build(
+        objectTracker.out, axis=args.axis, roi_position=args.roi_position
+    )
+
+    # visualization
+    visualizer.addTopic("Disparity", color_transform_disparity.out, "disparity")
+    visualizer.addTopic("Count", annotation_node.out)
+
     print("Pipeline created.")
-    pipeline.run()
-    print("Pipeline finished.")
+
+    pipeline.start()
+    visualizer.registerPipeline(pipeline)
+
+    while pipeline.isRunning():
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key from the remote connection!")
+            break
