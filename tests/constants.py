@@ -21,8 +21,8 @@ KNOWN_FAILING = {
         "platform": "all",
     },
     "custom-frontend/raw-stream": {
-        "reason": "Failed to start the HTTP server",
-        "mode": ["peripheral"],
+        "reason": "Failed to start the HTTP server on peripheral. Needs luxonis/base-image for standalone.",
+        "mode": "all",
     },
     "custom-frontend/dynamic-yolo-world": {
         "reason": "Not supported for peripheral",
