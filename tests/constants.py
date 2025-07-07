@@ -9,24 +9,24 @@
 
 KNOWN_FAILING = {
     "tutorials/multiple-devices/multi-cam-calibration": {
-        "reason": "Not ported to latest DAI yet",
-        "mode": "all",
-        "platform": "all",
+        "reason": "Needs --include-ip flag turned to work on RVC4.",
+        "platform": ["rvc4"],
+    },
+    "tutorials/multiple-devices/multiple-devices-preview": {
+        "reason": "Needs --include-ip flag turned to work on RVC4.",
+        "platform": ["rvc4"],
     },
     "tutorials/multiple-devices/spatial-detection-fusion": {
         "reason": "Not ported to latest DAI yet",
-        "mode": "all",
-        "platform": "all",
-    },
-    "tutorials/multiple-devices/multiple-devices-preview": {
-        "reason": "Needs multiple devices",
-        "mode": "all",
         "platform": "all",
     },
     "custom-frontend/raw-stream": {
-        "reason": "Failed to start the HTTP server",
+        "reason": "Failed to start the HTTP server on peripheral. Needs luxonis/base-image for standalone.",
         "mode": "all",
-        "platform": "all",
+    },
+    "custom-frontend/dynamic-yolo-world": {
+        "reason": "Not supported for peripheral",
+        "mode": ["peripheral"],
     },
     "integrations/roboflow-integration": {
         "reason": "Can't run without arguments (e.g. roboflow api-key)",
@@ -34,58 +34,39 @@ KNOWN_FAILING = {
         "platform": "all",
     },
     "neural-networks/speech-recognition/whisper-tiny-en": {
-        "reason": "Complex example, needs to be updated",
-        "mode": "all",
-        "platform": "all",
+        "reason": "Complex example, works only on RVC4",
+        "platform": ["rvc2"],
     },
     "neural-networks/object-detection/yolo-world": {
         "reason": "Complex example, works only on RVC4",
-        "mode": "all",
         "platform": ["rvc2"],
     },
     "neural-networks/ocr/license-plate-recognition": {
         "reason": "Complex example, works only on RVC4",
-        "mode": "all",
         "platform": ["rvc2"],
     },
     "neural-networks/object-detection/thermal-detection": {
         "reason": "Needs thermal camera",
-        "mode": "all",
         "platform": "all",
     },
     "neural-networks/object-tracking/kalman": {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "mode": "all",
         "platform": ["rvc4"],
     },
     "neural-networks/object-tracking/collision-avoidance": {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "mode": "all",
         "platform": ["rvc4"],
     },
     "neural-networks/object-tracking/people-tracker": {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "mode": "all",
         "platform": ["rvc4"],
     },
     "neural-networks/counting/cumulative-object-counting": {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "mode": "all",
         "platform": ["rvc4"],
     },
     "neural-networks/counting/depth-people-counting": {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "mode": "all",
-        "platform": ["rvc4"],
-    },
-    "integrations/rerun": {
-        "reason": "Failed loading `libxkbcommon-x11.so.0",
-        "mode": "all",
-        "platform": ["rvc4"],
-    },
-    "integrations/foxglove": {
-        "reason": "Loaded model is for RVC2, but the device is RVC4",
-        "mode": "all",
         "platform": ["rvc4"],
     },
     "integrations/hub-snaps-events": {
@@ -97,6 +78,10 @@ KNOWN_FAILING = {
         "reason": "Open3D causes some memory segfault",
         "mode": "all",
         "platform": "all",
+    },
+    "depth-measurement/triangulation": {
+        "reason": "Can't sync outputs inside Triangulation node",
+        "platform": ["rvc4"],
     },
     "streaming/rtsp-streaming": {
         "reason": "PyCairo installation issues",
