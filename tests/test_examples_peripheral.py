@@ -10,7 +10,7 @@ from venv import EnvBuilder
 import logging
 from typing import Optional, Dict, List
 
-from utils import adjust_requirements, is_valid, change_and_restore_dir
+from utils import is_valid, change_and_restore_dir
 from constants import KNOWN_FAILING, IGNORED_WARNINGS
 
 
@@ -101,18 +101,8 @@ def setup_virtual_env(
     EnvBuilder(clear=True, with_pip=True).create(venv_dir)
     env_exe = venv_dir / "bin" / "python3"
 
-    new_requirements = adjust_requirements(
-        current_req_path=requirements_path,
-        depthai_version=depthai_version,
-        depthai_nodes_version=depthai_nodes_version,
-    )
-
-    new_req_path = venv_dir / "requirements_modified.txt"
-    with open(new_req_path, "w") as f:
-        f.writelines(new_requirements)
-
-    # Install dependencies
     try:
+        # Step 1: Install all base requirements (ignoring version constraints)
         subprocess.run(
             [
                 env_exe,
@@ -120,7 +110,7 @@ def setup_virtual_env(
                 "pip",
                 "install",
                 "-r",
-                str(new_req_path),
+                str(requirements_path),
                 "--timeout=60",
             ],
             check=True,
@@ -128,12 +118,52 @@ def setup_virtual_env(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
+        # Step 2: Conditionally override with specific depthai-nodes version
+        if depthai_nodes_version:
+            logger.debug(
+                f"Trying to install specific depthai-nodes version: {depthai_nodes_version}"
+            )
+            subprocess.run(
+                [
+                    env_exe,
+                    "-m",
+                    "pip",
+                    "install",
+                    f"depthai-nodes=={depthai_nodes_version}"
+                    if "==" in depthai_nodes_version
+                    else depthai_nodes_version,
+                ],
+                check=True,
+            )
+
+        # Step 3: Conditionally override with specific depthai version
+        if depthai_version:
+            logger.debug(
+                f"Trying to install specific depthai version: {depthai_version}"
+            )
+            subprocess.run(
+                [
+                    env_exe,
+                    "-m",
+                    "pip",
+                    "install",
+                    "-U",
+                    "--prefer-binary",
+                    "--extra-index-url",
+                    "https://artifacts.luxonis.com/artifactory/luxonis-python-release-local",
+                    "--extra-index-url",
+                    "https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local",
+                    f"depthai=={depthai_version}",
+                ],
+                check=True,
+            )
+
         logger.debug(f"Installed packages:\n{get_installed_packages(env_exe)}")
+
     except subprocess.CalledProcessError as e:
         shutil.rmtree(venv_dir)
         pytest.fail(f"Failed to install dependencies for {venv_dir.parent}: {e.stderr}")
-    finally:
-        os.remove(new_req_path)
 
 
 def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int = 3):

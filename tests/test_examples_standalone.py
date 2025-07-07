@@ -83,6 +83,9 @@ def setup_env(
         depthai_version=depthai_version,
         depthai_nodes_version=depthai_nodes_version,
     )
+    logger.info(
+        "If depthai and depthai-nodes versions are not compatible then dependency resolver might fail."
+    )
     # Create a copy of the old requirements
     shutil.copyfile(requirements_path, base_dir / "requirements_old.txt")
     # Save new requirements
