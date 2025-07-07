@@ -98,11 +98,6 @@ KNOWN_FAILING = {
         "mode": "all",
         "platform": "all",
     },
-    "depth-measurement/triangulation": {
-        "reason": "Can't sync outputs inside Triangulation node",
-        "mode": "all",
-        "platform": ["rvc4"],
-    },
     "streaming/rtsp-streaming": {
         "reason": "PyCairo installation issues",
         "mode": "all",
