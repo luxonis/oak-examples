@@ -1,14 +1,12 @@
 import depthai as dai
 from pathlib import Path
 
-from hostNodes import FrameEditor
-
 from utils.arguments import initialize_argparser
+from utils.frame_editor import FrameEditor
 from utils.disparity_to_dets import DisparityToDetections
 from utils.annotation_node import AnnotationNode
 
 from depthai_nodes.node import ApplyColormap
-
 
 _, args = initialize_argparser()
 
