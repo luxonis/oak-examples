@@ -6,11 +6,11 @@ from depthai_nodes.node import (
     ImgDetectionsFilter,
 )
 
-from utils.helper_functions import {
+from utils.helper_functions import (
     extract_text_embeddings,
     extract_image_prompt_embeddings,
     base64_to_cv2_image,
-}
+)
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 
