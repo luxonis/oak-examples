@@ -10,14 +10,15 @@ import base64
 QUANT_ZERO_POINT = 90.0
 QUANT_SCALE = 0.003925696481
 
+
 def pad_and_quantize_features(features, max_num_classes=80):
     """
     Apply padding and quantization to feature embeddings.
-    
+
     Args:
         features: Input feature array to be padded and quantized
         max_num_classes: Maximum number of classes for padding
-    
+
     Returns:
         Padded and quantized features as uint8 array
     """
@@ -63,6 +64,7 @@ def extract_text_embeddings(class_names, max_num_classes=80):
 
     return text_features
 
+
 def extract_image_prompt_embeddings(image, max_num_classes=80):
     if isinstance(image, np.ndarray):
         image = Image.fromarray(image)
@@ -73,28 +75,27 @@ def extract_image_prompt_embeddings(image, max_num_classes=80):
         "https://huggingface.co/sokovninn/clip-visual-with-projector/resolve/main/clip_visual_with_projector.onnx",
         "clip_visual_with_projector.onnx",
     )
-    
+
     session = onnxruntime.InferenceSession(
         onnx_model_path,
         providers=[
             "TensorrtExecutionProvider",
-            "CUDAExecutionProvider", 
-            "CPUExecutionProvider"
-        ]
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ],
     )
-    
+
     input_name = session.get_inputs()[0].name
     outputs = session.run(None, {input_name: input_tensor})
     image_embeddings = outputs[0]  # Shape: (1, 512)
-    
-    image_embeddings = image_embeddings.squeeze(0).reshape(1, -1)  # Shape: (1, 512)
-    
-    image_features = pad_and_quantize_features(image_embeddings, max_num_classes)
-    
-    del session
-    
-    return image_features
 
+    image_embeddings = image_embeddings.squeeze(0).reshape(1, -1)  # Shape: (1, 512)
+
+    image_features = pad_and_quantize_features(image_embeddings, max_num_classes)
+
+    del session
+
+    return image_features
 
 
 def download_model(url, save_path):
@@ -114,25 +115,27 @@ def download_model(url, save_path):
 
     return save_path
 
+
 def preprocess_image(image):
     """Preprocess image for CLIP vision model input"""
     image = image.resize((224, 224))
-    
+
     # Convert to numpy array and normalize
     image_array = np.array(image).astype(np.float32) / 255.0
-    
+
     # CLIP normalization values
     mean = np.array([0.48145466, 0.4578275, 0.40821073])
     std = np.array([0.26862954, 0.26130258, 0.27577711])
-    
+
     # Normalize
     image_array = (image_array - mean) / std
-    
+
     # Convert to CHW format and add batch dimension
     image_array = np.transpose(image_array, (2, 0, 1))  # HWC to CHW
-    image_array = np.expand_dims(image_array, axis=0)   # Add batch dimension
-    
+    image_array = np.expand_dims(image_array, axis=0)  # Add batch dimension
+
     return image_array.astype(np.float32)
+
 
 def base64_to_cv2_image(base64_data_uri: str):
     if "," in base64_data_uri:
