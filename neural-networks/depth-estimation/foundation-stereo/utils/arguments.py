@@ -1,5 +1,6 @@
 import argparse
 
+
 def initialize_argparser():
     """Initialize the argument parser for the script."""
     parser = argparse.ArgumentParser(
@@ -41,6 +42,7 @@ def initialize_argparser():
         "-r",
         "--resolution",
         help="Resolution of the streams, select 400 (for 640x400) or 800 (for 1280x800).",
+        choices=[400, 800],
         required=False,
         default=400,
         type=int,
