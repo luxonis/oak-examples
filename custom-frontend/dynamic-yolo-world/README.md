@@ -24,6 +24,8 @@ Here is a list of all available parameters:
 -p PORT, --port PORT  Port to serve the frontend on. (default: None)
 ```
 
+### Prerequisites
+
 Before running the example you’ll need to first build the frontend. Follow these steps:
 
 1. Install FE dependencies: `cd frontend/ && npm i`
