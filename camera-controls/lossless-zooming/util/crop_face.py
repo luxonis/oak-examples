@@ -1,4 +1,5 @@
 import depthai as dai
+from typing import Tuple
 from depthai_nodes import ImgDetectionsExtended
 
 AVG_MAX_NUM = 10
@@ -39,8 +40,8 @@ class CropFace(dai.node.HostNode):
     def build(
         self,
         detections_input: dai.Node.Output,
-        source_size: tuple[int, int],
-        target_size: tuple[int, int] = (1920, 1080),
+        source_size: Tuple[int, int],
+        target_size: Tuple[int, int] = (1920, 1080),
         resize_mode: dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.CENTER_CROP,
     ):
         """Link the node input and set the correct source and target image sizes.
@@ -105,7 +106,7 @@ class CropFace(dai.node.HostNode):
 
         self.config_output.send(cfg)
 
-    def _average_filter(self, x, y) -> tuple[int, int]:
+    def _average_filter(self, x, y) -> Tuple[int, int]:
         """
         Apply a simple average filter to the x and y coordinates to smooth out the crop center position over multiple frames.
         """

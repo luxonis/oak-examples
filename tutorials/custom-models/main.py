@@ -1,4 +1,5 @@
 import depthai as dai
+from pathlib import Path
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.colorize_diff import ColorizeDiff
@@ -55,21 +56,24 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # BLUR
-    blur_nn_archive = dai.NNArchive(
-        archivePath=f"models/blur.{platform.lower()}.tar.xz"
+    blur_nn_archive_path = Path(__file__).parent / Path(
+        f"models/blur.{platform.lower()}.tar.xz"
     )
+    blur_nn_archive = dai.NNArchive(archivePath=str(blur_nn_archive_path))
     nn_blur = pipeline.create(ParsingNeuralNetwork).build(cam_rgb_out, blur_nn_archive)
 
     # EDGE
-    edge_nn_archive = dai.NNArchive(
-        archivePath=f"models/edge.{platform.lower()}.tar.xz"
+    edge_nn_archive_path = Path(__file__).parent / Path(
+        f"models/edge.{platform.lower()}.tar.xz"
     )
+    edge_nn_archive = dai.NNArchive(archivePath=str(edge_nn_archive_path))
     nn_edge = pipeline.create(ParsingNeuralNetwork).build(cam_rgb_out, edge_nn_archive)
 
     # CONCAT
-    concat_nn_archive = dai.NNArchive(
-        archivePath=f"models/concat.{platform.lower()}.tar.xz"
+    concat_nn_archive_path = Path(__file__).parent / Path(
+        f"models/concat.{platform.lower()}.tar.xz"
     )
+    concat_nn_archive = dai.NNArchive(archivePath=str(concat_nn_archive_path))
     nn_concat = pipeline.create(ParsingNeuralNetwork)
     nn_concat.setNNArchive(concat_nn_archive)
     cam_rgb_out.link(nn_concat.inputs["img1"])
@@ -88,9 +92,10 @@ with dai.Pipeline(device) as pipeline:
     cam_rgb_diff_out.link(script.inputs["in"])
 
     # DIFF
-    diff_nn_archive = dai.NNArchive(
-        archivePath=f"models/diff.{platform.lower()}.tar.xz"
+    diff_nn_archive_path = Path(__file__).parent / Path(
+        f"models/diff.{platform.lower()}.tar.xz"
     )
+    diff_nn_archive = dai.NNArchive(archivePath=str(diff_nn_archive_path))
     nn_diff = pipeline.create(dai.node.NeuralNetwork)
     nn_diff.setNNArchive(diff_nn_archive)
     script.outputs["img1"].link(nn_diff.inputs["img1"])

@@ -6,6 +6,14 @@ def initialize_argparser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
+    parser.add_argument(
+        "-d",
+        "--device",
+        help="Optional name, DeviceID or IP of the camera to connect to.",
+        required=False,
+        default=None,
+        type=str,
+    )
 
     parser.add_argument(
         "-fps",

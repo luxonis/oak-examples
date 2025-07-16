@@ -8,7 +8,7 @@ This section contains examples showing different ways to manipulate and stream d
 | :-----------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: |
 | <img src="poe-mqtt/media/mqtt_client.gif" alt="poe mqtt" style="height:250px;"> | <img src="rtsp-streaming/media/rtsp_stream.gif" alt="rtsp streaming" style="height:250px;"> |
 
-| Name                                      | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | Gen2                                                                                                   | Notes                                                  |
+| Name                                      | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | DepthAIv2                                                                                              | Notes                                                  |
 | ----------------------------------------- | ---- | ----------------- | ----------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
 | [mjpeg-streaming](mjpeg-streaming/)       | ✅   | ✅                | ✅                | [gen2-mjpeg-streaming](https://github.com/luxonis/oak-examples/tree/master/gen2-mjpeg-streaming)       | Example of MJPEG video streaming implementation        |
 | [poe-mqtt](poe-mqtt/)                     | ✅   | ✅                | ✅                | [gen2-poe-mqtt](https://github.com/luxonis/oak-examples/tree/master/gen2-poe-mqtt)                     | Demonstration of MQTT protocol usage with PoE cameras  |

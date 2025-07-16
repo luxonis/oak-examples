@@ -1,4 +1,5 @@
 import depthai as dai
+from pathlib import Path
 from utils.arguments import initialize_argparser
 from utils.colorize_diff import ColorizeDiff
 
@@ -36,9 +37,10 @@ with dai.Pipeline(device) as pipeline:
     cam_rgb_diff_out.link(script.inputs["in"])
 
     # DIFF
-    diff_nn_archive = dai.NNArchive(
-        archivePath=f"models/diff.{platform.lower()}.tar.xz"
+    diff_nn_archive_path = Path(__file__).parent / Path(
+        f"models/diff.{platform.lower()}.tar.xz"
     )
+    diff_nn_archive = dai.NNArchive(archivePath=str(diff_nn_archive_path))
     nn_diff = pipeline.create(dai.node.NeuralNetwork)
     nn_diff.setNNArchive(diff_nn_archive)
     script.outputs["img1"].link(nn_diff.inputs["img1"])

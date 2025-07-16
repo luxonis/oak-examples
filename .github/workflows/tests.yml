@@ -1,4 +1,4 @@
-name: Gen3 Experiments Runnability Test
+name: Runnability tests for DAIv3 oak-examples
 
 on:
   workflow_dispatch:
@@ -16,18 +16,6 @@ on:
         description: 'Python version to use. By default 3.8, 3.10 and 3.12 are used but you can use only one by passing only `3.8`, `3.10` or `3.12`.'
         default: "all"
         required: false
-      hold_reservation:
-        description: 'If this is set to true testbed will stay reserved after process is done - reccomended for CI use'
-        required: false
-        type: boolean
-      reservation_name:
-          description: 'Reservation name - usually usually unique identifier of root CI run'
-          required: false
-          type: string
-      platform:
-        description: 'Platform to use for testing. By default both RVC2 and RVC4 are used but you can use only one by passing only `rvc2` or `rvc4`(use lowercase).'
-        default: "all"
-        required: false
       log_level:
         description: 'Log level to use for pytest.'
         type: choice
@@ -36,6 +24,14 @@ on:
           - INFO
           - DEBUG
         default: INFO
+        required: false
+      reservation_name:
+          description: 'Reservation name - usually usually unique identifier of root CI run'
+          required: false
+          type: string
+      platform:
+        description: 'Platform to use for testing. By default both RVC2 and RVC4 are used but you can use only one by passing only `rvc2` or `rvc4`(use lowercase).'
+        default: "all"
         required: false
       root_dir:
         decription: 'Root directory of the experiments you want to test. Defaults to all experiments.'
@@ -48,6 +44,15 @@ on:
           - "yes"
           - "no"
         default: "no"
+        required: false
+      subtests:
+        description: "Specify if should run only peripheral, only standalone or both"
+        type: choice
+        options:
+          - "all"
+          - "peripheral"
+          - "standalone"
+        default: "all"
         required: false
 
 jobs:
@@ -92,10 +97,10 @@ jobs:
           git fetch
           git checkout main
 
-  test:
+  test_peripheral:
     needs: [setup, update-hil]
     runs-on: ["self-hosted", "testbed-runner"]
-
+    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'peripheral'}}
     strategy:
       matrix:
         python-version: ${{ fromJSON(needs.setup.outputs.matrix_python) }}
@@ -118,7 +123,7 @@ jobs:
           if [ "${{ matrix.platform }}" = "rvc2" ]; then
             echo "MODEL=oak_d_s2" >> $GITHUB_ENV
           elif [ "${{ matrix.platform }}" = "rvc4" ]; then
-            echo "MODEL=oak4_pro" >> $GITHUB_ENV
+            echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
           fi
           
       - name: Run Test
@@ -137,16 +142,58 @@ jobs:
 
           if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
                 RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
-            fi
-
-          if [[ "${{ github.event.inputs.hold_reservation }}" == 'true' ]]; then
-                HOLD_RESERVATION="--hold-reservation"
-            fi
+          fi
             
 
-          exec hil --models $MODEL $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
-              --dockerfile ./tests/Dockerfile \
+          exec hil --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
+              --dockerfile ./tests/Dockerfile_peripheral \
               --docker-build-args "--build-arg PYTHON_VERSION=${{ matrix.python-version }}" \
+              --docker-run-args "$ENV_VARS"
+
+  test_standalone:
+    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'standalone'}}
+    needs: [setup, update-hil]
+    runs-on: ["self-hosted", "testbed-runner"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Add HIL Tools to Path
+        run: |
+          echo "/home/$USER/hil_framework/lib_testbed/tools" >> $GITHUB_PATH
+          echo "PYTHONPATH="$PYTHONPATH:/home/$USER/hil_framework"" >> $GITHUB_ENV
+          echo "HIL_FRAMEWORK_PATH="/home/$USER/hil_framework"" >> $GITHUB_ENV
+
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+          
+          ENV_VARS="\
+            --env PLATFORM="rvc4" \
+            --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
+            --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
+            --env PYTHON_VERSION_ENV="3.10" \
+            --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
+            --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
+            --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \
+            --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}"
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+
+          exec hil --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --oakctl --sync-workspace \
+              --dockerfile ./tests/Dockerfile_standalone \
+              --docker-build-args "--build-arg PYTHON_VERSION=3.12" \
               --docker-run-args "$ENV_VARS"

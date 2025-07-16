@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
     branches:
-      - gen3
+      - main
 
 jobs:
   pre-commit:

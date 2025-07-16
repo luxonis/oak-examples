@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     xorg \
     ffmpeg \
     libzbar-dev \
+    portaudio19-dev \
+    libportaudio2 \
     && rm -rf /var/lib/apt/lists/*
 ENV DISPLAY=:99
 
@@ -44,4 +46,4 @@ ENTRYPOINT ["sh", "-c", "\
     --platform=${PLATFORM} \
     --python-version=${PYTHON_VERSION_ENV} \
     --strict-mode=${STRICT_MODE} \
-    tests/"]
+    tests/test_examples_peripheral.py"]

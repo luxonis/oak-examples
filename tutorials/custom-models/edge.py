@@ -1,4 +1,5 @@
 import depthai as dai
+from pathlib import Path
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 
@@ -16,9 +17,10 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # EDGE
-    edge_nn_archive = dai.NNArchive(
-        archivePath=f"models/edge.{platform.lower()}.tar.xz"
+    edge_nn_archive_path = Path(__file__).parent / Path(
+        f"models/edge.{platform.lower()}.tar.xz"
     )
+    edge_nn_archive = dai.NNArchive(archivePath=str(edge_nn_archive_path))
     nn_edge = pipeline.create(ParsingNeuralNetwork).build(
         cam_rgb, edge_nn_archive, fps=args.fps_limit
     )

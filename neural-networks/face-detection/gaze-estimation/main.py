@@ -9,11 +9,12 @@ from utils.node_creators import create_crop_node
 from utils.annotation_node import AnnotationNode
 from utils.host_concatenate_head_pose import ConcatenateHeadPose
 
+DET_MODEL = "luxonis/yunet:320x240"
 HEAD_POSE_MODEL = "luxonis/head-pose-estimation:60x60"
 GAZE_MODEL = "luxonis/gaze-estimation-adas:60x60"
 REQ_WIDTH, REQ_HEIGHT = (
-    768,
-    768,
+    640,
+    480,
 )  # we are requesting larger input size than required because we want to keep some resolution for the second stage model
 
 _, args = initialize_argparser()
@@ -23,11 +24,9 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 platform = device.getPlatform().name
 print(f"Platform: {platform}")
 
-DET_MODEL = (
-    "luxonis/yunet:320x240"
-    if platform == "RVC2"
-    else "luxonis/scrfd-face-detection:10g-640x640"
-)
+if platform == "RVC4":
+    DET_MODEL = "luxonis/scrfd-face-detection:10g-640x640"
+    REQ_WIDTH, REQ_HEIGHT = (768, 768)
 
 frame_type = (
     dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
