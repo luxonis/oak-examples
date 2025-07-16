@@ -3,7 +3,6 @@ import os
 import requests
 import onnxruntime
 import numpy as np
-from PIL import Image
 import cv2
 import base64
 
@@ -66,9 +65,6 @@ def extract_text_embeddings(class_names, max_num_classes=80):
 
 
 def extract_image_prompt_embeddings(image, max_num_classes=80):
-    if isinstance(image, np.ndarray):
-        image = Image.fromarray(image)
-
     input_tensor = preprocess_image(image)
 
     onnx_model_path = download_model(
@@ -118,7 +114,7 @@ def download_model(url, save_path):
 
 def preprocess_image(image):
     """Preprocess image for CLIP vision model input"""
-    image = image.resize((224, 224))
+    image = cv2.resize(image, (224, 224))
 
     # Convert to numpy array and normalize
     image_array = np.array(image).astype(np.float32) / 255.0
