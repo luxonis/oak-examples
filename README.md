@@ -13,12 +13,12 @@ Click on any category below to explore detailed examples for that specific domai
 ## Getting the examples
 
 To clone the repository, use the following:
+
 ```
 git clone --depth 1 --branch main https://github.com/luxonis/oak-examples.git
 ```
 
 Afterwards, navigate to desired application as listed below
-
 
 ## Categories
 
