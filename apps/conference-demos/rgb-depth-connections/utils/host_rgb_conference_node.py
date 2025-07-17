@@ -2,15 +2,15 @@ from pathlib import Path
 import cv2
 import depthai as dai
 import numpy as np
+from depthai_nodes.utils import AnnotationHelper
 
 from .texts import TextHelper, TitleHelper
-from .annotation_helper import AnnotationHelper
 
 JET_CUSTOM = cv2.applyColorMap(np.arange(256, dtype=np.uint8), cv2.COLORMAP_JET)
 JET_CUSTOM = JET_CUSTOM[::-1]
 JET_CUSTOM[0] = [0, 0, 0]
 
-logo_path = Path(__file__).parent.parent / "media" / "logo.jpeg"
+logo_path = Path(__file__).parent.parent / "assets" / "logo.jpeg"
 
 LOGO = cv2.imread(str(logo_path))
 LOGO = cv2.resize(LOGO, (250, 67))

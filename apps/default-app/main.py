@@ -19,12 +19,12 @@ if not device.setIrLaserDotProjectorIntensity(1):
     )
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
-    model_description = dai.NNModelDescription(
-        f"yolov6-nano:r2-coco-{NN_DIMENSIONS[0]}x{NN_DIMENSIONS[1]}"
-    )
     platform = device.getPlatform()
-    platform_str = device.getPlatformAsString()
-    model_description.platform = platform_str
+
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
+    )
+
     nn_archive = dai.NNArchive(
         dai.getModelFromZoo(
             model_description,
