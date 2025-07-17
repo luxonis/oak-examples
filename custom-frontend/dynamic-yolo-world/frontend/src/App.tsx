@@ -1,36 +1,11 @@
-
 import { css } from "../styled-system/css/css.mjs";
 import { Streams, useConnection } from "@luxonis/depthai-viewer-common";
-import { useState } from "react";
-import { MessageInput } from "./MessageInput.tsx";
+import { ClassSelector } from "./ClassSelector.tsx";
 import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
+import { ImageUploader } from "./ImageUploader.tsx";
 
 function App() {
     const connection = useConnection();
-    const [selectedClasses, setSelectedClasses] = useState<string[]>(["person", "chair", "TV"]);
-    const [confidence, setConfidence] = useState(0.1);
-
-    const updateClasses = (input: string) => {
-        const updated = input.split(',').map(c => c.trim()).filter(Boolean);
-        console.log('Sending classes to backend:', updated);
-        // Send to backend
-        // @ts-ignore - Custom service
-        connection.daiConnection?.postToService('Class Update Service', updated, (response) => {
-            console.log('Backend acknowledged class update:', response);
-            setSelectedClasses(updated);
-        });
-    };
-
-    const updateConfidence = (value: number) => {
-        console.log('Sending threshold to backend:', value);
-        // Send to backend
-        // @ts-ignore - Custom service
-        connection.daiConnection?.postToService('Threshold Update Service', value, (response) => {
-            console.log('Backend acknowledged threshold update:', response);
-            setConfidence(value);
-        });
-    };
-
 
     return (
         <main className={css({
@@ -52,7 +27,7 @@ function App() {
                 backgroundColor: 'gray.300'
             })} />
 
-            {/* Right: Info and Control Column */}
+            {/* Right: Sidebar (Info and Controls) */}
             <div className={css({
                 width: 'md',
                 display: 'flex',
@@ -62,25 +37,21 @@ function App() {
                 <h1 className={css({ fontSize: '2xl', fontWeight: 'bold' })}>
                     Dynamic YOLO-World Example
                 </h1>
-                <p>This example showcases the integration of the YOLO-World model with a custom static frontend, enabling dynamic configuration of the object classes you want to detect at runtime.</p>
+                <p>
+                    This example showcases the integration of the YOLO-World model with a custom static frontend,
+                    enabling dynamic configuration of the object classes you want to detect at runtime.
+                </p>
 
-                <div>
-                    <h3 className={css({ fontWeight: 'semibold', marginBottom: 'sm' })}>Selected Classes:</h3>
-                    <ul className={css({ listStyleType: 'disc', paddingLeft: 'lg' })}>
-                        {selectedClasses.map((cls, idx) => (
-                            <li key={idx}>{cls}</li>
-                        ))}
-                    </ul>
-                </div>
+                {/* Class Input */}
+                <ClassSelector />
 
-                <MessageInput onClassUpdate={updateClasses} />
+                {/* Image Uploader */}
+                <ImageUploader />
 
-                <ConfidenceSlider
-                    initialValue={confidence}
-                    onUpdate={updateConfidence}
-                />
+                {/* Confidence Slider */}
+                <ConfidenceSlider initialValue={0.1} />
 
-                {/* Connection Status at Bottom */}
+                {/* Connection Status */}
                 <div className={css({
                     display: 'flex',
                     alignItems: 'center',

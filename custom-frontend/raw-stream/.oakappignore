@@ -1,29 +1,43 @@
-native
-README.md
-*.Dockerfile
-.gitignore
-.gitlab-ci.yml
-Dockerfile
-node_modules
-.cache
-
-*.oakapp
-
-# Python
-**/venv/
-**/.venv/
-**/.mypy_cache/
-**/.ruff_cache/
+# Python virtual environments
+venv/
+.venv/
 
 # Node.js
-**/node_modules/
+# ignore node_modules, it will be reinstalled in the container
+node_modules/
+
+# Docker files
+*.Dockerfile
+Dockerfile
+
+# Build artifacts
+.cache
+native
+
+# Multimedia files
+media/
+
+# Documentation
+README.md
 
 # VCS
-**/.git/
-**/.github/
-**/.gitlab/
+.gitignore
+.git/
+.github/
+.gitlab-ci.yml
+.gitlab/
+
+# The following files are ignored by default
+# uncomment a line if you explicitly need it
+
+# !*.oakapp
+
+# Python
+# !**/.mypy_cache/
+# !**/.ruff_cache/
 
 # IDE files
-**/.idea
-**/.vscode
-**/.zed
+# !**/.idea
+# !**/.vscode
+# !**/.zed
+

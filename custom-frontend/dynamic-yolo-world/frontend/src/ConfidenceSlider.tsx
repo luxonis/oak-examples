@@ -1,18 +1,27 @@
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
+import { useConnection } from "@luxonis/depthai-viewer-common";
 
 interface ConfidenceSliderProps {
     initialValue?: number;
-    onUpdate: (value: number) => void;
 }
 
-export function ConfidenceSlider({ initialValue = 0.5, onUpdate }: ConfidenceSliderProps) {
+export function ConfidenceSlider({ initialValue = 0.5 }: ConfidenceSliderProps) {
+    const connection = useConnection();
     const [value, setValue] = useState(initialValue);
 
-    // Called only when interaction ends
     const handleCommit = () => {
         if (typeof value === "number" && !isNaN(value)) {
-            onUpdate(value);
+            console.log('Sending threshold to backend:', value);
+
+            connection.daiConnection?.postToService(
+                // @ts-ignore - Custom service
+                "Threshold Update Service",
+                value,
+                (response: any) => {
+                    console.log('Backend acknowledged threshold update:', response);
+                }
+            );
         } else {
             console.warn("Invalid value, skipping update:", value);
         }
