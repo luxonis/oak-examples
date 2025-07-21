@@ -1,4 +1,4 @@
-identifier = "com.example.dynamicyoloworld"
+identifier = "com.luxonis.customfrontend.dynamicyoloworld"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.0"
 
