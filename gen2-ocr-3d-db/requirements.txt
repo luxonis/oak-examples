@@ -1,5 +1,5 @@
 opencv-python
-depthai==2.9.0.0
-numpy~=1.19.5
+depthai==2.30
+numpy>=1.22
 pyclipper~=1.3.0
 shapely~=1.7.1

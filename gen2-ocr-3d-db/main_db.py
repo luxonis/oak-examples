@@ -8,10 +8,26 @@ import argparse
 
 # --------------- Arguments ---------------
 parser = argparse.ArgumentParser()
-parser.add_argument("-bt", "--box_thresh", help="set the confidence threshold of boxes", default=0.3, type=float)
-parser.add_argument("-t", "--thresh", help="set the bitmap threshold", default=0.6, type=float)
-parser.add_argument("-ms", "--min_size", default=2, type=int, help='set min size of box')
-parser.add_argument("-mc", "--max_candidates", default=50, type=int, help='maximum number of candidate boxes')
+parser.add_argument(
+    "-bt",
+    "--box_thresh",
+    help="set the confidence threshold of boxes",
+    default=0.3,
+    type=float,
+)
+parser.add_argument(
+    "-t", "--thresh", help="set the bitmap threshold", default=0.6, type=float
+)
+parser.add_argument(
+    "-ms", "--min_size", default=2, type=int, help="set min size of box"
+)
+parser.add_argument(
+    "-mc",
+    "--max_candidates",
+    default=50,
+    type=int,
+    help="maximum number of candidate boxes",
+)
 
 
 args = parser.parse_args()
@@ -20,9 +36,10 @@ MAX_CANDIDATES = args.max_candidates
 MIN_SIZE = args.min_size
 BOX_THRESH = args.box_thresh
 THRESH = args.thresh
-UNCLIP_RATIO = 4 # set big unclip because thresh is high
+UNCLIP_RATIO = 4  # set big unclip because thresh is high
 
 PREVIEW_W, PREVIEW_H = 320, 320
+
 
 def create_pipeline():
     pipeline = dai.Pipeline()
@@ -56,12 +73,12 @@ def create_pipeline():
 
     # ------ Image Manip ------
     manip_recog = pipeline.createImageManip()
-    manip_recog.setWaitForConfigInput(True)
+    manip_recog.inputConfig.setWaitForMessage(True)
     manip_img = pipeline.createXLinkIn()
-    manip_img.setStreamName('manip_img')
+    manip_img.setStreamName("manip_img")
     manip_img.out.link(manip_recog.inputImage)
     manip_cfg = pipeline.createXLinkIn()
-    manip_cfg.setStreamName('manip_cfg')
+    manip_cfg.setStreamName("manip_cfg")
     manip_cfg.out.link(manip_recog.inputConfig)
     # ------------------------
 
@@ -76,7 +93,7 @@ def create_pipeline():
     xout_cam = pipeline.createXLinkOut()
     xout_cam.setStreamName("cam")
     cam.preview.link(xout_cam.input)
-    #manip.out.link(xout_cam.input)
+    # manip.out.link(xout_cam.input)
 
     xout_nn = pipeline.createXLinkOut()
     xout_nn.setStreamName("nn")
@@ -94,9 +111,7 @@ def create_pipeline():
 
 
 if __name__ == "__main__":
-
     with dai.Device() as device:
-
         # fps handling
         start_time = time.time()
         counter = 0
@@ -107,7 +122,6 @@ if __name__ == "__main__":
         device.startPipeline(pipeline)
 
         while True:
-
             # get queues
             q_cam = device.getOutputQueue("cam", 4, False)
             q_nn = device.getOutputQueue("nn", 4, False)
@@ -127,42 +141,55 @@ if __name__ == "__main__":
             # get output layer
             pred = np.array(in_nn.getLayerFp16("out")).reshape((PREVIEW_W, PREVIEW_H))
             # show output mask
-            cv2.imshow("Mask",(pred * 255).astype(np.uint8))
-            tv, thresh = cv2.threshold((pred * 255).astype(np.uint8), 10, 255, cv2.THRESH_BINARY)
+            cv2.imshow("Mask", (pred * 255).astype(np.uint8))
+            tv, thresh = cv2.threshold(
+                (pred * 255).astype(np.uint8), 10, 255, cv2.THRESH_BINARY
+            )
             # get the contours from your thresholded image
-            contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+            contours = cv2.findContours(
+                thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )[0]
             # decode
-            boxes, scores = get_boxes(pred, THRESH, BOX_THRESH, MIN_SIZE, MAX_CANDIDATES, UNCLIP_RATIO)
+            boxes, scores = get_boxes(
+                pred, THRESH, BOX_THRESH, MIN_SIZE, MAX_CANDIDATES, UNCLIP_RATIO
+            )
             boxes = boxes.astype(np.int16)
 
             # recognition init
             texts = []
-            frame_recogs = np.zeros((32, 100, 1), dtype = np.uint8)
+            frame_recogs = np.zeros((32, 100, 1), dtype=np.uint8)
             frame_texts = np.zeros((32, 250, 1), dtype=np.uint8)
 
             # loop over detections
             for idx, box in enumerate(boxes):
-
                 # display text bb
-                cv2.rectangle(frame, (box[0, 0], box[0, 1]), (box[2, 0], box[2, 1]), (255, 0, 0), 1)
+                cv2.rectangle(
+                    frame,
+                    (box[0, 0], box[0, 1]),
+                    (box[2, 0], box[2, 1]),
+                    (255, 0, 0),
+                    1,
+                )
                 cx = (box[0, 0] + box[2, 0]) / 2
                 cy = (box[0, 1] + box[2, 1]) / 2
                 cv2.circle(frame, (int(cx), int(cy)), 1, (255, 0, 0), 1)
                 width = np.linalg.norm(box[0] - box[1])
                 height = np.linalg.norm(box[0] - box[3])
-                dist = np.abs(box[0,0] - box[1, 0])
-                angle = np.arccos(dist/width)
+                dist = np.abs(box[0, 0] - box[1, 0])
+                angle = np.arccos(dist / width)
 
-                #print(f"{dist} / {width} => {np.rad2deg(angle)}")
+                # print(f"{dist} / {width} => {np.rad2deg(angle)}")
 
                 # create rr for image manip
                 rr = dai.RotatedRect()
-                rr.center.x = cx + 15 # manually add so the crop is centered (myb bug in Manip)
+                rr.center.x = (
+                    cx + 15
+                )  # manually add so the crop is centered (myb bug in Manip)
                 rr.center.y = cy
                 rr.size.width = width * 1.2
-                rr.size.height = height# * 1.05
+                rr.size.height = height  # * 1.05
                 rr.angle = 0
-                #rr.angle = np.rad2deg(angle)
+                # rr.angle = np.rad2deg(angle)
 
                 # send to image config to get a crop
                 cfg = dai.ImageManipConfig()
@@ -189,34 +216,60 @@ if __name__ == "__main__":
 
                 # combine text frames
                 frame_text = np.zeros((32, 250, 1), dtype=np.uint8)
-                cv2.putText(frame_text, text_recog, (0, 26), cv2.FONT_HERSHEY_DUPLEX, 0.5, 255)
+                cv2.putText(
+                    frame_text, text_recog, (0, 26), cv2.FONT_HERSHEY_DUPLEX, 0.5, 255
+                )
                 frame_texts = np.vstack([frame_texts, frame_text])
 
             # show all manip crops
             cv2.imshow("recogs", np.hstack([frame_recogs, frame_texts]))
 
-
             # detect 500000k reached
-            #print(texts)
-            r = re.compile('s[0-9]{6}')
+            # print(texts)
+            r = re.compile("s[0-9]{6}")
             raised_list = list(filter(r.match, texts))  # Read Note below
-            print(raised_list)
+            color_black, color_white = (0, 0, 0), (255, 255, 255)
             if len(raised_list) > 0:
                 raised_amount = int(raised_list[0][1:])
                 print(f"PARSED AMOUNT: {raised_amount}")
                 raised_text = f"Raised: ${raised_amount}"
-                (w, h), _ = cv2.getTextSize(raised_text, cv2.FONT_HERSHEY_DUPLEX, 0.5, 1)
-                cv2.rectangle(frame, (160 - w//2 - 5, 0), (160 + w//2 + 5, h + 15), color_white, -1)
-                cv2.putText(frame, raised_text, (160 - w//2, 0 + h + 10), cv2.FONT_HERSHEY_DUPLEX,
-                            0.5, (100, 100, 100) if raised_amount < 500000 else (255, 0, 255))
+                (w, h), _ = cv2.getTextSize(
+                    raised_text, cv2.FONT_HERSHEY_DUPLEX, 0.5, 1
+                )
+                cv2.rectangle(
+                    frame,
+                    (160 - w // 2 - 5, 0),
+                    (160 + w // 2 + 5, h + 15),
+                    color_white,
+                    -1,
+                )
+                cv2.putText(
+                    frame,
+                    raised_text,
+                    (160 - w // 2, 0 + h + 10),
+                    cv2.FONT_HERSHEY_DUPLEX,
+                    0.5,
+                    (100, 100, 100) if raised_amount < 500000 else (255, 0, 255),
+                )
 
             # ------ Show FPS ------
-            color_black, color_white = (0, 0, 0), (255, 255, 255)
             label_fps = "Fps: {:.2f}".format(fps)
             (w1, h1), _ = cv2.getTextSize(label_fps, cv2.FONT_HERSHEY_TRIPLEX, 0.4, 1)
-            cv2.rectangle(frame, (0, frame.shape[0] - h1 - 6), (w1 + 2, frame.shape[0]), color_white, -1)
-            cv2.putText(frame, label_fps, (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX,
-                        0.4, color_black)
+            cv2.rectangle(
+                frame,
+                (0, frame.shape[0] - h1 - 6),
+                (w1 + 2, frame.shape[0]),
+                color_white,
+                -1,
+            )
+            cv2.putText(
+                frame,
+                label_fps,
+                (2, frame.shape[0] - 4),
+                cv2.FONT_HERSHEY_TRIPLEX,
+                0.4,
+                color_black,
+            )
 
             cv2.imshow("frame", frame)
 
@@ -227,6 +280,5 @@ if __name__ == "__main__":
                 counter = 0
                 start_time = time.time()
 
-
-            if cv2.waitKey(1) == ord('q'):
+            if cv2.waitKey(1) == ord("q"):
                 break
