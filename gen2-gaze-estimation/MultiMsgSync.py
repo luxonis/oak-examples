@@ -39,8 +39,8 @@ class TwoStageHostSeqSync:
         seq_remove = [] # Arr of sequence numbers to get deleted
 
         for seq, msgs in self.msgs.items():
+            print(seq)
             seq_remove.append(seq) # Will get removed from dict if we find synced msgs pair
-
             # Check if we have both detections and color frame with this sequence number
             if "color" in msgs and "len" in msgs:
 

@@ -40,11 +40,13 @@ cam.preview.link(face_det_manip.inputImage)
 print("Creating Face Detection Neural Network...")
 face_det_nn = pipeline.create(dai.node.MobileNetDetectionNetwork)
 face_det_nn.setConfidenceThreshold(0.5)
-face_det_nn.setBlobPath(blobconverter.from_zoo(
-    name="face-detection-retail-0004",
-    shaves=6,
-    version=openvino_version
-))
+#face_det_nn.setBlobPath(blobconverter.from_zoo(
+#    name="face-detection-retail-0004",
+#    shaves=6,
+#    version=openvino_version
+#))
+face_det_nn.setBlobPath("face-detection-retail-0004.blob")
+
 # Link Face ImageManip -> Face detection NN node
 face_det_manip.out.link(face_det_nn.input)
 
@@ -148,7 +150,6 @@ script.inputs['none'].setBlocking(False)
 script.inputs['none'].setQueueSize(1)
 
 create_output('gaze', gaze_nn.out)
-
 #==================================================
 
 with dai.Device(pipeline) as device:
@@ -170,6 +171,7 @@ with dai.Device(pipeline) as device:
 
         msgs = sync.get_msgs()
         if msgs is not None:
+            print("adasd")
             frame = msgs["color"].getCvFrame()
             dets = msgs["detection"].detections
             for i, detection in enumerate(dets):
