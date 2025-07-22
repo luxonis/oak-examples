@@ -19,7 +19,6 @@ _, args = initialize_argparser()
 IP = args.ip or "localhost"
 PORT = args.port or 8080
 
-MODEL = "yolo-world-l:640x640-host-decoding"
 CLASS_NAMES = ["person", "chair", "TV"]
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.1
@@ -46,7 +45,9 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # yolo world model
-    model_description = dai.NNModelDescription(MODEL)
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolo_world_l.{platform.name}.yaml"
+    )
     model_description.platform = platform
     model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     model_w, model_h = model_nn_archive.getInputSize()

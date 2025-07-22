@@ -9,6 +9,9 @@ node_modules/
 # Multimedia files
 media/
 
+# Local models
+*.onnx
+
 # Documentation
 README.md
 
