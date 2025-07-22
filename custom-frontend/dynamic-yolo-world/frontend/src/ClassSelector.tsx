@@ -46,7 +46,7 @@ export function ClassSelector() {
             {/* Input + Button */}
             <Flex direction="row" gap="sm" alignItems="center">
                 <Input type="text" placeholder="person,chair,TV" ref={inputRef} />
-                <Button onClick={handleSendMessage}>Update Classes</Button>
+                <Button onClick={handleSendMessage}>Update&nbsp;Classes</Button>
             </Flex>
         </div>
     );

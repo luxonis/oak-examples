@@ -4,9 +4,10 @@ app_version = "1.0.0"
 
 prepare_container = [
     { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
-    { type = "RUN", command = "python3.12 -m pip install -r /app/backend/src/requirements.txt --break-system-packages"}
+    { type = "RUN", command = "python3.12 -m pip install -r /app/backend/src/requirements.txt --break-system-packages"},
 ]
 
+prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
 build_steps = [
     "mkdir -p /etc/service/backend",
     "cp /app/backend-run.sh /etc/service/backend/run",
@@ -18,7 +19,7 @@ dist_path = "./frontend/dist"
 
 [static_frontend.build]
 source_path = "./frontend"
-steps = ["bash -c 'echo \"Frontend has to be prebuild before building the container\"'"]
+steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
 
 [base_image]
 api_url = "https://registry-1.docker.io"
@@ -27,4 +28,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.2.3"
+image_tag = "1.2.4"
