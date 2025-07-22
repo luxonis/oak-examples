@@ -1,4 +1,4 @@
-identifier = "com.example.rgb-depth-connections"
+identifier = "com.example.apps.conference-demos.rgb-depth-connections"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.0"
 assign_frontend_port = true

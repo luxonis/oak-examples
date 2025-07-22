@@ -1,8 +1,7 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, ApplyColormap
-from util.arguments import initialize_argparser
-from util.depth_driven_focus import DepthDrivenFocus
-from util.depth_merger import DepthMerger
+from depthai_nodes.node import ParsingNeuralNetwork, ApplyColormap, DepthMerger
+from utils.arguments import initialize_argparser
+from utils.depth_driven_focus import DepthDrivenFocus
 
 _, args = initialize_argparser()
 

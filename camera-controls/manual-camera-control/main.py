@@ -1,6 +1,6 @@
 import depthai as dai
-from util.arguments import initialize_argparser
-from util.manual_camera_control import ManualCameraControl
+from utils.arguments import initialize_argparser
+from utils.manual_camera_control import ManualCameraControl
 
 _, args = initialize_argparser()
 

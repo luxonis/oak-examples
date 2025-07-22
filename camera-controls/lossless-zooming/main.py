@@ -2,8 +2,8 @@ from pathlib import Path
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 
-from util.arguments import initialize_argparser
-from util.crop_face import CropFace
+from utils.arguments import initialize_argparser
+from utils.crop_face import CropFace
 
 DET_MODEL = "luxonis/yunet:320x240"
 REQ_WIDTH = 3840
