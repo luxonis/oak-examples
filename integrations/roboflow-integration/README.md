@@ -4,7 +4,7 @@ This example shows how to create a [Roboflow](https://roboflow.com) dataset usin
 
 ## Demo
 
-https://github.com/user-attachments/assets/a07070a8-6267-4348-8342-ddf77c9ddd8b
+Link to the [**video**](https://github.com/user-attachments/assets/a07070a8-6267-4348-8342-ddf77c9ddd8b).
 
 ## Usage
 
