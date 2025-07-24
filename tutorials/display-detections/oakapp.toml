@@ -1,4 +1,4 @@
-identifier = "com.luxonis.tutorials.display-detections"
+identifier = "com.example.tutorials.display-detections"
 app_version = "1.0.0"
 
 prepare_container = [

@@ -1,4 +1,4 @@
-identifier = "com.luxonis.integrations.hub-snaps-events"
+identifier = "com.example.integrations.hub-snaps-events"
 app_version = "1.0.0"
 
 prepare_container = [

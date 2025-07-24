@@ -1,4 +1,4 @@
-identifier = "com.luxonis.object-tracking.kalman-filter"
+identifier = "com.example.object-tracking.kalman-filter"
 app_version = "1.0.0"
 
 prepare_container = [

@@ -1,4 +1,4 @@
-identifier = "com.luxonis.object-detection.spatial-detections"
+identifier = "com.example.object-detection.spatial-detections"
 app_version = "1.0.0"
 
 prepare_container = [

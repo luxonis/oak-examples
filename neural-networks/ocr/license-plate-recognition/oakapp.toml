@@ -1,4 +1,4 @@
-identifier = "com.luxonis.ocr.license-plate-recognition"
+identifier = "com.example.ocr.license-plate-recognition"
 app_version = "1.0.0"
 
 prepare_container = [

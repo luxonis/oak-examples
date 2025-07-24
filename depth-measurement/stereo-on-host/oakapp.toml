@@ -1,4 +1,4 @@
-identifier = "com.luxonis.stereo-on-host"
+identifier = "com.example.stereo-on-host"
 app_version = "1.0.0"
 
 prepare_container = [

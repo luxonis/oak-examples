@@ -1,4 +1,4 @@
-identifier = "com.luxonis.depth-estimation.crestereo-stereo-matching"
+identifier = "com.example.depth-estimation.crestereo-stereo-matching"
 app_version="1.0.0"
 
 prepare_container = [

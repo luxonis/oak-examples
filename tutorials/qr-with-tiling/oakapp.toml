@@ -1,4 +1,4 @@
-identifier = "com.luxonis.tutorials.qr-with-tiling"
+identifier = "com.example.tutorials.qr-with-tiling"
 app_version = "1.0.0"
 
 prepare_container = [

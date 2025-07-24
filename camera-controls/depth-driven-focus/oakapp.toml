@@ -1,4 +1,4 @@
-identifier = "com.luxonis.camera-controls.depth-driven-focus"
+identifier = "com.example.camera-controls.depth-driven-focus"
 app_version = "1.0.0"
 
 prepare_container = [

@@ -1,4 +1,4 @@
-identifier = "com.luxonis.custom-frontend.raw-stream"
+identifier = "com.example.custom-frontend.raw-stream"
 app_version = "0.1.0"
 
 prepare_container = [

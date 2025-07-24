@@ -1,4 +1,4 @@
-identifier = "com.luxonis.people-tracker"
+identifier = "com.example.people-tracker"
 app_version = "1.0.0"
 
 prepare_container = [

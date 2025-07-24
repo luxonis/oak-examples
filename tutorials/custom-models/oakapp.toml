@@ -1,4 +1,4 @@
-identifier = "com.luxonis.tutorials.custom-models"
+identifier = "com.example.tutorials.custom-models"
 app_version = "1.0.0"
 
 prepare_container = [

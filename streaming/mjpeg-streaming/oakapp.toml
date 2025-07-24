@@ -1,4 +1,4 @@
-identifier = "com.luxonis.streaming.mjpeg"
+identifier = "com.example.streaming.mjpeg"
 app_version = "1.0.0"
 
 prepare_container = [

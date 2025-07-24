@@ -1,4 +1,4 @@
-identifier = "com.luxonis.tutorials.full-fov-nn"
+identifier = "com.example.tutorials.full-fov-nn"
 app_version = "1.0.0"
 
 prepare_container = [

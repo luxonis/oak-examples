@@ -1,4 +1,4 @@
-identifier = "com.luxonis.spatial-calculation"
+identifier = "com.example.spatial-calculation"
 app_version = "1.0.0"
 
 prepare_container = [

@@ -1,4 +1,4 @@
-identifier = "com.luxonis.detection-3d.objectron"
+identifier = "com.example.detection-3d.objectron"
 app_version = "1.0.0"
 
 prepare_container = [

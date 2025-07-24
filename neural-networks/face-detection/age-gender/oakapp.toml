@@ -1,4 +1,4 @@
-identifier = "com.luxonis.face-detection.age-gender"
+identifier = "com.example.face-detection.age-gender"
 app_version = "1.0.0"
 
 prepare_container = [

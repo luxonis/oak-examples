@@ -1,4 +1,4 @@
-identifier = "com.luxonis.tutorials.camera-demo"
+identifier = "com.example.tutorials.camera-demo"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.0"
 assign_frontend_port = true

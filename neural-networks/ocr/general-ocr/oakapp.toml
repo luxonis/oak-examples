@@ -1,4 +1,4 @@
-identifier = "com.luxonis.ocr.general-ocr"
+identifier = "com.example.ocr.general-ocr"
 app_version = "1.0.0"
 
 prepare_container = [

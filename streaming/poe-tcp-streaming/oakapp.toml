@@ -1,4 +1,4 @@
-identifier = "com.luxonis.poe-tcp-streaming"
+identifier = "com.example.poe-tcp-streaming"
 app_version = "1.0.0"
 
 prepare_container = [

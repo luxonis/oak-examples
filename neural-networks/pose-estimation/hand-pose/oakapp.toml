@@ -1,4 +1,4 @@
-identifier = "com.luxonis.pose-estimation.hand-pose"
+identifier = "com.example.pose-estimation.hand-pose"
 app_version = "1.0.0"
 
 prepare_container = [

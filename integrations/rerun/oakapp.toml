@@ -1,4 +1,4 @@
-identifier = "com.luxonis.rerun-integration"
+identifier = "com.example.rerun-integration"
 app_version = "1.0.0"
 
 prepare_container = [

@@ -1,4 +1,4 @@
-identifier = "com.luxonis.segmentation.depth-crop"
+identifier = "com.example.segmentation.depth-crop"
 app_version = "1.0.0"
 
 prepare_container = [

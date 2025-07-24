@@ -1,4 +1,4 @@
-identifier = "com.luxonis.camere-controls.lossless-zooming"
+identifier = "com.example.camere-controls.lossless-zooming"
 app_version = "1.0.0"
 
 prepare_container = [
