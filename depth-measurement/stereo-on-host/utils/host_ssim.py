@@ -1,7 +1,7 @@
 import depthai as dai
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
-from .annotation_helper import AnnotationHelper
+from depthai_nodes.utils import AnnotationHelper
 
 
 class SSIM(dai.node.HostNode):
