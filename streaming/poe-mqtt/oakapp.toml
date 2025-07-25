@@ -1,4 +1,4 @@
-identifier = "com.example.poe-mqtt"
+identifier = "com.example.streaming.poe-mqtt"
 app_version = "1.0.0"
 
 prepare_container = [
