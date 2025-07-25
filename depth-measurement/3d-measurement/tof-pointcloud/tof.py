@@ -191,7 +191,7 @@ def pointcloud_visualization():
                             try:
                                 view_control_raw = vis_raw.get_view_control()
                                 camera_params_raw = view_control_raw.convert_to_pinhole_camera_parameters()
-                            except:
+                            except Exception:
                                 camera_params_raw = None
                         else:
                             camera_params_raw = None
@@ -213,7 +213,7 @@ def pointcloud_visualization():
                                 view_control_raw.convert_from_pinhole_camera_parameters(
                                     camera_params_raw, allow_arbitrary=True
                                 )
-                            except:
+                            except Exception:
                                 pass  # If restore fails, just continue
 
                         if not is_paused() or source.startswith("Manual"):
@@ -234,7 +234,7 @@ def pointcloud_visualization():
                             try:
                                 view_control_final = vis_final.get_view_control()
                                 camera_params_final = view_control_final.convert_to_pinhole_camera_parameters()
-                            except:
+                            except Exception:
                                 camera_params_final = None
                         else:
                             camera_params_final = None
@@ -256,7 +256,7 @@ def pointcloud_visualization():
                                 view_control_final.convert_from_pinhole_camera_parameters(
                                     camera_params_final, allow_arbitrary=True
                                 )
-                            except:
+                            except Exception:
                                 pass  # If restore fails, just continue
 
                         if not is_paused() or source.startswith("Manual"):
@@ -960,7 +960,7 @@ class FilterGUI:
 
             corrections_str = ", ".join(corrections) if corrections else "None"
 
-            print(f"ToF Base config updated:")
+            print("ToF Base config updated:")
             print(
                 f"  Phase unwrap: threshold={config.phaseUnwrapErrorThreshold}, level={config.phaseUnwrappingLevel}"
             )
@@ -1285,3 +1285,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
