@@ -119,7 +119,7 @@ def setup_virtual_env(
                 "install",
                 "-r",
                 str(requirements_path),
-                "--timeout=60",
+                "--timeout=300",
             ],
             check=True,
             text=True,
@@ -139,6 +139,7 @@ def setup_virtual_env(
                     "pip",
                     "install",
                     f"depthai-nodes=={depthai_nodes_version}",
+                    "--timeout=300",
                 ],
                 check=True,
             )
@@ -161,6 +162,7 @@ def setup_virtual_env(
                     "--extra-index-url",
                     "https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local",
                     f"depthai=={depthai_version}",
+                    "--timeout=300",
                 ],
                 check=True,
             )
