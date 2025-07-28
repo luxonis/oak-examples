@@ -1,6 +1,5 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, ApplyColormap
-
+from depthai_nodes.node import ApplyColormap, ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 
 _, args = initialize_argparser()
@@ -16,7 +15,7 @@ frame_type = (
 
 supported_models = {
     "RVC2": ["luxonis/crestereo:iter2-160x120", "luxonis/crestereo:iter2-320x240"],
-    "RVC4": ["luxonis/crestereo:iter5-320x240", "luxonis/crestereo:iter4-640x360"],
+    "RVC4": ["luxonis/crestereo:iter4-640x360"],
 }
 if args.model is not None:
     for key in supported_models.keys():
@@ -74,7 +73,7 @@ with dai.Pipeline(device) as pipeline:
         nn.setBackend("snpe")
         nn.setBackendProperties(
             {
-                "runtime": "cpu",  # using "cpu" since the model is not quantized, use "dsp" if the model is quantized
+                "runtime": "dsp",
                 "performance_profile": "default",
             }
         )
