@@ -10,7 +10,7 @@
     "@babel/plugin-proposal-class-properties": "7.16.7",
     "@babel/plugin-transform-runtime": "7.17.0",
     "@babel/preset-env": "7.16.11",
-    "@babel/runtime": "7.17.2",
+    "@babel/runtime": "7.28.2",
     "babel-loader": "8.3.0",
     "webpack": "5.69.1",
     "webpack-cli": "^4.9.2"
