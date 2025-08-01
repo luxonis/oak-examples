@@ -48,6 +48,15 @@ def initialize_argparser():
         required=False,
         type=int,
     )
+    parser.add_argument(
+        "-n",
+        "--model_name",
+        help="Name of the model to use: yolo-world or yoloe",
+        required=False,
+        default="yoloe",
+        type=str,
+        choices=["yolo-world", "yoloe"]
+    )
 
     args = parser.parse_args()
 

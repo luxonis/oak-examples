@@ -4,6 +4,8 @@ import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
     ImgDetectionsFilter,
+    ImgFrameOverlay,
+    ApplyColormap
 )
 
 from utils.helper_functions import (
@@ -32,7 +34,7 @@ if platform != "RVC4":
 
 frame_type = dai.ImgFrame.Type.BGR888i
 text_features = extract_text_embeddings(
-    class_names=CLASS_NAMES, max_num_classes=MAX_NUM_CLASSES
+    class_names=CLASS_NAMES, max_num_classes=MAX_NUM_CLASSES, model_name=args.model_name
 )
 
 if args.fps_limit is None:
@@ -45,9 +47,15 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # yolo world model
-    model_description = dai.NNModelDescription.fromYamlFile(
-        f"yolo_world_l.{platform.name}.yaml"
-    )
+    if args.model_name == "yolo-world":
+        model_description = dai.NNModelDescription.fromYamlFile(
+            f"yolo_world_l.RVC4.yaml"
+        )
+    # yoloe model
+    elif args.model_name == "yoloe":
+        model_description = dai.NNModelDescription.fromYamlFile(
+            f"yoloe_v8_l.RVC4.yaml"
+        )
     model_description.platform = platform
     model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     model_w, model_h = model_nn_archive.getInputSize()
@@ -93,8 +101,19 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # visualization
+    if args.model_name == "yolo-world":
+        visualizer.addTopic("Video", nn_with_parser.passthroughs["images"])
+    elif args.model_name == "yoloe":
+        apply_colormap_node = pipeline.create(ApplyColormap).build(nn_with_parser.out)
+        # overlay frames
+        overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
+            nn_with_parser.passthroughs["images"],
+            apply_colormap_node.out,
+        )
+        visualizer.addTopic("Video", overlay_frames_node.out, "images")
+
+
     visualizer.addTopic("Detections", annotation_node.out)
-    visualizer.addTopic("Video", nn_with_parser.passthroughs["images"])
 
     def class_update_service(new_classes: list[str]):
         """Changes classes to detect based on the user input"""
@@ -109,7 +128,7 @@ with dai.Pipeline(device) as pipeline:
         CLASS_NAMES = new_classes
 
         text_features = extract_text_embeddings(
-            class_names=CLASS_NAMES, max_num_classes=MAX_NUM_CLASSES
+            class_names=CLASS_NAMES, max_num_classes=MAX_NUM_CLASSES, model_name=args.model_name
         )
         inputNNData = dai.NNData()
         inputNNData.addTensor(
