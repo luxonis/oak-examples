@@ -141,7 +141,7 @@ jobs:
             --env PLATFORM=${{ matrix.platform }} \
             --env PYTHON_VERSION_ENV=${{ matrix.python-version }} \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR='${{ steps.detect-changes.outputs.example_dirs }}\' \
+            --env ROOT_DIR='${{ steps.detect-changes.outputs.example_dirs }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
 
           if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
@@ -209,7 +209,7 @@ jobs:
             --env PLATFORM="rvc4" \
             --env PYTHON_VERSION_ENV="3.10" \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR='${{ steps.detect-changes.outputs.example_dirs }}\' \
+            --env ROOT_DIR='${{ steps.detect-changes.outputs.example_dirs }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \
             --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}"
 
