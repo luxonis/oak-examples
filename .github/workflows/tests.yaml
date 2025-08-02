@@ -34,7 +34,7 @@ on:
         default: "all"
         required: false
       root_dir:
-        decription: 'Root directory of the experiments you want to test. Defaults to all experiments.'
+        decription: 'One or more space-separated paths to example directories you want to test. Defaults to "." (all).'
         default: "."
         required: false
       strict_mode:
@@ -148,7 +148,6 @@ jobs:
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-            
 
           exec hil --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
               --dockerfile ./tests/Dockerfile_peripheral \

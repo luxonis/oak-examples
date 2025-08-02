@@ -37,11 +37,11 @@ ENTRYPOINT ["sh", "-c", "\
     /root/.local/share/oakctl/oakctl self-update -v $(/root/.local/share/oakctl/oakctl version) &&\
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
-    --root-dir=${ROOT_DIR} \
     --depthai-version=${DAI_VERSION} \
     --depthai-nodes-version=${DAI_NODES_VERSION} \
     --environment-variables=DEPTHAI_PLATFORM=${PLATFORM} \
     --platform=${PLATFORM} \
     --python-version=${PYTHON_VERSION_ENV} \
     --device-password=${DEVICE_PASSWORD} \
-    tests/test_examples_standalone.py"]
+    --root-dir ${ROOT_DIR} \
+    -- tests/test_examples_standalone.py"]
