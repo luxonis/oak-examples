@@ -2,6 +2,7 @@ name: Runnability tests on Diff
 
 on:
   workflow_dispatch:
+    inputs:
       log_level:
         description: 'Log level to use for pytest.'
         type: choice
