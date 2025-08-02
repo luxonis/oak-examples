@@ -7,6 +7,7 @@ import time
 from enum import Enum
 
 from .utility import TextHelper, letterbox_resize, postprocess_disp
+from .download_utils import download_model
 
 
 class InferenceState(Enum):
@@ -19,7 +20,7 @@ class FSInferer(dai.node.HostNode):
     def __init__(self):
         super().__init__()
         self.onnx_session = None
-        self.inference_shape = None  # (H, W) format
+        self.inference_shape = None  # (W, H) format
         self.device_stere_output = None
 
         self.text_helper = TextHelper()
@@ -46,20 +47,17 @@ class FSInferer(dai.node.HostNode):
         rect_left: dai.Node.Output,
         rect_right: dai.Node.Output,
         stereo_disparity: dai.Node.Output,
-        model_path: str,
         inference_shape: Tuple[int, int],
     ) -> "FSInferer":
-        self._create_onnx_session(model_path)
         self.inference_shape = inference_shape
+        self._create_onnx_session()
         self.link_args(rect_left, rect_right, stereo_disparity)
         return self
 
-    def _create_onnx_session(self, model_path: str):
-        print("Loading ONNX model... (this may take a while)")
-        if not os.path.exists(model_path):
-            # download from ZOO
-            raise NotImplementedError  # TODO
+    def _create_onnx_session(self):
+        model_path = download_model(input_shape=self.inference_shape)
 
+        print("Loading ONNX model... (this may take a while)")
         so = ort.SessionOptions()
         so.intra_op_num_threads = os.cpu_count()
         self.onnx_session = ort.InferenceSession(
@@ -149,7 +147,7 @@ class FSInferer(dai.node.HostNode):
         dev_resized, _, _ = letterbox_resize(device_disp, self.inference_shape)
 
         # Black bars
-        w = self.inference_shape[1]
+        w = self.inference_shape[0]
         label_bar = np.zeros((bar_height, w, 3), dtype=np.uint8)
 
         label_left = self.text_helper.putCenteredText(

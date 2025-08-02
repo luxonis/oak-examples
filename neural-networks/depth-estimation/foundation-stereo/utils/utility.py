@@ -1,6 +1,23 @@
 import cv2
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Literal
+from dataclasses import dataclass
+
+
+@dataclass
+class ResolutionProfile:
+    # Shape is in [W, H] format
+    stereo_shape: Tuple[int, int]
+    nn_shape: Tuple[int, int]
+
+
+def get_resolution_profile(res: Literal[400, 800]):
+    if res == 400:
+        return ResolutionProfile(stereo_shape=(640, 400), nn_shape=(640, 416))
+    elif res == 800:
+        return ResolutionProfile(stereo_shape=(1280, 800), nn_shape=(1280, 800))
+    else:
+        raise ValueError(f"Resolution `{res}` is not supported")
 
 
 class TextHelper:
@@ -52,11 +69,11 @@ class TextHelper:
 
 def letterbox_resize(
     image: np.ndarray,
-    target_size: Tuple[int, int],
+    target_shape: Tuple[int, int],
     color: Tuple[int, int, int] = (0, 0, 0),
 ):
     """Resize image with unchanged aspect ratio using padding."""
-    target_h, target_w = target_size
+    target_w, target_h = target_shape
     h, w = image.shape[:2]
 
     # Compute scale and new size

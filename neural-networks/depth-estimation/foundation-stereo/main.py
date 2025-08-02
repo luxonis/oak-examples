@@ -2,25 +2,17 @@ import depthai as dai
 from depthai_nodes.node import ApplyColormap
 
 from utils.arguments import initialize_argparser
+from utils.utility import get_resolution_profile
 from utils.fs_inferer import FSInferer
 
 _, args = initialize_argparser()
 
-device_info = args.device
 fps = args.fps_limit
-
-if args.resolution == 400:
-    inference_shape = (416, 640)  # H,W format
-elif args.resolution == 800:
-    inference_shape = (800, 1280)
-else:
-    print("Invalid resolution, exiting.")
-    exit(1)
+resolution_profile = get_resolution_profile(args.resolution)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
-# TODO: Is there a nicer solution?
 if len(device.getIrDrivers()) != 0:
     device.setIrLaserDotProjectorIntensity(1)
 
@@ -39,20 +31,12 @@ with dai.Pipeline(device) as pipeline:
     monoRight = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     stereo = pipeline.create(dai.node.StereoDepth)
 
-    if args.resolution == 800:
-        monoLeftOut = monoLeft.requestOutput(
-            size=(1280, 800), fps=fps, enableUndistortion=True
-        )
-        monoRightOut = monoRight.requestOutput(
-            size=(1280, 800), fps=fps, enableUndistortion=True
-        )
-    else:
-        monoLeftOut = monoLeft.requestOutput(
-            size=(640, 400), fps=fps, enableUndistortion=True
-        )
-        monoRightOut = monoRight.requestOutput(
-            size=(640, 400), fps=fps, enableUndistortion=True
-        )
+    monoLeftOut = monoLeft.requestOutput(
+        size=resolution_profile.stereo_shape, fps=fps, enableUndistortion=True
+    )
+    monoRightOut = monoRight.requestOutput(
+        size=resolution_profile.stereo_shape, fps=fps, enableUndistortion=True
+    )
 
     monoLeftOut.link(stereo.left)
     monoRightOut.link(stereo.right)
@@ -64,8 +48,7 @@ with dai.Pipeline(device) as pipeline:
         rect_left=stereo.rectifiedLeft,
         rect_right=stereo.rectifiedRight,
         stereo_disparity=stereo.disparity,
-        model_path=args.model,
-        inference_shape=inference_shape,
+        inference_shape=resolution_profile.nn_shape,
     )
 
     colored_disp = pipeline.create(ApplyColormap).build(stereo.disparity)

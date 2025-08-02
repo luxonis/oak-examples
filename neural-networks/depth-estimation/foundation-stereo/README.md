@@ -16,11 +16,12 @@ Prepare your Python environment by installing the required packages:
 pip install -r requirements.txt
 ```
 
-Download the ONNX model:
+### Model
 
-*TODO*
+This experiment uses ONNX FoundationStereo model which you can check out [here](TODO). If files are not present locally inside the `./models` they get automatically downloaded from the Zoo. We download a variant that suits the selected resolution:
 
-Ensure the required ONNX model file is available and the path is provided as an argument when running the application.
+- 400 resolution -> (640, 416) model input shape
+- 800 resolution -> (1280, 800) model input shape
 
 ## Requirements
 
@@ -38,9 +39,6 @@ The experiment is run in host (Peripheral) mode, using a computer for ONNX infer
 Here are the available parameters:
 
 ```
--m MODEL, --model MODEL
-                    Path to ONNX model file. If it doesn't exist then model will be downloaded from ZOO (default:
-                    models/foundation_stereo_640x416_32.onnx)
 -d DEVICE, --device DEVICE
                     Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
@@ -48,6 +46,11 @@ Here are the available parameters:
 -r {400,800}, --resolution {400,800}
                     Resolution of the streams, select 400 (for 640x400) or 800 (for 1280x800). (default: 400)
 ```
+
+### Controls During Execution
+
+- Press `F` to generate and display Foundation Stereo Disparity using the ONNX model.
+- Press `Q` to exit the application.
 
 ### Peripheral Mode
 
@@ -78,8 +81,3 @@ Connect to a specific DepthAI device by IP address:
 ```bash
 python3 main.py -m model.onnx --device 192.168.1.2
 ```
-
-## Controls During Execution
-
-- Press `F` to generate and display Foundation Stereo Disparity using the ONNX model.
-- Press `Q` to exit the application.

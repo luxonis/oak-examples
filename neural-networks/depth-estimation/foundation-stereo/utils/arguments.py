@@ -8,16 +8,7 @@ def initialize_argparser():
     )
     parser.description = (
         "Example script on how to run Foundation Stereo with DepthAI device. \
-        You also need a DepthAI device connected to your computer. \
-        Please make sure your resolution matches the model resolution."
-    )
-
-    parser.add_argument(
-        "-m",
-        "--model",
-        help="Path to ONNX model file. If it doesn't exist then model will be downloaded from ZOO",
-        default="models/foundation_stereo_640x416_32.onnx",
-        type=str,
+        You also need a DepthAI device connected to your computer."
     )
 
     parser.add_argument(
