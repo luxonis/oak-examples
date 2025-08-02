@@ -3,6 +3,9 @@
 This experiment shows how to generate Foundation Stereo with OAK devices, comparing with the disparity
 directly from the DepthAI stereo node. The ONNX model is executed on a host computer. The resolution and speed of inference are configurable.
 
+**NOTE**: This demo requires a device with stereo cameras.
+**NOTE**: This demo doesn't support Standalone mode because the model is too heavy to run on device.
+
 ## Demo
 
 [![FoundationStereo](media/img1.png)](media/img1.png)
@@ -64,20 +67,8 @@ Run the experiment with default arguments:
 python3 main.py
 ```
 
-Run the experiment with a specific model file:
-
-```bash
-python3 main.py -m model.onnx
-```
-
 Run the experiment with a higher resolution (1280x800) and custom FPS:
 
 ```bash
-python3 main.py -m model.onnx --resolution 800 --fps_limit 5
-```
-
-Connect to a specific DepthAI device by IP address:
-
-```bash
-python3 main.py -m model.onnx --device 192.168.1.2
+python3 main.py --resolution 800 --fps_limit 5
 ```
