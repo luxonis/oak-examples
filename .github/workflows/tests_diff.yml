@@ -1,4 +1,4 @@
-name: Runnability tests on Diff
+name: Runnability tests on changed examples
 
 on:
   workflow_dispatch:
