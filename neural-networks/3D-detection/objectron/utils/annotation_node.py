@@ -1,10 +1,12 @@
 import depthai as dai
 from depthai_nodes import (
     ImgDetectionsExtended,
-    ImgDetectionExtended,
     Keypoints,
-    OUTLINE_COLOR,
+    GatheredData,
+    PRIMARY_COLOR,
+    SECONDARY_COLOR,
 )
+from depthai_nodes.utils.annotation_helper import AnnotationHelper
 from typing import List
 
 
@@ -14,58 +16,35 @@ class AnnotationNode(dai.node.HostNode):
     ) -> None:
         super().__init__()
 
-        self.input_keypoints = self.createInput()
         self.out_detections = self.createOutput()
         self.out_pose_annotations = self.createOutput()
 
         self.connection_pairs = [[]]
-        self.valid_labels = [56]
         self.padding = 0.2
 
     def build(
         self,
-        detections: dai.Node.Output,
+        gathered_data: dai.Node.Output,
         connection_pairs: List[List[int]],
-        valid_labels: List[int],
         padding: float,
     ) -> "AnnotationNode":
         self.connection_pairs = connection_pairs
-        self.valid_labels = valid_labels
         self.padding = padding
-        self.link_args(detections)
+        self.link_args(gathered_data)
         return self
 
-    def process(self, detections_message: dai.ImgDetections) -> None:
+    def process(self, gathered_data: dai.Buffer) -> None:
+        assert isinstance(gathered_data, GatheredData)
+
+        detections_message: ImgDetectionsExtended = gathered_data.reference_data
         detections_list: List[dai.ImgDetection] = detections_message.detections
 
-        img_detections_exteded = ImgDetectionsExtended()
-
-        annotations = (
-            dai.ImgAnnotations()
-        )  # custom annotations for drawing lines between keypoints
+        annotation_helper = AnnotationHelper()
 
         padding = self.padding
 
         for ix, detection in enumerate(detections_list):
-            if detection.label not in self.valid_labels:  # label not chair
-                continue
-            img_detection_extended = ImgDetectionExtended()
-            center_x = detection.xmin + (detection.xmax - detection.xmin) / 2
-            center_y = detection.ymin + (detection.ymax - detection.ymin) / 2
-            width = detection.xmax - detection.xmin
-            height = detection.ymax - detection.ymin
-            angle = 0
-            img_detection_extended.rotated_rect = (
-                center_x,
-                center_y,
-                width,
-                height,
-                angle,
-            )
-            img_detection_extended.label = detection.label
-            img_detection_extended.confidence = detection.confidence
-
-            keypoints_msg: Keypoints = self.input_keypoints.get()
+            keypoints_msg: Keypoints = gathered_data.gathered[ix]
 
             slope_x = (detection.xmax + padding) - (detection.xmin - padding)
             slope_y = (detection.ymax + padding) - (detection.ymin - padding)
@@ -77,30 +56,32 @@ class AnnotationNode(dai.node.HostNode):
                 xs.append(x)
                 ys.append(y)
 
-            annotation = dai.ImgAnnotation()
+            annotation_helper.draw_points(
+                points=[(x, y) for x, y in zip(xs, ys)],
+                color=SECONDARY_COLOR,
+                thickness=2.0,
+            )
+
             for connection in self.connection_pairs:
                 pt1_idx, pt2_idx = connection
                 if pt1_idx < len(xs) and pt2_idx < len(ys):
                     x1, y1 = xs[pt1_idx], ys[pt1_idx]
                     x2, y2 = xs[pt2_idx], ys[pt2_idx]
-                    pointsAnnotation = dai.PointsAnnotation()
-                    pointsAnnotation.type = dai.PointsAnnotationType.LINE_STRIP
-                    pointsAnnotation.points = dai.VectorPoint2f(
-                        [
-                            dai.Point2f(x=x1, y=y1, normalized=True),
-                            dai.Point2f(x=x2, y=y2, normalized=True),
-                        ]
+                    annotation_helper.draw_line(
+                        pt1=(x1, y1),
+                        pt2=(x2, y2),
+                        color=PRIMARY_COLOR,
                     )
-                    pointsAnnotation.outlineColor = OUTLINE_COLOR
-                    pointsAnnotation.thickness = 1.0
-                    annotation.points.append(pointsAnnotation)
 
-            img_detections_exteded.detections.append(img_detection_extended)
-            annotations.annotations.append(annotation)
+            annotation_helper.draw_text(
+                text=f"{(detection.confidence * 100):.2f}%",
+                position=(detection.xmin, detection.ymin - 0.05),
+                color=SECONDARY_COLOR,
+                size=16.0,
+            )
 
-        annotations.setTimestamp(detections_message.getTimestamp())
-        img_detections_exteded.setTimestamp(detections_message.getTimestamp())
-        img_detections_exteded.transformation = detections_message.getTransformation()
-
-        self.out_detections.send(img_detections_exteded)
+        annotations = annotation_helper.build(
+            timestamp=detections_message.getTimestamp(),
+            sequence_num=detections_message.getSequenceNum(),
+        )
         self.out_pose_annotations.send(annotations)

@@ -1,10 +1,15 @@
 import os
 from pathlib import Path
+from functools import partial
+from typing import Dict
 
 import depthai as dai
-from depthai_nodes.node.parsing_neural_network import ParsingNeuralNetwork
+from depthai_nodes.node import (
+    ParsingNeuralNetwork,
+    ImgDetectionsFilter,
+    SnapsProducer,
+)
 from utils.arguments import initialize_argparser
-from utils.snaps_producer import SnapsProducer
 
 _, args = initialize_argparser()
 
@@ -22,6 +27,36 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 if args.api_key:
     os.environ["DEPTHAI_HUB_API_KEY"] = args.api_key
 
+
+def custom_snap_process(
+    producer: SnapsProducer,
+    frame: dai.ImgFrame,
+    det_data: dai.ImgDetections,
+    label_map: Dict[str, int],
+    model: str,
+):
+    detections = det_data.detections
+    if len(detections) == 0:
+        return
+
+    dets_xyxy = [(det.xmin, det.ymin, det.xmax, det.ymax) for det in detections]
+    dets_labels = [det.label for det in detections]
+    dets_labels_str = [label_map[det.label] for det in detections]
+    dets_confs = [det.confidence for det in detections]
+
+    extra_data = {
+        "model": model,
+        "detection_xyxy": str(dets_xyxy),
+        "detection_label": str(dets_labels),
+        "detection_label_str": str(dets_labels_str),
+        "detection_confidence": str(dets_confs),
+    }
+    if producer.sendSnap(
+        name="rgb", frame=frame, data=[], tags=["demo"], extra_data=extra_data
+    ):
+        print("Snap sent!")
+
+
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
@@ -34,6 +69,8 @@ with dai.Pipeline(device) as pipeline:
             apiKey=args.api_key,
         )
     )
+
+    all_classes = nn_archive.getConfigV1().model.heads[0].metadata.classes
 
     if args.media_path:
         replay = pipeline.create(dai.node.ReplayVideo)
@@ -55,14 +92,32 @@ with dai.Pipeline(device) as pipeline:
         input_node, nn_archive, fps=args.fps_limit
     )
 
-    visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
-    visualizer.addTopic("Visualizations", nn_with_parser.out, "images")
+    # filter and rename detection labels
+    labels_to_keep = []
+    label_map = {}
+    for curr_class in args.class_names:
+        try:
+            curr_index = all_classes.index(curr_class)
+            labels_to_keep.append(curr_index)
+            label_map[curr_index] = curr_class
+        except ValueError:
+            print(f"Class `{curr_class}` not predicted by the model, skipping.")
+
+    det_process_filter = pipeline.create(ImgDetectionsFilter).build(
+        nn_with_parser.out,
+        labels_to_keep=labels_to_keep,
+        confidence_threshold=args.confidence_threshold,
+    )
 
     snaps_producer = pipeline.create(SnapsProducer).build(
         nn_with_parser.passthrough,
-        nn_with_parser.out,
-        label_map=nn_archive.getConfigV1().model.heads[0].metadata.classes,
+        det_process_filter.out,
+        time_interval=args.time_interval,
+        process_fn=partial(custom_snap_process, label_map=label_map, model=model),
     )
+
+    visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
+    visualizer.addTopic("Visualizations", det_process_filter.out, "images")
 
     print("Pipeline created.")
 

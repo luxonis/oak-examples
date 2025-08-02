@@ -1,40 +1,40 @@
-import cv2
 import depthai as dai
 from utils.arguments import initialize_argparser
-from depthai_nodes.node import ApplyColormap
-
-color_resolution = (1280, 720)
 
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
-print(device.getDeviceInfo())
+print("Device Information: ", device.getDeviceInfo())
+
+cam_features = {}
+for cam in device.getConnectedCameraFeatures():
+    cam_features[cam.socket] = (cam.width, cam.height)
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
-    color = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
-    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
 
-    color_output = color.requestOutput(color_resolution, dai.ImgFrame.Type.NV12)
-    left_output = left.requestFullResolutionOutput(dai.ImgFrame.Type.NV12)
-    right_output = right.requestFullResolutionOutput(dai.ImgFrame.Type.NV12)
+    output_queues = {}
+    camera_sensors = device.getConnectedCameraFeatures()
+    for sensor in camera_sensors:
+        cam = pipeline.create(dai.node.Camera).build(sensor.socket)
 
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_output,
-        right=right_output,
-        presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
-    )
+        request_resolution = (
+            (sensor.width, sensor.height)
+            if sensor.width <= 1920 and sensor.height <= 1080
+            else (1920, 1080)
+        )  # limit frame size to 1080p
+        cam_out = cam.requestOutput(
+            request_resolution, dai.ImgFrame.Type.NV12, fps=args.fps_limit
+        )
 
-    depth_parser = pipeline.create(ApplyColormap).build(stereo.disparity)
-    depth_parser.setMaxValue(int(stereo.initialConfig.getMaxDisparity()))
-    depth_parser.setColormap(cv2.COLORMAP_JET)
+        encoder = pipeline.create(dai.node.VideoEncoder)
+        encoder.setDefaultProfilePreset(
+            args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
+        )
+        cam_out.link(encoder.input)
 
-    visualizer.addTopic("Color", color_output, "images")
-    visualizer.addTopic("Left", left_output, "images")
-    visualizer.addTopic("Right", right_output, "images")
-    visualizer.addTopic("Depth", depth_parser.out, "images")
+        visualizer.addTopic(sensor.socket.name, encoder.out, "images")
 
     print("Pipeline created.")
 

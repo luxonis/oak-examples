@@ -11,7 +11,7 @@ RESOLUTION_SIZE = (640, 400)
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
-device = dai.Device()
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 with dai.Pipeline(device) as pipeline:
     mono_left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
     mono_right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
@@ -25,7 +25,7 @@ with dai.Pipeline(device) as pipeline:
     )
     if not depth_enabled:
         raise RuntimeError(
-            "Unable to run this experiment on device without left & right cameras! (Available cameras: {})".format(
+            "Unable to run this example on device without left & right cameras! (Available cameras: {})".format(
                 cams
             )
         )
@@ -44,7 +44,9 @@ with dai.Pipeline(device) as pipeline:
     stereoSGBM.inputs["monoRight"].setBlocking(False)
     stereoSGBM.inputs["monoRight"].setMaxSize(2)
 
-    stereo = pipeline.create(dai.node.StereoDepth).build(left=left, right=right)
+    stereo = pipeline.create(dai.node.StereoDepth).build(
+        left=left, right=right, presetMode=dai.node.StereoDepth.PresetMode.FAST_DENSITY
+    )
     stereo.setLeftRightCheck(True)
     stereo.setExtendedDisparity(False)
     stereo.setSubpixel(True)

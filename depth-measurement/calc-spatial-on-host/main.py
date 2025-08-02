@@ -11,7 +11,7 @@ from utils.measure_distance import MeasureDistance
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
-device = dai.Device()
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 with dai.Pipeline(device) as pipeline:
     monoLeft = (
         pipeline.create(dai.node.Camera)

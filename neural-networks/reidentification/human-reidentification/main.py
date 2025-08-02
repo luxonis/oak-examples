@@ -1,111 +1,130 @@
 from pathlib import Path
+
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ParsingNeuralNetwork, GatherData, ImgDetectionsBridge
+from depthai_nodes.node.utils import generate_script_content
 
 from utils.arguments import initialize_argparser
-from utils.process import ProcessDetections
-from utils.sync import AnnotationSyncNode
+from utils.identification import IdentificationNode
+
+REQ_WIDTH, REQ_HEIGHT = (
+    768,
+    768,
+)  # we are requesting larger input size than required because we want to keep some resolution for the second stage model
 
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 platform = device.getPlatform().name
-
-if "RVC2" in str(platform):
-    raise RuntimeError(
-        f"This demo is currently only supported on RVC4, got `{platform}`"
-    )
+print(f"Platform: {platform}")
 
 frame_type = (
-    dai.ImgFrame.Type.BGR888p if platform == "RVC2" else dai.ImgFrame.Type.BGR888i
+    dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
 )
+
+if not args.fps_limit:
+    args.fps_limit = 2 if platform == "RVC2" else 10
+    print(
+        f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
+    )
+
+if args.identify == "pose":
+    DET_MODEL = "luxonis/scrfd-person-detection:25g-640x640"
+    REC_MODEL = "luxonis/osnet:imagenet-128x256"
+    CSIM = 0.8
+elif args.identify == "face":
+    DET_MODEL = "luxonis/scrfd-face-detection:10g-640x640"  # "luxonis/yunet:640x480" is also an option
+    REC_MODEL = "luxonis/arcface:lfw-112x112"
+    CSIM = 0.1
+else:
+    raise ValueError("Unknown identify option provided.")
+
+if args.cos_similarity_threshold:
+    CSIM = args.cos_similarity_threshold  # override default
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    # Detection Model NN Archive
-    det_model_description = dai.NNModelDescription(args.det_model)
-    det_model_description.platform = platform
-    det_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
+    # detection model
+    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
+    det_model_nn_archive = dai.NNArchive(
+        dai.getModelFromZoo(det_model_description, useCached=False)
+    )
 
-    # Recognition Model NN Archive
-    rec_model_description = dai.NNModelDescription(args.rec_model)
-    rec_model_description.platform = platform
-    rec_nn_archive = dai.NNArchive(dai.getModelFromZoo(rec_model_description))
+    # recognition model
+    rec_model_description = dai.NNModelDescription(REC_MODEL, platform=platform)
+    rec_nn_archive = dai.NNArchive(
+        dai.getModelFromZoo(rec_model_description, useCached=False)
+    )
 
-    # Video/Camera Input Node
+    # media/camera input
     if args.media_path:
         replay = pipeline.create(dai.node.ReplayVideo)
         replay.setReplayVideoFile(Path(args.media_path))
-        replay.setOutFrameType(
-            dai.ImgFrame.Type.BGR888i
-            if platform == "RVC4"
-            else dai.ImgFrame.Type.BGR888p
-        )
+        replay.setOutFrameType(frame_type)
         replay.setLoop(True)
         if args.fps_limit:
             replay.setFps(args.fps_limit)
-            args.fps_limit = None  # only want to set it once
-        replay.setSize(det_nn_archive.getInputWidth(), det_nn_archive.getInputHeight())
+        replay.setSize(REQ_WIDTH, REQ_HEIGHT)
     else:
         cam = pipeline.create(dai.node.Camera).build()
-    input_node = replay.out if args.media_path else cam
+        cam_out = cam.requestOutput(
+            size=(REQ_WIDTH, REQ_HEIGHT), type=frame_type, fps=args.fps_limit
+        )
+    input_node_out = replay.out if args.media_path else cam_out
 
-    # Detection Model Node
+    # resize to det model input size
+    resize_node = pipeline.create(dai.node.ImageManip)
+    resize_node.setMaxOutputFrameSize(REQ_WIDTH * REQ_HEIGHT * 3)
+    resize_node.initialConfig.setOutputSize(
+        det_model_nn_archive.getInputWidth(), det_model_nn_archive.getInputHeight()
+    )
+    resize_node.initialConfig.setReusePreviousImage(False)
+    resize_node.inputImage.setBlocking(True)
+    input_node_out.link(resize_node.inputImage)
+
     det_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        input_node, det_nn_archive, fps=args.fps_limit
+        resize_node.out, det_model_nn_archive
     )
 
-    # Detections Processing Node
-    det_process_node = pipeline.create(ProcessDetections).build(det_nn.out)
-    det_process_node.set_target_size(
+    # detection processing
+    det_bridge = pipeline.create(ImgDetectionsBridge).build(
+        det_nn.out
+    )  # TODO: remove once we have it working with ImgDetectionsExtended
+    script_node = pipeline.create(dai.node.Script)
+    det_bridge.out.link(script_node.inputs["det_in"])
+    input_node_out.link(script_node.inputs["preview"])
+    script_content = generate_script_content(
+        resize_width=rec_nn_archive.getInputWidth(),
+        resize_height=rec_nn_archive.getInputHeight(),
+    )
+    script_node.setScript(script_content)
+
+    crop_node = pipeline.create(dai.node.ImageManip)
+    crop_node.initialConfig.setOutputSize(
         rec_nn_archive.getInputWidth(), rec_nn_archive.getInputHeight()
     )
-
-    # Crop Configuration Sender Node
-    config_sender_node = pipeline.create(dai.node.Script)
-    config_sender_node.setScriptPath(
-        str(Path(__file__).parent / "utils/config_sender_script.py")
-    )
-    config_sender_node.inputs["frame_input"].setMaxSize(30)
-    config_sender_node.inputs["config_input"].setMaxSize(30)
-    config_sender_node.inputs["num_configs_input"].setMaxSize(30)
-
-    det_nn.passthrough.link(config_sender_node.inputs["frame_input"])
-    det_process_node.config_output.link(config_sender_node.inputs["config_input"])
-    det_process_node.num_configs_output.link(
-        config_sender_node.inputs["num_configs_input"]
-    )
-
-    # Crop Node
-    crop_node = pipeline.create(dai.node.ImageManipV2)
-    crop_node.initialConfig.setReusePreviousImage(False)
-    crop_node.inputConfig.setReusePreviousMessage(False)
-    crop_node.inputImage.setReusePreviousMessage(False)
-    crop_node.inputConfig.setMaxSize(30)
-    crop_node.inputImage.setMaxSize(30)
-    crop_node.setNumFramesPool(30)
     crop_node.inputConfig.setWaitForMessage(True)
 
-    config_sender_node.outputs["output_config"].link(crop_node.inputConfig)
-    config_sender_node.outputs["output_frame"].link(crop_node.inputImage)
+    script_node.outputs["manip_cfg"].link(crop_node.inputConfig)
+    script_node.outputs["manip_img"].link(crop_node.inputImage)
 
-    # Recognition Model Node
     rec_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         crop_node.out, rec_nn_archive
     )
 
-    # Annotation Sync Node
-    annotation_sync_node = pipeline.create(
-        AnnotationSyncNode, csim=args.cos_similarity_threshold
-    )
-    det_nn.out.link(annotation_sync_node.input_detections)
-    rec_nn.out.link(annotation_sync_node.input_recognitions)
+    # detections and recognitions sync
+    gather_data_node = pipeline.create(GatherData).build(args.fps_limit)
+    rec_nn.out.link(gather_data_node.input_data)
+    det_nn.out.link(gather_data_node.input_reference)
+
+    # idenfication
+    id_node = pipeline.create(IdentificationNode).build(gather_data_node.out, csim=CSIM)
 
     # Visualizer
     visualizer.addTopic("Video", det_nn.passthrough, "images")
-    visualizer.addTopic("Objects", annotation_sync_node.output_detections, "images")
+    visualizer.addTopic("Objects", id_node.out, "images")
 
     print("Pipeline created.")
 
@@ -113,7 +132,7 @@ with dai.Pipeline(device) as pipeline:
     pipeline.start()
 
     while pipeline.isRunning():
-        key_pressed = visualizer.waitKey(1)
-        if key_pressed == ord("q"):
-            pipeline.stop()
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key. Exiting...")
             break

@@ -1,6 +1,8 @@
 # Display detections on higher resolution frames
 
-Object detection models usually require smaller frame for inferencing (eg. `512x288`). Instead of displaying bounding boxes on such small frames, you could also stream higher resolution frames and display bounding boxes on these frames. There are several approaches to achieving that, and this experiment will go over some of them. It uses [YoloV6](https://hub.luxonis.com/ai/models/face58c4-45ab-42a0-bafc-19f9fee8a034) model for object detection.
+Object detection models usually require smaller frame for inferencing (eg. `512x288`). Instead of displaying bounding boxes on such small frames, you could also stream higher resolution frames and display bounding boxes on these frames. There are several approaches to achieving that, and this example will go over some of them. It uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) model for object detection.
+
+## Demo
 
 ### 1. Passthrough
 
@@ -20,21 +22,13 @@ Another solution is to stretch the frame to the correct aspect ratio and size of
 
 ![stretch_before_inferencing](media/stretch_before_inferencing_example.png)
 
-## Installation
-
-Running this example requires a **Luxonis device** connected to your computer. You can find more information about the supported devices and the set up instructions in our [Documentation](https://rvc4.docs.luxonis.com/hardware).
-
-Install required packages by running:
-
-```bash
-pip install -r requirements.txt
-```
-
 ## Usage
 
-You can run the experiment fully on device (`STANDALONE` mode) or using your your computer as host (`PERIPHERAL` mode). `STANDALONE` mode is only supported on RVC4.
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
-All scripts accept the following arguments:
+You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
+
+Here is a list of all available parameters:
 
 ```
 -d DEVICE, --device DEVICE
@@ -43,38 +37,47 @@ All scripts accept the following arguments:
                     FPS limit for the model runtime. (default: 30)
 ```
 
-### Peripheral Mode
+## Peripheral Mode
+
+### Installation
+
+You need to first prepare a **Python 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/),
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
+```
 
 Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
 
-#### Examples
+### Examples
 
 ```bash
 python3 passthrough.py
 ```
 
-This will run the Display Detections experiment with the default device and camera input and use passthrough frame.
+This will run the Display Detections example with the default device and camera input and use passthrough frame.
 
 ```bash
 python3 crop_highres.py
 ```
 
-This will run the Display Detections experiment with the default device and camera input and crop `640x480` frame to `512x288`.
+This will run the Display Detections example with the default device and camera input and crop `640x480` frame to `512x288`.
 
 ```bash
 python3 stretch_before_inferencing.py -fps 10
 ```
 
-This will run the Display Detections experiment with the default device at 10 FPS and stretch `1920x1440` frame to `512x288`.
+This will run the Display Detections example with the default device at 10 FPS and stretch `1920x1440` frame to `512x288`.
 
-### Standalone Mode
+## Standalone Mode (RVC4 only)
 
-Running the example in the [Standalone mode](https://rvc4.docs.luxonis.com/software/depthai/standalone/), app runs entirely on the device.
-To run the example in this mode, first install the [oakctl](https://rvc4.docs.luxonis.com/software/tools/oakctl/) command-line tool (enables host-device interaction) as:
-
-```bash
-bash -c "$(curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh)"
-```
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
 The app can then be run with:
 
@@ -83,4 +86,4 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-This will run the experiment with default argument values. If you want to change these values you need to edit the `oakapp.toml` file.
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).

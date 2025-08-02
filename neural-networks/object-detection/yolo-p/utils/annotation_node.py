@@ -35,6 +35,8 @@ class AnnotationNode(dai.node.HostNode):
         assert isinstance(road_segmentations_message, SegmentationMask)
         assert isinstance(lane_segmentations_message, SegmentationMask)
 
+        detections_message.setTransformation(frame.getTransformation())
+
         frame = frame.getCvFrame()
         output_frame = dai.ImgFrame()
 

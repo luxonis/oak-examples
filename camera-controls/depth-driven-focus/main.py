@@ -1,8 +1,7 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, ApplyColormap
-from util.arguments import initialize_argparser
-from util.depth_driven_focus import DepthDrivenFocus
-from util.depth_merger import DepthMerger
+from depthai_nodes.node import ParsingNeuralNetwork, ApplyColormap, DepthMerger
+from utils.arguments import initialize_argparser
+from utils.depth_driven_focus import DepthDrivenFocus
 
 _, args = initialize_argparser()
 
@@ -33,13 +32,14 @@ with dai.Pipeline(device) as pipeline:
     )
 
     stereo = pipeline.create(dai.node.StereoDepth).build(left=left_out, right=right_out)
-    # print(stereo.initialConfig.getConfidenceThreshold())
-    stereo.initialConfig.setConfidenceThreshold(240)
+    stereo.setDepthAlign(align=dai.StereoDepthConfig.AlgorithmControl.DepthAlign.CENTER)
     stereo.setLeftRightCheck(True)
     stereo.setRectification(True)
     stereo.setExtendedDisparity(True)
 
     face_det_nn = pipeline.create(ParsingNeuralNetwork).build(cam, nn_archive)
+    if platform == "RVC2":
+        face_det_nn.setNNArchive(nn_archive, numShaves=7)
     depth_merger = pipeline.create(DepthMerger).build(
         face_det_nn.out, stereo.depth, device.readCalibration2()
     )

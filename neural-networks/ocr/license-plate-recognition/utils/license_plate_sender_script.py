@@ -62,7 +62,7 @@ try:
             if crop_w <= 40 or crop_h <= 10:
                 continue
 
-            cfg = ImageManipConfigV2()
+            cfg = ImageManipConfig()
             cfg.addCrop(crop_x_min, crop_y_min, crop_w, crop_h)
             cfg.setReusePreviousImage(False)
             cfg.setOutputSize(320, 48)

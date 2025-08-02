@@ -2,44 +2,52 @@ from pathlib import Path
 
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsBridge
+
 from utils.arguments import initialize_argparser
 from utils.people_counter import PeopleCounter
 from utils.tracklet_visualizer import TrackletVisualizer
+
+DET_MODEL = "luxonis/scrfd-person-detection:25g-640x640"
 
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+platform = device.getPlatform().name
+print(f"Platform: {platform}")
+
+frame_type = (
+    dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
+)
+
+if args.fps_limit is None:
+    args.fps_limit = 10 if platform == "RVC2" else 30
+    print(
+        f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
+    )
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    platform = device.getPlatformAsString()
+    # detection model
+    model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
 
-    model_description = dai.NNModelDescription(
-        "luxonis/scrfd-person-detection:25g-640x640", platform=platform
-    )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
-
+    # media/camera input
     if args.media_path:
         replay = pipeline.create(dai.node.ReplayVideo)
         replay.setReplayVideoFile(Path(args.media_path))
-        replay.setOutFrameType(
-            dai.ImgFrame.Type.BGR888i
-            if platform == "RVC4"
-            else dai.ImgFrame.Type.BGR888p
-        )
+        replay.setOutFrameType(frame_type)
         replay.setLoop(True)
-        if args.fps_limit:
-            replay.setFps(args.fps_limit)
-            args.fps_limit = None  # only want to set it once
-
-    input_node = replay if args.media_path else pipeline.create(dai.node.Camera).build()
+    else:
+        cam = pipeline.create(dai.node.Camera).build()
+    input_node = replay if args.media_path else cam
 
     nn = pipeline.create(ParsingNeuralNetwork).build(
         input_node, nn_archive, fps=args.fps_limit
     )
 
+    # tracking
     bridge = pipeline.create(ImgDetectionsBridge).build(nn.out, ignore_angle=True)
 
     tracker = pipeline.create(dai.node.ObjectTracker)
@@ -51,6 +59,7 @@ with dai.Pipeline(device) as pipeline:
     nn.passthrough.link(tracker.inputDetectionFrame)
     bridge.out.link(tracker.inputDetections)
 
+    # annotation
     tracklet_visualizer = pipeline.create(TrackletVisualizer).build(
         tracklets=tracker.out,
         labels=nn_archive.getConfigV1().model.heads[0].metadata.classes,
@@ -60,6 +69,7 @@ with dai.Pipeline(device) as pipeline:
         tracklets=tracker.out, threshold=args.threshold
     )
 
+    # visualization
     visualizer.addTopic("Video", nn.passthrough, "images")
     visualizer.addTopic("Tracklets", tracklet_visualizer.out, "images")
     visualizer.addTopic("People count", people_counter.out, "images")
@@ -72,5 +82,5 @@ with dai.Pipeline(device) as pipeline:
     while pipeline.isRunning():
         key = visualizer.waitKey(1)
         if key == ord("q"):
-            print("Got q key from the remote connection!")
+            print("Got q key. Exiting...")
             break

@@ -1,32 +1,18 @@
 # QR Code Detection with Tiling
 
-This experiment uses [qrdet:nano-512x288](https://hub.luxonis.com/ai/models/d1183a0f-e9a0-4fa2-8437-f2f5b0181739?view=page) neural network to detect QR codes. These QR codes are then decoded on the host. The experiment utilizes tiling to divide the input frame into multiple smaller frames. Each smaller frame is passed to the QR detection network and processed independently.
+This example uses [QRDet](https://models.luxonis.com/luxonis/qrdet/d1183a0f-e9a0-4fa2-8437-f2f5b0181739) neural network to detect QR codes. These QR codes are then decoded on the host. The example utilizes tiling to divide the input frame into multiple smaller frames. Each smaller frame is passed to the QR detection network and processed independently. You can modify this exepriment to detect any small object on input images.
 
 ## Demo
 
 ![example](media/example.gif)
 
-## Installation
-
-Running this example requires a **Luxonis device** connected to your computer. You can find more information about the supported devices and the set up instructions in our [Documentation](https://rvc4.docs.luxonis.com/hardware).
-
-Install the zbar library:
-
-```
-sudo apt-get install libzbar0
-```
-
-Install required packages by running:
-
-```bash
-pip install -r requirements.txt
-```
-
 ## Usage
 
-You can run the experiment fully on device (`STANDALONE` mode) or using your your computer as host (`PERIPHERAL` mode). `STANDALONE` mode is only supported on RVC4.
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
-All scripts accept the following arguments:
+You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
+
+Here is a list of all available parameters:
 
 ```
 -d DEVICE, --device DEVICE
@@ -43,44 +29,59 @@ All scripts accept the following arguments:
                     Input video stream resolution. {2160p, 1080p, 720p} (default: 1080p)
 ```
 
-### Peripheral Mode
+## Peripheral Mode
+
+### Installation
+
+You need to first prepare a **Python 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/),
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
+
+Install the zbar library:
+
+```
+sudo apt-get install libzbar0
+```
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
+```
 
 Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
 
-#### Examples
+### Examples
 
 ```bash
 python3 main.py
 ```
 
-This will run the QR Code Detection with Tiling experiment with the default device and camera input.
+This will run the QR Code Detection with Tiling example with the default device and camera input.
 
 ```bash
 python3 main.py -fps 10
 ```
 
-This will run the QR Code Detection with Tiling experiment with the default device at 10 FPS.
+This will run the QR Code Detection with Tiling example with the default device at 10 FPS.
 
 ```bash
 python3 main.py -media /path/to/media.mp4
 ```
 
-This will run the QR Code Detection with Tiling experiment with the default device and the specified media file.
+This will run the QR Code Detection with Tiling example with the default device and the specified media file.
 
 ```bash
 python3 main.py -r 3 -c 3
 ```
 
-This will run the QR Code Detection with Tiling experiment with the default device and the specified grid size.
+This will run the QR Code Detection with Tiling example with the default device and the specified grid size.
 
-### Standalone Mode
+## Standalone Mode (RVC4 only)
 
-Running the example in the [Standalone mode](https://rvc4.docs.luxonis.com/software/depthai/standalone/), app runs entirely on the device.
-To run the example in this mode, first install the [oakctl](https://rvc4.docs.luxonis.com/software/tools/oakctl/) command-line tool (enables host-device interaction) as:
-
-```bash
-bash -c "$(curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh)"
-```
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
 The app can then be run with:
 
@@ -89,4 +90,4 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-This will run the experiment with default argument values. If you want to change these values you need to edit the `oakapp.toml` file.
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).

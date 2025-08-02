@@ -28,7 +28,7 @@ with dai.Pipeline(device) as pipeline:
             replay.setFps(args.fps_limit)
             args.fps_limit = None  # only want to set it once
         replay.setSize(1920, 1080)
-        image_manip = pipeline.create(dai.node.ImageManipV2)
+        image_manip = pipeline.create(dai.node.ImageManip)
         image_manip.setMaxOutputFrameSize(
             nn_archive.getInputWidth() * nn_archive.getInputHeight() * 3
         )

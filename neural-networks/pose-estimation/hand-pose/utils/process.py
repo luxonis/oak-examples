@@ -6,7 +6,7 @@ from typing import Tuple
 class ProcessDetections(dai.node.HostNode):
     """A host node for processing a list of detections in a two-stage pipeline.
     The node iterates over a list of detections and sends a dai.MessageGroup with
-    a list of ImageManipConfigV2 objects that can be executed by the ImageManipV2 node.
+    a list of ImageManipConfig objects that can be executed by the ImageManip node.
 
     Before use, the target size need to be set with the set_target_size method.
     Attributes
@@ -14,7 +14,7 @@ class ProcessDetections(dai.node.HostNode):
     detections_input : dai.Input
         The input message for the detections.
     config_output : dai.Output
-        The output message for the ImageManipConfigV2 objects.
+        The output message for the ImageManipConfig objects.
     num_configs_output : dai.Output
         The output message for the number of configs.
     padding: float
@@ -55,7 +55,7 @@ class ProcessDetections(dai.node.HostNode):
         self.num_configs_output.send(num_cfgs_message)
 
         for i, detection in enumerate(detections):
-            cfg = dai.ImageManipConfigV2()
+            cfg = dai.ImageManipConfig()
             detection: ImgDetectionExtended = detection
             rect = detection.rotated_rect
 
@@ -70,7 +70,7 @@ class ProcessDetections(dai.node.HostNode):
             cfg.setOutputSize(
                 self._target_w,
                 self._target_h,
-                dai.ImageManipConfigV2.ResizeMode.STRETCH,
+                dai.ImageManipConfig.ResizeMode.STRETCH,
             )
             cfg.setReusePreviousImage(False)
             cfg.setTimestamp(img_detections.getTimestamp())

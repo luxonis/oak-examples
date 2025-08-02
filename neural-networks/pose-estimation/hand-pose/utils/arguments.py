@@ -22,7 +22,7 @@ def initialize_argparser():
         help="FPS limit for the model runtime.",
         required=False,
         default=None,
-        type=float,
+        type=int,
     )
 
     parser.add_argument(

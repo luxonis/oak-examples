@@ -29,7 +29,7 @@ try:
             det_rect = RotatedRect(det_center, det_size, 0)
             det_rect = det_rect.denormalize(frame.getWidth(), frame.getHeight())
 
-            cfg = ImageManipConfigV2()
+            cfg = ImageManipConfig()
             cfg.addCropRotatedRect(det_rect, normalizedCoords=False)
             cfg.setOutputSize(640, 640)
             cfg.setReusePreviousImage(False)

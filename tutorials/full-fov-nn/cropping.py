@@ -26,11 +26,11 @@ with dai.Pipeline(device) as pipeline:
         else dai.ImgFrame.Type.BGR888p
     )
 
-    img_manip = pipeline.create(dai.node.ImageManipV2)
+    img_manip = pipeline.create(dai.node.ImageManip)
     img_manip.initialConfig.setOutputSize(
         nn_archive.getInputWidth(),
         nn_archive.getInputHeight(),
-        dai.ImageManipConfigV2.ResizeMode.CENTER_CROP,
+        dai.ImageManipConfig.ResizeMode.CENTER_CROP,
     )
     img_manip.initialConfig.setFrameType(output_type)
     cam_out.link(img_manip.inputImage)

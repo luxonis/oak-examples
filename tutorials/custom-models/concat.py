@@ -1,4 +1,5 @@
 import depthai as dai
+from pathlib import Path
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 
@@ -46,9 +47,10 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # CONCAT
-    concat_nn_archive = dai.NNArchive(
-        archivePath=f"models/concat.{platform.lower()}.tar.xz"
+    concat_nn_archive_path = Path(__file__).parent / Path(
+        f"models/concat.{platform.lower()}.tar.xz"
     )
+    concat_nn_archive = dai.NNArchive(archivePath=str(concat_nn_archive_path))
     nn_concat = pipeline.create(ParsingNeuralNetwork)
     nn_concat.setNNArchive(concat_nn_archive)
     cam_rgb_out.link(nn_concat.inputs["img1"])

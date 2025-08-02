@@ -2,76 +2,122 @@
 
 This example demonstrates how to compute extrinsic parameters (pose of the camera) for multiple cameras.
 
-## Controls
+The core extrinsic calibration uses OpenCV as follows:
 
-| key         | action                                                       |
-| :---------- | :----------------------------------------------------------- |
-| `1` ... `9` | select camera                                                |
-| `q`         | quit                                                         |
-| `p`         | compute the pose of the selected camera and save the results |
+1. **Image Capture**: A high-resolution still image featuring a checkerboard is captured.
+1. **Corner Detection**:
+   - [`cv2.findChessboardCorners`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga93efa9b0aa890de240ca32b11253dd4a) is used on the captured image to find initial locations of the inner corners of the visible checkerboard pattern.
+   - [`cv2.cornerSubPix`](https://docs.opencv.org/master/dd/d1a/group__imgproc__feature.html#ga354e0d7c86d0d9da75de9b9701a9a87e) then refines these corner locations to sub-pixel accuracy.
+1. **Pose Estimation ([`cv2.solvePnP`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga549c2075fac14829ff4a58bc931c033d))**:
+   - This crucial function calculates the camera's pose. It takes:
+     - The refined 2D pixel coordinates of the checkerboard corners found in the image.
+     - The corresponding 3D real-world coordinates of these corners (which are known from the checkerboard's physical dimensions: `square_size` and `checkerboard_size`).
+     - The camera's pre-existing intrinsic matrix `intrinsic_mat_still`.
+     - The distortion coefficients.
+   - It outputs the rotation vector (`rvec`) and translation vector (`tvec`), which together define the 3D pose of the checkerboard relative to the camera. These are the extrinsic parameters.
+1. **Saving & Visualization**:
+   - The computed pose (`rvec`, `tvec`) is saved.
+   - For display, [`cv2.projectPoints`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga1019495a2c8d1743ed5cc23fa0daff8c) is used. It takes the 3D coordinates of the world axes (defined at the checkerboard's origin), the calculated `rvec` and `tvec`, and the camera's high-resolution intrinsic matrix to project these axes onto the 2D image plane. These projected 2D points are then scaled and normalized for drawing on the live preview.
 
-## Configuration
+## Demo
 
-Properties of the checkerboard used for calibration and the calibration data directory can be changed in the [`config.py`](config.py).
+Program will also print USB speed, and connected cameras for each connected device before starting the pipeline. Output example for having connected OAK-D S2, OAK-D PRO
+
+```
+Found 2 DepthAI devices to configure.
+
+Attempting to connect to device: 19443010F1E61F1300...
+=== Successfully connected to device: 19443010F1E61F1300
+    >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
+    >>> USB speed: SUPER
+    Pipeline created for device: 19443010F1E61F1300
+    Pipeline for 19443010F1E61F1300 configured. Ready to be started.
+
+Attempting to connect to device: 14442C1011D6C5D600...
+=== Successfully connected to device: 14442C1011D6C5D600
+    >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
+    >>> USB speed: SUPER
+    Pipeline created for device: 14442C1011D6C5D600
+    Pipeline for 14442C1011D6C5D600 configured. Ready to be started.
+
+```
 
 ## Usage
 
-Run the [`main.py`](main.py) with Python 3.
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software/) to setup your device if you haven't done it already.
 
-__Measure the pose of the camera__ \
-Select the camera. Press the `p` key to estimate the pose of the camera. An overlay showing the coordinate system will appear. To dismiss the overlay press any key. The pose of the camera will be saved to a file (`calibration_data/extrinsics_<camera_mxid>` by default). \
-_Repeat for every camera_.
+You can run the example using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
-![pose estimation](img/pose.png)
+Here is a list of all available parameters:
 
-## How it works
-
-Open CV's [`findChessboardCorners`](https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html#ga93efa9b0aa890de240ca32b11253dd4a) is used to find the checkerboard and [`solvePnP`](https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html#ga549c2075fac14829ff4a58bc931c033d) is used to compute the translation and rotation from the camera to the checkerboard.
-
-## Interpret the results
-
-The results can be read with Numpy's load function:
-
-```python
-import numpy as np
-extrinsics = np.load("calibration_data/extrinsics_19443010F1CCF41200.npz")
-print("World to cam: \n", extrinsics["world_to_cam"])
-print("Cam to world: \n", extrinsics["cam_to_world"])
-print("Rotation vector: \n", extrinsics["rot_vec"])
-print("Translation vector: \n", extrinsics["trans_vec"])
+```
+--include-ip          Also include IP-only cameras (e.g. OAK-4) in the device list
+--max-devices MAX_DEVICES
+                        Limit the total number of devices to this count
 ```
 
-To transform a point from the camera coordinate system to the world coordinate system or vise versa simply multiply a point with the appropriate transformation matrix.
+### Controls
 
-```python
-p_cam = np.array([x,y,z,1])
-p_world = data["cam_to_world"] @ p_cam
+| Key | Action                                                                                                                                                                   |
+| :-- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `q` | **Quit**: Closes all camera connections and exits the application.                                                                                                       |
+| `a` | **Camera Selection**: Cycles the calibration focus to the next available camera. The selected camera will be indicated by the on-screen text "Selected for Calib: True". |
+| `c` | **Calibrate**: Captures a high-res still, uses a checkerboard to compute and save the camera's pose, then displays the world axes.                                       |
+
+#### Step-by-Step Guide for Accurate Calibration
+
+1. **Position the Checkerboard**\
+   Make sure the checkerboard is clearly visible to the camera you want to calibrate. Good lighting and minimal motion help ensure accurate corner detection.
+
+1. **Configure Checkerboard Settings**\
+   Verify that the checkerboard size and square dimensions are correctly set in the [code](utils/calibration_node.py). This example uses the checkerboard provided in the repository: [pattern.pdf](pattern.pdf).
+
+1. **Start Calibration**\
+   Press the `c` key to calibrate. Progress and errors will be printed in your terminal—use this to confirm success or diagnose failures.
+
+1. **Verify Saved Output**\
+   After calibration, the extrinsic parameters are saved to a file in `[your specified directory]/extrinsics_[your device id].npz`
+
+> **Note about visualizer annotations**\
+> If you are using multiple devices, the `Selected for Calib` label might appear on both device streams due to a limitation in how topics are grouped in the visualizer.\
+> To avoid confusion, configure the visualizer to show annotations only for the currently selected device.
+
+### Peripheral Mode
+
+Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app.
+You can find more information about the supported devices and the set up instructions in our [Documentation](https://rvc4.docs.luxonis.com/hardware).
+Moreover, you need to prepare a **Python 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/)
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
 ```
 
-To get the position of the camera in the world coordinate system transform all zero vector to wrold space:
+#### Examples
 
-```python
-camera_pos = data["cam_to_world"] @ np.array([0,0,0,1])
+```bash
+python main.py
 ```
 
-> Notice how the points have an extra coordinate. This is called a homogeneous component and enables translation as well as rotation with a single transformation matrix.
+This will run the demo using only internal DepthAI cameras.
 
-### Reproject points to the image
-
-To reproject points written in the world coordinate system to the camera image we need the intrinsic matrix in adition to previously described extrinsic parameters. To get it use:
-
-```python
-calibration = dai.Device().readCalibration()
-intrinsic_mat = calibration.getCameraIntrinsics(dai.CameraBoardSocket.RGB, width, height)
+```bash
+python main.py --include-ip
 ```
 
-where `width` and `height` represent the image width and height in pixels.
+This will also discover and use any TCP/IP cameras on the network.
 
-```python
-points, _ = cv2.projectPoints(
-	np.float64([[x1, y1, z1], [x2, y2, z2], [x3, y3, z3], [x4, y4, z4], ...]), 
-	extrinsics["rot_vec"], extrinsics["trans_vec"], intrinsic_mat, None
-)
+```bash
+python main.py --max-devices 3
 ```
 
-resulting `points` contains postions in pixels.
+This will stop after configuring the first 3 devices.
+
+```bash
+python main.py --include-ip --max-devices 3
+```
+
+This will include IP cameras and then only use the first 3 discovered devices.

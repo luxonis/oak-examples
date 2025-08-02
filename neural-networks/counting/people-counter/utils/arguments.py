@@ -8,6 +8,14 @@ def initialize_argparser():
     )
 
     parser.add_argument(
+        "-m",
+        "--model",
+        help="People detection model HubAI reference.",
+        default="luxonis/scrfd-person-detection:25g-640x640",
+        type=str,
+    )
+
+    parser.add_argument(
         "-d",
         "--device",
         help="Optional name, DeviceID or IP of the camera to connect to.",

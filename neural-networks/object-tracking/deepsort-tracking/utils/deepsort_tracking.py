@@ -2,7 +2,7 @@ import depthai as dai
 from deep_sort_realtime.deepsort_tracker import DeepSort
 from typing import List
 
-from .detected_recognitions import DetectedRecognitions
+from depthai_nodes import GatheredData
 from .visualized_tracklets import VisualizedTracklets
 
 
@@ -25,24 +25,23 @@ class DeepsortTracking(dai.node.HostNode):
 
     def build(
         self,
-        img_frames: dai.Node.Output,
-        detected_recognitions: dai.Node.Output,
+        img_frame: dai.Node.Output,
+        gathered_data: dai.Node.Output,
         labels: List[str] = None,
     ) -> "DeepsortTracking":
-        self.link_args(img_frames, detected_recognitions)
+        self.link_args(img_frame, gathered_data)
         self._labels = labels
         return self
 
-    def process(
-        self, img_frame: dai.ImgFrame, detected_recognitions: dai.Buffer
-    ) -> None:
-        assert isinstance(detected_recognitions, DetectedRecognitions)
+    def process(self, img_frame: dai.ImgFrame, gathered_data: dai.Buffer) -> None:
+        assert isinstance(gathered_data, GatheredData)
 
         frame = img_frame.getCvFrame()
         img_height, img_width, _ = frame.shape
 
-        detections = detected_recognitions.img_detections.detections
-        recognitions = detected_recognitions.nn_data
+        detections: dai.ImgDetections = gathered_data.reference_data
+        detections = detections.detections
+        recognitions: dai.NNData = gathered_data.gathered
 
         tracklets = VisualizedTracklets()
         tracklets.setLabels(self._labels)
@@ -62,7 +61,7 @@ class DeepsortTracking(dai.node.HostNode):
                 ):
                     continue
                 tracklet = dai.Tracklet()
-                det = detections[track.detection_id]
+                det: dai.ImgDetection = detections[track.detection_id]
                 tracklet.id = int(track.track_id)
                 tracklet.age = track.age
                 tracklet.label = det.label
@@ -77,8 +76,8 @@ class DeepsortTracking(dai.node.HostNode):
                 tracklet.status = dai.Tracklet.TrackingStatus.TRACKED
                 tracklet_list.append(tracklet)
             tracklets.tracklets = tracklet_list
-        tracklets.setTimestamp(detected_recognitions.getTimestamp())
-        tracklets.setSequenceNum(detected_recognitions.getSequenceNum())
+        tracklets.setTimestamp(gathered_data.getTimestamp())
+        tracklets.setSequenceNum(gathered_data.getSequenceNum())
         self._out.send(tracklets)
 
     @property

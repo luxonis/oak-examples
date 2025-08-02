@@ -8,30 +8,21 @@ def initialize_argparser():
     )
 
     parser.add_argument(
-        "-det",
-        "--det_model",
-        help="Detection model HubAI reference.",
-        default="luxonis/scrfd-person-detection:25g-640x640",
+        "-d",
+        "--device",
+        help="Optional name, DeviceID or IP of the camera to connect to.",
         required=False,
+        default=None,
         type=str,
     )
 
     parser.add_argument(
-        "-rec",
-        "--rec_model",
-        help="Recognition model HubAI reference.",
-        default="luxonis/osnet:imagenet-128x256",
+        "-fps",
+        "--fps_limit",
+        help="FPS limit for the model runtime.",
         required=False,
-        type=str,
-    )
-
-    parser.add_argument(
-        "-cos",
-        "--cos_similarity_threshold",
-        help="Cosine similarity between object embeddings above which detections are considered as belonging to the same object.",
-        required=False,
-        default=0.5,
-        type=float,
+        default=None,
+        type=int,
     )
 
     parser.add_argument(
@@ -44,21 +35,22 @@ def initialize_argparser():
     )
 
     parser.add_argument(
-        "-fps",
-        "--fps_limit",
-        help="FPS limit for the model runtime.",
+        "-id",
+        "--identify",
+        help="Whether to run pose or face reidentification.",
         required=False,
-        default=30.0,
-        type=float,
+        default="pose",
+        choices=["pose", "face"],
+        type=str,
     )
 
     parser.add_argument(
-        "-d",
-        "--device",
-        help="Optional name, DeviceID or IP of the camera to connect to.",
+        "-cos",
+        "--cos_similarity_threshold",
+        help="Cosine similarity between object embeddings above which detections are considered as belonging to the same object.",
         required=False,
         default=None,
-        type=str,
+        type=float,
     )
 
     args = parser.parse_args()

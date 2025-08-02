@@ -1,0 +1,2 @@
+depthai==3.0.0rc3
+depthai-nodes==0.3.2

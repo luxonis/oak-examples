@@ -49,9 +49,9 @@ with dai.Pipeline(device) as pipeline:
         else dai.ImgFrame.Type.BGR888p,
     )
 
-    stretch_manip = pipeline.create(dai.node.ImageManipV2)
+    stretch_manip = pipeline.create(dai.node.ImageManip)
     stretch_manip.initialConfig.setOutputSize(
-        512, 288, dai.ImageManipConfigV2.ResizeMode.STRETCH
+        512, 288, dai.ImageManipConfig.ResizeMode.STRETCH
     )
     cam_out.link(stretch_manip.inputImage)
 

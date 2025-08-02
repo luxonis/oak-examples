@@ -14,11 +14,11 @@ MOBILENETV2_BOTTLENECK_WTS = pkg_resources.resource_filename(
 
 logger = logging.getLogger(__name__)
 
-gpus = tf.config.experimental.list_physical_devices("GPU")
+gpus = tf.config.exampleal.list_physical_devices("GPU")
 if gpus:
     # Currently, memory growth needs to be the same across GPUs
     for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
+        tf.config.exampleal.set_memory_growth(gpu, True)
 
 INPUT_WIDTH = 224
 

@@ -41,6 +41,7 @@ with dai.Pipeline(device) as pipeline:
 
     script = pipeline.create(dai.node.Script)
     script.setProcessor(dai.ProcessorType.LEON_CSS)
+    script.setLogLevel(dai.LogLevel.CRITICAL)
 
     nn_with_parser.out.link(script.inputs["detections"])
     script_text = f"""

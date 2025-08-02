@@ -2,28 +2,21 @@
 
 This example demonstrates, how to publish MQTT messages directly from a PoE camera. Credits to [bherbruck](https://github.com/bherbruck) for porting the [paho.mqtt.python](https://github.com/eclipse/paho.mqtt.python) library to a single python file (`paho-mqtt.py`) which can be run inside the [Script node](https://docs.luxonis.com/projects/api/en/latest/components/nodes/script/).
 
-This example publishes a message containing the average number of objects detected in the last 10 seconds. It uses [YoloV6](https://hub.luxonis.com/ai/models/face58c4-45ab-42a0-bafc-19f9fee8a034) model for object detection.
+This example publishes a message containing the average number of objects detected in the last 10 seconds. It uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) model for object detection.
 
 By default, the messages are published to a public broker `test.mosquitto.org` on port `1883`. They are published to the topic `test_topic/detections`. This can be changed with available CLI arguments (see Usage section below).
 
 ## Demo
 
 ![mqtt-client](media/mqtt_client.gif)
+
 For the demo https://testclient-cloud.mqtt.cool/ was used.
-
-## Installation
-
-Running this example requires a PoE capable **Luxonis device** connected to your computer. You can find more information about the supported devices and the set up instructions in our [Documentation](https://rvc4.docs.luxonis.com/hardware).
-
-Install requirements by running:
-
-```bash
-pip install -r requirements.txt
-```
 
 ## Usage
 
-You can run the experiment fully on device (`STANDALONE` mode) or using your computer as host (`PERIPHERAL` mode).
+Running this example requires a **Luxonis PoE device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+
+You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
 Here is a list of all available parameters:
 
@@ -45,17 +38,30 @@ Here is a list of all available parameters:
                     MQTT broker password. (default: )
 ```
 
-### Peripheral Mode
+## Peripheral Mode
 
-Running in peripheral mode requires a host computer. Below are some examples of how to run the experiment.
+### Installation
 
-#### Examples
+You need to first prepare a **Python 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/),
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
+```
+
+Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
+
+### Examples
 
 ```bash
 python3 main.py
 ```
 
-This will run the experiment with default argument values and publish messages to `test.mosquitto.org` on port `1883`.
+This will run the example with default argument values and publish messages to `test.mosquitto.org` on port `1883`.
 
 ```bash
 python3 main.py \
@@ -68,14 +74,10 @@ python3 main.py \
 
 This will publish messages to `localhost` on port `1883`. It will use `my_username` and `my_password` credentials to authenticate to the broker. It will publish messages to the topic `my_topic/detections`.
 
-### Standalone Mode
+## Standalone Mode (RVC4 only)
 
-Running the example in the [Standalone mode](https://rvc4.docs.luxonis.com/software/depthai/standalone/), app runs entirely on the device.
-To run the example in this mode, first install the [oakctl](https://rvc4.docs.luxonis.com/software/tools/oakctl/) command-line tool (enables host-device interaction) as:
-
-```bash
-bash -c "$(curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh)"
-```
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
 The app can then be run with:
 
@@ -84,4 +86,4 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-This will run the experiment with default argument values. If you want to change these values you need to edit the `oakapp.toml` file.
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).

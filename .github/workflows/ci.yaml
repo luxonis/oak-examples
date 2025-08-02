@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
     branches:
-      - gen3
+      - main
 
 jobs:
   pre-commit:
@@ -11,8 +11,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.head_ref }}
 
     - name: Install pre-commit
       run: python -m pip install 'pre-commit<4.0.0'

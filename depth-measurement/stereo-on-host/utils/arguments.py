@@ -6,7 +6,7 @@ def initialize_argparser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.description = "This experiment demonstrates how stereo pipeline works on the OAK device (using depthai). It rectifies mono frames (receives from the OAK camera) and then uses cv2.StereoSGBM to calculate the disparity on the host. It also colorizes the disparity and shows it to the user."
+    parser.description = "This example demonstrates how stereo pipeline works on the OAK device (using depthai). It rectifies mono frames (receives from the OAK camera) and then uses cv2.StereoSGBM to calculate the disparity on the host. It also colorizes the disparity and shows it to the user."
 
     parser.add_argument(
         "-d",

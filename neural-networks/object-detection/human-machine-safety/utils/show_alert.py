@@ -2,6 +2,7 @@ import depthai as dai
 from utils.measure_object_distance import ObjectDistances
 from datetime import timedelta
 from typing import List
+from depthai_nodes.utils import AnnotationHelper
 
 DISTANCE_THRESHOLD = 500  # mm
 ALERT_THRESHOLD = 0.3
@@ -51,39 +52,36 @@ class ShowAlert(dai.node.HostNode):
         if len(self._state_queue) > STATE_QUEUE_LENGTH:
             self._state_queue.pop(0)
         if self._should_alert:
-            img_annotations = self._draw_alert(distances.getTimestamp())
+            img_annotations = self._draw_alert(
+                distances.getTimestamp(), distances.getSequenceNum()
+            )
             self.output.send(img_annotations)
 
     @property
     def _should_alert(self) -> bool:
         return sum(self._state_queue) / len(self._state_queue) > ALERT_THRESHOLD
 
-    def _draw_alert(self, timestamp: timedelta) -> dai.ImgAnnotations:
-        img_annotations = dai.ImgAnnotations()
-        annotation = dai.ImgAnnotation()
-        pointsAnnotation = dai.PointsAnnotation()
-        pointsAnnotation.type = dai.PointsAnnotationType.LINE_LOOP
-        pointsAnnotation.outlineColor = dai.Color(1, 0, 0, 1)
-        pointsAnnotation.thickness = 10
-        pointsAnnotation.points = dai.VectorPoint2f(
-            [
-                dai.Point2f(0, 0, normalized=True),
-                dai.Point2f(1, 0, normalized=True),
-                dai.Point2f(1, 1, normalized=True),
-                dai.Point2f(0, 1, normalized=True),
-            ]
+    def _draw_alert(
+        self, timestamp: timedelta, sequence_num: int
+    ) -> dai.ImgAnnotations:
+        annotation_helper = AnnotationHelper()
+        annotation_helper.draw_rectangle(
+            top_left=(0, 0),
+            bottom_right=(1, 1),
+            outline_color=dai.Color(1, 0, 0, 1),
+            fill_color=dai.Color(1, 0, 0, 0.1),
+            thickness=10,
         )
-        annotation.points.append(pointsAnnotation)
 
-        text = dai.TextAnnotation()
-        text.position = dai.Point2f(0.4, 0.5, True)
-        text.text = "Too close!"
-        text.fontSize = 64
-        text.textColor = dai.Color(1, 1, 1, 1)
-        text.backgroundColor = dai.Color(1, 0, 0, 1)
-        annotation.texts.append(text)
+        annotation_helper.draw_text(
+            text="Too close!",
+            position=(0.3, 0.5),
+            color=dai.Color(1, 0, 0, 1),
+            size=64,
+        )
 
-        img_annotations.annotations.append(annotation)
-        img_annotations.setTimestamp(timestamp)
-
+        img_annotations = annotation_helper.build(
+            timestamp=timestamp,
+            sequence_num=sequence_num,
+        )
         return img_annotations

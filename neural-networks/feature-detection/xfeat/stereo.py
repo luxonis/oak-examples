@@ -7,13 +7,13 @@ def stereo_mode(
     device: dai.Device,
     nn_archive: dai.NNArchive,
     visualizer: dai.RemoteConnection,
-    fps_limit: int = 30,
+    fps_limit: int,
 ):
     with dai.Pipeline(device) as pipeline:
         print("Creating pipeline...")
 
         platform = device.getPlatform().name
-        print(f"Platform: {platform}")
+
         img_frame_type = (
             dai.ImgFrame.Type.BGR888p
             if platform == "RVC2"

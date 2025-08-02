@@ -1,58 +1,65 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
+
 from utils.arguments import initialize_argparser
-from utils.object_counter import ObjectCounter
+from utils.annotation_node import AnnotationNode
 
 _, args = initialize_argparser()
 
-if args.fps_limit and args.media_path:
-    args.fps_limit = None
-    print(
-        "WARNING: FPS limit is set but media path is provided. FPS limit will be ignored."
-    )
-
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+platform = device.getPlatform().name
+print(f"Platform: {platform}")
+
+frame_type = (
+    dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
+)
+
+if args.fps_limit is None:
+    args.fps_limit = 10 if platform == "RVC2" else 30
+    print(
+        f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
+    )
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    platform = device.getPlatformAsString()
-    model_description = dai.NNModelDescription(
-        "luxonis/scrfd-person-detection:25g-640x640", platform=platform
+    # person detection model
+    det_model_description = dai.NNModelDescription(args.model, platform=platform)
+    det_model_nn_archive = dai.NNArchive(
+        dai.getModelFromZoo(det_model_description, useCached=False)
     )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
+    # media/camera input
     if args.media_path:
         replay = pipeline.create(dai.node.ReplayVideo)
         replay.setReplayVideoFile(Path(args.media_path))
-        replay.setOutFrameType(
-            dai.ImgFrame.Type.BGR888i
-            if platform == "RVC4"
-            else dai.ImgFrame.Type.BGR888p
-        )
+        replay.setOutFrameType(frame_type)
         replay.setLoop(True)
-        if args.fps_limit:
-            replay.setFps(args.fps_limit)
-            args.fps_limit = None  # only want to set it once
-        replay.setSize(nn_archive.getInputWidth(), nn_archive.getInputHeight())
+    else:
+        cam = pipeline.create(dai.node.Camera).build()
+    input_node = replay if args.media_path else cam
 
-    input_node = (
-        replay.out if args.media_path else pipeline.create(dai.node.Camera).build()
+    det_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
+        input_node, det_model_nn_archive, fps=args.fps_limit
     )
 
-    nn_with_parser: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        input_node, nn_archive, fps=args.fps_limit
-    )
-    object_counter = pipeline.create(ObjectCounter).build(
-        nn=nn_with_parser.out, label_map=["People"]
+    # person detection filter
+    classes = det_model_nn_archive.getConfig().model.heads[0].metadata.classes
+    labels_to_keep = [classes.index("person")] if "person" in classes else []
+    det_filter = pipeline.create(ImgDetectionsFilter).build(
+        det_nn.out, labels_to_keep=labels_to_keep, confidence_threshold=0.5
     )
 
-    visualizer.addTopic("Video", nn_with_parser.passthrough)
-    visualizer.addTopic("Visualizations", nn_with_parser.out)
-    visualizer.addTopic("Object count", object_counter.out)
+    # annotation
+    annotation_node = pipeline.create(AnnotationNode).build(det_filter.out)
+
+    # visualization
+    visualizer.addTopic("Video", det_nn.passthrough)
+    visualizer.addTopic("PersonDetections", det_filter.out)
+    visualizer.addTopic("PersonCount", annotation_node.out)
 
     print("Pipeline created.")
 
@@ -62,5 +69,5 @@ with dai.Pipeline(device) as pipeline:
     while pipeline.isRunning():
         key = visualizer.waitKey(1)
         if key == ord("q"):
-            print("Got q key from the remote connection!")
+            print("Got q key. Exiting...")
             break

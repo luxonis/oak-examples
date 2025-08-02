@@ -6,19 +6,11 @@ This example demonstrates how to use a **Luxonis device** for streaming to [Foxg
 
 ![example](media/example.png)
 
-## Installation
-
-Running this example requires a **Luxonis device** connected to your computer. You can find more information about the supported devices and the set up instructions in our [Documentation](https://rvc4.docs.luxonis.com/hardware).
-
-Install required packages by running:
-
-```bash
-pip install -r requirements.txt
-```
-
 ## Usage
 
-You can run the experiment fully on device (`STANDALONE` mode) or using your your computer as host (`PERIPHERAL` mode).
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+
+You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
 Here is a list of all available parameters:
 
@@ -32,37 +24,45 @@ Here is a list of all available parameters:
 -r, --right           Enable right camera stream. (default: False)
 -pc, --pointcloud     Enable pointcloud stream. (default: False)
 -nc, --no-color       Disable color camera stream. (default: False)
-
 ```
 
 To see the streams, open [Foxglove Studio](https://app.foxglove.dev/), choose `Open connection` and `Foxglove WebSocket`.
 
-### Peripheral Mode
+## Peripheral Mode
 
-Running in peripheral mode requires a host computer. Below are some examples of how to run the example.
+### Installation
 
-#### Examples
+You need to first prepare a **Python 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/),
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
+```
+
+Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
+
+### Examples
 
 ```bash
 python3 main.py
 ```
 
-This will run the experiment with the color camera stream only.
+This will run the example with the color camera stream only.
 
 ```bash
 python3 main.py --pointcloud
 ```
 
-This will run the experiment with the color camera stream and point cloud stream.
+This will run the example with the color camera stream and point cloud stream.
 
-### Standalone Mode
+## Standalone Mode (RVC4 only)
 
-Running the example in the [Standalone mode](https://rvc4.docs.luxonis.com/software/depthai/standalone/), app runs entirely on the device.
-To run the example in this mode, first install the [oakctl](https://rvc4.docs.luxonis.com/software/tools/oakctl/) command-line tool (enables host-device interaction) as:
-
-```bash
-bash -c "$(curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh)"
-```
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
 The app can then be run with:
 
@@ -71,4 +71,4 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-This will run the experiment with default argument values. If you want to change these values you need to edit the `oakapp.toml` file.
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).

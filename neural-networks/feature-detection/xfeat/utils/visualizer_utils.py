@@ -1,5 +1,17 @@
 import numpy as np
 import cv2
+from depthai_nodes import PRIMARY_COLOR, SECONDARY_COLOR
+
+PRIMARY_COLOR_CV2 = (
+    int(PRIMARY_COLOR.b * 255),
+    int(PRIMARY_COLOR.g * 255),
+    int(PRIMARY_COLOR.r * 255),
+)
+SECONDARY_COLOR_CV2 = (
+    int(SECONDARY_COLOR.b * 255),
+    int(SECONDARY_COLOR.g * 255),
+    int(SECONDARY_COLOR.r * 255),
+)
 
 
 def calc_warp_corners_and_matches(
@@ -64,7 +76,7 @@ def xfeat_visualizer(image1, image2, features, draw_warp_corners=True):
         for i in range(len(warped_corners)):
             start_point = tuple(warped_corners[i - 1][0].astype(int))
             end_point = tuple(warped_corners[i][0].astype(int))
-            cv2.line(image2_with_corners, start_point, end_point, (0, 255, 0), 4)
+            cv2.line(image2_with_corners, start_point, end_point, PRIMARY_COLOR_CV2, 4)
 
     debug_image = cv2.drawMatches(
         image1,
@@ -73,7 +85,7 @@ def xfeat_visualizer(image1, image2, features, draw_warp_corners=True):
         keypoints2,
         matches,
         None,
-        matchColor=(0, 255, 0),
+        matchColor=PRIMARY_COLOR_CV2,
         flags=2,
     )
 

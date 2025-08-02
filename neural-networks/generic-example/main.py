@@ -8,11 +8,14 @@ _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+platform = device.getPlatformAsString()
+print(f"Platform: {platform}")
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
+
+    # model
     model_description = dai.NNModelDescription(args.model)
-    platform = device.getPlatformAsString()
     model_description.platform = platform
     nn_archive = dai.NNArchive(
         dai.getModelFromZoo(
@@ -21,6 +24,7 @@ with dai.Pipeline(device) as pipeline:
         )
     )
 
+    # media/camera input
     input_node = create_input_node(
         pipeline,
         platform,
@@ -31,6 +35,7 @@ with dai.Pipeline(device) as pipeline:
         input_node, nn_archive, fps=args.fps_limit
     )
 
+    # annotation and visualization
     if args.overlay_mode:
         # transform output array to colormap
         apply_colormap_node = pipeline.create(ApplyColormap).build(nn_with_parser.out)

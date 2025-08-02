@@ -2,17 +2,13 @@
 
 This example demonstrates, how to stream video from the device to the host computer using TCP protocol. It establishes bidirectional communication between the device and the host.
 
-## Installation
-
-Running this example requires a PoE capable **Luxonis device**. You can find more information about the supported devices and the set up instructions in our [Documentation](https://rvc4.docs.luxonis.com/hardware).
-
-Install dependencies by running:
-
-```bash
-pip install -r requirements.txt
-```
+## Demo
 
 ## Usage
+
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+
+You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
 This example contains two scripts: `host.py` and `oak.py`. `oak.py` is the script responsible for setting up the DepthAI pipeline and running it on the device and `host.py` is the script that runs on the host computer. Both scripts support two modes: `server` and `client`. When running in `server` mode the script will act as a server and wait for a connection. When running in `client` mode the script will attempt to connect to the server. The script running in `server` mode needs to be started first and then the `client` script can be run.
 
@@ -54,13 +50,25 @@ positional arguments:
     client         Run in client mode.
 ```
 
-### Peripheral Mode
+## Peripheral Mode
 
-Running in peripheral mode requires a host computer. Below are some examples of how to run the example.
+### Installation
 
-#### Examples
+You need to first prepare a **Python 3.10** environment with the following packages installed:
 
-##### OAK PoE as server
+- [DepthAI](https://pypi.org/project/depthai/)
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
+```
+
+Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
+
+### Examples
+
+#### OAK PoE as server
 
 ```bash
 python3 oak.py server
@@ -72,7 +80,7 @@ python3 host.py client <OAK_DEVICE_IP>
 
 This will run a server on the device and a client on the host computer.
 
-##### Host computer as server
+#### Host computer as server
 
 ```bash
 python3 host.py server
@@ -84,14 +92,10 @@ python3 oak.py client <HOST_IP>
 
 This will run a server on the host computer and a client on the device.
 
-### Standalone Mode
+## Standalone Mode (RVC4 only)
 
-Running the example in the [Standalone mode](https://rvc4.docs.luxonis.com/software/depthai/standalone/), app runs entirely on the device.
-To run the example in this mode, first install the [oakctl](https://rvc4.docs.luxonis.com/software/tools/oakctl/) command-line tool (enables host-device interaction) as:
-
-```bash
-bash -c "$(curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh)"
-```
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
 The app can then be run with:
 
@@ -100,7 +104,7 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-This will run the experiment with default argument values. If you want to change these values you need to edit the `oakapp.toml` file.
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
 
 By default, in standalone mode, the oak will run in `server` mode. To see the video stream on the host computer, you need to run the `host.py` script in `client` mode:
 

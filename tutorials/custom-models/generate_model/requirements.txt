@@ -1,8 +1,8 @@
---extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/
+/
+depthai==3.0.0rc2
 modelconv==0.3.3
 numpy==1.23.0
 onnx==1.17.0
 torch==2.6.0
 kornia==0.8.0
 onnxsim==0.4.36
-depthai==3.0.0a13

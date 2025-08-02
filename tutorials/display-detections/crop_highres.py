@@ -28,7 +28,7 @@ with dai.Pipeline(device) as pipeline:
         else dai.ImgFrame.Type.BGR888p,
     )
 
-    crop_manip = pipeline.create(dai.node.ImageManipV2)
+    crop_manip = pipeline.create(dai.node.ImageManip)
     crop_manip.initialConfig.addCrop(0, 0, 512, 288)
     cam_out.link(crop_manip.inputImage)
 

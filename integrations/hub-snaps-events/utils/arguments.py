@@ -18,7 +18,7 @@ def initialize_argparser():
 
     parser.add_argument(
         "-key",
-        "--api-key",
+        "--api_key",
         help="HubAI API key of your team. Not required if 'DEPTHAI_HUB_API_KEY' environment variable is set.",
         required=False,
         default="",
@@ -41,6 +41,33 @@ def initialize_argparser():
         required=False,
         default=None,
         type=str,
+    )
+
+    parser.add_argument(
+        "-thr",
+        "--confidence_threshold",
+        help="If detection is higher then set confidence then we send the snap.",
+        required=False,
+        default=0.7,
+        type=float,
+    )
+
+    parser.add_argument(
+        "-c",
+        "--class_names",
+        type=str,
+        nargs="+",
+        default=["person"],
+        help="Class names to consider.",
+    )
+
+    parser.add_argument(
+        "-ti",
+        "--time_interval",
+        help="Minimum time between snaps.",
+        required=False,
+        default=60.0,
+        type=float,
     )
     args = parser.parse_args()
 

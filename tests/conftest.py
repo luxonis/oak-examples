@@ -1,7 +1,6 @@
 import pytest
 from pathlib import Path
 import os
-import json
 import logging
 
 logger = logging.getLogger()
@@ -41,7 +40,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--virtual-display",
         action="store_true",
-        help="Enable virtual display (sets DISPLAY=':99').",
+        help="Enable virtual display (sets DISPLAY=':99'). Only used for peripheral tests.",
     )
     parser.addoption(
         "--platform",
@@ -64,6 +63,18 @@ def pytest_addoption(parser):
         choices=["yes", "no"],
         help="If set to 'yes', tests will fail on DepthAI warnings.",
     )
+    parser.addoption(
+        "--device",
+        default="",
+        type=str,
+        help="Device to perform standalone tests on. If testing just peripheral then not required.",
+    )
+    parser.addoption(
+        "--device-password",
+        type=str,
+        default="",
+        help="Specify device password. If testing just peripheral then not required.",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -77,26 +88,19 @@ def test_args(request):
         "virtual_display": request.config.getoption("--virtual-display"),
         "platform": request.config.getoption("--platform"),
         "python_version": request.config.getoption("--python-version"),
+        "device_password": request.config.getoption("--device-password"),
         "strict_mode": True
         if request.config.getoption("--strict-mode") == "yes"
         else False,
+        "device": request.config.getoption("--device"),
     }
 
     logger.info(f"Test arguments: {args}")
-
-    script_dir = Path(__file__).parent
-    file_path = script_dir / "experiments_metadata.json"
-
-    with open(file_path) as f:
-        experiments_metadata = json.load(f)
-
-    args["experiments_metadata"] = experiments_metadata
-
     return args
 
 
 def pytest_generate_tests(metafunc):
-    if "experiment_dir" in metafunc.fixturenames:
+    if "example_dir" in metafunc.fixturenames:
         root_dir = metafunc.config.getoption("--root-dir")
         exp_dirs = []
 
@@ -108,4 +112,4 @@ def pytest_generate_tests(metafunc):
             elif "main.py" not in filenames and "requirements.txt" in filenames:
                 logger.info(f"Skipping {dirpath} because it has no main.py")
 
-        metafunc.parametrize("experiment_dir", exp_dirs, ids=[str(p) for p in exp_dirs])
+        metafunc.parametrize("example_dir", exp_dirs, ids=[str(p) for p in exp_dirs])

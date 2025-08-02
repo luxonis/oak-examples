@@ -104,7 +104,7 @@ def start_pipeline(pipeline: dai.Pipeline, options):
     print("Creating pipeline...")
 
     # The host node architecture is not preferred here as the host node runs in a loop and
-    #  we only want to get from the queues when pinged from the server in this experiment
+    #  we only want to get from the queues when pinged from the server in this example
     nn_q = None
     label_map = None
     if depth_flag:
@@ -134,11 +134,11 @@ def start_pipeline(pipeline: dai.Pipeline, options):
             model_description.platform = platform
             nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
-            manip = pipeline.create(dai.node.ImageManipV2)
+            manip = pipeline.create(dai.node.ImageManip)
             manip.initialConfig.setOutputSize(
                 nn_archive.getInputWidth(),
                 nn_archive.getInputHeight(),
-                dai.ImageManipConfigV2.ResizeMode.STRETCH,
+                dai.ImageManipConfig.ResizeMode.STRETCH,
             )
             manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
             manip.setMaxOutputFrameSize(

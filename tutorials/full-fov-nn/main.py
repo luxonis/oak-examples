@@ -12,9 +12,10 @@ platform = device.getPlatform()
 
 with dai.Pipeline(device) as pipeline:
     cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
+
     cam_out = cam.requestOutput(
-        size=(812, 608), fps=args.fps_limit, type=dai.ImgFrame.Type.NV12
-    )
+        size=(3000, 2000), fps=args.fps_limit, type=dai.ImgFrame.Type.NV12
+    )  # works
 
     model_description = dai.NNModelDescription(
         "luxonis/yolov6-nano:r2-coco-512x288", platform=platform.name
@@ -27,30 +28,32 @@ with dai.Pipeline(device) as pipeline:
         else dai.ImgFrame.Type.BGR888p
     )
 
-    img_manip = pipeline.create(dai.node.ImageManipV2)
+    img_manip = pipeline.create(dai.node.ImageManip)
     img_manip.initialConfig.setOutputSize(
         nn_archive.getInputWidth(),
         nn_archive.getInputHeight(),
-        dai.ImageManipConfigV2.ResizeMode.STRETCH,
+        dai.ImageManipConfig.ResizeMode.STRETCH,
     )
     img_manip.initialConfig.setFrameType(output_type)
+    img_manip.inputConfig.setReusePreviousMessage(True)
+
     cam_out.link(img_manip.inputImage)
 
+    nn = pipeline.create(ParsingNeuralNetwork).build(img_manip.out, nn_archive)
+
     resize_controller = pipeline.create(ResizeController).build(
-        img_manip.out,
+        nn.out,
         (nn_archive.getInputWidth(), nn_archive.getInputHeight()),
         output_type,
     )
-    resize_controller.out_cfg.link(img_manip.inputConfig)
 
-    nn = pipeline.create(ParsingNeuralNetwork).build(img_manip.out, nn_archive)
+    resize_controller.out_cfg.link(img_manip.inputConfig)
 
     visualizer.addTopic("Resized", nn.passthrough, "images")
     visualizer.addTopic("Visualizations", nn.out, "images")
     visualizer.addTopic("Resize mode", resize_controller.out_annotations, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
     visualizer.registerPipeline(pipeline)
 

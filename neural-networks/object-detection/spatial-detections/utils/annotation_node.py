@@ -1,6 +1,8 @@
 import depthai as dai
-from depthai_nodes import OUTLINE_COLOR
+from depthai_nodes import PRIMARY_COLOR, SECONDARY_COLOR, TRANSPARENT_PRIMARY_COLOR
+from depthai_nodes.utils import AnnotationHelper
 from typing import List
+import cv2
 
 
 class AnnotationNode(dai.node.HostNode):
@@ -12,26 +14,31 @@ class AnnotationNode(dai.node.HostNode):
                 dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgAnnotations, True)
             ]
         )
+        self.out_depth = self.createOutput(
+            possibleDatatypes=[
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
+            ]
+        )
         self.labels = []
 
     def build(
         self,
         input_detections: dai.Node.Output,
+        depth: dai.Node.Output,
         labels: List[str],
     ) -> "AnnotationNode":
         self.labels = labels
-        self.link_args(input_detections)
+        self.link_args(input_detections, depth)
         return self
 
-    def process(self, detections_message: dai.Buffer) -> None:
+    def process(
+        self, detections_message: dai.Buffer, depth_message: dai.ImgFrame
+    ) -> None:
         assert isinstance(detections_message, dai.SpatialImgDetections)
 
         detections_list: List[dai.SpatialImgDetection] = detections_message.detections
 
-        annotations = (
-            dai.ImgAnnotations()
-        )  # custom annotations for drawing bbox and displaying label + spatial info
-        annotation = dai.ImgAnnotation()
+        annotation_helper = AnnotationHelper()
 
         for ix, detection in enumerate(detections_list):
             xmin, ymin, xmax, ymax = (
@@ -40,29 +47,35 @@ class AnnotationNode(dai.node.HostNode):
                 detection.xmax,
                 detection.ymax,
             )
-            points = [
-                dai.Point2f(x=xmin, y=ymin, normalized=True),
-                dai.Point2f(x=xmax, y=ymin, normalized=True),
-                dai.Point2f(x=xmax, y=ymax, normalized=True),
-                dai.Point2f(x=xmin, y=ymax, normalized=True),
-            ]
+            annotation_helper.draw_rectangle(
+                top_left=(xmin, ymin),
+                bottom_right=(xmax, ymax),
+                outline_color=PRIMARY_COLOR,
+                fill_color=TRANSPARENT_PRIMARY_COLOR,
+                thickness=2.0,
+            )
 
-            pointsAnnotation = dai.PointsAnnotation()
-            pointsAnnotation.type = dai.PointsAnnotationType.LINE_LOOP
-            pointsAnnotation.points = dai.VectorPoint2f(points)
-            pointsAnnotation.outlineColor = OUTLINE_COLOR
-            pointsAnnotation.thickness = 2.0
-            annotation.points.append(pointsAnnotation)
+            annotation_helper.draw_text(
+                text=f"{self.labels[detection.label]} {int(detection.confidence * 100)}% \nx: {detection.spatialCoordinates.x:.2f}mm \ny: {detection.spatialCoordinates.y:.2f}mm \nz:{detection.spatialCoordinates.z:.2f}mm",
+                position=(xmin + 0.01, ymin + 0.2),
+                size=12,
+                color=SECONDARY_COLOR,
+            )
 
-            text = dai.TextAnnotation()
-            text.position = dai.Point2f(x=xmin + 0.01, y=ymin + 0.2, normalized=True)
-            text.text = f"{self.labels[detection.label]} {int(detection.confidence * 100)}% \nx: {detection.spatialCoordinates.x:.2f}mm \ny: {detection.spatialCoordinates.y:.2f}mm \nz:{detection.spatialCoordinates.z:.2f}mm"
-            text.fontSize = 12
-            text.textColor = dai.Color(1, 1, 1, 1)
-            annotation.texts.append(text)
+        annotations = annotation_helper.build(
+            timestamp=detections_message.getTimestamp(),
+            sequence_num=detections_message.getSequenceNum(),
+        )
 
-        annotations.annotations.append(annotation)
-        annotations.setTimestamp(detections_message.getTimestamp())
-        annotations.setSequenceNum(detections_message.getSequenceNum())
+        depth_map = depth_message.getCvFrame()
+        depth_map = cv2.applyColorMap(
+            cv2.convertScaleAbs(depth_map, alpha=0.3), cv2.COLORMAP_JET
+        )
+
+        depth_frame = dai.ImgFrame()
+        depth_frame.setCvFrame(depth_map, dai.ImgFrame.Type.BGR888i)
+        depth_frame.setTimestamp(depth_message.getTimestamp())
+        depth_frame.setSequenceNum(depth_message.getSequenceNum())
 
         self.out_annotations.send(annotations)
+        self.out_depth.send(depth_frame)

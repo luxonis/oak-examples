@@ -6,26 +6,26 @@ from depthai_nodes import ImgDetectionExtended, ImgDetectionsExtended
 
 
 class CropConfigsCreator(dai.node.HostNode):
-    """A node to create and send a dai.ImageManipConfigV2 crop configuration for each
+    """A node to create and send a dai.ImageManipConfig crop configuration for each
     detection in a list of detections. An optional target size and resize mode can be
     set to ensure uniform crop sizes.
 
     To ensure correct synchronization between the crop configurations and the image,
-    ensure "inputConfig.setReusePreviousMessage" is set to False in the dai.ImageManipV2 node.
+    ensure "inputConfig.setReusePreviousMessage" is set to False in the dai.ImageManip node.
 
     Attributes
     ----------
     detections_input : dai.Input
         The input link for the ImageDetectionsExtended | dai.ImgDetections message.
     config_output : dai.Output
-        The output link for the ImageManipConfigV2 messages.
+        The output link for the ImageManipConfig messages.
     detections_output : dai.Output
         The output link for the ImgDetectionsExtended message.
     source_size : Tuple[int, int]
         The size of the source image (width, height).
     target_size : Optional[Tuple[int, int]] = None
         The size of the target image (width, height). If None, crop sizes will not be uniform.
-    resize_mode : dai.ImageManipConfigV2.ResizeMode = dai.ImageManipConfigV2.ResizeMode.STRETCH
+    resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.STRETCH
         The resize mode to use when target size is set. Options are: CENTER_CROP, LETTERBOX, NONE, STRETCH.
     """
 
@@ -34,7 +34,7 @@ class CropConfigsCreator(dai.node.HostNode):
         super().__init__()
         self.config_output = self.createOutput(
             possibleDatatypes=[
-                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImageManipConfigV2, True)
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImageManipConfig, True)
             ]
         )
         self.detections_output = self.createOutput(
@@ -46,7 +46,7 @@ class CropConfigsCreator(dai.node.HostNode):
         self._h: int = None
         self._target_w: int = None
         self._target_h: int = None
-        self.resize_mode: dai.ImageManipConfigV2.ResizeMode = None
+        self.resize_mode: dai.ImageManipConfig.ResizeMode = None
 
     @property
     def w(self) -> int:
@@ -89,7 +89,7 @@ class CropConfigsCreator(dai.node.HostNode):
         detections_input: dai.Node.Output,
         source_size: Tuple[int, int],
         target_size: Optional[Tuple[int, int]] = None,
-        resize_mode: dai.ImageManipConfigV2.ResizeMode = dai.ImageManipConfigV2.ResizeMode.STRETCH,
+        resize_mode: dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.STRETCH,
     ) -> "CropConfigsCreator":
         """Link the node input and set the correct source and target image sizes.
 
@@ -101,7 +101,7 @@ class CropConfigsCreator(dai.node.HostNode):
             The size of the source image (width, height).
         target_size : Optional[Tuple[int, int]]
             The size of the target image (width, height). If None, crop sizes will not be uniform.
-        resize_mode : dai.ImageManipConfigV2.ResizeMode = dai.ImageManipConfigV2.ResizeMode.STRETCH
+        resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.STRETCH
             The resize mode to use when target size is set. Options are: CENTER_CROP, LETTERBOX, NONE, STRETCH.
         """
 
@@ -141,7 +141,7 @@ class CropConfigsCreator(dai.node.HostNode):
         detections = detections_msg.detections
 
         # Skip the current frame / load new frame
-        cfg = dai.ImageManipConfigV2()
+        cfg = dai.ImageManipConfig()
         cfg.setSkipCurrentImage(True)
         cfg.setTimestamp(timestamp)
         cfg.setSequenceNum(sequence_num)
@@ -165,7 +165,7 @@ class CropConfigsCreator(dai.node.HostNode):
 
                 valid_detections.append(detection)
 
-                cfg = dai.ImageManipConfigV2()
+                cfg = dai.ImageManipConfig()
                 cfg.addCrop(xmin, ymin, xmax - xmin, ymax - ymin)
 
                 if self.target_w is not None and self.target_h is not None:

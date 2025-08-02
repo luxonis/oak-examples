@@ -16,6 +16,15 @@ def initialize_argparser():
         type=str,
     )
 
+    parser.add_argument(
+        "-fps",
+        "--fps_limit",
+        help="FPS limit for the model runtime.",
+        required=False,
+        default=None,
+        type=int,
+    )
+
     args = parser.parse_args()
 
     return parser, args

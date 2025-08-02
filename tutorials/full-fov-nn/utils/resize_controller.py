@@ -8,7 +8,7 @@ class ResizeController(dai.node.HostNode):
 
         self.out_cfg = self.createOutput(
             possibleDatatypes=[
-                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImageManipConfigV2, True)
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImageManipConfig, True)
             ]
         )
 
@@ -20,43 +20,37 @@ class ResizeController(dai.node.HostNode):
 
     def build(
         self,
-        frames: dai.Node.Output,
+        nn_out: dai.Node.Output,
         nn_size: Tuple[int, int],
         output_type: dai.ImgFrame.Type,
     ):
         self.nn_size = nn_size
         self.output_type = output_type
-        self.current_mode = dai.ImageManipConfigV2.ResizeMode.STRETCH
-        self.link_args(frames)
+        self.current_mode = dai.ImageManipConfig.ResizeMode.STRETCH
+        self.link_args(nn_out)
+
         return self
 
-    # TODO: This is a temporary solution, until the bug is fixed in DepthAI. Remove this, once it's possible to
-    # send multiple ImageManipConfigV2 messages with setOutputSize in a row.
-    def send_dummy_config(self):
-        self.out_cfg.send(dai.ImageManipConfigV2())
-
     def handle_key_press(self, key: int):
-        cfg = dai.ImageManipConfigV2()
+        cfg = dai.ImageManipConfig()
         cfg.setFrameType(self.output_type)
 
         if key == ord("a"):
-            self.send_dummy_config()
-            self.current_mode = dai.ImageManipConfigV2.ResizeMode.LETTERBOX
-            cfg.setOutputSize(
-                *self.nn_size, dai.ImageManipConfigV2.ResizeMode.LETTERBOX
-            )
+            self.current_mode = dai.ImageManipConfig.ResizeMode.LETTERBOX
+            cfg.setOutputSize(*self.nn_size, dai.ImageManipConfig.ResizeMode.LETTERBOX)
+            print("sending letterbox RESIZE")
             self.out_cfg.send(cfg)
         elif key == ord("s"):
-            self.send_dummy_config()
-            self.current_mode = dai.ImageManipConfigV2.ResizeMode.STRETCH
-            cfg.setOutputSize(*self.nn_size, dai.ImageManipConfigV2.ResizeMode.STRETCH)
+            self.current_mode = dai.ImageManipConfig.ResizeMode.STRETCH
+            cfg.setOutputSize(*self.nn_size, dai.ImageManipConfig.ResizeMode.STRETCH)
+            print("sending stretch STRETCH")
             self.out_cfg.send(cfg)
         elif key == ord("d"):
-            self.send_dummy_config()
-            self.current_mode = dai.ImageManipConfigV2.ResizeMode.CENTER_CROP
+            self.current_mode = dai.ImageManipConfig.ResizeMode.CENTER_CROP
             cfg.setOutputSize(
-                *self.nn_size, dai.ImageManipConfigV2.ResizeMode.CENTER_CROP
+                *self.nn_size, dai.ImageManipConfig.ResizeMode.CENTER_CROP
             )
+            print("sending center CROP")
             self.out_cfg.send(cfg)
 
     def create_text_annot(self, text: str, pos: Tuple[float, float]):
@@ -68,15 +62,13 @@ class ResizeController(dai.node.HostNode):
         txt_annot.text = text
         return txt_annot
 
-    def process(self, frame: dai.ImgFrame):
+    def process(self, nn_out: dai.Buffer):
         img_annots = dai.ImgAnnotations()
         img_annot = dai.ImgAnnotation()
         selected_mode = self.create_text_annot(
             f"Selected resize mode: {self.current_mode.name}", (0.05, 0.1)
         )
-        instruct1 = self.create_text_annot(
-            "a - LETTERBOX (not yet supported on RVC4)", (0.05, 0.14)
-        )
+        instruct1 = self.create_text_annot("a - LETTERBOX", (0.05, 0.14))
         instruct2 = self.create_text_annot("s - STRETCH", (0.05, 0.18))
         instruct3 = self.create_text_annot("d - CENTER_CROP", (0.05, 0.22))
         img_annot.texts.append(selected_mode)
@@ -84,5 +76,5 @@ class ResizeController(dai.node.HostNode):
         img_annot.texts.append(instruct2)
         img_annot.texts.append(instruct3)
         img_annots.annotations.append(img_annot)
-        img_annots.setTimestamp(frame.getTimestamp())
+        img_annots.setTimestamp(nn_out.getTimestamp())
         self.out_annotations.send(img_annots)

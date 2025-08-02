@@ -1,98 +1,103 @@
 import depthai as dai
 
-from kalman_filter_node import KalmanFilterNode
+from utils.kalman_filter_node import KalmanFilterNode
+from utils.arguments import initialize_argparser
 
+DET_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
 
-label_map = [
-    "background",
-    "aeroplane",
-    "bicycle",
-    "bird",
-    "boat",
-    "bottle",
-    "bus",
-    "car",
-    "cat",
-    "chair",
-    "cow",
-    "diningtable",
-    "dog",
-    "horse",
-    "motorbike",
-    "person",
-    "pottedplant",
-    "sheep",
-    "sofa",
-    "train",
-    "tvmonitor",
-]
+_, args = initialize_argparser()
 
-model_description = dai.NNModelDescription(
-    modelSlug="mobilenet-ssd", platform="RVC2", modelVersionSlug="300x300"
-)
-archive_path = dai.getModelFromZoo(model_description)
-nn_archive = dai.NNArchive(archive_path)
+visualizer = dai.RemoteConnection(httpPort=8082)
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+platform = device.getPlatform().name
+print(f"Platform: {platform}")
 
-device = dai.Device()
-print("Creating pipeline...")
+if args.fps_limit is None:
+    args.fps_limit = 20
+    print(
+        f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
+    )
+
+if len(device.getConnectedCameras()) < 3:
+    raise ValueError(
+        "Device must have 3 cameras (color, left and right) in order to run this example."
+    )
+
 with dai.Pipeline(device) as pipeline:
-    cam_rgb = pipeline.create(dai.node.ColorCamera)
-    detection_network = pipeline.create(dai.node.MobileNetSpatialDetectionNetwork)
-    mono_left = pipeline.create(dai.node.MonoCamera)
-    mono_right = pipeline.create(dai.node.MonoCamera)
-    stereo = pipeline.create(dai.node.StereoDepth).build(mono_left.out, mono_right.out)
-    object_tracker = pipeline.create(dai.node.ObjectTracker)
+    print("Creating pipeline...")
 
-    cam_rgb.setPreviewSize(300, 300)
-    cam_rgb.setBoardSocket(dai.CameraBoardSocket.CAM_A)
-    cam_rgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-    cam_rgb.setInterleaved(False)
+    # detection model
+    model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    labels = nn_archive.getConfig().model.heads[0].metadata.classes
+    person_label = labels.index("person")
 
-    mono_left.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-    mono_left.setBoardSocket(dai.CameraBoardSocket.CAM_B)
-    mono_right.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
-    mono_right.setBoardSocket(dai.CameraBoardSocket.CAM_C)
-
-    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DENSITY)
+    # camera input
+    cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
+    left_cam = pipeline.create(dai.node.Camera).build(
+        dai.CameraBoardSocket.CAM_B, sensorFps=args.fps_limit
+    )
+    right_cam = pipeline.create(dai.node.Camera).build(
+        dai.CameraBoardSocket.CAM_C, sensorFps=args.fps_limit
+    )
+    stereo = pipeline.create(dai.node.StereoDepth).build(
+        left=left_cam.requestOutput((640, 400)),
+        right=right_cam.requestOutput((640, 400)),
+        presetMode=dai.node.StereoDepth.PresetMode.HIGH_DETAIL,
+    )
     stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
+    if platform == "RVC2":
+        stereo.setOutputSize(*nn_archive.getInputSize())
+    stereo.setLeftRightCheck(True)
+    stereo.setRectification(True)
 
-    # detection_network.setBlobPath(blobconverter.from_zoo(name='mobilenet-ssd', shaves=5))
-    detection_network.setNNArchive(nn_archive)
-    detection_network.setConfidenceThreshold(0.7)
-    detection_network.input.setBlocking(False)
-    detection_network.setBoundingBoxScaleFactor(0.5)
-    detection_network.setDepthLowerThreshold(100)
-    detection_network.setDepthUpperThreshold(5000)
+    nn = pipeline.create(dai.node.SpatialDetectionNetwork).build(
+        input=cam, stereo=stereo, nnArchive=nn_archive, fps=args.fps_limit
+    )
+    nn.setBoundingBoxScaleFactor(0.7)
+    nn.setDepthLowerThreshold(100)
+    nn.setDepthUpperThreshold(5000)
+    if platform == "RVC2":
+        nn.setNNArchive(
+            nn_archive, numShaves=6
+        )  # TODO: change to numShaves=4 if running on OAK-D Lite
 
-    object_tracker.setDetectionLabelsToTrack([15])  # track only person
+    # tracking
+    object_tracker = pipeline.create(dai.node.ObjectTracker)
+    object_tracker.setDetectionLabelsToTrack([person_label])  # track only person
     object_tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
     object_tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
 
-    cam_rgb.preview.link(detection_network.input)
-    q_rgb = object_tracker.passthroughTrackerFrame.createOutputQueue(4, False)
-    q_tracklets = object_tracker.out.createOutputQueue(4, False)
-    q_detections = object_tracker.passthroughDetections.createOutputQueue(4, False)
+    nn.passthrough.link(object_tracker.inputTrackerFrame)
+    nn.passthrough.link(object_tracker.inputDetectionFrame)
+    nn.out.link(object_tracker.inputDetections)
 
-    detection_network.passthrough.link(object_tracker.inputTrackerFrame)
-    detection_network.passthrough.link(object_tracker.inputDetectionFrame)
-    detection_network.out.link(object_tracker.inputDetections)
-    stereo.depth.link(detection_network.inputDepth)
-
-    # Connect to device and start pipeline
     calibration_handler = device.readCalibration()
     baseline = calibration_handler.getBaselineDistance() * 10
     focal_length = calibration_handler.getCameraIntrinsics(
         dai.CameraBoardSocket.CAM_C, 640, 400
     )[0][0]
 
-    pipeline.create(KalmanFilterNode).build(
-        rgb=object_tracker.passthroughTrackerFrame,
+    # kalman filter
+    kalman_filter_node = pipeline.create(KalmanFilterNode).build(
+        rgb=nn.passthrough,
         tracker_out=object_tracker.out,
         baseline=baseline,
         focal_length=focal_length,
-        label_map=label_map,
+        label_map=labels,
     )
 
-    print("Running pipeline...")
-    pipeline.run()
-    print("Pipeline stopped...")
+    # visualization
+    visualizer.addTopic("Video", nn.passthrough, "images")
+    visualizer.addTopic("Tracklets", kalman_filter_node.out, "images")
+
+    print("Pipeline created.")
+
+    pipeline.start()
+    visualizer.registerPipeline(pipeline)
+
+    while pipeline.isRunning():
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key. Exiting...")
+            break

@@ -2,102 +2,19 @@ from pathlib import Path
 import cv2
 import depthai as dai
 import numpy as np
+from depthai_nodes.utils import AnnotationHelper
+from typing import List
 
 from .texts import TextHelper, TitleHelper
-from .annotation_helper import AnnotationHelper
 
 JET_CUSTOM = cv2.applyColorMap(np.arange(256, dtype=np.uint8), cv2.COLORMAP_JET)
 JET_CUSTOM = JET_CUSTOM[::-1]
 JET_CUSTOM[0] = [0, 0, 0]
 
-logo_path = Path(__file__).parent.parent / "media" / "logo.jpeg"
+logo_path = Path(__file__).parent.parent / "assets" / "logo.jpeg"
 
 LOGO = cv2.imread(str(logo_path))
 LOGO = cv2.resize(LOGO, (250, 67))
-
-# Tiny yolo v3/4 label texts
-labelMap = [
-    "person",
-    "bicycle",
-    "car",
-    "motorbike",
-    "aeroplane",
-    "bus",
-    "train",
-    "truck",
-    "boat",
-    "traffic light",
-    "fire hydrant",
-    "stop sign",
-    "parking meter",
-    "bench",
-    "bird",
-    "cat",
-    "dog",
-    "horse",
-    "sheep",
-    "cow",
-    "elephant",
-    "bear",
-    "zebra",
-    "giraffe",
-    "backpack",
-    "umbrella",
-    "handbag",
-    "tie",
-    "suitcase",
-    "frisbee",
-    "skis",
-    "snowboard",
-    "sports ball",
-    "kite",
-    "baseball bat",
-    "baseball glove",
-    "skateboard",
-    "surfboard",
-    "tennis racket",
-    "bottle",
-    "wine glass",
-    "cup",
-    "fork",
-    "knife",
-    "spoon",
-    "bowl",
-    "banana",
-    "apple",
-    "sandwich",
-    "orange",
-    "broccoli",
-    "carrot",
-    "hot dog",
-    "pizza",
-    "donut",
-    "cake",
-    "chair",
-    "sofa",
-    "pottedplant",
-    "bed",
-    "diningtable",
-    "toilet",
-    "tvmonitor",
-    "laptop",
-    "mouse",
-    "remote",
-    "keyboard",
-    "cell phone",
-    "microwave",
-    "oven",
-    "toaster",
-    "sink",
-    "refrigerator",
-    "book",
-    "clock",
-    "vase",
-    "scissors",
-    "teddy bear",
-    "hair drier",
-    "toothbrush",
-]
 
 
 class CombineOutputs(dai.node.HostNode):
@@ -115,6 +32,7 @@ class CombineOutputs(dai.node.HostNode):
         )
         self.text = TextHelper()
         self.title = TitleHelper()
+        self.label_map = None
 
     def build(
         self,
@@ -122,8 +40,10 @@ class CombineOutputs(dai.node.HostNode):
         depth: dai.Node.Output,
         birdseye: dai.Node.Output,
         detections: dai.Node.Output,
+        label_map: List[str],
     ) -> "CombineOutputs":
         self.link_args(color, depth, birdseye, detections)
+        self.label_map = label_map
         return self
 
     def process(
@@ -170,7 +90,7 @@ class CombineOutputs(dai.node.HostNode):
                 thickness=2,
             )
             try:
-                label = labelMap[detection.label]
+                label = self.label_map[detection.label]
             except KeyError:
                 label = str(detection.label)
             text_x = left + 0.01  # Small offset in normalized units

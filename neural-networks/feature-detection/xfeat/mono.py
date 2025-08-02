@@ -7,22 +7,22 @@ def mono_mode(
     device: dai.Device,
     nn_archive: dai.NNArchive,
     visualizer: dai.RemoteConnection,
-    fps_limit: int = 30,
+    fps_limit: int,
 ):
     with dai.Pipeline(device) as pipeline:
         print("Creating pipeline...")
 
-        cam = pipeline.create(dai.node.Camera).build()
-
         platform = device.getPlatform().name
-        print(f"Platform: {platform}")
+
         img_frame_type = (
             dai.ImgFrame.Type.BGR888p
             if platform == "RVC2"
             else dai.ImgFrame.Type.BGR888i
         )
 
-        network = pipeline.create(dai.node.NeuralNetwork).build(
+        cam = pipeline.create(dai.node.Camera).build()
+
+        nn = pipeline.create(dai.node.NeuralNetwork).build(
             cam.requestOutput(
                 nn_archive.getInputSize(), type=img_frame_type, fps=fps_limit
             ),
@@ -30,12 +30,13 @@ def mono_mode(
         )
 
         parser: XFeatMonoParser = pipeline.create(ParserGenerator).build(nn_archive)[0]
-        network.out.link(parser.input)
+        parser.setMaxKeypoints(1024)
+        nn.out.link(parser.input)
 
         custom_visualizer: MonoVersionVisualizer = pipeline.create(
             MonoVersionVisualizer
         ).build(
-            target_frame_input=network.passthrough,
+            target_frame_input=nn.passthrough,
             tracked_features=parser.out,
         )
 

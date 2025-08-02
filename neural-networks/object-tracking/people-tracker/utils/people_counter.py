@@ -2,6 +2,8 @@ from datetime import timedelta
 
 import depthai as dai
 
+from depthai_nodes.utils import AnnotationHelper
+
 
 class PeopleCounter(dai.node.HostNode):
     def __init__(self) -> None:
@@ -23,7 +25,9 @@ class PeopleCounter(dai.node.HostNode):
 
     def process(self, tracklets: dai.Tracklets) -> None:
         self.update(tracklets)
-        annots = self.get_img_annotations(tracklets.getTimestamp())
+        annots = self.get_img_annotations(
+            tracklets.getTimestamp(), tracklets.getSequenceNum()
+        )
         self.out.send(annots)
 
     def update(self, tracklets: dai.Tracklets) -> None:
@@ -55,20 +59,20 @@ class PeopleCounter(dai.node.HostNode):
             ) and "lost" not in self.tracking_data[id]:
                 self.terminate_tracklet(id, centroid)
 
-    def get_img_annotations(self, timestamp: timedelta):
-        img_annotations = dai.ImgAnnotations()
-        img_annotations.setTimestamp(timestamp)
+    def get_img_annotations(self, timestamp: timedelta, sequence_num: int):
+        annotation_helper = AnnotationHelper()
 
-        img_annot = dai.ImgAnnotation()
-        txt_annot = dai.TextAnnotation()
-        txt_annot.fontSize = 25
-        txt_annot.text = f"Up: {self.counter['up']}, Down: {self.counter['down']}, Left: {self.counter['left']}, Right: {self.counter['right']}"
-        txt_annot.position = dai.Point2f(0.05, 0.05)
-        txt_annot.textColor = dai.Color(0.0, 0.0, 0.0)
-        txt_annot.backgroundColor = dai.Color(0.0, 1.0, 0.0)
-        img_annot.texts.append(txt_annot)
-        img_annotations.annotations.append(img_annot)
-        return img_annotations
+        annotation_helper.draw_text(
+            text=f"Up: {self.counter['up']}, Down: {self.counter['down']}, Left: {self.counter['left']}, Right: {self.counter['right']}",
+            position=(0.05, 0.05),
+            size=25,
+        )
+
+        annotations = annotation_helper.build(
+            timestamp=timestamp,
+            sequence_num=sequence_num,
+        )
+        return annotations
 
     def terminate_tracklet(self, id, coords_end):
         coords_start = self.tracking_data[id]["coords"]

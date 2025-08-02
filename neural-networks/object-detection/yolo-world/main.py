@@ -1,222 +1,113 @@
-import numpy as np
-import onnxruntime
-from transformers import AutoTokenizer
+from pathlib import Path
+
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
-from depthai_nodes.message import ImgDetectionsExtended
-import argparse
-import os
+from depthai_nodes.node import (
+    ParsingNeuralNetwork,
+    ImgDetectionsFilter,
+)
 
+from utils.helper_functions import extract_text_embeddings
+from utils.arguments import initialize_argparser
+from utils.annotation_node import AnnotationNode
 
-from utils import download_model
-
+MODEL = "yolo-world-l:640x640-host-decoding"
 MAX_NUM_CLASSES = 80
-QUANT_ZERO_POINT = 90.0
-QUANT_SCALE = 0.003925696481
-IMAGE_SIZE = (640, 640)
 
+_, args = initialize_argparser()
 
-class DetectionLabelCustomizer(dai.node.HostNode):
-    def __init__(self):
-        super().__init__()
-        self._accepted_labels = []
-        self.output = self.createOutput(
-            possibleDatatypes=[
-                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.Buffer, True)
-            ]
-        )
+visualizer = dai.RemoteConnection(httpPort=8082)
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+platform = device.getPlatformAsString()
+print(f"Platform: {platform}")
 
-    def build(
-        self, nn: dai.Node.Output, accepted_labels: list, class_names: list
-    ) -> "DetectionLabelCustomizer":
-        self._accepted_labels = accepted_labels
-        self._class_names = class_names
-        self.link_args(nn)
-        return self
+frame_type = (
+    dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
+)
 
-    def process(self, detections: dai.Buffer) -> None:
-        assert isinstance(
-            detections,
-            (dai.ImgDetections, dai.SpatialImgDetections, ImgDetectionsExtended),
-        )
+text_features = extract_text_embeddings(
+    class_names=args.class_names, max_num_classes=MAX_NUM_CLASSES
+)
 
-        filtered_detections = [
-            i for i in detections.detections if i.label in self._accepted_labels
-        ]
-
-        for det in filtered_detections:
-            det.label_name = self._class_names[det.label]
-
-        img_detections = type(detections)()
-        img_detections.detections = filtered_detections
-        img_detections.setTimestamp(detections.getTimestamp())
-        img_detections.setSequenceNum(detections.getSequenceNum())
-        img_detections.transformation = detections.transformation
-        self.output.send(img_detections)
-
-
-def extract_text_embeddings(class_names):
-    tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-    text = tokenizer(text=class_names, return_tensors="pt", padding=True)
-    text_onnx = text["input_ids"].detach().cpu().numpy().astype(np.int64)
-    attention_mask = (text_onnx != 0).astype(np.int64)
-
-    textual_onnx_model_path = download_model(
-        "https://huggingface.co/jmzzomg/clip-vit-base-patch32-text-onnx/resolve/main/model.onnx",
-        "clip_textual_hf.onnx",
+if len(args.class_names) > MAX_NUM_CLASSES:
+    raise ValueError(
+        f"Number of classes exceeds the maximum number of classes: {MAX_NUM_CLASSES}"
     )
 
-    session_textual = onnxruntime.InferenceSession(
-        textual_onnx_model_path,
-        providers=[
-            "TensorrtExecutionProvider",
-            "CUDAExecutionProvider",
-            "CPUExecutionProvider",
-        ],
-    )
-    textual_output = session_textual.run(
-        None,
-        {
-            session_textual.get_inputs()[0].name: text_onnx,
-            "attention_mask": attention_mask,
-        },
-    )[0]
-
-    num_padding = MAX_NUM_CLASSES - len(class_names)
-    text_features = np.pad(
-        textual_output, ((0, num_padding), (0, 0)), mode="constant"
-    ).T.reshape(1, 512, MAX_NUM_CLASSES)
-    text_features = (text_features / QUANT_SCALE) + QUANT_ZERO_POINT
-    text_features = text_features.astype("uint8")
-
-    del session_textual
-
-    return text_features
-
-
-def main(args):
-    text_features = extract_text_embeddings(args.class_names)
-    device = (
-        dai.Device(dai.DeviceInfo(args.device)) if args.device != "" else dai.Device()
+if args.fps_limit is None:
+    args.fps_limit = 5
+    print(
+        f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
 
-    visualizer = dai.RemoteConnection()
-    with dai.Pipeline(device) as pipeline:
-        manip = pipeline.create(dai.node.ImageManipV2)
-        manip.setMaxOutputFrameSize(IMAGE_SIZE[0] * IMAGE_SIZE[1] * 3)
-        manip.initialConfig.setOutputSize(
-            IMAGE_SIZE[0], IMAGE_SIZE[1], dai.ImageManipConfigV2.ResizeMode.LETTERBOX
+with dai.Pipeline(device) as pipeline:
+    print("Creating pipeline...")
+
+    # yolo world model
+    model_description = dai.NNModelDescription(MODEL)
+    model_description.platform = platform
+    model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
+    model_w, model_h = model_nn_archive.getInputSize()
+
+    # media/camera input
+    if args.media_path:
+        replay = pipeline.create(dai.node.ReplayVideo)
+        replay.setReplayVideoFile(Path(args.media_path))
+        replay.setOutFrameType(frame_type)
+        replay.setLoop(True)
+        if args.fps_limit:
+            replay.setFps(args.fps_limit)
+        replay.setSize(model_w, model_h)
+    else:
+        cam = pipeline.create(dai.node.Camera).build(
+            boardSocket=dai.CameraBoardSocket.CAM_A
         )
-
-        if args.media_path is not None:
-            replayNode = pipeline.create(dai.node.ReplayVideo)
-            replayNode.setOutFrameType(dai.ImgFrame.Type.BGR888i)
-            replayNode.setReplayVideoFile(args.media_path)
-
-            replayNode.out.link(manip.inputImage)
-        else:
-            cam = pipeline.create(dai.node.Camera).build(
-                boardSocket=dai.CameraBoardSocket.CAM_A
-            )
-            camOut = cam.requestOutput(IMAGE_SIZE, dai.ImgFrame.Type.RGB888i)
-
-            camOut.link(manip.inputImage)
-
-        model_description = dai.NNModelDescription(
-            model="yolo-world-l:640x640-host-decoding",
-            platform="RVC4",
+        cam_out = cam.requestOutput(
+            size=(model_w, model_h), type=frame_type, fps=args.fps_limit
         )
-        archive_path = dai.getModelFromZoo(model_description, useCached=True)
-        nn_archive = dai.NNArchive(archive_path)
+    input_node = replay.out if args.media_path else cam_out
 
-        nn_with_parser = pipeline.create(ParsingNeuralNetwork)
-        nn_with_parser.setNNArchive(nn_archive)
-        nn_with_parser.setBackend("snpe")
-        nn_with_parser.setBackendProperties(
-            {"runtime": "dsp", "performance_profile": "default"}
-        )
-        nn_with_parser.setNumInferenceThreads(1)
-        nn_with_parser.getParser(0).setConfidenceThreshold(args.confidence_thresh)
-
-        manip.out.link(nn_with_parser.inputs["images"])
-
-        textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
-        nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
-
-        detection_label_filter = pipeline.create(DetectionLabelCustomizer)
-        detection_label_filter.build(
-            nn_with_parser.out, list(range(len(args.class_names))), args.class_names
-        )
-
-        visualizer.addTopic("Detections", detection_label_filter.output)
-        visualizer.addTopic("Color", nn_with_parser.passthroughs["images"])
-
-        pipeline.start()
-
-        inputNNData = dai.NNData()
-        inputNNData.addTensor(
-            "texts", text_features, dataType=dai.TensorInfo.DataType.U8F
-        )
-        textInputQueue.send(inputNNData)
-
-        print("Press 'q' to stop")
-        while pipeline.isRunning():
-            pipeline.processTasks()
-            key = visualizer.waitKey(1)
-            if key == ord("q"):
-                break
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Yolo World Demo")
-    parser.add_argument(
-        "-d",
-        "--device",
-        help="Optional name, DeviceID or IP of the camera to connect to.",
-        required=False,
-        default=None,
-        type=str,
+    nn_with_parser = pipeline.create(ParsingNeuralNetwork)
+    nn_with_parser.setNNArchive(model_nn_archive)
+    nn_with_parser.setBackend("snpe")
+    nn_with_parser.setBackendProperties(
+        {"runtime": "dsp", "performance_profile": "default"}
     )
-    parser.add_argument(
-        "-media",
-        "--media_path",
-        help="Path to the media file you aim to run the model on. If not set, the model will run on the camera input.",
-        required=False,
-        default=None,
-        type=str,
+    nn_with_parser.setNumInferenceThreads(1)
+    nn_with_parser.getParser(0).setConfidenceThreshold(args.confidence_thresh)
+
+    input_node.link(nn_with_parser.inputs["images"])
+
+    textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
+    nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
+
+    # filter and rename detection labels
+    det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
+    det_process_filter.setLabels(
+        labels=[i for i in range(len(args.class_names))], keep=True
     )
-    parser.add_argument(
-        "-c",
-        "--class_names",
-        type=str,
-        nargs="+",
-        default=["person", "chair", "TV"],
-        help="Class names to be detected",
+    annotation_node = pipeline.create(AnnotationNode).build(
+        det_process_filter.out,
+        label_encoding={k: v for k, v in enumerate(args.class_names)},
     )
-    parser.add_argument(
-        "-conf",
-        "--confidence_thresh",
-        help="Sets the confidence threshold",
-        default=0.1,
-        type=float,
-    )
-    return parser.parse_args()
 
+    # visualization
+    visualizer.addTopic("Detections", annotation_node.out)
+    visualizer.addTopic("Video", nn_with_parser.passthroughs["images"])
 
-def check_args(args):
-    if len(args.class_names) > MAX_NUM_CLASSES:
-        raise ValueError(
-            f"Number of classes exceeds the maximum number of classes: {MAX_NUM_CLASSES}"
-        )
-    if args.media_path is not None and not os.path.exists(args.media_path):
-        raise FileNotFoundError(f"Video file not found at {args.media_path}")
+    print("Pipeline created.")
 
-    if args.media_path is None:
-        print("No video file provided. Using camera input.")
+    pipeline.start()
+    visualizer.registerPipeline(pipeline)
 
+    inputNNData = dai.NNData()
+    inputNNData.addTensor("texts", text_features, dataType=dai.TensorInfo.DataType.U8F)
+    textInputQueue.send(inputNNData)
 
-if __name__ == "__main__":
-    args = parse_args()
-    check_args(args)
+    print("Press 'q' to stop")
 
-    main(args)
+    while pipeline.isRunning():
+        pipeline.processTasks()
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key. Exiting...")
+            break
