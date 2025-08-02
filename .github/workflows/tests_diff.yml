@@ -65,36 +65,17 @@ jobs:
             echo "python=[\"$INPUT_PYTHON\"]" >> $GITHUB_OUTPUT
           fi
   
-  update-hil:
-    runs-on: ["self-hosted", "testbed-runner"]
-    needs: setup
-    steps:
-      - name: Update HIL
-        run: |
-          cd /home/$USER/hil_framework
-          git pull https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/luxonis/hil_lab/hil_framework.git
-          git fetch
-          git checkout main
-
-  test_peripheral:
-    needs: [setup, update-hil]
-    runs-on: ["self-hosted", "testbed-runner"]
-    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'peripheral'}}
-    strategy:
-      matrix:
-        python-version: ${{ fromJSON(needs.setup.outputs.matrix_python) }}
-        platform: ${{ fromJSON(needs.setup.outputs.matrix_platform) }}
-
-      fail-fast: false
-
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      example_dirs: ${{ steps.detect.outputs.example_dirs }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # explicitly fetch full history
+          fetch-depth: 0
 
-      - name: Detect changed example directories
-        id: detect-changes
+      - id: detect
         run: |
           git fetch origin main
           changed_files=$(git diff --name-only origin/main...HEAD)
@@ -113,21 +94,44 @@ jobs:
 
           example_dirs=$(echo "$example_dirs" | tr ' ' '\n' | sort -u | xargs)
           echo "Changed example dirs: $example_dirs"
-          echo "example_dirs=$example_dirs" >> $GITHUB_OUTPUT
+          echo "example_dirs=$example_dirs" >> "$GITHUB_OUTPUT"
 
-      - name: Skip if no changed examples detected
-        if: steps.detect-changes.outputs.example_dirs == ''
+  update-hil:
+    runs-on: ["self-hosted", "testbed-runner"]
+    needs: [setup, detect-changes]
+    if: needs.detect-changes.outputs.example_dirs != ''
+    steps:
+      - name: Update HIL
         run: |
-          echo "⚠️ No changed examples found — skipping test execution."
-          exit 0
+          cd /home/$USER/hil_framework
+          git pull https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/luxonis/hil_lab/hil_framework.git
+          git fetch
+          git checkout main
+
+  test_peripheral:
+    runs-on: ["self-hosted", "testbed-runner"]
+    needs: [setup, update-hil, detect-changes]
+    if: needs.detect-changes.outputs.example_dirs != '' && (inputs.subtests == 'all' || inputs.subtests == 'peripheral')
+    strategy:
+      matrix:
+        python-version: ${{ fromJSON(needs.setup.outputs.matrix_python) }}
+        platform: ${{ fromJSON(needs.setup.outputs.matrix_platform) }}
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Add HIL Tools to Path
+        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           echo "/home/$USER/hil_framework/lib_testbed/tools" >> $GITHUB_PATH
           echo "PYTHONPATH="$PYTHONPATH:/home/$USER/hil_framework"" >> $GITHUB_ENV
           echo "HIL_FRAMEWORK_PATH="/home/$USER/hil_framework"" >> $GITHUB_ENV
 
       - name: Set model variable
+        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           if [ "${{ matrix.platform }}" = "rvc2" ]; then
             echo "MODEL=oak_d_s2" >> $GITHUB_ENV
@@ -136,6 +140,7 @@ jobs:
           fi
           
       - name: Run Test
+        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
@@ -162,50 +167,22 @@ jobs:
               --docker-run-args "$ENV_VARS"
 
   test_standalone:
-    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'standalone'}}
-    needs: [setup, update-hil]
     runs-on: ["self-hosted", "testbed-runner"]
+    needs: [setup, update-hil, detect-changes]
+    if: needs.detect-changes.outputs.example_dirs != '' && (inputs.subtests== 'all' || inputs.subtests== 'standalone')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # explicitly fetch full history
-
-      - name: Detect changed example directories
-        id: detect-changes
-        run: |
-          git fetch origin main
-          changed_files=$(git diff --name-only origin/main...HEAD)
-
-          example_dirs=""
-          while read -r file; do
-            dir=$(dirname "$file")
-            while [ "$dir" != "." ] && [ "$dir" != "/" ]; do
-              if [[ -f "$dir/main.py" && -f "$dir/requirements.txt" ]]; then
-                example_dirs="$example_dirs $dir"
-                break
-              fi
-              dir=$(dirname "$dir")
-            done
-          done <<< "$changed_files"
-
-          example_dirs=$(echo "$example_dirs" | tr ' ' '\n' | sort -u | xargs)
-          echo "Changed example dirs: $example_dirs"
-          echo "example_dirs=$example_dirs" >> $GITHUB_OUTPUT
-
-      - name: Skip if no changed examples detected
-        if: steps.detect-changes.outputs.example_dirs == ''
-        run: |
-          echo "⚠️ No changed examples found — skipping test execution."
-          exit 0
 
       - name: Add HIL Tools to Path
+        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           echo "/home/$USER/hil_framework/lib_testbed/tools" >> $GITHUB_PATH
           echo "PYTHONPATH="$PYTHONPATH:/home/$USER/hil_framework"" >> $GITHUB_ENV
           echo "HIL_FRAMEWORK_PATH="/home/$USER/hil_framework"" >> $GITHUB_ENV
 
       - name: Run Test
+        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
