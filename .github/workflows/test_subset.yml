@@ -90,6 +90,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # explicitly fetch full history
 
       - name: Detect changed example directories
         id: detect-changes
@@ -166,6 +168,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # explicitly fetch full history
 
       - name: Detect changed example directories
         id: detect-changes
