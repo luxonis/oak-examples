@@ -1,4 +1,4 @@
-identifier = "com.example.depth-measurement.3d-measurement.rgbd-pointcloud"
+identifier = "com.example.depth-measurement.measurement-3d.rgbd-pointcloud"
 app_version = "1.0.0"
 
 prepare_container = [
