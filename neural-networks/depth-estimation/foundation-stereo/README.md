@@ -25,6 +25,7 @@ Ensure the required ONNX model file is available and the path is provided as an 
 ## Requirements
 
 For running the model on **GPU**:
+
 - for resolution 400 the model requires at least 6GB of VRAM
 - for resolution 800 the model requires at least 12GB of VRAM
 
@@ -37,14 +38,15 @@ The experiment is run in host (Peripheral) mode, using a computer for ONNX infer
 Here are the available parameters:
 
 ```
--m ONNX_MODEL_PATH, --model ONNX_MODEL_PATH
-                    Path to the ONNX model (default: models/foundation_stereo_640x416_32.onnx).
+-m MODEL, --model MODEL
+                    Path to ONNX model file. If it doesn't exist then model will be downloaded from ZOO (default:
+                    models/foundation_stereo_640x416_32.onnx)
 -d DEVICE, --device DEVICE
-                    Optional IP address of the camera to connect to (default: None).
--r {400,800}, --resolution {400,800}
-                    Resolution mode for camera input (default: 400 for 640x400).
+                    Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                    FPS limit for the model runtime (default: 15).
+                    FPS limit for the model runtime. (default: 15)
+-r {400,800}, --resolution {400,800}
+                    Resolution of the streams, select 400 (for 640x400) or 800 (for 1280x800). (default: 400)
 ```
 
 ### Peripheral Mode
@@ -79,7 +81,5 @@ python3 main.py -m model.onnx --device 192.168.1.2
 
 ## Controls During Execution
 
-* Press `F` to generate and display Foundation Stereo Disparity using the ONNX model.
-* Press `Q` to exit the application.
-
-
+- Press `F` to generate and display Foundation Stereo Disparity using the ONNX model.
+- Press `Q` to exit the application.

@@ -15,7 +15,7 @@ def initialize_argparser():
     parser.add_argument(
         "-m",
         "--model",
-        help="Path to ONNX model file.",
+        help="Path to ONNX model file. If it doesn't exist then model will be downloaded from ZOO",
         default="models/foundation_stereo_640x416_32.onnx",
         type=str,
     )

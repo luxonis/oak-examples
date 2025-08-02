@@ -1,48 +1,58 @@
-import time
 import depthai as dai
+from depthai_nodes.node import ApplyColormap
 
-from utils.image import *
-from utils.onnx import *
 from utils.arguments import initialize_argparser
+from utils.fs_inferer import FSInferer
 
 _, args = initialize_argparser()
 
 device_info = args.device
 fps = args.fps_limit
-ONNX_MODEL_PATH = args.model
-
-print(f"depthai version: {dai.__version__}")
 
 if args.resolution == 400:
-    INFERENCE_H, INFERENCE_W = 416, 640
+    inference_shape = (416, 640)  # H,W format
 elif args.resolution == 800:
-    INFERENCE_H, INFERENCE_W = 800, 1280
+    inference_shape = (800, 1280)
 else:
     print("Invalid resolution, exiting.")
     exit(1)
 
+visualizer = dai.RemoteConnection(httpPort=8082)
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
-def create_pipeline(device_info):
-    def configure_cam(cam, size_x: int, size_y: int, fps: float):
-        cap = dai.ImgFrameCapability()
-        cap.size.fixed((size_x, size_y))
-        cap.fps.fixed(fps)
-        return cam.requestOutput(cap, True)
+# TODO: Is there a nicer solution?
+if len(device.getIrDrivers()) != 0:
+    device.setIrLaserDotProjectorIntensity(1)
 
-    if device_info is None: pipeline = dai.Pipeline()
-    else: pipeline = dai.Pipeline(dai.Device(device_info))
+with dai.Pipeline(device) as pipeline:
+    print("Creating pipeline...")
+
+    # Check if the device has color, left and right cameras
+    available_cameras = device.getConnectedCameras()
+
+    if len(available_cameras) < 3:
+        raise ValueError(
+            "Device must have 3 cameras (color, left and right) in order to run this experiment."
+        )
 
     monoLeft = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
     monoRight = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     stereo = pipeline.create(dai.node.StereoDepth)
 
-    # Linking
     if args.resolution == 800:
-        monoLeftOut = configure_cam(monoLeft, 1280, 800, fps)
-        monoRightOut = configure_cam(monoRight, 1280, 800, fps)
+        monoLeftOut = monoLeft.requestOutput(
+            size=(1280, 800), fps=fps, enableUndistortion=True
+        )
+        monoRightOut = monoRight.requestOutput(
+            size=(1280, 800), fps=fps, enableUndistortion=True
+        )
     else:
-        monoLeftOut = configure_cam(monoLeft, 640, 400, fps)
-        monoRightOut = configure_cam(monoRight, 640, 400, fps)
+        monoLeftOut = monoLeft.requestOutput(
+            size=(640, 400), fps=fps, enableUndistortion=True
+        )
+        monoRightOut = monoRight.requestOutput(
+            size=(640, 400), fps=fps, enableUndistortion=True
+        )
 
     monoLeftOut.link(stereo.left)
     monoRightOut.link(stereo.right)
@@ -50,57 +60,30 @@ def create_pipeline(device_info):
     stereo.setExtendedDisparity(True)
     stereo.setLeftRightCheck(True)
 
-    queues = {
-        "disp_queue": stereo.disparity.createOutputQueue(),
-        "left_queue": stereo.rectifiedLeft.createOutputQueue(),
-        "right_queue": stereo.rectifiedRight.createOutputQueue(),
-    }
+    fs_inferer = pipeline.create(FSInferer).build(
+        rect_left=stereo.rectifiedLeft,
+        rect_right=stereo.rectifiedRight,
+        stereo_disparity=stereo.disparity,
+        model_path=args.model,
+        inference_shape=inference_shape,
+    )
 
-    return pipeline, queues
+    colored_disp = pipeline.create(ApplyColormap).build(stereo.disparity)
 
-def get_device_and_pipeline(device_info=None):
-    pipeline, queues = create_pipeline(device_info)
-    device = pipeline.getDefaultDevice()
+    visualizer.addTopic("Disparity", colored_disp.out)
+    visualizer.addTopic("Rectified right", stereo.rectifiedRight)
+    visualizer.addTopic("Rectified left", stereo.rectifiedLeft)
+    visualizer.addTopic("FS Result", fs_inferer.output)
+
+    print("Pipeline created.")
+
     pipeline.start()
-    return device, pipeline, queues
+    visualizer.registerPipeline(pipeline)
 
-if __name__ == "__main__":
-    device, pipeline, queues = get_device_and_pipeline(device_info)
-    with pipeline:
-        device.setIrLaserDotProjectorIntensity(1)
-        print(f"Connected device: {device.getDeviceName()}")
-
-        onnx_session = load_onnx_model(ONNX_MODEL_PATH)
-
-        print("Press F to generate Foundation Stereo Disparity")
-
-        while pipeline.isRunning():
-            disparity = queues["disp_queue"].get().getCvFrame()
-            rectified_left = queues["left_queue"].get().getCvFrame()
-            rectified_right = queues["right_queue"].get().getCvFrame()
-
-            left = preprocess_image(rectified_left, (INFERENCE_H, INFERENCE_W))
-            right = preprocess_image(rectified_right, (INFERENCE_H, INFERENCE_W))
-
-            cv2.imshow("rectified_left", rectified_left)
-            cv2.imshow("rectified_right", rectified_right)
-            display_disparity(disparity, "disparity")
-
-            key = cv2.waitKey(1)
-            if key == ord('f') or key == ord('F'):
-                print("Generating Foundation Stereo Disparity...")
-                start = time.time()
-                original_disp = preprocess_image(disparity, (INFERENCE_H, INFERENCE_W))
-                original_disp_display = original_disp[0, 0]
-
-                outputs = run_onnx_inference(onnx_session, left, right)
-                ndr_disparity_display = outputs[0][0, 0]
-
-                display_disparity(ndr_disparity_display, "ONNX Disparity", scale=255.0)
-                display_disparity(original_disp_display, "Original Disparity", scale=255.0)
-                end = time.time()
-                print("Generated! Generation took:", round(end - start, 2), "seconds.")
-            elif key == ord('q'):
-                break
-
-    cv2.destroyAllWindows()
+    while pipeline.isRunning():
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key from the remote connection!")
+            break
+        if key == ord("f"):
+            fs_inferer.infer()

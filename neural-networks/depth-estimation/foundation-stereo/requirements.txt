@@ -1,6 +1,6 @@
-depthai==3.0.0rc3
+depthai==3.0.0rc4
+depthai-nodes~=0.3.2
 onnxruntime==1.22.0
 onnxruntime-gpu==1.22.0
 numpy>=1.22
-opencv-python==4.11.0.86
-opencv-python-headless==4.10.0.84
+opencv-python-headless~=4.10.0
