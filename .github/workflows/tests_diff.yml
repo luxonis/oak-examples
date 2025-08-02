@@ -115,11 +115,11 @@ jobs:
           echo "Changed example dirs: $example_dirs"
           echo "example_dirs=$example_dirs" >> $GITHUB_OUTPUT
 
-      - name: Fail if no changed examples detected
+      - name: Skip if no changed examples detected
         if: steps.detect-changes.outputs.example_dirs == ''
         run: |
-          echo "❌ No changed examples found — skipping tests to avoid unnecessary HIL usage."
-          exit 1
+          echo "⚠️ No changed examples found — skipping test execution."
+          exit 0
 
       - name: Add HIL Tools to Path
         run: |
@@ -193,11 +193,11 @@ jobs:
           echo "Changed example dirs: $example_dirs"
           echo "example_dirs=$example_dirs" >> $GITHUB_OUTPUT
 
-      - name: Fail if no changed examples detected
+      - name: Skip if no changed examples detected
         if: steps.detect-changes.outputs.example_dirs == ''
         run: |
-          echo "❌ No changed examples found — skipping tests to avoid unnecessary HIL usage."
-          exit 1
+          echo "⚠️ No changed examples found — skipping test execution."
+          exit 0
 
       - name: Add HIL Tools to Path
         run: |
