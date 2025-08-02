@@ -51,7 +51,7 @@ jobs:
       - id: set-matrix
         env:
           INPUT_PLATFORM: ${{ github.event.inputs.platform }}
-          INPUT_PYTHON: all
+          INPUT_PYTHON: "3.10" # Test only on python 3.10
         run: |
           if [ "$INPUT_PLATFORM" = "all" ]; then
             echo 'platform=["rvc2","rvc4"]' >> $GITHUB_OUTPUT
