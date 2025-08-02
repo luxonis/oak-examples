@@ -6,7 +6,6 @@ from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.blur_detections import BlurBboxes
 
-# test change2
 DET_MODEL = "luxonis/paddle-text-detection:320x576"
 
 _, args = initialize_argparser()
