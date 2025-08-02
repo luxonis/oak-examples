@@ -95,6 +95,9 @@ jobs:
           example_dirs=$(echo "$example_dirs" | tr ' ' '\n' | sort -u | xargs)
           echo "Changed example dirs: $example_dirs"
           echo "example_dirs=$example_dirs" >> "$GITHUB_OUTPUT"
+      - name: Log if no examples detected
+        if: steps.detect.outputs.example_dirs == ''
+        run: echo "✅ No runnable examples detected in this PR."
 
   update-hil:
     runs-on: ["self-hosted", "testbed-runner"]
@@ -124,14 +127,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Add HIL Tools to Path
-        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           echo "/home/$USER/hil_framework/lib_testbed/tools" >> $GITHUB_PATH
           echo "PYTHONPATH="$PYTHONPATH:/home/$USER/hil_framework"" >> $GITHUB_ENV
           echo "HIL_FRAMEWORK_PATH="/home/$USER/hil_framework"" >> $GITHUB_ENV
 
       - name: Set model variable
-        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           if [ "${{ matrix.platform }}" = "rvc2" ]; then
             echo "MODEL=oak_d_s2" >> $GITHUB_ENV
@@ -140,7 +141,6 @@ jobs:
           fi
           
       - name: Run Test
-        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
@@ -149,7 +149,7 @@ jobs:
             --env PLATFORM=${{ matrix.platform }} \
             --env PYTHON_VERSION_ENV=${{ matrix.python-version }} \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR='${{ steps.detect-changes.outputs.example_dirs }}' \
+            --env ROOT_DIR='${{ needs.detect-changes.outputs.example_dirs }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
 
           if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
@@ -175,14 +175,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Add HIL Tools to Path
-        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           echo "/home/$USER/hil_framework/lib_testbed/tools" >> $GITHUB_PATH
           echo "PYTHONPATH="$PYTHONPATH:/home/$USER/hil_framework"" >> $GITHUB_ENV
           echo "HIL_FRAMEWORK_PATH="/home/$USER/hil_framework"" >> $GITHUB_ENV
 
       - name: Run Test
-        if: steps.detect-changes.outputs.example_dirs != ''
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
@@ -191,7 +189,7 @@ jobs:
             --env PLATFORM="rvc4" \
             --env PYTHON_VERSION_ENV="3.10" \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR='${{ steps.detect-changes.outputs.example_dirs }}' \
+            --env ROOT_DIR='${{ needs.detect-changes.outputs.example_dirs }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \
             --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}"
 
