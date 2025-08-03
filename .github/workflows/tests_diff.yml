@@ -235,7 +235,7 @@ jobs:
       - name: Fail if tests have been skipped
         if: needs.precheck.outputs.should_run == 'false'
         run: |
-          echo "❌ PR is not marked as testable (no 'testable' tag). Skipping tests is not allowed."
+          echo "❌ PR is not marked as testable (no 'testable' label). Skipping tests is not allowed."
           exit 1
 
       - name: Fail if any previous job failed
