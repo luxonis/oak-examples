@@ -54,13 +54,13 @@ jobs:
           echo "Evaluating trigger condition..."
 
           EVENT_NAME="${{ github.event_name }}"
-          PR_JSON='${{ toJson(github.event.pull_request) }}'
+          echo '${{ toJson(github.event.pull_request) }}' > pr.json
 
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
 
           elif [[ "$EVENT_NAME" == "pull_request" ]]; then
-            LABELS=$(echo "$PR_JSON" | jq -r '.labels[].name')
+            LABELS=$(jq -r '.labels[].name' < pr.json)
 
             if echo "$LABELS" | grep -q "testable"; then
               echo "should_run=true" >> "$GITHUB_OUTPUT"
@@ -71,6 +71,9 @@ jobs:
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
           fi
+
+          echo "Detected labels:"
+          echo "$LABELS"
 
   setup:
     runs-on: ubuntu-latest
