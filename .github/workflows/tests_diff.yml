@@ -52,15 +52,22 @@ jobs:
       - id: check
         run: |
           echo "Evaluating trigger condition..."
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+
+          EVENT_NAME="${{ github.event_name }}"
+          PR_JSON='${{ toJson(github.event.pull_request) }}'
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            LABELS=$(jq -r '.pull_request.labels[].name' <<< '${{ toJson(github.event.pull_request) }}')
+
+          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+            LABELS=$(echo "$PR_JSON" | jq -r '.labels[].name')
+
             if echo "$LABELS" | grep -q "testable"; then
               echo "should_run=true" >> "$GITHUB_OUTPUT"
             else
               echo "should_run=false" >> "$GITHUB_OUTPUT"
             fi
+
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
           fi
