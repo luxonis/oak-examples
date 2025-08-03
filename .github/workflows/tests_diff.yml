@@ -49,32 +49,27 @@ jobs:
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
-      - id: check
-        run: |
-          set -x
-          echo "Evaluating trigger condition..."
+    - name: Evaluate trigger condition (inline-safe)
+      id: check
+      run: |
+        set -x
+        EVENT_NAME="${{ github.event_name }}"
 
-          EVENT_NAME="${{ github.event_name }}"
-          echo '${{ toJson(github.event.pull_request) }}' > pr.json
+        # Safe default fallback to empty array
+        LABELS='${{ toJson(github.event.pull_request.labels || []) }}'
 
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
+        echo "Raw labels JSON: $LABELS"
 
-          elif [[ "$EVENT_NAME" == "pull_request" ]]; then
-            LABELS=$(jq -r '.labels[].name' < pr.json)
-
-            if echo "$LABELS" | grep -q "testable"; then
-              echo "should_run=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "should_run=false" >> "$GITHUB_OUTPUT"
-            fi
-
-          else
-            echo "should_run=false" >> "$GITHUB_OUTPUT"
+        SHOULD_RUN="false"
+        if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+          SHOULD_RUN="true"
+        elif [[ "$EVENT_NAME" == "pull_request" ]]; then
+          if echo "$LABELS" | jq -r '.[].name' | grep -q "testable"; then
+            SHOULD_RUN="true"
           fi
+        fi
 
-          echo "Detected labels:"
-          echo "$LABELS"
+        echo "should_run=$SHOULD_RUN" >> "$GITHUB_OUTPUT"
 
   setup:
     runs-on: ubuntu-latest
