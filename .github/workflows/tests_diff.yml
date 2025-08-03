@@ -49,18 +49,28 @@ jobs:
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
-    - name: Evaluate trigger condition (inline-safe)
+    - name: Evaluate trigger condition
       id: check
       run: |
         set -x
+
         EVENT_NAME="${{ github.event_name }}"
 
-        # Safe default fallback to empty array
-        LABELS='${{ toJson(github.event.pull_request.labels || []) }}'
+        # Default to empty string if labels are missing
+        RAW_LABELS='${{ toJson(github.event.pull_request.labels) }}'
 
-        echo "Raw labels JSON: $LABELS"
+        # If RAW_LABELS is null, set LABELS to empty array
+        if [[ "$RAW_LABELS" == "null" || -z "$RAW_LABELS" ]]; then
+          LABELS="[]"
+        else
+          LABELS="$RAW_LABELS"
+        fi
+
+        echo "Raw labels: $LABELS"
+        echo "$LABELS" | jq .
 
         SHOULD_RUN="false"
+
         if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
           SHOULD_RUN="true"
         elif [[ "$EVENT_NAME" == "pull_request" ]]; then
