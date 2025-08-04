@@ -4,6 +4,7 @@ This experiment shows how to generate Foundation Stereo with OAK devices, compar
 directly from the DepthAI stereo node. The ONNX model is executed on a host computer. The resolution and speed of inference are configurable.
 
 **NOTE**: This demo requires a device with stereo cameras.
+
 **NOTE**: This demo doesn't support Standalone mode because the model is too heavy to run on device.
 
 ## Demo
