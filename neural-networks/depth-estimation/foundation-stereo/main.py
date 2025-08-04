@@ -53,10 +53,10 @@ with dai.Pipeline(device) as pipeline:
 
     colored_disp = pipeline.create(ApplyColormap).build(stereo.disparity)
 
+    visualizer.addTopic("FS Result", fs_inferer.output)
     visualizer.addTopic("Disparity", colored_disp.out)
     visualizer.addTopic("Rectified right", stereo.rectifiedRight)
     visualizer.addTopic("Rectified left", stereo.rectifiedLeft)
-    visualizer.addTopic("FS Result", fs_inferer.output)
 
     print("Pipeline created.")
 

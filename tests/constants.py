@@ -69,6 +69,10 @@ KNOWN_FAILING = {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
         "platform": ["rvc4"],
     },
+    "neural-networks/depth-estimation/foundation-stereo": {
+        "reason": "Requires a lot of host compute to run",
+        "mode": ["standalone"],
+    },
     "integrations/hub-snaps-events": {
         "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method - Needs to be set by the user.",
         "mode": "all",

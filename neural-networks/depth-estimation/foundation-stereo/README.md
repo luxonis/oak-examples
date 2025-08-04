@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ### Model
 
-This experiment uses ONNX FoundationStereo model which you can check out [here](TODO). If files are not present locally inside the `./models` they get automatically downloaded from the Zoo. We download a variant that suits the selected resolution:
+This experiment uses ONNX FoundationStereo model which you can check out [here](https://models.luxonis.com/luxonis/foundation-stereo/b8956c24-0b8a-4e49-bd83-ed702252d517). If files are not present locally inside the `./models` they get automatically downloaded from the Zoo. We download a variant that suits the selected resolution:
 
 - 400 resolution -> (640, 416) model input shape
 - 800 resolution -> (1280, 800) model input shape

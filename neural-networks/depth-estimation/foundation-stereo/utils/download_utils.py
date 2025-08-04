@@ -28,31 +28,27 @@ def download_model(input_shape: Tuple[int, int]) -> str:
 
 
 def download_base_model(model_slug: str, local_filename: str):
-    api_key = os.getenv("DEPTHAI_HUB_API_KEY")  # shouldn't be needed if model is public
-
     model_name_slug = model_slug.split("/")[-1].split(":")[0]
     model_variant_slug = model_slug.split("/")[-1].split(":")[1]
 
     model_res = requests.get(
         "https://easyml.cloud.luxonis.com/models/api/v1/models",
-        params={"slug": model_name_slug},
-        headers={"Authorization": f"Bearer {api_key}"},
+        params={"slug": model_name_slug, "is_public": True},
     )
     model_id = model_res.json()[0]["id"]
     variant_res = requests.get(
         "https://easyml.cloud.luxonis.com/models/api/v1/modelVersions",
-        params={"model_id": model_id, "variant_slug": model_variant_slug},
-        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "model_id": model_id,
+            "variant_slug": model_variant_slug,
+            "is_public": True,
+        },
     )
     model_variant_id = variant_res.json()[0]["id"]
-
     download_res = requests.get(
         f"https://easyml.cloud.luxonis.com/models/api/v1/modelVersions/{model_variant_id}/download",
-        headers={"Authorization": f"Bearer {api_key}"},
     )
-
     download_link = download_res.json()[0]["download_link"]
-
     download_file(download_link, local_filename)
 
 
