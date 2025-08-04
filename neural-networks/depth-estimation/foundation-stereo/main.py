@@ -13,8 +13,7 @@ resolution_profile = get_resolution_profile(args.resolution)
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
-if len(device.getIrDrivers()) != 0:
-    device.setIrLaserDotProjectorIntensity(1)
+device.setIrLaserDotProjectorIntensity(1)
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
