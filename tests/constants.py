@@ -21,7 +21,7 @@ KNOWN_FAILING = {
         "platform": "all",
     },
     "custom-frontend/raw-stream": {
-        "reason": "Failed to start the HTTP server on peripheral. Needs luxonis/base-image for standalone.",
+        "reason": "Failed to start the HTTP server on peripheral.",
         "mode": "all",
     },
     "custom-frontend/dynamic-yolo-world": {
@@ -71,11 +71,6 @@ KNOWN_FAILING = {
     },
     "integrations/hub-snaps-events": {
         "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method - Needs to be set by the user.",
-        "mode": "all",
-        "platform": "all",
-    },
-    "depth-measurement/3d-measurement/box-measurement": {
-        "reason": "Open3D causes some memory segfault",
         "mode": "all",
         "platform": "all",
     },

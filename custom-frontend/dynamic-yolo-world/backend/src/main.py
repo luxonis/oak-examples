@@ -46,7 +46,7 @@ with dai.Pipeline(device) as pipeline:
 
     # yolo world model
     model_description = dai.NNModelDescription.fromYamlFile(
-        f"yolo_world_l.{platform.name}.yaml"
+        f"yolo_world_l.{platform}.yaml"
     )
     model_description.platform = platform
     model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
