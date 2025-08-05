@@ -39,7 +39,7 @@ export function ImageUploader() {
 
     return (
         <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
-            <h3 className={css({ fontWeight: "semibold" })}>Update Classes with Image Input:</h3>
+            <h3 className={css({ fontWeight: "semibold" })}>Update Classes with Image Input (YOLO-World only):</h3>
 
             {/* Clickable file selection area */}
             <label

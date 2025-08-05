@@ -171,7 +171,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.registerService(
         "Threshold Update Service", conf_threshold_update_service
     )
-    visualizer.registerService("Image Upload Service", image_upload_service)
+    if args.model_name == "yolo-world":
+        visualizer.registerService("Image Upload Service", image_upload_service)
 
     print("Pipeline created.")
 
