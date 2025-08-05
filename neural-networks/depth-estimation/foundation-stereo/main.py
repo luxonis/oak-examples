@@ -31,10 +31,10 @@ with dai.Pipeline(device) as pipeline:
     stereo = pipeline.create(dai.node.StereoDepth)
 
     monoLeftOut = monoLeft.requestOutput(
-        size=resolution_profile.stereo_shape, fps=fps, enableUndistortion=True
+        size=resolution_profile.stereo_shape, fps=fps, enableUndistortion=False
     )
     monoRightOut = monoRight.requestOutput(
-        size=resolution_profile.stereo_shape, fps=fps, enableUndistortion=True
+        size=resolution_profile.stereo_shape, fps=fps, enableUndistortion=False
     )
 
     monoLeftOut.link(stereo.left)
