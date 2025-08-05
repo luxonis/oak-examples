@@ -34,7 +34,7 @@ on:
         default: "all"
         required: false
       root_dir:
-        decription: 'Root directory of the experiments you want to test. Defaults to all experiments.'
+        decription: 'One or more space-separated paths to example directories you want to test. Defaults to "." (all).'
         default: "."
         required: false
       strict_mode:
@@ -137,7 +137,7 @@ jobs:
             --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
             --env PYTHON_VERSION_ENV=${{ matrix.python-version }} \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
+            --env ROOT_DIR='${{ github.event.inputs.root_dir }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
 
           if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
@@ -148,7 +148,6 @@ jobs:
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-            
 
           exec hil --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
               --dockerfile ./tests/Dockerfile_peripheral \
@@ -180,7 +179,7 @@ jobs:
             --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
             --env PYTHON_VERSION_ENV="3.10" \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR=${{ github.event.inputs.root_dir }} \
+            --env ROOT_DIR='${{ github.event.inputs.root_dir }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \
             --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}"
 

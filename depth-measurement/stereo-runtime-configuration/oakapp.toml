@@ -1,4 +1,4 @@
-identifier = "com.example.stereo-runtime-configuration"
+identifier = "com.example.depth-measurement.stereo-runtime-configuration"
 app_version = "1.0.0"
 
 prepare_container = [

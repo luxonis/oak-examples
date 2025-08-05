@@ -49,12 +49,12 @@ with dai.Pipeline(device) as pipeline:
     # yolo world model
     if args.model_name == "yolo-world":
         model_description = dai.NNModelDescription.fromYamlFile(
-            f"yolo_world_l.RVC4.yaml"
+            f"yolo_world_l.{platform}.yaml"
         )
     # yoloe model
     elif args.model_name == "yoloe":
         model_description = dai.NNModelDescription.fromYamlFile(
-            f"yoloe_v8_l.RVC4.yaml"
+            f"yoloe_v8_l.{platform}.yaml"
         )
     model_description.platform = platform
     model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))

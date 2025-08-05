@@ -1,4 +1,4 @@
-identifier = "com.example.stereo-on-host"
+identifier = "com.example.depth-measurement.stereo-on-host"
 app_version = "1.0.0"
 
 prepare_container = [
