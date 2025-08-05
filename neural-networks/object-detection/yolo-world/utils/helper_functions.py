@@ -13,11 +13,15 @@ def extract_text_embeddings(class_names, max_num_classes=80):
         url="https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/tokenizer.json",
         save_path="tokenizer.json",
     )
+
     tokenizer = Tokenizer.from_file(tokenizer_json_path)
+    tokenizer.enable_padding(
+        pad_id=tokenizer.token_to_id("<|endoftext|>"), pad_token="<|endoftext|>"
+    )
     encodings = tokenizer.encode_batch(class_names)
 
     text_onnx = np.array([e.ids for e in encodings], dtype=np.int64)
-    attention_mask = (text_onnx != 0).astype(np.int64)
+    attention_mask = np.array([e.attention_mask for e in encodings], dtype=np.int64)
 
     textual_onnx_model_path = download_model(
         "https://huggingface.co/jmzzomg/clip-vit-base-patch32-text-onnx/resolve/main/model.onnx",
