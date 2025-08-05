@@ -1,6 +1,6 @@
-# Dynamic YOLO World
+# Dynamic YOLO World/YOLOE
 
-This example demonstrates an advanced use of a custom frontend. On the DepthAI backend, it runs the YOLO-World model on-device, with configurable class labels and confidence threshold — both controllable via the frontend.
+This example demonstrates an advanced use of a custom frontend. On the DepthAI backend, it runs either the **YOLO-World** (default) or **YOLOE** model on-device, with configurable class labels and confidence threshold — both controllable via the frontend.
 The frontend, built using the `@luxonis/depthai-viewer-common` package, displays a real-time video stream with detections. It is combined with the [default oakapp docker image](https://hub.docker.com/r/luxonis/oakapp-base), which enables remote access via WebRTC.
 
 > **Note:** This example works only on RVC4 in standalone mode.
@@ -22,7 +22,16 @@ Here is a list of all available parameters:
 					FPS limit. (default: None)
 -ip IP, --ip IP       IP address to serve the frontend on. (default: None)
 -p PORT, --port PORT  Port to serve the frontend on. (default: None)
+-n MODEL_NAME, --model-name MODEL_NAME
+					Name of the model to use: yolo-world or yoloe (default: yolo-world)
 ```
+
+### Model Options
+
+This example supports two different YOLO models:
+
+- **YOLO-World** (default): An open-vocabulary object detection model that supports both text-based class definitions and image-based prompting (upload an image to detect similar objects)
+- **YOLOE**: A fast and efficient object detection model with enhanced visualization features including instance segmentation
 
 ### Prerequisites
 
@@ -46,7 +55,7 @@ oakctl app run .
 
 Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
-This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
+This will run the example with default argument values (YOLO-World model). If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
 
 ### Remote access
 
