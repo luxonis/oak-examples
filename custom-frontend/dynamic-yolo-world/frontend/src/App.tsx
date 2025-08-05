@@ -35,10 +35,10 @@ function App() {
                 gap: 'md'
             })}>
                 <h1 className={css({ fontSize: '2xl', fontWeight: 'bold' })}>
-                    Dynamic YOLO-World Example
+                    Dynamic YOLO-World/YOLOE Example
                 </h1>
                 <p>
-                    This example showcases the integration of the YOLO-World model with a custom static frontend,
+                    This example showcases the integration of the YOLO-World/YOLOE model with a custom static frontend,
                     enabling dynamic configuration of the object classes you want to detect at runtime.
                 </p>
 
