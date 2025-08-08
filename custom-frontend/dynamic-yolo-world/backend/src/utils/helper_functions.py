@@ -17,8 +17,8 @@ QUANT_VALUES = {
     "yoloe": {
         "quant_zero_point": 174.0,
         "quant_scale": 0.003328413470,
-    }
-} 
+    },
+}
 
 
 def pad_and_quantize_features(features, max_num_classes=80, model_name="yolo-world"):
@@ -109,8 +109,9 @@ def extract_text_embeddings(class_names, max_num_classes=80, model_name="yolo-wo
             textual_output, ord=2, axis=-1, keepdims=True
         )  # Normalize the output
 
-
-    text_features = pad_and_quantize_features(textual_output, max_num_classes, model_name)
+    text_features = pad_and_quantize_features(
+        textual_output, max_num_classes, model_name
+    )
 
     del session_textual
 

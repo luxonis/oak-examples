@@ -5,7 +5,7 @@ from depthai_nodes.node import (
     ParsingNeuralNetwork,
     ImgDetectionsFilter,
     ImgFrameOverlay,
-    ApplyColormap
+    ApplyColormap,
 )
 
 from utils.helper_functions import (
@@ -112,7 +112,6 @@ with dai.Pipeline(device) as pipeline:
         )
         visualizer.addTopic("Video", overlay_frames_node.out, "images")
 
-
     visualizer.addTopic("Detections", annotation_node.out)
 
     def class_update_service(new_classes: list[str]):
@@ -128,7 +127,9 @@ with dai.Pipeline(device) as pipeline:
         CLASS_NAMES = new_classes
 
         text_features = extract_text_embeddings(
-            class_names=CLASS_NAMES, max_num_classes=MAX_NUM_CLASSES, model_name=args.model_name
+            class_names=CLASS_NAMES,
+            max_num_classes=MAX_NUM_CLASSES,
+            model_name=args.model_name,
         )
         inputNNData = dai.NNData()
         inputNNData.addTensor(

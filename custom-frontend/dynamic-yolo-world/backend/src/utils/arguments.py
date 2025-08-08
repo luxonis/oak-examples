@@ -55,7 +55,7 @@ def initialize_argparser():
         required=False,
         default="yolo-world",
         type=str,
-        choices=["yolo-world", "yoloe"]
+        choices=["yolo-world", "yoloe"],
     )
 
     args = parser.parse_args()
