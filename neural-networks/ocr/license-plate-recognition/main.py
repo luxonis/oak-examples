@@ -27,7 +27,7 @@ if platform != "RVC4":
 frame_type = dai.ImgFrame.Type.BGR888i
 
 if args.fps_limit is None:
-    args.fps_limit = 30
+    args.fps_limit = 25
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
