@@ -78,5 +78,4 @@ class VisualizeLicensePlates(dai.node.ThreadedHostNode):
             img = dai.ImgFrame()
             img.setCvFrame(frame, frame_type)
             img.setTimestamp(ts)
-            print("sending visualization")
             self.out.send(img)
