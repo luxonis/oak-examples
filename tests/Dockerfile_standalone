@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION
+ARG PYTHON_VERSION=3.10
 FROM python:${PYTHON_VERSION}
 
 ENV PLATFORM=""
@@ -34,6 +34,7 @@ ENTRYPOINT ["sh", "-c", "\
         ntpsec-ntpdate -qu pool.ntp.org || true; \
     else \
         echo 'No ntpdate/ntpsec-ntpdate available; skipping.'; \
+    fi && \
     if [ -z \"$PLATFORM\" ]; then \
         echo 'Error: PLATFORM environment variable is required' && exit 1; \
     fi && \
@@ -51,4 +52,3 @@ ENTRYPOINT ["sh", "-c", "\
         --root-dir ${ROOT_DIR} \
         -- tests/test_examples_standalone.py \
 "]
-
