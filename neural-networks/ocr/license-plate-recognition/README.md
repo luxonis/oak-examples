@@ -1,8 +1,7 @@
 # License Plate Recognition
 
-This example demonstrates how to run 3 stage inference on DepthAI.
-First, a vehicle is detected on the image, the cropped image is then fed into a license plate detection model. The cropped license plate is sent to a text recognition (OCR) network,
-which tries to decode the license plates texts.
+This example demonstrates how to run 3 stage inference on DepthAI. Its focus is on an automatic license plate recognition (ALPR) task.
+First, a vehicle is detected on the image, the cropped image is then fed into a license plate detection model. The cropped license plate is sent to a text recognition (OCR) network, which tries to decode the license plates texts.
 
 It uses 3 models from our ZOO:
 
