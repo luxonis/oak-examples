@@ -16,7 +16,7 @@ platform = device.getPlatform().name
 print(f"Platform: {platform}")
 
 if args.fps_limit is None:
-    args.fps_limit = 20
+    args.fps_limit = 20 if platform == "RVC2" else 30
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
