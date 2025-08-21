@@ -49,22 +49,6 @@ KNOWN_FAILING = {
         "reason": "Needs thermal camera",
         "platform": "all",
     },
-    "neural-networks/object-tracking/kalman": {
-        "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "platform": ["rvc4"],
-    },
-    "neural-networks/object-tracking/collision-avoidance": {
-        "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "platform": ["rvc4"],
-    },
-    "neural-networks/object-tracking/people-tracker": {
-        "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "platform": ["rvc4"],
-    },
-    "neural-networks/counting/cumulative-object-counting": {
-        "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "platform": ["rvc4"],
-    },
     "neural-networks/counting/depth-people-counting": {
         "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
         "platform": ["rvc4"],
