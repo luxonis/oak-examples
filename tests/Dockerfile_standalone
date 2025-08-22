@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION
+ARG PYTHON_VERSION=3.10
 FROM python:${PYTHON_VERSION}
 
 ENV PLATFORM=""
@@ -10,15 +10,15 @@ ENV ROOT_DIR="."
 ENV STRICT_MODE="no"
 
 # Install Virtual Display
-RUN apt-get update && apt-get install -y \
-    ntpdate \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ntpsec-ntpdate \
     sudo \
     udev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
+    
 # Copy your project files into the container
-# NOTE: If ran inside GH workflow or with HIL --sync-workspace this is not needed
+# If running inside GH Actions/HIL syncs, files are mounted; otherwise copy.
 # COPY . /tmp/oak-examples
 
 # Setup Test Command
@@ -28,20 +28,27 @@ WORKDIR /tmp/oak-examples
 ENTRYPOINT ["sh", "-c", "\
     set -e && \
     echo 'Syncing container clock...' && \
-    ntpdate -u pool.ntp.org && \
+    if command -v ntpdate >/dev/null 2>&1; then \
+        ntpdate -u pool.ntp.org || true; \
+    elif command -v ntpsec-ntpdate >/dev/null 2>&1; then \
+        ntpsec-ntpdate -qu pool.ntp.org || true; \
+    else \
+        echo 'No ntpdate/ntpsec-ntpdate available; skipping.'; \
+    fi && \
     if [ -z \"$PLATFORM\" ]; then \
-    echo 'Error: PLATFORM environment variable is required' && exit 1; \
+        echo 'Error: PLATFORM environment variable is required' && exit 1; \
     fi && \
     echo 'Installing dependencies...' && \
-    pip install -r tests/requirements.txt && \
+    pip install --no-cache-dir -r tests/requirements.txt && \
     /root/.local/share/oakctl/oakctl self-update -v $(/root/.local/share/oakctl/oakctl version) &&\
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
-    --depthai-version=${DAI_VERSION} \
-    --depthai-nodes-version=${DAI_NODES_VERSION} \
-    --environment-variables=DEPTHAI_PLATFORM=${PLATFORM} \
-    --platform=${PLATFORM} \
-    --python-version=${PYTHON_VERSION_ENV} \
-    --device-password=${DEVICE_PASSWORD} \
-    --root-dir ${ROOT_DIR} \
-    -- tests/test_examples_standalone.py"]
+        --depthai-version=${DAI_VERSION} \
+        --depthai-nodes-version=${DAI_NODES_VERSION} \
+        --environment-variables=DEPTHAI_PLATFORM=${PLATFORM} \
+        --platform=${PLATFORM} \
+        --python-version=${PYTHON_VERSION_ENV} \
+        --device-password=${DEVICE_PASSWORD} \
+        --root-dir ${ROOT_DIR} \
+        -- tests/test_examples_standalone.py \
+"]

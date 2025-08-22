@@ -4,7 +4,9 @@ This example demonstrates a multiple Luxonis OAK cameras setup that detects obje
 
 ## Demo
 
-![](img/demo.gif)
+The following GIF shows bird's-eye view of fused detections of label `person` from three cameras.
+
+![demo](https://github.com/user-attachments/assets/6f92dc14-ebda-4bd1-a57e-cf5f1b24ea17)
 
 ## Usage
 

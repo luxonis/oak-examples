@@ -4,6 +4,8 @@ This example demonstrates, how to stream video from the device to the host compu
 
 ## Demo
 
+![poe_tcp_streaming](media/example.gif)
+
 ## Usage
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.

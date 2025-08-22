@@ -10,9 +10,9 @@ VEHICLE_DET_MODEL = "yolov6-nano:r2-coco-512x288"
 LP_DET_MODEL = "license-plate-detection:640x640"
 OCR_MODEL = "luxonis/paddle-text-recognition:320x48"
 REQ_WIDTH, REQ_HEIGHT = (
-    1024,  # 1920 * 2,
-    576,  # 1080 * 2,
-)  # we are requesting larger input size than required because we want to keep some resolution for the second stage model
+    1920 * 2,
+    1080 * 2,
+)
 
 _, args = initialize_argparser()
 
@@ -24,12 +24,10 @@ print(f"Platform: {platform}")
 if platform != "RVC4":
     raise ValueError("This example is only supported for RVC4 platform.")
 
-frame_type = (
-    dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
-)
+frame_type = dai.ImgFrame.Type.BGR888i
 
 if args.fps_limit is None:
-    args.fps_limit = 5
+    args.fps_limit = 25
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
