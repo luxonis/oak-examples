@@ -5,7 +5,6 @@ from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.crop_face import CropFace
 
-DET_MODEL = "luxonis/yunet:320x240"
 REQ_WIDTH = 3840
 REQ_HEIGHT = 2880
 
@@ -13,18 +12,20 @@ _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
-platform = device.getPlatformAsString()
-print(f"Platform: {platform}")
+platform = device.getPlatform()
+print(f"Platform: {platform.name}")
 
 fps = args.fps_limit
 if fps is None:
-    fps = 30 if platform == "RVC4" else 5
+    fps = 30 if platform == dai.Platform.RVC4 else 5
 
 frame_type = (
-    dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
+    dai.ImgFrame.Type.BGR888i
+    if platform == dai.Platform.RVC4
+    else dai.ImgFrame.Type.BGR888p
 )
 
-model_description = dai.NNModelDescription(DET_MODEL, platform)
+model_description = dai.NNModelDescription.fromYamlFile(f"yunet.{platform.name}.yaml")
 nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 model_width = nn_archive.getInputWidth()
 model_height = nn_archive.getInputHeight()
@@ -70,7 +71,7 @@ with dai.Pipeline(device) as pipeline:
 
     cropped_output = crop_manip.out
 
-    if platform == "RVC4":
+    if platform == dai.Platform.RVC4:
         crop_encoder = pipeline.create(dai.node.VideoEncoder)
         crop_encoder.setMaxOutputFrameSize(1920 * 1088 * 3)
         crop_encoder.setDefaultProfilePreset(

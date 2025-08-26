@@ -14,6 +14,8 @@ build_steps = [
     "chmod +x /etc/service/backend/run",
 ]
 
+depthai_models = { yaml_path = "./depthai_models" }
+
 [base_image]
 api_url = "https://registry-1.docker.io"
 service = "registry.docker.io"

@@ -12,9 +12,11 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    model_description = dai.NNModelDescription("luxonis/yunet:640x480")
-    platform = device.getPlatformAsString()
-    model_description.platform = platform
+    platform = device.getPlatform()
+
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yunet.{platform.name}.yaml"
+    )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
     cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
@@ -38,7 +40,7 @@ with dai.Pipeline(device) as pipeline:
     stereo.setExtendedDisparity(True)
 
     face_det_nn = pipeline.create(ParsingNeuralNetwork).build(cam, nn_archive)
-    if platform == "RVC2":
+    if platform == dai.Platform.RVC2:
         face_det_nn.setNNArchive(nn_archive, numShaves=7)
     depth_merger = pipeline.create(DepthMerger).build(
         face_det_nn.out, stereo.depth, device.readCalibration2()
