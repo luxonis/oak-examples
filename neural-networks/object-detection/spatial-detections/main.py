@@ -31,7 +31,11 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    det_model_description = dai.NNModelDescription(args.model, platform=platform)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
+    )
+    if det_model_description.model != args.model:
+        det_model_description = dai.NNModelDescription(args.model, platform=platform)
     det_model_nn_archive = dai.NNArchive(
         dai.getModelFromZoo(det_model_description, useCached=False)
     )

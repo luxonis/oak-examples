@@ -1,0 +1,2 @@
+model: luxonis/yolo-world-l:640x640-host-decoding
+platform: RVC4
