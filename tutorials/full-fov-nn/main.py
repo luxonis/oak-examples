@@ -17,8 +17,8 @@ with dai.Pipeline(device) as pipeline:
         size=(3000, 2000), fps=args.fps_limit, type=dai.ImgFrame.Type.NV12
     )  # works
 
-    model_description = dai.NNModelDescription(
-        "luxonis/yolov6-nano:r2-coco-512x288", platform=platform.name
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
     )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 

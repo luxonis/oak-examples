@@ -13,11 +13,9 @@ visualizer = dai.RemoteConnection(httpPort=8082)
 with dai.Pipeline(device) as pipeline:
     platform = device.getPlatform()
 
-    model_description = dai.NNModelDescription(
-        "luxonis/yolov6-nano:r2-coco-512x288", platform=platform.name
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
     )
-    archive_path = dai.getModelFromZoo(model_description)
-    nn_archive = dai.NNArchive(archivePath=archive_path)
 
     cam = pipeline.create(dai.node.Camera).build()
     cam_out = cam.requestOutput(
@@ -32,7 +30,7 @@ with dai.Pipeline(device) as pipeline:
     crop_manip.initialConfig.addCrop(0, 0, 512, 288)
     cam_out.link(crop_manip.inputImage)
 
-    nn = pipeline.create(ParsingNeuralNetwork).build(crop_manip.out, nn_archive)
+    nn = pipeline.create(ParsingNeuralNetwork).build(crop_manip.out, model_description)
     translate_cropped_dets = pipeline.create(TranslateCroppedDetections).build(
         nn.out, (640, 480), (512, 288)
     )

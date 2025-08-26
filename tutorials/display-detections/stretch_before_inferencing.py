@@ -34,11 +34,9 @@ class FilterDets(dai.node.HostNode):
 with dai.Pipeline(device) as pipeline:
     platform = device.getPlatform()
 
-    model_description = dai.NNModelDescription(
-        "luxonis/yolov6-nano:r2-coco-512x288", platform=platform.name
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
     )
-    archive_path = dai.getModelFromZoo(model_description)
-    nn_archive = dai.NNArchive(archivePath=archive_path)
 
     cam = pipeline.create(dai.node.Camera).build()
     cam_out = cam.requestOutput(
@@ -56,7 +54,7 @@ with dai.Pipeline(device) as pipeline:
     cam_out.link(stretch_manip.inputImage)
 
     nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        stretch_manip.out, nn_archive
+        stretch_manip.out, model_description
     )
 
     filter_dets = pipeline.create(FilterDets).build(nn.out)
