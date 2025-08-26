@@ -7,8 +7,6 @@ from utils.annotation_node import OCRAnnotationNode
 from utils.arguments import initialize_argparser
 from utils.host_process_detections import CropConfigsCreator
 
-DET_MODEL = "luxonis/paddle-text-detection:320x576"
-REC_MODEL = "luxonis/paddle-text-recognition:320x48"
 REQ_WIDTH, REQ_HEIGHT = (
     1152,
     640,
@@ -35,17 +33,17 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # text detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"paddle_text_detection.{platform}.yaml"
     )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
     det_model_w, det_model_h = det_model_nn_archive.getInputSize()
 
     # text recognition model
-    rec_model_description = dai.NNModelDescription(REC_MODEL, platform=platform)
-    rec_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(rec_model_description, useCached=False)
+    rec_model_description = dai.NNModelDescription.fromYamlFile(
+        f"paddle_text_recognition.{platform}.yaml"
     )
+    rec_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(rec_model_description))
     rec_model_w, rec_model_h = rec_model_nn_archive.getInputSize()
 
     if args.media_path:

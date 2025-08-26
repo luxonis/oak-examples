@@ -6,9 +6,6 @@ from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.visualizer_node import VisualizeLicensePlates
 
-VEHICLE_DET_MODEL = "yolov6-nano:r2-coco-512x288"
-LP_DET_MODEL = "license-plate-detection:640x640"
-OCR_MODEL = "luxonis/paddle-text-recognition:320x48"
 REQ_WIDTH, REQ_HEIGHT = (
     1920 * 2,
     1080 * 2,
@@ -36,28 +33,30 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # vehicle detection model
-    vehicle_det_model_description = dai.NNModelDescription(
-        VEHICLE_DET_MODEL, platform=platform
+    vehicle_det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_colo.{platform}.yaml"
     )
     vehicle_det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(vehicle_det_model_description, useCached=False)
+        dai.getModelFromZoo(vehicle_det_model_description)
     )
     vehicle_det_model_w, vehicle_det_model_h = (
         vehicle_det_model_nn_archive.getInputSize()
     )
 
     # licence plate detection model
-    lp_det_model_description = dai.NNModelDescription(LP_DET_MODEL, platform=platform)
+    lp_det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"license_plate_detection.{platform}.yaml"
+    )
     lp_det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(lp_det_model_description, useCached=False)
+        dai.getModelFromZoo(lp_det_model_description)
     )
     lp_det_model_w, lp_det_model_h = lp_det_model_nn_archive.getInputSize()
 
     # ocr model
-    ocr_model_description = dai.NNModelDescription(OCR_MODEL, platform=platform)
-    ocr_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(ocr_model_description, useCached=False)
+    ocr_model_description = dai.NNModelDescription.fromYamlFile(
+        f"paddle_text_recognition.{platform}.yaml"
     )
+    ocr_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(ocr_model_description))
     ocr_model_w, ocr_model_h = ocr_model_nn_archive.getInputSize()
 
     # media/camera input

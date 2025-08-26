@@ -1,0 +1,2 @@
+model: luxonis/paddle-text-recognition:320x48
+platform: RVC4
