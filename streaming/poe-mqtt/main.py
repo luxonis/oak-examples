@@ -11,9 +11,10 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
-    platform = pipeline.getDefaultDevice().getPlatformAsString()
-    model_description = dai.NNModelDescription(
-        "luxonis/yolov6-nano:r2-coco-512x288", platform=platform
+    platform = pipeline.getDefaultDevice().getPlatform()
+
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
     )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
@@ -22,7 +23,7 @@ with dai.Pipeline(device) as pipeline:
         replay.setReplayVideoFile(Path(args.media_path))
         replay.setOutFrameType(
             dai.ImgFrame.Type.BGR888i
-            if platform == "RVC4"
+            if platform == dai.Platform.RVC4
             else dai.ImgFrame.Type.BGR888p
         )
         replay.setLoop(True)
