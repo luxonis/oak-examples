@@ -1,0 +1,2 @@
+model: luxonis/wildlife-megadetector:mdv6-yolov10-c
+platform: RVC2

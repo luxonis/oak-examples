@@ -1,0 +1,2 @@
+model: luxonis/lite-hrnet:18-coco-192x256
+platform: RVC4
