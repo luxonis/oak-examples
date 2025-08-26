@@ -19,7 +19,6 @@ if args.fps_limit and args.media_path:
         "WARNING: FPS limit is set but media path is provided. FPS limit will be ignored."
     )
 
-model = "luxonis/yolov6-nano:r2-coco-512x288"
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
@@ -60,16 +59,11 @@ def custom_snap_process(
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    model_description = dai.NNModelDescription(model)
-    platform = device.getPlatformAsString()
-    model_description.platform = platform
-    nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(
-            model_description,
-            apiKey=args.api_key,
-        )
+    platform = device.getPlatform()
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
     )
-
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     all_classes = nn_archive.getConfigV1().model.heads[0].metadata.classes
 
     if args.media_path:
@@ -77,7 +71,7 @@ with dai.Pipeline(device) as pipeline:
         replay.setReplayVideoFile(Path(args.media_path))
         replay.setOutFrameType(
             dai.ImgFrame.Type.BGR888i
-            if platform == "RVC4"
+            if platform == dai.Platform.RVC4
             else dai.ImgFrame.Type.BGR888p
         )
         replay.setLoop(True)
@@ -113,7 +107,11 @@ with dai.Pipeline(device) as pipeline:
         nn_with_parser.passthrough,
         det_process_filter.out,
         time_interval=args.time_interval,
-        process_fn=partial(custom_snap_process, label_map=label_map, model=model),
+        process_fn=partial(
+            custom_snap_process,
+            label_map=label_map,
+            model=nn_archive.getConfigV1().model.metadata.name,
+        ),
     )
 
     visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
