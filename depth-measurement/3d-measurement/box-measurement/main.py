@@ -20,13 +20,14 @@ device.setIrLaserDotProjectorIntensity(1.0)
 with dai.Pipeline(device) as p:
     platform = device.getPlatform()
 
-    model_description = dai.NNModelDescription(
-        model="luxonis/box-instance-segmentation:512x320", platform=platform.name
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"box_instance_segmentation.{platform.name}.yaml"
     )
-    archivePath = dai.getModelFromZoo(
-        model_description,
+    nn_archive = dai.NNArchive(
+        dai.getModelFromZoo(
+            model_description,
+        )
     )
-    nn_archive = dai.NNArchive(archivePath)
 
     color = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
     color_output = color.requestOutput(
