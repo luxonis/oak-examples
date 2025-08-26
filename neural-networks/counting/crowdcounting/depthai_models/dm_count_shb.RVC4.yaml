@@ -1,0 +1,2 @@
+model: luxonis/dm-count:shb-426x240
+platform: RVC4
