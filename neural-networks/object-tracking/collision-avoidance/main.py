@@ -6,8 +6,6 @@ from utils.collision_avoidance_node import CollisionAvoidanceNode
 from utils.host_bird_eye_view import BirdsEyeView
 from utils.arguments import initialize_argparser
 
-DET_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
-
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -31,7 +29,9 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
+    )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
     labels = nn_archive.getConfig().model.heads[0].metadata.classes
     person_label = labels.index("person")
