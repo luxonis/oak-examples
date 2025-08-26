@@ -9,9 +9,6 @@ from utils.node_creators import create_crop_node
 from utils.annotation_node import AnnotationNode
 from utils.host_concatenate_head_pose import ConcatenateHeadPose
 
-DET_MODEL = "luxonis/yunet:320x240"
-HEAD_POSE_MODEL = "luxonis/head-pose-estimation:60x60"
-GAZE_MODEL = "luxonis/gaze-estimation-adas:60x60"
 REQ_WIDTH, REQ_HEIGHT = (
     640,
     480,
@@ -25,7 +22,6 @@ platform = device.getPlatform().name
 print(f"Platform: {platform}")
 
 if platform == "RVC4":
-    DET_MODEL = "luxonis/scrfd-face-detection:10g-640x640"
     REQ_WIDTH, REQ_HEIGHT = (768, 768)
 
 frame_type = (
@@ -42,19 +38,24 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # face detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL)
-    det_model_description.platform = platform
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yunet.{platform}.yaml"
+    )
     det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # head pose model
-    head_pose_model_description = dai.NNModelDescription(HEAD_POSE_MODEL)
+    head_pose_model_description = dai.NNModelDescription.fromYamlFile(
+        f"head_pose_estimation.{platform}.yaml"
+    )
     head_pose_model_description.platform = platform
     head_pose_model_nn_archive = dai.NNArchive(
         dai.getModelFromZoo(head_pose_model_description)
     )
 
     # gaze estimation model
-    gaze_model_description = dai.NNModelDescription(GAZE_MODEL)
+    gaze_model_description = dai.NNModelDescription.fromYamlFile(
+        f"gaze_estimation_adas.{platform}.yaml"
+    )
     gaze_model_description.platform = platform
     gaze_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(gaze_model_description))
 
