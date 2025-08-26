@@ -12,4 +12,6 @@ prepare_build_container = []
 
 build_steps = []
 
+depthai_models = { yaml_path = "./depthai_models" }
+
 entrypoint = ["bash", "-c", "python3 -u /app/main.py --model luxonis/yolov6-nano:r2-coco-512x288"]
