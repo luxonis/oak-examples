@@ -12,4 +12,6 @@ prepare_build_container = []
 
 build_steps = ["pip3 install -r /app/requirements.txt --break-system-packages"]
 
+depthai_models = { yaml_path = "./depthai_models" }
+
 entrypoint = ["bash", "-c", "python3 -u /app/main.py --audio_file /app/assets/audio_files/command_LED_yellow.mp3"]

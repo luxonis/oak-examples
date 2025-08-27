@@ -27,23 +27,15 @@ print(f"Platform: {platform}")
 if platform != "RVC4":
     raise ValueError("This example is only supported for RVC4 platform.")
 
-encoder_model_description = dai.NNModelDescription(
-    model="whisper-tiny-en:encoder:1.0.0",
-    platform=platform,
+encoder_model_description = dai.NNModelDescription.fromYamlFile(
+    f"whisper_tiny_en_decoder.{platform}.yaml"
 )
-encoder_archive_path = dai.getModelFromZoo(
-    encoder_model_description,
-    useCached=True,
-)
+encoder_archive_path = dai.getModelFromZoo(encoder_model_description)
 
-decoder_model_description = dai.NNModelDescription(
-    model="whisper-tiny-en:decoder:1.0.0",
-    platform=platform,
+decoder_model_description = dai.NNModelDescription.fromYamlFile(
+    f"whisper_tiny_en_decoder.{platform}.yaml"
 )
-decoder_archive_path = dai.getModelFromZoo(
-    decoder_model_description,
-    useCached=True,
-)
+decoder_archive_path = dai.getModelFromZoo(decoder_model_description)
 
 
 with dai.Pipeline(device) as pipeline:
