@@ -30,7 +30,7 @@ with dai.Pipeline(device) as pipeline:
     model_description = dai.NNModelDescription.fromYamlFile(
         f"yolop_bdd100k.{platform}.yaml"
     )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     model_w, model_h = nn_archive.getInputSize()
 
     # media/camera input

@@ -56,14 +56,10 @@ with dai.Pipeline(device) as pipeline:
         CSIM = args.cos_similarity_threshold  # override default
 
     # detection model
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
-    )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # recognition model
-    rec_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(rec_model_description, useCached=False)
-    )
+    rec_nn_archive = dai.NNArchive(dai.getModelFromZoo(rec_model_description))
 
     # media/camera input
     if args.media_path:

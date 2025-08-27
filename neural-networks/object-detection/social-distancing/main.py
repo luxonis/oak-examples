@@ -36,9 +36,7 @@ with dai.Pipeline(device) as pipeline:
     det_model_description = dai.NNModelDescription.fromYamlFile(
         f"scrfd_person_detection_25g.{platform}.yaml"
     )
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
-    )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # camera input
     cam = pipeline.create(dai.node.Camera).build(

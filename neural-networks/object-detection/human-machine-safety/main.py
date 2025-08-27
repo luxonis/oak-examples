@@ -46,18 +46,14 @@ with dai.Pipeline(device) as pipeline:
     obj_det_model_description = dai.NNModelDescription.fromYamlFile(
         f"yolov6_nano_r2_coco.{platform}.yaml"
     )
-    obj_det_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(obj_det_model_description, useCached=False)
-    )
+    obj_det_nn_archive = dai.NNArchive(dai.getModelFromZoo(obj_det_model_description))
     classes = obj_det_nn_archive.getConfig().model.heads[0].metadata.classes
 
     # palm detection model
     palm_det_model_description = dai.NNModelDescription.fromYamlFile(
         f"mediapipe_palm_detection.{platform}.yaml"
     )
-    palm_det_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(palm_det_model_description, useCached=False)
-    )
+    palm_det_nn_archive = dai.NNArchive(dai.getModelFromZoo(palm_det_model_description))
 
     # camera input
     color_camera = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)

@@ -36,18 +36,14 @@ with dai.Pipeline(device) as pipeline:
     det_model_description = dai.NNModelDescription.fromYamlFile(
         f"yunet.{platform}.yaml"
     )
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
-    )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
     det_model_w, det_model_h = det_model_nn_archive.getInputSize()
 
     # age-gender recognition model
     rec_model_description = dai.NNModelDescription.fromYamlFile(
         f"age_gender_recognition.{platform}.yaml"
     )
-    rec_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(rec_model_description, useCached=False)
-    )
+    rec_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(rec_model_description))
 
     # media/camera input
     if args.media_path:

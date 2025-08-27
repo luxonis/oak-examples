@@ -32,7 +32,7 @@ with dai.Pipeline(device) as pipeline:
     model_description = dai.NNModelDescription.fromYamlFile(
         f"yolov6_nano_r2_coco.{platform}.yaml"
     )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     labels = nn_archive.getConfig().model.heads[0].metadata.classes
     person_label = labels.index("person")
 

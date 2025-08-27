@@ -30,9 +30,7 @@ with dai.Pipeline(device) as pipeline:
     det_model_description = dai.NNModelDescription.fromYamlFile(
         f"paddle_text_detection.{platform}.yaml"
     )
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
-    )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # media/camera input
     if args.media_path:

@@ -31,7 +31,7 @@ with dai.Pipeline(device) as pipeline:
     model_description = dai.NNModelDescription.fromYamlFile(
         f"deeplab_v3_plus.{platform}.yaml"
     )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
     # camera input
     color = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
