@@ -43,7 +43,7 @@ with dai.Pipeline(device) as pipeline:
 
     # pose estimation model
     pose_model_description = dai.NNModelDescription.fromYamlFile(
-        f"superanimal_megadetector.{platform}.yaml"
+        f"superanimal_landmarker.{platform}.yaml"
     )
     pose_nn_archive = dai.NNArchive(dai.getModelFromZoo(pose_model_description))
     pose_model_w, pose_model_h = pose_nn_archive.getInputSize()

@@ -1,2 +1,2 @@
 model: luxonis/mediapipe-face-landmarker:192x192
-platform: RVC2
+platform: RVC4

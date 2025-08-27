@@ -34,7 +34,7 @@ with dai.Pipeline(device) as pipeline:
 
     # vehicle detection model
     vehicle_det_model_description = dai.NNModelDescription.fromYamlFile(
-        f"yolov6_nano_r2_colo.{platform}.yaml"
+        f"yolov6_nano_r2_coco.{platform}.yaml"
     )
     vehicle_det_model_nn_archive = dai.NNArchive(
         dai.getModelFromZoo(vehicle_det_model_description)
