@@ -36,10 +36,13 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # crestereo model
-    cre_model_description = dai.NNModelDescription(args.model, platform=platform)
-    cre_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(cre_model_description, useCached=False)
+    cre_model_description = dai.NNModelDescription.fromYamlFile(
+        f"crestereo.{platform}.yaml"
     )
+    if cre_model_description.model != args.model:
+        cre_model_description = dai.NNModelDescription(args.model, platform=platform)
+
+    cre_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(cre_model_description))
     model_input_shape = cre_model_nn_archive.getInputSize()
 
     # stereo camera input
