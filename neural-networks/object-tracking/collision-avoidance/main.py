@@ -73,7 +73,10 @@ with dai.Pipeline(device) as pipeline:
     # tracking
     tracker = pipeline.create(dai.node.ObjectTracker)
     tracker.setDetectionLabelsToTrack([person_label])  # track only person
-    tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    if platform == "RVC2":
+        tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    else:
+        tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
     tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
 
     img_detections_filter.out.link(tracker.inputDetections)
