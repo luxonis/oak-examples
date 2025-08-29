@@ -1,3 +1,4 @@
+import cv2
 import depthai as dai
 from pathlib import Path
 
@@ -19,7 +20,7 @@ platform = device.getPlatformAsString()
 print(f"Platform: {platform}")
 
 with dai.Pipeline(device) as pipeline:
-    pipeline.setCalibrationData(dai.CalibrationHandler(str(PATH / "calib.json")))
+    pipeline.setCalibrationData(dai.CalibrationHandler(PATH / "calib.json"))
 
     left = pipeline.create(dai.node.ReplayVideo)
     left.setReplayVideoFile(PATH / "left.mp4")

@@ -46,7 +46,8 @@ class DisparityToDetections(dai.node.HostNode):
         dets_msg = self.get_detections(contours, disparity_frame)
         dets_msg.setTimestamp(disparity_msg.getTimestamp())
         dets_msg.setSequenceNum(disparity_msg.getSequenceNum())
-
+        dets_msg.setTimestampDevice(disparity_msg.getTimestampDevice())
+        dets_msg.setTransformation(disparity_msg.getTransformation())
         self.out.send(dets_msg)
 
     def get_detections(self, contours, disparity_frame) -> dai.ImgDetections:
