@@ -32,9 +32,7 @@ with dai.Pipeline(device) as pipeline:
     )
     if det_model_description.model != args.model:
         det_model_description = dai.NNModelDescription(args.model, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, apiKey=args.api_key)
-    )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
     det_model_w, det_model_h = det_model_nn_archive.getInputSize()
 
     # media/camera input

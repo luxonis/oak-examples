@@ -25,12 +25,7 @@ with dai.Pipeline(device) as pipeline:
         f"yolov6_nano_r2_coco.{platform.name}.yaml"
     )
 
-    nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(
-            model_description,
-            apiKey=args.api_key,
-        )
-    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     cameraNode = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
 
     if platform == dai.Platform.RVC2:
