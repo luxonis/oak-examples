@@ -1,10 +1,18 @@
+import os
+from dotenv import load_dotenv
+
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork, ImgFrameOverlay, ApplyColormap
 
 from utils.arguments import initialize_argparser
 from utils.input import create_input_node
 
+load_dotenv(override=True)
+
 _, args = initialize_argparser()
+
+if args.api_key:
+    os.environ["DEPTHAI_HUB_API_KEY"] = args.api_key
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
@@ -18,13 +26,7 @@ with dai.Pipeline(device) as pipeline:
     model_description = dai.NNModelDescription(f"yolov6_nano_r2_coco.{platform}.yaml")
     if model_description.model != args.model:
         model_description = dai.NNModelDescription(args.model, platform=platform)
-
-    nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(
-            model_description,
-            apiKey=args.api_key,
-        )
-    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
     # media/camera input
     input_node = create_input_node(

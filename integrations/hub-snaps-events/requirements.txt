@@ -1,2 +1,4 @@
 depthai==3.0.0rc2
 depthai-nodes==0.3.0
+python-dotenv
+

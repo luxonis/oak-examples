@@ -14,4 +14,4 @@ build_steps = []
 
 depthai_models = { yaml_path = "./depthai_models" }
 
-entrypoint = ["bash", "-c", "python3 -u /app/main.py --api-key <API_KEY>"]
+entrypoint = ["bash", "-c", "python3 -u /app/main.py"]

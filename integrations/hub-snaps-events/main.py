@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from functools import partial
 from typing import Dict
+from dotenv import load_dotenv
 
 import depthai as dai
 from depthai_nodes.node import (
@@ -11,6 +12,8 @@ from depthai_nodes.node import (
 )
 from utils.arguments import initialize_argparser
 
+load_dotenv(override=True)
+
 _, args = initialize_argparser()
 
 if args.fps_limit and args.media_path:
@@ -19,12 +22,11 @@ if args.fps_limit and args.media_path:
         "WARNING: FPS limit is set but media path is provided. FPS limit will be ignored."
     )
 
+if args.api_key:
+    os.environ["DEPTHAI_HUB_API_KEY"] = args.api_key
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
-
-if args.api_key:
-    os.environ["DEPTHAI_HUB_API_KEY"] = args.api_key
 
 
 def custom_snap_process(
