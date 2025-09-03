@@ -180,7 +180,7 @@ def local_base_image(oakapp_toml_path: Path, local_static_registry: str) -> bool
     image_tag = "bookworm-slim"
     snippet = (
             "\n[base_image]\n"
-            f'api_url    = "{api_url}"\n'
+            f'api_url    = "http://{api_url}"\n'
             f'image_name = "{image_name}"\n'
             f'image_tag  = "{image_tag}"\n'
         )
