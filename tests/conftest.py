@@ -76,6 +76,13 @@ def pytest_addoption(parser):
         default="",
         help="Specify device password. If testing just peripheral then not required.",
     )
+    
+    parser.addoption(
+        "--local-static-registry",
+        type=str,
+        default="",
+        help="Local registry that will mirror used images for easier testing",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -90,6 +97,7 @@ def test_args(request):
         "platform": request.config.getoption("--platform"),
         "python_version": request.config.getoption("--python-version"),
         "device_password": request.config.getoption("--device-password"),
+        "local_static_registry": request.config.getoption("--local-static-registry"),
         "strict_mode": True
         if request.config.getoption("--strict-mode") == "yes"
         else False,

@@ -49,6 +49,7 @@ ENTRYPOINT ["sh", "-c", "\
         --platform=${PLATFORM} \
         --python-version=${PYTHON_VERSION_ENV} \
         --device-password=${DEVICE_PASSWORD} \
+        --local-static-registry=${LOCAL_STATIC_REGISTRY} \
         --root-dir ${ROOT_DIR} \
         -- tests/test_examples_standalone.py \
 "]
