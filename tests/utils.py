@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import os
 import re
 
-BASE_IMAGE_HEADER_RE = re.compile(r'^\s*\[base_image\]\s*$', re.MULTILINE)
+BASE_IMAGE_HEADER_RE = re.compile(r"^\s*\[base_image\]\s*$", re.MULTILINE)
 logger = logging.getLogger()
 
 
@@ -164,8 +164,8 @@ def adjust_requirements(
 
     return requirements
 
-def local_base_image(oakapp_toml_path: Path, local_static_registry: str) -> bool:
 
+def local_base_image(oakapp_toml_path: Path, local_static_registry: str) -> bool:
     content = oakapp_toml_path.read_text(encoding="utf-8")
 
     # already has [base_image]? do nothing
@@ -173,17 +173,16 @@ def local_base_image(oakapp_toml_path: Path, local_static_registry: str) -> bool
         logger.info("✓ [base_image] already present in %s; skipping", oakapp_toml_path)
         return False
 
-
     # fallback to env overrides or hardcoded defaults
     api_url = local_static_registry
     image_name = "debian"
     image_tag = "bookworm-slim"
     snippet = (
-            "\n[base_image]\n"
-            f'api_url    = "http://{api_url}"\n'
-            f'image_name = "{image_name}"\n'
-            f'image_tag  = "{image_tag}"\n'
-        )
+        "\n[base_image]\n"
+        f'api_url    = "http://{api_url}"\n'
+        f'image_name = "{image_name}"\n'
+        f'image_tag  = "{image_tag}"\n'
+    )
     # append the snippet
     with oakapp_toml_path.open("a", encoding="utf-8") as f:
         f.write(snippet)

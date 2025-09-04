@@ -76,7 +76,7 @@ def pytest_addoption(parser):
         default="",
         help="Specify device password. If testing just peripheral then not required.",
     )
-    
+
     parser.addoption(
         "--local-static-registry",
         type=str,
