@@ -220,7 +220,8 @@ jobs:
             --env LOG_LEVEL=${{ github.event.inputs.log_level || 'INFO' }} \
             --env ROOT_DIR='${{ needs.detect-changes.outputs.example_dirs }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode || 'no' }} \
-            --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}"
+            --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }} \
+            --env LOCAL_STATIC_REGISTRY=${{ secrets.LOCAL_STATIC_REGISTRY }}"
 
           RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
 
