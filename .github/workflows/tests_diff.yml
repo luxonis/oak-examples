@@ -159,11 +159,6 @@ jobs:
         run: |
           pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN_NEW }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
-      - name: Add HIL Tools to Path
-        run: |
-          HIL_PATH="$(python -c 'import os,inspect,hil_framework; print(os.path.dirname(inspect.getfile(hil_framework)))')"
-          echo "HIL_FRAMEWORK_PATH=$HIL_PATH" >> "$GITHUB_ENV"
-
       - name: Set model variable
         run: |
           if [ "${{ matrix.platform }}" = "rvc2" ]; then
@@ -209,11 +204,6 @@ jobs:
       - name: Install HIL
         run: |
           pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN_NEW }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
-
-      - name: Add HIL Tools to Path
-        run: |
-          HIL_PATH="$(python -c 'import os,inspect,hil_framework; print(os.path.dirname(inspect.getfile(hil_framework)))')"
-          echo "HIL_FRAMEWORK_PATH=$HIL_PATH" >> "$GITHUB_ENV"
 
       - name: Run Test
         run: |
