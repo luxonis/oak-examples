@@ -1,5 +1,6 @@
-depthai==3.0.0rc2
-depthai-nodes==0.3.4
+depthai==3.0.0
+git+https://github.com/luxonis/depthai-nodes.git@feat/img-overlay-mask-background
+#depthai-nodes==0.3.4
 opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0
