@@ -16,6 +16,7 @@ from utils.helper_functions import (
 )
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
+from utils.frame_cache_node import FrameCacheNode
 
 _, args = initialize_argparser()
 
@@ -140,6 +141,8 @@ with dai.Pipeline(device) as pipeline:
         video_src_out,
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
+    # Cache last frame for services that need full frame content
+    frame_cache = pipeline.create(FrameCacheNode).build(video_src_out)
 
     if args.model == "yolo-world":
         visualizer.addTopic("Video", video_enc.out, "images")
@@ -240,6 +243,102 @@ with dai.Pipeline(device) as pipeline:
         annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
         print(f"Classes set to: {CLASS_NAMES}")
 
+    def bbox_prompt_service(payload):
+        """
+        Accepts a full-frame PNG (base64) plus a normalized bbox {x,y,width,height} in viewport space.
+        - For yolo-world: crops the bbox region and extracts image prompt features from the crop.
+        - For yoloe-image: builds a binary mask from the bbox over the full frame and extracts features with mask_prompt.
+        """
+        print("[BBox] Service payload keys:", list(payload.keys()))
+        # Try FE-provided image first, else fall back to cached live frame
+        image = base64_to_cv2_image(payload["data"]) if payload.get("data") else None
+        if image is None:
+            image = frame_cache.get_last_frame()
+            if image is None:
+                print("[BBox] No image data and no cached frame available")
+                return {"ok": False, "reason": "no_image"}
+        if image is None:
+            print("[BBox] Decoded image is None")
+            return {"ok": False, "reason": "decode_failed"}
+        if (image == 0).all():
+            print("[BBox] Warning: decoded image is all zeros")
+        # print image stats
+        print(f"[BBox] Image shape: {image.shape}")
+        print(f"[BBox] Image dtype: {image.dtype}")
+        print(f"[BBox] Image min: {image.min()}")
+        print(f"[BBox] Image max: {image.max()}")
+        print(f"[BBox] Image mean: {image.mean()}")
+        print(f"[BBox] Image std: {image.std()}")
+
+        bbox = payload.get("bbox", {})
+        bx = float(bbox.get("x", 0.0))
+        by = float(bbox.get("y", 0.0))
+        bw = float(bbox.get("width", 0.0))
+        bh = float(bbox.get("height", 0.0))
+
+        H, W = image.shape[:2]
+        is_pixel = payload.get("bboxType", "normalized") == "pixel"
+        if is_pixel:
+            x0 = int(round(bx))
+            y0 = int(round(by))
+            x1 = int(round(bx + bw))
+            y1 = int(round(by + bh))
+        else:
+            # bbox is normalized in source frame space
+            x0 = int(round(bx * W))
+            y0 = int(round(by * H))
+            x1 = int(round((bx + bw) * W))
+            y1 = int(round((by + bh) * H))
+
+        x0, x1 = sorted((x0, x1))
+        y0, y1 = sorted((y0, y1))
+        print(f"[BBox] Image size: {W}x{H}, bbox(px): x0={x0}, y0={y0}, x1={x1}, y1={y1}")
+
+        if x1 <= x0 or y1 <= y0:
+            print("Invalid bbox, ignoring bbox prompt request.")
+            return {"ok": False, "reason": "invalid_bbox"}
+
+        if args.model == "yolo-world":
+            crop = image[y0:y1, x0:x1]
+            print(f"[BBox] YOLO-World crop shape: {crop.shape if crop is not None else None}")
+            image_features = extract_image_prompt_embeddings(
+                crop, model_name=args.model, precision=args.precision
+            )
+        elif args.model == "yoloe-image":
+            mask = np.zeros((H, W), dtype=np.float32)
+            mask[y0:y1, x0:x1] = 1.0
+            print(f"[BBox] YOLOE-Image mask sum: {float(mask.sum())}")
+            image_features = extract_image_prompt_embeddings(
+                image,
+                model_name=args.model,
+                mask_prompt=mask,
+                precision=args.precision,
+            )
+        else:
+            print(f"Unsupported model for bbox prompt: {args.model}")
+            return {"ok": False, "reason": "unsupported_model"}
+
+        inputNNData = dai.NNData()
+        inputNNData.addTensor(
+            "texts",
+            image_features,
+            dataType=(
+                dai.TensorInfo.DataType.FP16
+                if args.model in ("yoloe", "yoloe-image") and args.precision == "fp16"
+                else dai.TensorInfo.DataType.U8F
+            ),
+        )
+        textInputQueue.send(inputNNData)
+
+        label = payload.get("label", "object")
+        CLASS_NAMES = [label]
+        det_process_filter.setLabels(
+            labels=[i for i in range(len(CLASS_NAMES))], keep=True
+        )
+        annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
+        print(f"BBox prompt applied. Classes set to: {CLASS_NAMES}")
+        return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
+
     visualizer.registerService("Class Update Service", class_update_service)
     visualizer.registerService(
         "Threshold Update Service", conf_threshold_update_service
@@ -248,6 +347,7 @@ with dai.Pipeline(device) as pipeline:
         visualizer.registerService("Image Upload Service", image_upload_service)
     elif args.model == "yoloe-image":
         visualizer.registerService("Image Upload Service", image_upload_service)
+    visualizer.registerService("BBox Prompt Service", bbox_prompt_service)
 
     print("Pipeline created.")
 

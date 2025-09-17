@@ -1,9 +1,13 @@
-import { Button } from "@luxonis/common-fe-components";
+import { Button, Flex } from "@luxonis/common-fe-components";
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
 import { useConnection } from "@luxonis/depthai-viewer-common";
 
-export function ImageUploader() {
+type Props = {
+    onDrawBBox?: () => void;
+}
+
+export function ImageUploader({ onDrawBBox }: Props) {
     const connection = useConnection();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -24,12 +28,15 @@ export function ImageUploader() {
             console.log("Uploading image to backend:", selectedFile.name);
 
             // @ts-ignore - Custom service
-            connection.daiConnection?.postToService(
+            (connection as any).daiConnection?.postToService(
                 "Image Upload Service",
                 {
                     filename: selectedFile.name,
                     type: selectedFile.type,
                     data: fileData
+                },
+                (resp: any) => {
+                    console.log("[ImageUpload] Service ack:", resp);
                 }
             );
         };
@@ -40,6 +47,7 @@ export function ImageUploader() {
     return (
         <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
             <h3 className={css({ fontWeight: "semibold" })}>Update Classes with Image Input:</h3>
+            <span className={css({ color: 'gray.600', fontSize: 'sm' })}>Important: reset view before drawing a bounding box</span>
 
             {/* Clickable file selection area */}
             <label
@@ -67,8 +75,20 @@ export function ImageUploader() {
                 style={{ display: "none" }}
             />
 
-            {/* Upload button */}
-            <Button onClick={handleUpload}>Upload Image</Button>
+            {/* Upload / Draw buttons */}
+            <Flex direction="row" gap="sm" alignItems="center">
+                <Button onClick={handleUpload}>Upload Image</Button>
+                <span className={css({ color: 'gray.500' })}>OR</span>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        console.log("[BBox] Button clicked: enabling drawing overlay");
+                        onDrawBBox?.();
+                    }}
+                >
+                    Draw bounding box
+                </Button>
+            </Flex>
         </div>
     );
 }
