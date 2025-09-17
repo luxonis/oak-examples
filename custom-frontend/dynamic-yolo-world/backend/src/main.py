@@ -29,7 +29,7 @@ CONFIDENCE_THRESHOLD = 0.1
 VISUALIZATION_RESOLUTION = (1080, 1080)
 
 visualizer = dai.RemoteConnection(serveFrontend=False)
-device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+device = dai.Device()
 platform = device.getPlatformAsString()
 
 if platform != "RVC4":

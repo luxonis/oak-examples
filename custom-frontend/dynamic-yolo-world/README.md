@@ -16,8 +16,6 @@ Running this example requires a **Luxonis device** connected to your computer. R
 Here is a list of all available parameters:
 
 ```
--d DEVICE, --device DEVICE
-					Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps-limit FPS_LIMIT
 					FPS limit. (default: None)
 -ip IP, --ip IP       IP address to serve the frontend on. (default: None)
@@ -65,7 +63,7 @@ Once the app is built and running you can access the DepthAI Viewer locally by o
 This will run the example with default argument values (YOLO-World model). If you want to change these values you need to edit the `backend-run.sh` file to pass the arguments to the backend. Example:
 
 ```bash
-python3.12 /app/backend/src/main.py --model yoloe --precision fp16 --fps-limit 10 --device <DEVICE_ID>
+python3.12 /app/backend/src/main.py --model yoloe --precision fp16 --fps-limit 10
 ```
 
 ### Remote access
