@@ -66,7 +66,7 @@ with dai.Pipeline(device) as pipeline:
 
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(
-        objectTracker.out, axis=args.axis, roi_position=args.roi_position
+        objectTracker.out, axis=args.axis, axis_position=args.axis_position
     )
 
     # visualization

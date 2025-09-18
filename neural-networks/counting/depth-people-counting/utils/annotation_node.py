@@ -10,7 +10,6 @@ class TrackableObject:
     def __init__(self, objectID, centroid):
         self.objectID = objectID
         self.centroids = [centroid]
-
         self.counted = False
 
 
@@ -18,7 +17,7 @@ class AnnotationNode(dai.node.HostNode):
     def __init__(self) -> None:
         super().__init__()
         self._axis = "x"
-        self._roi_position = 0.5
+        self._axis_position = 0.5
         self._trackable_objects: Dict[int, TrackableObject] = {}
         self._counter = [0, 0, 0, 0]
 
@@ -26,13 +25,13 @@ class AnnotationNode(dai.node.HostNode):
         self,
         tracklets: dai.Node.Output,
         axis: bool = None,
-        roi_position: float = None,
+        axis_position: float = None,
     ) -> "AnnotationNode":
         self.link_args(tracklets)
         if axis is not None:
             self.set_axis(axis)
-        if roi_position is not None:
-            self.set_roi_position(roi_position)
+        if axis_position is not None:
+            self.set_axis_position(axis_position)
         return self
 
     def set_axis(self, axis: str) -> None:
@@ -40,10 +39,10 @@ class AnnotationNode(dai.node.HostNode):
             raise ValueError("Axis must be either 'x' or 'y'.")
         self._axis = axis
 
-    def set_roi_position(self, roi_position: float) -> None:
-        if roi_position < 0 or roi_position > 1:
-            raise ValueError("ROI position must be between 0 and 1.")
-        self._roi_position = roi_position
+    def set_axis_position(self, axis_position: float) -> None:
+        if axis_position < 0 or axis_position > 1:
+            raise ValueError("Axis position must be between 0 and 1.")
+        self._axis_position = axis_position
 
     def process(self, tracklets: dai.Buffer) -> None:
         assert isinstance(tracklets, dai.Tracklets)
@@ -68,7 +67,7 @@ class AnnotationNode(dai.node.HostNode):
             ):
                 self._draw_tracklet(t.id, centroid)
 
-        self._draw_roi_line()
+        self._draw_axis()
         self._draw_count_and_status()
 
         annotations_msg = self._annotations.build(
@@ -91,16 +90,16 @@ class AnnotationNode(dai.node.HostNode):
             direction = centroid[0] - np.mean(x)
 
             if (
-                centroid[0] > self._roi_position
+                centroid[0] > self._axis_position
                 and direction > 0
-                and np.mean(x) < self._roi_position
+                and np.mean(x) < self._axis_position
             ):
                 self._counter[1] += 1
                 to.counted = True
             elif (
-                centroid[0] < self._roi_position
+                centroid[0] < self._axis_position
                 and direction < 0
-                and np.mean(x) > self._roi_position
+                and np.mean(x) > self._axis_position
             ):
                 self._counter[0] += 1
                 to.counted = True
@@ -110,16 +109,16 @@ class AnnotationNode(dai.node.HostNode):
             direction = centroid[1] - np.mean(y)
 
             if (
-                centroid[1] > self._roi_position
+                centroid[1] > self._axis_position
                 and direction > 0
-                and np.mean(y) < self._roi_position
+                and np.mean(y) < self._axis_position
             ):
                 self._counter[3] += 1
                 to.counted = True
             elif (
-                centroid[1] < self._roi_position
+                centroid[1] < self._axis_position
                 and direction < 0
-                and np.mean(y) > self._roi_position
+                and np.mean(y) > self._axis_position
             ):
                 self._counter[2] += 1
                 to.counted = True
@@ -132,11 +131,11 @@ class AnnotationNode(dai.node.HostNode):
         )
         self._annotations.draw_circle(center=centroid, radius=0.01, thickness=1)
 
-    def _draw_roi_line(self) -> None:
+    def _draw_axis(self) -> None:
         pt1, pt2 = (
-            ((self._roi_position, 0.0), (self._roi_position, 1.0))
+            ((self._axis_position, 0.0), (self._axis_position, 1.0))
             if self._axis == "y"
-            else ((0.0, self._roi_position), (1.0, self._roi_position))
+            else ((0.0, self._axis_position), (1.0, self._axis_position))
         )
         self._annotations.draw_line(pt1, pt2)
 
