@@ -65,8 +65,9 @@ with dai.Pipeline(device) as pipeline:
 
     # Model selection with precision-aware YAMLs for YOLOE variants
     if args.model == "yolo-world":
+        yaml_base = "yolo_world_l_fp16" if args.precision == "fp16" else "yolo_world_l"
         model_description = dai.NNModelDescription.fromYamlFile(
-            f"yolo_world_l.{platform}.yaml"
+            f"{yaml_base}.{platform}.yaml"
         )
     elif args.model == "yoloe":
         yaml_base = "yoloe_v8_l_fp16" if args.precision == "fp16" else "yoloe_v8_l"
@@ -199,7 +200,7 @@ with dai.Pipeline(device) as pipeline:
             text_features,
             dataType=(
                 dai.TensorInfo.DataType.FP16
-                if args.model in ("yoloe", "yoloe-image") and args.precision == "fp16"
+                if args.precision == "fp16"
                 else dai.TensorInfo.DataType.U8F
             ),
         )
@@ -229,7 +230,7 @@ with dai.Pipeline(device) as pipeline:
             image_features,
             dataType=(
                 dai.TensorInfo.DataType.FP16
-                if args.model in ("yoloe", "yoloe-image") and args.precision == "fp16"
+                if args.precision == "fp16"
                 else dai.TensorInfo.DataType.U8F
             ),
         )
@@ -325,7 +326,7 @@ with dai.Pipeline(device) as pipeline:
             image_features,
             dataType=(
                 dai.TensorInfo.DataType.FP16
-                if args.model in ("yoloe", "yoloe-image") and args.precision == "fp16"
+                if args.precision == "fp16"
                 else dai.TensorInfo.DataType.U8F
             ),
         )
@@ -361,7 +362,7 @@ with dai.Pipeline(device) as pipeline:
         text_features,
         dataType=(
             dai.TensorInfo.DataType.FP16
-            if args.model in ("yoloe", "yoloe-image") and args.precision == "fp16"
+            if args.precision == "fp16"
             else dai.TensorInfo.DataType.U8F
         ),
     )

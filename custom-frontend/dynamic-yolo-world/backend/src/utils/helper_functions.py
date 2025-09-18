@@ -37,7 +37,7 @@ def pad_and_quantize_features(
         features, ((0, num_padding), (0, 0)), mode="constant"
     ).T.reshape(1, 512, max_num_classes)
 
-    if precision == "fp16" and model_name in ("yoloe", "yoloe-image"):
+    if precision == "fp16":
         return padded_features.astype(np.float16)
 
     quant_scale = QUANT_VALUES[model_name]["quant_scale"]
