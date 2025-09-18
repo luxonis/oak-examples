@@ -27,7 +27,7 @@ def initialize_argparser():
     )
 
     parser.add_argument(
-        "-ap",
+        "-pos",
         "--axis_position",
         help="Position of the axis. Default is 0.5 - axis placed in the middle of the frame.",
         required=False,
