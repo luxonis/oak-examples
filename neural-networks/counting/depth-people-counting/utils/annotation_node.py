@@ -129,7 +129,7 @@ class AnnotationNode(dai.node.HostNode):
             position=centroid,
             size=8,
         )
-        self._annotations.draw_circle(center=centroid, radius=0.01, thickness=1)
+        self._annotations.draw_circle(center=centroid, radius=0.02, thickness=4)
 
     def _draw_axis(self) -> None:
         pt1, pt2 = (
