@@ -1,13 +1,13 @@
 import cv2
 import depthai as dai
 from pathlib import Path
+from depthai_nodes.node import ApplyColormap
 
 from utils.arguments import initialize_argparser
 from utils.frame_editor import FrameEditor
 from utils.disparity_to_dets import DisparityToDetections
 from utils.annotation_node import AnnotationNode
 
-from depthai_nodes.node import ApplyColormap
 
 _, args = initialize_argparser()
 
@@ -22,6 +22,7 @@ print(f"Platform: {platform}")
 with dai.Pipeline(device) as pipeline:
     pipeline.setCalibrationData(dai.CalibrationHandler(PATH / "calib.json"))
 
+    # disparity input
     left = pipeline.create(dai.node.ReplayVideo)
     left.setReplayVideoFile(PATH / "left.mp4")
     left.setOutFrameType(dai.ImgFrame.Type.RAW8)
@@ -46,6 +47,7 @@ with dai.Pipeline(device) as pipeline:
     stereo.setLeftRightCheck(True)
     stereo.setSubpixel(False)
 
+    # people detector
     detection_generator = pipeline.create(DisparityToDetections).build(
         disparity=stereo.disparity,
         max_disparity=stereo.initialConfig.getMaxDisparity(),
