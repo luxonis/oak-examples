@@ -71,6 +71,7 @@ with dai.Pipeline(device) as pipeline:
 
     # visualization
     visualizer.addTopic("Disparity", color_transform_disparity.out, "disparity")
+    visualizer.addTopic("Dets", detection_generator.out, "detections")
     visualizer.addTopic("Count", annotation_node.out)
 
     print("Pipeline created.")
