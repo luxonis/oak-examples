@@ -1,25 +1,74 @@
 # Depth people counting
 
-This example demonstrates how to perform people counting from depth frames along a passageway. This approach could be useful for the privacy concerns of people counting applications.
+This example demonstrates how to count people crossing a virtual line using depth frames captured along a passageway.
+By relying solely on depth data (rather than RGB images), this approach preserves privacy while still providing accurate counts — making it well-suited for applications where strict privacy is required.
 
-This demo contains many hard-coded values specific to [depth-people-counting-01](./resources) depthai recording. If you would wish to use this application in your own setup, these values would higly depend on the OAK camera installation, its FOV, and the passageway structure.
+This demo uses several hard-coded values that are tuned for a specific [DepthAI recording](./resources).
+If you want to record your own recording using the [DepthAI record tool](../gen2-record-replay/).
+However, beware to adapt the hard-coded values to your own setup, as they are highly dependent on the OAK camera’s installation, its field of view (FOV), and the physical structure of the passageway.
 
 ## Demo
 
-[![Depth people counting](https://user-images.githubusercontent.com/18037362/179425724-fcc77aa7-6616-4ca7-8083-ec1a7a78a7de.gif)](https://youtu.be/9M1mRICVKcw "Depth people counting")
+[![Depth people counting](media/depth-people-counting.gif)](media/depth-people-counting.gif)
 
 ## Usage
 
-```bash
-usage: main.py [--path PATH_TO_DEPTHAI_RECORDING]
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+
+You can run the example your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
+
+Here is a list of all available parameters:
+
+```
+-d DEVICE, --device DEVICE
+                      Optional name, DeviceID or IP of the camera to connect to. (default: None)
+-a AXIS, --axis AXIS
+                      Axis for cumulative counting (either x or y). (default: x)
+-pos AXIS_POSITION, --roi_position ROI_POSITION
+                      Position of the axis (if 0.5, axis is placed in the middle of the frame). (default: 0.5)
 ```
 
-You can record your own DepthAI recording with [DepthAI record tool](../gen2-record-replay/).
+## Peripheral Mode
 
-## Pre-requisites
+### Installation
 
-Install requirements
+You need to first prepare a **Python 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/),
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
+
+You can simply install them by running:
 
 ```bash
-python3 -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
+
+Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
+
+### Examples
+
+```bash
+python3 main.py
+```
+
+This will run the example with default arguments.
+
+```bash
+python3 main.py -d <DEVICE_IP> -a y -pos 0.75
+```
+
+This will run the cumulative object counting example with the provided device ip, and the cumulative counting axis positioned along the y axis at 75% of the frame.
+
+## Standalone Mode (RVC4 only)
+
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+
+The app can then be run with:
+
+```bash
+oakctl connect <DEVICE_IP>
+oakctl app run .
+```
+
+This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
