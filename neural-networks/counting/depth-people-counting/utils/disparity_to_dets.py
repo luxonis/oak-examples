@@ -51,7 +51,6 @@ class DisparityToDetections(dai.node.HostNode):
         self.out.send(dets_msg)
 
     def get_detections(self, contours, disparity_frame) -> dai.ImgDetections:
-
         dets = dai.ImgDetections()
         if len(contours) != 0:
             c = max(contours, key=cv2.contourArea)

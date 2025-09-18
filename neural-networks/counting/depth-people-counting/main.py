@@ -1,4 +1,3 @@
-import cv2
 import depthai as dai
 from pathlib import Path
 from depthai_nodes.node import ApplyColormap
