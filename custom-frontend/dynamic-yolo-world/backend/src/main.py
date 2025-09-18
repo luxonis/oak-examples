@@ -151,6 +151,7 @@ with dai.Pipeline(device) as pipeline:
         overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
             video_src_out,
             apply_colormap_node.out,
+            preserve_background=True,
         )
         overlay_to_nv12 = pipeline.create(dai.node.ImageManip)
         overlay_to_nv12.setMaxOutputFrameSize(
