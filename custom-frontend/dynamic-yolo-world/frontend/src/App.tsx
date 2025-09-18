@@ -4,6 +4,7 @@ import { ClassSelector } from "./ClassSelector.tsx";
 import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
 import { ImageUploader } from "./ImageUploader.tsx";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNotifications } from "./Notifications.tsx";
 
 function App() {
     const connection = useConnection();
@@ -12,6 +13,7 @@ function App() {
     const [isDrawing, setIsDrawing] = useState(false);
     const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
     const [currentRect, setCurrentRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+    const { notify } = useNotifications();
 
     const getUnderlyingMediaAndSize = () => {
         const container = streamContainerRef.current;
@@ -71,6 +73,7 @@ function App() {
             setDragStart(null);
             const ctx = overlay.getContext("2d");
             if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+            notify('Selection too small. Please draw a larger box.', { type: 'warning' });
             return;
         }
 
@@ -78,6 +81,7 @@ function App() {
         const media = getUnderlyingMediaAndSize();
         if (!media) {
             console.warn("[BBox] No media found under overlay; aborting bbox post");
+            notify('No video/canvas found. Reset the view and try again.', { type: 'error', durationMs: 6000 });
             return;
         }
 
@@ -110,6 +114,7 @@ function App() {
         const rh = Math.max(0, ry1 - ry0);
         if (rw <= 1 || rh <= 1) {
             console.warn("[BBox] BBox outside content area; aborting");
+            notify('Box outside of content area. Try again within the stream.', { type: 'warning', durationMs: 6000 });
             return;
         }
 
@@ -135,6 +140,7 @@ function App() {
             content: { x: contentX, y: contentY, width: contentW, height: contentH },
             scales: { scaleX, scaleY }
         });
+        notify(`Sending box ${Math.round(wNorm * 100)}% × ${Math.round(hNorm * 100)}% at (${Math.round(xNorm*100)}%, ${Math.round(yNorm*100)}%)…`, { type: 'info' });
         // @ts-ignore - Custom service
         (connection as any).daiConnection?.postToService(
             "BBox Prompt Service",
@@ -148,6 +154,7 @@ function App() {
             },
             (resp: any) => {
                 console.log("[BBox] Service ack:", resp);
+                notify('Bounding box sent', { type: 'success' });
             }
         );
 
@@ -163,6 +170,7 @@ function App() {
         setIsDrawing(true);
         setCurrentRect(null);
         setDragStart(null);
+        notify('Drawing mode enabled. Drag on the stream to draw a box.', { type: 'info' });
     }, []);
 
     useEffect(() => {
@@ -182,6 +190,11 @@ function App() {
         window.addEventListener("resize", sizeOverlay);
         return () => window.removeEventListener("resize", sizeOverlay);
     }, [isDrawing]);
+
+    useEffect(() => {
+        notify(connection.connected ? 'Connected to device' : 'Disconnected from device', { type: connection.connected ? 'success' : 'warning', durationMs: 1800 });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [connection.connected]);
 
     const onOverlayMouseDown = (e: any) => {
         if (!isDrawing) return;

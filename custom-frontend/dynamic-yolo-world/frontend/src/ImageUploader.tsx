@@ -2,6 +2,7 @@ import { Button, Flex } from "@luxonis/common-fe-components";
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
 import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useNotifications } from "./Notifications.tsx";
 
 type Props = {
     onDrawBBox?: () => void;
@@ -10,14 +11,23 @@ type Props = {
 export function ImageUploader({ onDrawBBox }: Props) {
     const connection = useConnection();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const { notify } = useNotifications();
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0] || null;
+        const file: File | null = event.target.files?.[0] || null;
         setSelectedFile(file);
+        if (file) {
+            notify(`Selected: ${file.name}`, { type: 'info', durationMs: 2000 });
+        }
     };
 
     const handleUpload = () => {
         if (!selectedFile) {
+            notify('Please choose an image first', { type: 'warning' });
+            return;
+        }
+        if (!connection.connected) {
+            notify('Not connected to device. Unable to upload image.', { type: 'error' });
             return;
         }
 
@@ -26,6 +36,8 @@ export function ImageUploader({ onDrawBBox }: Props) {
             const fileData = reader.result;
 
             console.log("Uploading image to backend:", selectedFile.name);
+            const sizeKb = Math.max(1, Math.round((selectedFile.size || 0) / 1024));
+            notify(`Uploading ${selectedFile.name} (${sizeKb} KB)…`, { type: 'info' });
 
             // @ts-ignore - Custom service
             (connection as any).daiConnection?.postToService(
@@ -37,6 +49,7 @@ export function ImageUploader({ onDrawBBox }: Props) {
                 },
                 (resp: any) => {
                     console.log("[ImageUpload] Service ack:", resp);
+                    notify(`Image uploaded: ${selectedFile.name}`, { type: 'success', durationMs: 6000 });
                 }
             );
         };
@@ -84,6 +97,7 @@ export function ImageUploader({ onDrawBBox }: Props) {
                     onClick={() => {
                         console.log("[BBox] Button clicked: enabling drawing overlay");
                         onDrawBBox?.();
+                        notify('Drawing mode enabled. Drag on the stream to draw a box.', { type: 'info', durationMs: 6000 });
                     }}
                 >
                     Draw bounding box
