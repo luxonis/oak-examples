@@ -14,8 +14,6 @@ from utils.measure_object_distance import MeasureObjectDistance
 from utils.visualize_object_distances import VisualizeObjectDistances
 from utils.show_alert import ShowAlert
 
-OBJ_DET_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
-PALM_DET_MODEL = "luxonis/mediapipe-palm-detection:192x192"
 DANGEROUS_OBJECTS = ["bottle", "cup"]
 
 _, args = initialize_argparser()
@@ -45,19 +43,17 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # object detection model
-    obj_det_model_description = dai.NNModelDescription(OBJ_DET_MODEL, platform=platform)
-    obj_det_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(obj_det_model_description, useCached=False)
+    obj_det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
     )
+    obj_det_nn_archive = dai.NNArchive(dai.getModelFromZoo(obj_det_model_description))
     classes = obj_det_nn_archive.getConfig().model.heads[0].metadata.classes
 
     # palm detection model
-    palm_det_model_description = dai.NNModelDescription(
-        PALM_DET_MODEL, platform=platform
+    palm_det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"mediapipe_palm_detection.{platform}.yaml"
     )
-    palm_det_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(palm_det_model_description, useCached=False)
-    )
+    palm_det_nn_archive = dai.NNArchive(dai.getModelFromZoo(palm_det_model_description))
 
     # camera input
     color_camera = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)

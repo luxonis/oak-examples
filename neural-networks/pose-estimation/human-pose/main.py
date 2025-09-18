@@ -12,7 +12,6 @@ from depthai_nodes.node.utils import generate_script_content
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 
-DET_MODEL: str = "luxonis/yolov6-nano:r2-coco-512x288"
 PADDING = 0.1
 
 _, args = initialize_argparser()
@@ -36,16 +35,18 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # person detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
     )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # pose estimation model
-    rec_model_description = dai.NNModelDescription(args.model, platform=platform)
-    rec_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(rec_model_description, useCached=False)
+    rec_model_description = dai.NNModelDescription.fromYamlFile(
+        f"lite_hrnet_18coco.{platform}.yaml"
     )
+    if rec_model_description.model != args.model:
+        rec_model_description = dai.NNModelDescription(args.model, platform=platform)
+    rec_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(rec_model_description))
 
     # media/camera source
     if args.media_path:

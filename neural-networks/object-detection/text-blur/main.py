@@ -6,8 +6,6 @@ from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.blur_detections import BlurBboxes
 
-DET_MODEL = "luxonis/paddle-text-detection:320x576"
-
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -29,10 +27,10 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # text detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"paddle_text_detection.{platform}.yaml"
     )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # media/camera input
     if args.media_path:

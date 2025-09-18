@@ -4,13 +4,12 @@ import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
     ImgDetectionsFilter,
-    ImgDetectionsBridge,
 )
 
 from utils.helper_functions import extract_text_embeddings
 from utils.arguments import initialize_argparser
+from utils.annotation_node import AnnotationNode
 
-MODEL = "yolo-world-l:640x640-host-decoding"
 MAX_NUM_CLASSES = 80
 
 _, args = initialize_argparser()
@@ -34,7 +33,7 @@ if len(args.class_names) > MAX_NUM_CLASSES:
     )
 
 if args.fps_limit is None:
-    args.fps_limit = 5
+    args.fps_limit = 30
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
@@ -43,8 +42,9 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # yolo world model
-    model_description = dai.NNModelDescription(MODEL)
-    model_description.platform = platform
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolo_world_l.{platform}.yaml"
+    )
     model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     model_w, model_h = model_nn_archive.getInputSize()
 
@@ -85,13 +85,13 @@ with dai.Pipeline(device) as pipeline:
     det_process_filter.setLabels(
         labels=[i for i in range(len(args.class_names))], keep=True
     )
-    det_process_bridge = pipeline.create(ImgDetectionsBridge).build(
+    annotation_node = pipeline.create(AnnotationNode).build(
         det_process_filter.out,
         label_encoding={k: v for k, v in enumerate(args.class_names)},
     )
 
     # visualization
-    visualizer.addTopic("Detections", det_process_bridge.out)
+    visualizer.addTopic("Detections", annotation_node.out)
     visualizer.addTopic("Video", nn_with_parser.passthroughs["images"])
 
     print("Pipeline created.")

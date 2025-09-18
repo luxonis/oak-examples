@@ -1,8 +1,7 @@
-depthai==3.0.0rc2
-depthai-nodes==0.3.0
-opencv-python
-numpy==1.26.4
-scipy==1.14.1
+depthai==3.0.0
+depthai-nodes==0.3.4
+numpy>=1.22
+scipy
 tqdm
 openai-whisper
 sounddevice 

@@ -2,11 +2,9 @@
 
 This example demonstrates how to run a 3 stage pipeline and multi input models. A gaze estimation example is built to showcase the 3 stage pipeline. The pipeline is composed of the following three models:
 
-1. [SCRFD face detection model](https://models.luxonis.com/luxonis/scrfd-face-detection/1f3d7546-66e4-43a8-8724-2fa27df1096f) is used to detect the faces and their keypoints. Based on this models outputs, the entire face and the eyes are cropped from the original frame.
-1. The cropped face is used as input to the [Head pose model](https://models.luxonis.com/luxonis/head-pose-estimation/068ac18a-de71-4a6e-9f0f-42776c0ef980) which returns the 3D vector the heads position.
-1. The cropped eyes and the 3D pose vector are fed into [ADAS gaze estimation model](https://models.luxonis.com/luxonis/gaze-estimation-adas/b174ff1b-740b-4016-b8d5-b9488dbdd657) to compute the final gaze of the person.
-
-**:exclamation: ON RVC2 you can run the example with camera input only (`--media` flag doesnt work due to a problem with the replay node). :exclamation:**
+- [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) is used to detect the faces and their keypoints. Based on this models outputs, the entire face and the eyes are cropped from the original frame.
+- The cropped face is used as input to the [Head pose model](https://models.luxonis.com/luxonis/head-pose-estimation/068ac18a-de71-4a6e-9f0f-42776c0ef980) which returns the 3D vector the heads position.
+- The cropped eyes and the 3D pose vector are fed into [ADAS gaze estimation model](https://models.luxonis.com/luxonis/gaze-estimation-adas/b174ff1b-740b-4016-b8d5-b9488dbdd657) to compute the final gaze of the person.
 
 ## Demo
 

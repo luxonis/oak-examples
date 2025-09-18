@@ -16,9 +16,10 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    model_description = dai.NNModelDescription("qrdet:nano-512x288")
-    platform = device.getPlatformAsString()
-    model_description.platform = platform
+    platform = device.getPlatform()
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"qrdet_nano.{platform.name}.yaml"
+    )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
     if args.media_path:
@@ -48,7 +49,7 @@ with dai.Pipeline(device) as pipeline:
     )
 
     nn_input = tile_manager.out
-    if device.getPlatform() == dai.Platform.RVC4:
+    if platform == dai.Platform.RVC4:
         interleaved_manip = pipeline.create(dai.node.ImageManip)
         interleaved_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
         tile_manager.out.link(interleaved_manip.inputImage)

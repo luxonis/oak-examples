@@ -40,10 +40,15 @@ with dai.Pipeline(device) as pipeline:
     if platform == dai.Platform.RVC2:
         stereo.setOutputSize(*OUTPUT_SHAPE)
 
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform.name}.yaml"
+    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(modelDescription=model_description))
+
     spatialDetectionNetwork = pipeline.create(dai.node.SpatialDetectionNetwork).build(
         cam,
         stereo,
-        "luxonis/yolov6-nano:r2-coco-512x288",
+        nn_archive,
         fps=FPS,
     )
     spatialDetectionNetwork.setConfidenceThreshold(0.5)
@@ -79,6 +84,7 @@ with dai.Pipeline(device) as pipeline:
         depth=demux.outputs["depth"],
         birdseye=bird_eye.output,
         detections=demux.outputs["detections"],
+        label_map=nn_archive.getConfigV1().model.heads[0].metadata.classes,
     )
 
     visualizer.addTopic("Combined View", combined.output, "images")

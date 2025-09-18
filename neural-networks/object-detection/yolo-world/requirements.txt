@@ -1,9 +1,11 @@
-depthai==3.0.0rc2
-depthai-nodes==0.3.0
-numpy
-onnxruntime
-torch
-transformers
-opencv-python~=4.10.0
+depthai==3.0.0
+depthai-nodes==0.3.4
+opencv-python-headless~=4.10.0
 numpy>=1.22
+onnxruntime
+# onnxruntime-gpu # if you want to use CUDAExecutionProvider
 requests
+
+# tokenizers: pick depending on Python version
+tokenizers==0.20.3; python_version < "3.9"
+tokenizers==0.21.4; python_version >= "3.9"

@@ -35,10 +35,11 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # mask detection model
-    det_model_description = dai.NNModelDescription(args.model, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"ppe_detection.{platform}.yaml"
     )
+    if det_model_description.model != args.model:
+        det_model_description = dai.NNModelDescription(args.model, platform=platform)
 
     # media/camera input
     if args.media_path:
@@ -51,7 +52,7 @@ with dai.Pipeline(device) as pipeline:
     input_node = replay if args.media_path else cam
 
     det_nn = pipeline.create(ParsingNeuralNetwork).build(
-        input_node, det_model_nn_archive, fps=args.fps_limit
+        input_node, det_model_description, fps=args.fps_limit
     )
 
     # filter and rename detection labels

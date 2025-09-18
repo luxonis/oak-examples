@@ -3,7 +3,7 @@ import depthai as dai
 import numpy as np
 import math
 from typing import Tuple
-from .annotation_helper import AnnotationHelper
+from depthai_nodes.utils import AnnotationHelper
 
 
 class Filter:

@@ -1,15 +1,14 @@
 # Cumulative Object Counting
 
 This example demonstrates how to run an inference pipeline for cummulative object counting using the DepthAI and OAK cameras.
-It utilizes an object detection model to detect objects (e.g. `people`) and counts how many pass in an upward and downward direction. By default it uses [Mobilenet-SSD](https://models.luxonis.com/luxonis/mobilenet-ssd/2da6e0a5-4785-488d-8cf5-c35f7ec1a1ed) model.
+It utilizes an object detection model to detect objects (e.g. `people`) and counts how many pass in an upward and downward direction.
+By default it uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) model but you can also try running it with some other general object detection model as, for example, [Mobilenet-SSD](https://models.luxonis.com/luxonis/mobilenet-ssd/2da6e0a5-4785-488d-8cf5-c35f7ec1a1ed).
 
 The example is inspired by / based on:
 
 - [Tensorflow 2 Object Counting](https://github.com/TannerGilbert/Tensorflow-2-Object-Counting)
 - [OpenCV People Counter](https://www.pyimagesearch.com/2018/08/13/opencv-people-counter/)
 - [tensorflow_object_counting_api](https://github.com/ahmetozlu/tensorflow_object_counting_api)
-
-**NOTE**: The example currently works only on RVC2.
 
 ## Demo
 
@@ -25,7 +24,7 @@ Here is a list of all available parameters:
 
 ```
 -m MODEL, --model MODEL
-                      HubAI reference of the object detection model. (default: luxonis/mobilenet-ssd:300x300)
+                      HubAI reference of the object detection model. (default: luxonis/yolov6-nano:r2-coco-512x288)
 -d DEVICE, --device DEVICE
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
@@ -37,8 +36,6 @@ Here is a list of all available parameters:
 -roi ROI_POSITION, --roi_position ROI_POSITION
                       osition of the axis (if 0.5, axis is placed in the middle of the frame). (default: 0.5)
 ```
-
-> **Note:** This example currently only works on RVC2 devices becuase dai.ObjectTracker node is not supported on RVC4.
 
 ## Peripheral Mode
 

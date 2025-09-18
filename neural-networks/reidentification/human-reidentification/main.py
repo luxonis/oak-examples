@@ -29,34 +29,37 @@ if not args.fps_limit:
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
 
-if args.identify == "pose":
-    DET_MODEL = "luxonis/scrfd-person-detection:25g-640x640"
-    REC_MODEL = "luxonis/osnet:imagenet-128x256"
-    CSIM = 0.8
-elif args.identify == "face":
-    DET_MODEL = "luxonis/scrfd-face-detection:10g-640x640"  # "luxonis/yunet:640x480" is also an option
-    REC_MODEL = "luxonis/arcface:lfw-112x112"
-    CSIM = 0.1
-else:
-    raise ValueError("Unknown identify option provided.")
-
-if args.cos_similarity_threshold:
-    CSIM = args.cos_similarity_threshold  # override default
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
+    if args.identify == "pose":
+        det_model_description = dai.NNModelDescription.fromYamlFile(
+            f"scrfd_person_detection_25g.{platform}.yaml"
+        )
+        rec_model_description = dai.NNModelDescription.fromYamlFile(
+            f"osnet_imagenet.{platform}.yaml"
+        )
+        CSIM = 0.8
+    elif args.identify == "face":
+        det_model_description = dai.NNModelDescription.fromYamlFile(
+            f"scrfd_face_detection_10g.{platform}.yaml"
+        )
+        rec_model_description = dai.NNModelDescription.fromYamlFile(
+            f"arcface_lfw.{platform}.yaml"
+        )
+        CSIM = 0.1
+    else:
+        raise ValueError("Unknown identify option provided.")
+
+    if args.cos_similarity_threshold:
+        CSIM = args.cos_similarity_threshold  # override default
+
     # detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
-    )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # recognition model
-    rec_model_description = dai.NNModelDescription(REC_MODEL, platform=platform)
-    rec_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(rec_model_description, useCached=False)
-    )
+    rec_nn_archive = dai.NNArchive(dai.getModelFromZoo(rec_model_description))
 
     # media/camera input
     if args.media_path:

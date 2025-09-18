@@ -1,17 +1,17 @@
-identifier = "com.luxonis.whisper"
+identifier = "com.example.whisper"
 app_version = "1.0.0"
 
 prepare_container = [
     { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y wget python3 python3-pip ffmpeg libglib2.0-0 libgl1-mesa-glx" },
-    { type = "RUN", command = "pip3 install depthai==3.0.0-alpha.6.dev0+4b380c003bbfe52348befdb82cf32013a7db2793 --break-system-packages /" },
-    { type = "RUN", command = "wget -O /libusb-1.0.so https://rh-public.luxonis.com/libusb/1.0.26/libusb-x86_64.so" },
-    { type = "RUN", command = "cp /libusb-1.0.so /usr/local/lib/python3.11/dist-packages/depthai.libs/libusb-1-105e664f.0.so" },
+    { type = "RUN", command = "apt-get install -y python3-pip ffmpeg libusb-1.0-0 portaudio19-dev libportaudio2" },
+    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
+    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
 ]
 
 prepare_build_container = []
 
 build_steps = ["pip3 install -r /app/requirements.txt --break-system-packages"]
 
+depthai_models = { yaml_path = "./depthai_models" }
 
-entrypoint = ["bash", "-c", "python3 -u /app/main.py --device_ip '' --audio_file /app/assets/audio_files/command_LED_yellow.mp3"]
+entrypoint = ["bash", "-c", "python3 -u /app/main.py --audio_file /app/assets/audio_files/command_LED_yellow.mp3"]

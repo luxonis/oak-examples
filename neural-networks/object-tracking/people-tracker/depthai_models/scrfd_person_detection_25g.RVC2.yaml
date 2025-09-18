@@ -1,0 +1,2 @@
+model: luxonis/scrfd-person-detection:25g-640x640
+platform: RVC2

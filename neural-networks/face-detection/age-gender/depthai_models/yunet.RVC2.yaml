@@ -1,0 +1,2 @@
+model: luxonis/yunet:320x240
+platform: RVC2

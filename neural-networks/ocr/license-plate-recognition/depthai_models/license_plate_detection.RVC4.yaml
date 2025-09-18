@@ -1,0 +1,2 @@
+model: luxonis/license-plate-detection:640x640
+platform: RVC4

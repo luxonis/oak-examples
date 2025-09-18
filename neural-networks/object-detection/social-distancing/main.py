@@ -6,8 +6,6 @@ from utils.measure_object_distance import MeasureObjectDistance
 from utils.host_social_distancing import SocialDistancing
 from utils.arguments import initialize_argparser
 
-DET_MODEL = "luxonis/scrfd-person-detection:25g-640x640"
-
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -35,10 +33,10 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # person detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"scrfd_person_detection_25g.{platform}.yaml"
     )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # camera input
     cam = pipeline.create(dai.node.Camera).build(

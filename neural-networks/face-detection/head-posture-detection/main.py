@@ -7,8 +7,6 @@ from depthai_nodes.node.utils import generate_script_content
 from utils.annotation_node import AnnotationNode
 from utils.arguments import initialize_argparser
 
-DET_MODEL = "luxonis/yunet:640x480"
-POSE_MODEL = "luxonis/head-pose-estimation:60x60"
 REQ_WIDTH, REQ_HEIGHT = (
     1024,
     768,
@@ -26,7 +24,7 @@ frame_type = (
 )
 
 if args.fps_limit is None:
-    args.fps_limit = 10 if platform == "RVC2" else 30
+    args.fps_limit = 14 if platform == "RVC2" else 30
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
@@ -35,17 +33,17 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # face detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yunet.{platform}.yaml"
     )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
     det_model_w, det_model_h = det_model_nn_archive.getInputSize()
 
     # head pose estimation model
-    pose_model_description = dai.NNModelDescription(POSE_MODEL, platform=platform)
-    pose_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(pose_model_description, useCached=False)
+    pose_model_description = dai.NNModelDescription.fromYamlFile(
+        f"head_pose_estimation.{platform}.yaml"
     )
+    pose_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(pose_model_description))
     pose_model_w, pose_model_h = pose_model_nn_archive.getInputSize()
 
     # media/camera input

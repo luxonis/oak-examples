@@ -1,8 +1,8 @@
 import math
 import depthai as dai
+from depthai_nodes.utils import AnnotationHelper
 from .measure_distance import SpatialDistance
 from .measure_distance import RegionOfInterest
-from .img_annotation_helper import AnnotationHelper
 
 
 class ROIControl(dai.node.HostNode):

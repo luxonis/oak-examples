@@ -1,0 +1,2 @@
+model: luxonis/crestereo:iter2-320x240
+platform: RVC2

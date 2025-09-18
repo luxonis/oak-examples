@@ -27,10 +27,11 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # crowd counting model
-    cc_model_description = dai.NNModelDescription(args.model, platform=platform)
-    cc_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(cc_model_description, useCached=False)
+    cc_model_description = dai.NNModelDescription.fromYamlFile(
+        f"dm_count_shb.{platform}.yaml"
     )
+    if cc_model_description.model != args.model:
+        cc_model_description = dai.NNModelDescription(args.model, platform=platform)
 
     # media/camera input
     if args.media_path:
@@ -43,7 +44,7 @@ with dai.Pipeline(device) as pipeline:
     input_node = replay if args.media_path else cam
 
     cc_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        input_node, cc_model_nn_archive, fps=args.fps_limit
+        input_node, cc_model_description, fps=args.fps_limit
     )
 
     # crowd density overlay

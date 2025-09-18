@@ -1,87 +1,113 @@
 import depthai as dai
-import argparse
+from depthai_nodes.node import ParsingNeuralNetwork
+from utils.box_processing_node import BoxProcessingNode
+from utils.arguments import initialize_argparser
+from utils.helper_functions import read_intrinsics
 
-from host_box_measurement import BoxMeasurement
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-maxd",
-    "--max-dist",
-    type=float,
-    default=2,
-    help="maximum distance between camera and object in space in meters",
-)
-parser.add_argument(
-    "-mins",
-    "--min-box-size",
-    type=float,
-    default=0.003,
-    help="minimum box size in cubic meters",
-)
-args = parser.parse_args()
+_, args = initialize_argparser()
 
-# Higher resolution for example THE_720_P makes better results but drastically lowers FPS
-RESOLUTION = dai.MonoCameraProperties.SensorResolution.THE_400_P
+NN_WIDTH, NN_HEIGHT = 512, 320
+INPUT_SHAPE = (NN_WIDTH, NN_HEIGHT)
 
-device = dai.Device()
-with dai.Pipeline(device) as pipeline:
-    print("Creating pipeline...")
-    calib_data = device.readCalibration()
-    device.setIrLaserDotProjectorIntensity(1)
+IMG_WIDTH, IMG_HEIGHT = 640, 400
+CAMERA_RESOLUTION = (IMG_WIDTH, IMG_HEIGHT)
 
-    cam = pipeline.create(dai.node.ColorCamera)
-    cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
-    cam.setIspScale(1, 3)
-    cam.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
-    cam.initialControl.setManualFocus(130)
+visualizer = dai.RemoteConnection(httpPort=8082)
+device = dai.Device(args.device) if args.device else dai.Device()
+device.setIrLaserDotProjectorIntensity(1.0)
 
-    left = pipeline.create(dai.node.MonoCamera)
-    left.setResolution(RESOLUTION)
-    left.setBoardSocket(dai.CameraBoardSocket.CAM_B)
+with dai.Pipeline(device) as p:
+    platform = device.getPlatform()
 
-    right = pipeline.create(dai.node.MonoCamera)
-    right.setResolution(RESOLUTION)
-    right.setBoardSocket(dai.CameraBoardSocket.CAM_C)
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"box_instance_segmentation.{platform.name}.yaml"
+    )
+    nn_archive = dai.NNArchive(
+        dai.getModelFromZoo(
+            model_description,
+        )
+    )
 
-    stereo = pipeline.create(dai.node.StereoDepth).build(left=left.out, right=right.out)
-    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.HIGH_DETAIL)
-    stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
+    color = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
+    color_output = color.requestOutput(
+        CAMERA_RESOLUTION, dai.ImgFrame.Type.RGB888i, fps=args.fps_limit
+    )
+
+    left = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
+    right = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
+
+    stereo = p.create(dai.node.StereoDepth).build(
+        left=left.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
+        right=right.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
+    )
+
+    # Medain filter is only supported on RVC4
+    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.DEFAULT)
+    stereo.enableDistortionCorrection(True)
+    stereo.setExtendedDisparity(True)
     stereo.setLeftRightCheck(True)
-    stereo.setExtendedDisparity(False)
-    stereo.setSubpixel(True)
-    stereo.setSubpixelFractionalBits(3)
-    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
+    if platform == dai.Platform.RVC2:  # RVC2 does not support median filter
+        stereo.initialConfig.setMedianFilter(dai.MedianFilter.MEDIAN_OFF)
 
-    """ In-place post-processing configuration for a stereo depth node
-    The best combo of filters is application specific. Hard to say there is a one size fits all.
-    They also are not free. Even though they happen on device, you pay a penalty in fps. """
-    stereo.initialConfig.postProcessing.speckleFilter.enable = False
-    stereo.initialConfig.postProcessing.speckleFilter.speckleRange = 50
-    stereo.initialConfig.postProcessing.temporalFilter.enable = True
-    stereo.initialConfig.postProcessing.spatialFilter.enable = True
-    stereo.initialConfig.postProcessing.spatialFilter.holeFillingRadius = 2
-    stereo.initialConfig.postProcessing.spatialFilter.numIterations = 1
-    stereo.initialConfig.postProcessing.thresholdFilter.minRange = 400
-    stereo.initialConfig.postProcessing.thresholdFilter.maxRange = 15000
-    stereo.initialConfig.postProcessing.decimationFilter.decimationFactor = 1
+    rgbd = p.create(dai.node.RGBD).build()
 
-    width, height = cam.getIspSize()
-    intrinsics = calib_data.getCameraIntrinsics(
-        dai.CameraBoardSocket.CAM_A, dai.Size2f(width, height)
+    if platform == dai.Platform.RVC4:
+        align = p.create(dai.node.ImageAlign)
+        stereo.depth.link(align.input)
+        color_output.link(align.inputAlignTo)
+        align.outputAligned.link(rgbd.inDepth)
+    else:
+        stereo.depth.link(rgbd.inDepth)
+        color_output.link(stereo.inputAlignTo)
+
+    color_output.link(rgbd.inColor)
+
+    manip = p.create(dai.node.ImageManip)
+    manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
+    manip.initialConfig.setFrameType(
+        dai.ImgFrame.Type.BGR888p
+        if platform == dai.Platform.RVC2
+        else dai.ImgFrame.Type.BGR888i
+    )
+    manip.setMaxOutputFrameSize(
+        nn_archive.getInputSize()[0] * nn_archive.getInputSize()[1] * 3
     )
 
-    box_measurement = pipeline.create(BoxMeasurement).build(
-        color=cam.isp,
-        depth=stereo.depth,
-        cam_intrinsics=intrinsics,
-        shape=(width, height),
-        max_dist=args.max_dist,
-        min_box_size=args.min_box_size,
-    )
-    box_measurement.inputs["color"].setBlocking(False)
-    box_measurement.inputs["color"].setMaxSize(4)
-    box_measurement.inputs["depth"].setBlocking(False)
-    box_measurement.inputs["depth"].setMaxSize(4)
+    color_output.link(manip.inputImage)
 
-    print("Pipeline created.")
-    pipeline.run()
+    nn = p.create(ParsingNeuralNetwork).build(nn_source=nn_archive, input=manip.out)
+
+    if platform == dai.Platform.RVC2:
+        nn.setNNArchive(nn_archive, numShaves=7)
+
+    nn.getParser().setConfidenceThreshold(0.7)
+    nn.getParser().setIouThreshold(0.5)
+    nn.getParser().setMaskConfidence(0.5)
+
+    box_processing = p.create(BoxProcessingNode)
+    box_processing.intrinsics = read_intrinsics(device, NN_WIDTH, NN_HEIGHT)
+
+    rgbd.pcl.link(box_processing.inputPCL)
+    nn.passthrough.link(box_processing.inputRGB)
+    nn.out.link(box_processing.inputDet)
+
+    outputToVisualize = color.requestOutput(
+        (640, 400),
+        type=dai.ImgFrame.Type.NV12,
+        fps=args.fps_limit,
+    )
+
+    visualizer.addTopic("Video Stream", outputToVisualize, "images")
+    visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
+    visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
+    visualizer.addTopic("Pointcloud", rgbd.pcl, "point_clouds")
+
+    p.start()
+    visualizer.registerPipeline(p)
+
+    while p.isRunning():
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key from the remote connection!")
+            break

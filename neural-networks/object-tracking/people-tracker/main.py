@@ -7,8 +7,6 @@ from utils.arguments import initialize_argparser
 from utils.people_counter import PeopleCounter
 from utils.tracklet_visualizer import TrackletVisualizer
 
-DET_MODEL = "luxonis/scrfd-person-detection:25g-640x640"
-
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -30,8 +28,10 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"scrfd_person_detection_25g.{platform}.yaml"
+    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
     # media/camera input
     if args.media_path:
@@ -52,7 +52,10 @@ with dai.Pipeline(device) as pipeline:
 
     tracker = pipeline.create(dai.node.ObjectTracker)
     tracker.setDetectionLabelsToTrack([0])
-    tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    if platform == "RVC2":
+        tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    else:
+        tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
     tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
     tracker.setTrackerThreshold(0.4)
     nn.passthrough.link(tracker.inputTrackerFrame)

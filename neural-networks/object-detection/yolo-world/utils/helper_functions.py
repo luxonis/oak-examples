@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer
+from tokenizers import Tokenizer
 import os
 import requests
 import onnxruntime
@@ -9,10 +9,19 @@ QUANT_SCALE = 0.003925696481
 
 
 def extract_text_embeddings(class_names, max_num_classes=80):
-    tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-    text = tokenizer(text=class_names, return_tensors="pt", padding=True)
-    text_onnx = text["input_ids"].detach().cpu().numpy().astype(np.int64)
-    attention_mask = (text_onnx != 0).astype(np.int64)
+    tokenizer_json_path = download_tokenizer(
+        url="https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/tokenizer.json",
+        save_path="tokenizer.json",
+    )
+
+    tokenizer = Tokenizer.from_file(tokenizer_json_path)
+    tokenizer.enable_padding(
+        pad_id=tokenizer.token_to_id("<|endoftext|>"), pad_token="<|endoftext|>"
+    )
+    encodings = tokenizer.encode_batch(class_names)
+
+    text_onnx = np.array([e.ids for e in encodings], dtype=np.int64)
+    attention_mask = np.array([e.attention_mask for e in encodings], dtype=np.int64)
 
     textual_onnx_model_path = download_model(
         "https://huggingface.co/jmzzomg/clip-vit-base-patch32-text-onnx/resolve/main/model.onnx",
@@ -45,6 +54,14 @@ def extract_text_embeddings(class_names, max_num_classes=80):
     del session_textual
 
     return text_features
+
+
+def download_tokenizer(url, save_path):
+    if not os.path.exists(save_path):
+        print(f"Downloading tokenizer config from {url}...")
+        with open(save_path, "wb") as f:
+            f.write(requests.get(url).content)
+    return save_path
 
 
 def download_model(url, save_path):

@@ -12,8 +12,6 @@ from depthai_nodes.node.utils import generate_script_content
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 
-DET_MODEL = "luxonis/wildlife-megadetector:mdv6-yolov10-c"
-POSE_MODEL = "luxonis/superanimal-landmarker:256x256"
 PADDING = 0.1
 VALID_LABELS = [0]
 
@@ -38,16 +36,16 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"wildlife_megadetector.{platform}.yaml"
     )
+    det_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # pose estimation model
-    pose_model_description = dai.NNModelDescription(POSE_MODEL, platform=platform)
-    pose_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(pose_model_description, useCached=False)
+    pose_model_description = dai.NNModelDescription.fromYamlFile(
+        f"superanimal_landmarker.{platform}.yaml"
     )
+    pose_nn_archive = dai.NNArchive(dai.getModelFromZoo(pose_model_description))
     pose_model_w, pose_model_h = pose_nn_archive.getInputSize()
 
     # media/camera input

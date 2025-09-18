@@ -1,5 +1,6 @@
 import depthai as dai
 import numpy as np
+from typing import Tuple
 from scipy import special as scipy_special
 from tqdm import tqdm
 from whisper.decoding import get_tokenizer
@@ -23,7 +24,7 @@ class WhisperDecoder(dai.node.ThreadedHostNode):
         self.sample_len = sample_len
         self.decoded_tokens = [Config.TOKENS["TOKEN_SOT"]]
 
-    def apply_timestamp_rules(self, logits: np.ndarray) -> tuple[np.ndarray, float]:
+    def apply_timestamp_rules(self, logits: np.ndarray) -> Tuple[np.ndarray, float]:
         """Apply timestamp-related post-processing rules to logits."""
 
         # Require producing timestamp

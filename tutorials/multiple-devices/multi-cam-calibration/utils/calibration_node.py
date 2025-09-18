@@ -2,7 +2,7 @@ import depthai as dai
 import cv2
 import os
 import time
-from .img_annotation_helper import AnnotationHelper
+from depthai_nodes.utils import AnnotationHelper
 from typing import Optional, Tuple
 import numpy as np
 from types import SimpleNamespace
@@ -18,6 +18,7 @@ class CalibrationNode(dai.node.HostNode):
     def __init__(self):
         super().__init__()
         self.calib = False
+        self.processing = False
 
         # Checkerboard properties
         self.checkerboard_size = config.checkerboard_size
@@ -103,8 +104,7 @@ class CalibrationNode(dai.node.HostNode):
             frame_gray,
             self.checkerboard_inner_size,
             cv2.CALIB_CB_ADAPTIVE_THRESH  # Use adaptive thresholding
-            + cv2.CALIB_CB_FAST_CHECK  # Speed up by rejecting images without corners
-            + cv2.CALIB_CB_NORMALIZE_IMAGE,  # Normalize image brightness
+            + cv2.CALIB_CB_FAST_CHECK,  # Speed up by rejecting images without corners
         )
 
         if not found:
@@ -183,60 +183,60 @@ class CalibrationNode(dai.node.HostNode):
         Triggers a still capture, retrieves the image, and performs pose estimation.
         Returns True if calibration was successful, False otherwise.
         """
-        if not self.calib:
-            print(f"[{self.mxid}] INFO: Calibration not active for this node.")
+        if not self.calib or self.processing:
+            if self.processing:
+                print(f"[{self.mxid}] INFO: Already processing a calibration request.")
+            else:
+                print(f"[{self.mxid}] INFO: Calibration not active for this node.")
             return False
+
         if not self.control_q or not self.still_q:
             print(
                 f"[{self.mxid}] ERROR: Still capture queues not configured for CalibrationNode."
             )
             return False
 
-        print(f"[{self.mxid}] CalibrationNode: Sending capture still command...")
-        ctrl = dai.CameraControl()
-        ctrl.setCaptureStill(True)
-        self.control_q.send(ctrl)
-
-        print(f"[{self.mxid}] CalibrationNode: Waiting for still image...")
-        start_time_capture = time.monotonic()
-        timeout_sec_capture = 5.0
-        in_still_msg: Optional[dai.ImgFrame] = None
-
-        while self.still_q.tryGet() is not None:
-            pass
-
-        while time.monotonic() - start_time_capture < timeout_sec_capture:
-            in_still_msg = self.still_q.tryGet()
-            if in_still_msg is not None:
-                break
-            time.sleep(0.05)
-
-        if not in_still_msg:
-            print(
-                f"[{self.mxid}] WARNING: CalibrationNode - Timeout receiving still image."
-            )
-            return False
-
+        self.processing = True
         try:
-            raw_cv_frame = in_still_msg.getCvFrame()
-            frame_type = in_still_msg.getType()
-            frame_height_meta = in_still_msg.getHeight()
-            frame_width_meta = in_still_msg.getWidth()
-            data_shape = raw_cv_frame.shape
+            print(f"[{self.mxid}] CalibrationNode: Sending capture still command...")
+            ctrl = dai.CameraControl()
+            ctrl.setCaptureStill(True)
+            self.control_q.send(ctrl)
 
+            print(f"[{self.mxid}] CalibrationNode: Waiting for still image...")
+            start_time_capture = time.monotonic()
+            timeout_sec_capture = 5.0
+            in_still_msg: Optional[dai.ImgFrame] = None
+
+            while self.still_q.tryGet() is not None:
+                pass
+
+            while time.monotonic() - start_time_capture < timeout_sec_capture:
+                in_still_msg = self.still_q.tryGet()
+                if in_still_msg is not None:
+                    break
+                time.sleep(0.05)
+
+            if not in_still_msg:
+                print(
+                    f"[{self.mxid}] WARNING: CalibrationNode - Timeout receiving still image."
+                )
+                return False
+
+            raw_cv_frame = in_still_msg.getCvFrame()
             print(
-                f"[{self.mxid}] CalibrationNode: ImgFrame received (type: {frame_type}, "
-                + f"reported size: {frame_width_meta}x{frame_height_meta}, data_shape: {data_shape})."
+                f"[{self.mxid}] CalibrationNode: ImgFrame received (type: {in_still_msg.getType()}, size: {in_still_msg.getWidth()}x{in_still_msg.getHeight()})."
             )
 
-            still_frame_bgr = raw_cv_frame
-            return self._estimate_pose_from_image(still_frame_bgr)
+            return self._estimate_pose_from_image(raw_cv_frame)
 
         except Exception as e:
             print(
                 f"[{self.mxid}] ERROR processing raw still image in CalibrationNode: {e}"
             )
             return False
+        finally:
+            self.processing = False
 
     def process(self, frame_message: dai.ImgFrame) -> None:
         annotations_builder = AnnotationHelper()
@@ -253,13 +253,22 @@ class CalibrationNode(dai.node.HostNode):
         )
 
         if self.calib:
-            annotations_builder.draw_text(
-                text="Press 'c' on visualizer to CAPTURE & CALIBRATE",
-                position=(0.02, 0.08),
-                color=(0, 0, 0, 1),
-                background_color=(1, 1, 1, 0.7),
-                size=10,
-            )
+            if self.processing:
+                annotations_builder.draw_text(
+                    text="Processing... Please wait.",
+                    position=(0.02, 0.08),
+                    color=(0, 0, 0, 1),
+                    background_color=(1, 0.5, 0, 0.7),
+                    size=10,
+                )
+            else:
+                annotations_builder.draw_text(
+                    text="Press 'c' on visualizer to CAPTURE & CALIBRATE",
+                    position=(0.02, 0.08),
+                    color=(0, 0, 0, 1),
+                    background_color=(1, 1, 1, 0.7),
+                    size=10,
+                )
 
         if (
             self.calib
@@ -287,18 +296,15 @@ class CalibrationNode(dai.node.HostNode):
                 self.distortion_coef,
             )
 
-            # Use self.still_width and self.still_height stored during build()
             scale_x = self.preview_width / self.still_width
             scale_y = self.preview_height / self.still_height
 
-            scaled_projected_points_for_preview = []
-            for pt_hr in img_points_axes_high_res.reshape(-1, 2):
-                scaled_projected_points_for_preview.append(
-                    [pt_hr[0] * scale_x, pt_hr[1] * scale_y]
-                )
+            scaled_projected_points_for_preview = [
+                [pt[0] * scale_x, pt[1] * scale_y]
+                for pt in img_points_axes_high_res.reshape(-1, 2)
+            ]
 
-            scaled_points_arr = np.array(scaled_projected_points_for_preview)
-            p_origin, p_x, p_y, p_z = scaled_points_arr
+            p_origin, p_x, p_y, p_z = np.array(scaled_projected_points_for_preview)
 
             def to_norm_coords(px_pt: np.ndarray) -> Tuple[float, float]:
                 norm_x = (

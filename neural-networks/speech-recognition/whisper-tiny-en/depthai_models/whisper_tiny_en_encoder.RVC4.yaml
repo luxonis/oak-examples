@@ -1,0 +1,2 @@
+model: whisper-tiny-en:encoder:1.0.0
+platform: RVC4

@@ -7,8 +7,6 @@ from depthai_nodes.node.utils import generate_script_content
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 
-DET_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
-POS_MODEL = "luxonis/objectron:chair-224x224"
 PADDING = 0.2
 VALID_LABELS = [56]  # chair
 
@@ -33,16 +31,15 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
     )
 
     # position estimation model
-    pos_model_description = dai.NNModelDescription(POS_MODEL, platform=platform)
-    pos_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(pos_model_description, useCached=False)
+    pos_model_description = dai.NNModelDescription.fromYamlFile(
+        f"objectron_chair.{platform}.yaml"
     )
+    pos_nn_archive = dai.NNArchive(dai.getModelFromZoo(pos_model_description))
     pos_model_w, pos_model_h = pos_nn_archive.getInputSize()
 
     # media/camera input
@@ -56,7 +53,7 @@ with dai.Pipeline(device) as pipeline:
     input_node = replay if args.media_path else cam
 
     det_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        input_node, det_nn_archive, args.fps_limit
+        input_node, det_model_description, args.fps_limit
     )
 
     # detection processing

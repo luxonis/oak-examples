@@ -1,13 +1,17 @@
-identifier = "com.luxonis.object-tracking.kalman-filter"
+identifier = "com.example.object-tracking.kalman-filter"
 app_version = "1.0.0"
 
 prepare_container = [
     { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3 python3-pip libglib2.0-0 libgl1-mesa-glx wget" },
+    { type = "RUN", command = "apt-get install -y python3-pip" },
+    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
+    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
 ]
 
 prepare_build_container = []
 
-build_steps = ["pip3 install -r /app/requirements.txt --break-system-packages"]
+build_steps = []
+
+depthai_models = { yaml_path = "./depthai_models" }
 
 entrypoint = ["bash", "-c", "python3 -u /app/main.py"]

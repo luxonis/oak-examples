@@ -4,7 +4,7 @@ This section contains examples demonstrating various camera control features and
 
 ## Platform Compatibility
 
-| Name                                            | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | Gen2                                                                                                   | Notes                                                                                        |
+| Name                                            | RVC2 | RVC4 (peripheral) | RVC4 (standalone) | DepthAIv2                                                                                              | Notes                                                                                        |
 | ----------------------------------------------- | ---- | ----------------- | ----------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | [manual-camera-control](manual-camera-control/) | ✅   | ✅                | ✅                | [gen2-color-isp-raw](https://github.com/luxonis/oak-examples/tree/master/gen2-color-isp-raw)           | Examples of manual camera control features including exposure, focus, white balance, and ISO |
 | [depth-driven-focus](depth-driven-focus/)       | ✅   | ✅                | ✅                | [gen2-depth-driven-focus](https://github.com/luxonis/oak-examples/tree/master/gen2-depth-driven-focus) | Demonstration of autofocus system driven by depth information                                |

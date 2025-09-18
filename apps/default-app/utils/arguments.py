@@ -17,15 +17,6 @@ def initialize_argparser():
         type=str,
     )
 
-    parser.add_argument(
-        "-api",
-        "--api_key",
-        help="HubAI API key to access private model.",
-        required=False,
-        default="",
-        type=str,
-    )
-
     args = parser.parse_args()
 
     return parser, args

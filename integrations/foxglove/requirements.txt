@@ -1,5 +1,4 @@
-depthai==3.0.0rc2
-depthai-nodes==0.3.0
+depthai==3.0.0
 opencv-python-headless~=4.10.0
 foxglove-websocket==0.1.2
 numpy>=1.22

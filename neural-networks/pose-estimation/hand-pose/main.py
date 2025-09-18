@@ -9,8 +9,6 @@ from utils.process import ProcessDetections
 
 _, args = initialize_argparser()
 
-DET_MODEL: str = "luxonis/mediapipe-palm-detection:192x192"
-POSE_MODEL: str = "luxonis/mediapipe-hand-landmarker:224x224"
 PADDING = 0.1
 CONFIDENCE_THRESHOLD = 0.5
 
@@ -24,7 +22,7 @@ frame_type = (
 )
 
 if not args.fps_limit:
-    args.fps_limit = 5 if platform == "RVC2" else 30
+    args.fps_limit = 8 if platform == "RVC2" else 30
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
@@ -33,13 +31,15 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL)
-    det_model_description.platform = platform
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"mediapipe_palm_detection.{platform}.yaml"
+    )
     det_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # pose estimation model
-    pose_model_description = dai.NNModelDescription(POSE_MODEL)
-    pose_model_description.platform = platform
+    pose_model_description = dai.NNModelDescription.fromYamlFile(
+        f"mediapipe_hand_landmarker.{platform}.yaml"
+    )
     pose_nn_archive = dai.NNArchive(dai.getModelFromZoo(pose_model_description))
 
     # media/camera input

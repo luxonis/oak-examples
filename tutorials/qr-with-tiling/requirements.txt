@@ -1,4 +1,4 @@
-depthai==3.0.0rc2
-depthai-nodes==0.3.0
+depthai==3.0.0
+depthai-nodes==0.3.4
 numpy>=1.22
 pyzbar==0.1.9
