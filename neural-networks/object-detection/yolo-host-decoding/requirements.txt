@@ -1,2 +1,2 @@
-depthai==3.0.0rc2
+depthai==3.0.0
 numpy>=1.22

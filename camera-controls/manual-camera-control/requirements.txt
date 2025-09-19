@@ -1,2 +1,2 @@
-depthai==3.0.0rc2
+depthai==3.0.0
 opencv-python-headless~=4.10.0

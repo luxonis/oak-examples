@@ -1,5 +1,5 @@
 /
-depthai==3.0.0rc2
+depthai==3.0.0
 modelconv==0.3.3
 numpy==1.23.0
 onnx==1.17.0

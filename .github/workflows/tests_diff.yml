@@ -133,21 +133,9 @@ jobs:
         if: steps.detect.outputs.example_dirs == ''
         run: echo "✅ No runnable examples detected in this PR."
 
-  update-hil:
-    runs-on: ["self-hosted", "testbed-runner"]
-    needs: [setup, detect-changes]
-    if: needs.detect-changes.outputs.example_dirs != ''
-    steps:
-      - name: Update HIL
-        run: |
-          cd /home/$USER/hil_framework
-          git pull https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/luxonis/hil_lab/hil_framework.git
-          git fetch
-          git checkout main
-
   test_peripheral:
     runs-on: ["self-hosted", "testbed-runner"]
-    needs: [setup, update-hil, detect-changes]
+    needs: [setup, detect-changes]
     if: needs.detect-changes.outputs.example_dirs != '' &&
       ((inputs.subtests || 'all') == 'all' || (inputs.subtests || 'all') == 'peripheral')
     strategy:
@@ -161,11 +149,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Add HIL Tools to Path
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
         run: |
-          echo "/home/$USER/hil_framework/lib_testbed/tools" >> $GITHUB_PATH
-          echo "PYTHONPATH="$PYTHONPATH:/home/$USER/hil_framework"" >> $GITHUB_ENV
-          echo "HIL_FRAMEWORK_PATH="/home/$USER/hil_framework"" >> $GITHUB_ENV
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Set model variable
         run: |
@@ -189,25 +181,29 @@ jobs:
 
           RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
 
-          exec hil --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
+          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
               --dockerfile ./tests/Dockerfile_peripheral \
               --docker-build-args "--build-arg PYTHON_VERSION=${{ matrix.python-version }}" \
               --docker-run-args "$ENV_VARS"
 
   test_standalone:
     runs-on: ["self-hosted", "testbed-runner"]
-    needs: [setup, update-hil, detect-changes]
+    needs: [setup, detect-changes]
     if: needs.detect-changes.outputs.example_dirs != '' &&
       ((inputs.subtests || 'all') == 'all' || (inputs.subtests || 'all') == 'standalone')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Add HIL Tools to Path
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
         run: |
-          echo "/home/$USER/hil_framework/lib_testbed/tools" >> $GITHUB_PATH
-          echo "PYTHONPATH="$PYTHONPATH:/home/$USER/hil_framework"" >> $GITHUB_ENV
-          echo "HIL_FRAMEWORK_PATH="/home/$USER/hil_framework"" >> $GITHUB_ENV
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
         run: |
@@ -225,7 +221,7 @@ jobs:
 
           RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
 
-          exec hil --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --oakctl --sync-workspace \
+          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --oakctl --sync-workspace \
               --dockerfile ./tests/Dockerfile_standalone \
               --docker-build-args "--build-arg PYTHON_VERSION=3.12" \
               --docker-run-args "$ENV_VARS"
