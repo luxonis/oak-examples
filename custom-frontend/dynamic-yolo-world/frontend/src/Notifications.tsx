@@ -32,8 +32,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const id = idRef.current++;
         const durationMs = options?.durationMs ?? 4500;
         const type = options?.type ?? "info";
-        setItems((prev) => [...prev, { id, message, type, durationMs }]);
-        window.setTimeout(() => remove(id), durationMs);
+        setItems((prev) => [...prev, { id, message, type, durationMs }].slice(-5));
+        if (durationMs > 0) {
+            window.setTimeout(() => remove(id), durationMs);
+        }
     }, [remove]);
 
     const value = useMemo(() => ({ notify }), [notify]);
@@ -41,7 +43,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return (
         <NotificationContext.Provider value={value}>
             {children}
-            <div className={css({ position: "fixed", bottom: "4", right: "4", display: "flex", flexDirection: "column", gap: "2", zIndex: 50, pointerEvents: "none" })}>
+            <div className={css({ position: "fixed", bottom: "4", right: "4", display: "flex", flexDirection: "column", gap: "2", zIndex: 1000, pointerEvents: "auto", width: "md", alignItems: "flex-end" })}>
                 {items.map((n, idx) => (
                     <Toast key={n.id} notification={n} onClose={() => remove(n.id)} index={idx} />
                 ))}
@@ -69,16 +71,16 @@ function Toast({ notification, onClose, index }: { notification: Notification; o
             borderRadius: "lg",
             paddingX: "4",
             paddingY: "3",
-            minWidth: "xs",
-            maxWidth: "md",
+            width: "60%",
             boxShadow: "xl",
             pointerEvents: "auto",
-            opacity: 0,
             transform: "translateY(8px)",
-            animation: "fadeInUp 200ms ease-out forwards",
+            animation: "slideInUp 180ms ease-out forwards",
             _motionSafe: {
-                animation: "fadeInUp 200ms ease-out forwards",
+                animation: "slideInUp 180ms ease-out forwards",
             },
+            wordBreak: "break-word",
+            boxSizing: "border-box",
         })}
             style={{ animationDelay: `${index * 30}ms` }}
         >
@@ -92,13 +94,13 @@ function Toast({ notification, onClose, index }: { notification: Notification; o
     );
 }
 
-// Keyframes for smooth appear/disappear
+// Keyframes for smooth appear (no opacity change to keep background fully opaque)
 const styleEl = (typeof document !== 'undefined') ? document.createElement('style') : null;
 if (styleEl && !document.getElementById('notif-keyframes')) {
     styleEl.id = 'notif-keyframes';
     styleEl.innerHTML = `
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeOutDown { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(8px); } }
+@keyframes slideInUp { from { transform: translateY(8px); } to { transform: translateY(0); } }
+@keyframes slideOutDown { from { transform: translateY(0); } to { transform: translateY(8px); } }
 `;
     document.head.appendChild(styleEl);
 }

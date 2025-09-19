@@ -140,7 +140,10 @@ function App() {
             content: { x: contentX, y: contentY, width: contentW, height: contentH },
             scales: { scaleX, scaleY }
         });
-        notify(`Sending box ${Math.round(wNorm * 100)}% × ${Math.round(hNorm * 100)}% at (${Math.round(xNorm*100)}%, ${Math.round(yNorm*100)}%)…`, { type: 'info' });
+        notify(
+            `Sending box [${xNorm.toFixed(2)}, ${yNorm.toFixed(2)}, ${wNorm.toFixed(2)}, ${hNorm.toFixed(2)}]`,
+            { type: 'info' }
+        );
         // @ts-ignore - Custom service
         (connection as any).daiConnection?.postToService(
             "BBox Prompt Service",
@@ -170,7 +173,6 @@ function App() {
         setIsDrawing(true);
         setCurrentRect(null);
         setDragStart(null);
-        notify('Drawing mode enabled. Drag on the stream to draw a box.', { type: 'info' });
     }, []);
 
     useEffect(() => {
