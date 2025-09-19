@@ -42,11 +42,11 @@ def initialize_argparser():
     parser.add_argument(
         "-m",
         "--model",
-        help="Name of the model to use: yolo-world, yoloe or yoloe-image",
+        help="Name of the model to use: yolo-world or yoloe",
         required=False,
-        default="yoloe-image",
+        default="yoloe",
         type=str,
-        choices=["yolo-world", "yoloe", "yoloe-image"],
+        choices=["yolo-world", "yoloe"],
     )
     parser.add_argument(
         "--precision",
