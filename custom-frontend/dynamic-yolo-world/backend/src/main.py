@@ -13,6 +13,7 @@ from utils.helper_functions import (
     extract_text_embeddings,
     extract_image_prompt_embeddings,
     base64_to_cv2_image,
+    QUANT_VALUES,
 )
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -24,6 +25,8 @@ IP = args.ip or "localhost"
 PORT = args.port or 8080
 
 CLASS_NAMES = ["person", "chair", "TV"]
+# For unified YOLOE, 0-79 are text classes, 80-159 are image-prompt classes
+CLASS_OFFSET = 0
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.1
 VISUALIZATION_RESOLUTION = (1080, 1080)
@@ -36,22 +39,24 @@ if platform != "RVC4":
     raise ValueError("This example is supported only on RVC4 platform")
 
 frame_type = dai.ImgFrame.Type.BGR888i
-# choose initial features: text for yolo-world/yoloe, visual for yoloe-image
-if args.model == "yoloe-image":
-    placeholder = np.zeros((224, 224, 3), dtype=np.uint8)
-    text_features = extract_image_prompt_embeddings(
-        placeholder,
-        max_num_classes=MAX_NUM_CLASSES,
-        model_name=args.model,
-        precision=args.precision,
-    )
-    CLASS_NAMES = ["image_prompt"]
-else:
-    text_features = extract_text_embeddings(
-        class_names=CLASS_NAMES,
-        max_num_classes=MAX_NUM_CLASSES,
-        model_name=args.model,
-        precision=args.precision,
+def make_dummy_features(max_num_classes: int, model_name: str, precision: str):
+    if precision == "fp16":
+        return np.zeros((1, 512, max_num_classes), dtype=np.float16)
+    qzp = int(round(QUANT_VALUES.get(model_name, {}).get("quant_zero_point", 0)))
+    return np.full((1, 512, max_num_classes), qzp, dtype=np.uint8)
+
+# choose initial features: text for yolo-world/yoloe
+text_features = extract_text_embeddings(
+    class_names=CLASS_NAMES,
+    max_num_classes=MAX_NUM_CLASSES,
+    model_name=args.model if args.model != "yolo-world" else "yolo-world",
+    precision=args.precision,
+)
+image_prompt_features = None
+if args.model == "yoloe":
+    # send dummy image-prompts initially
+    image_prompt_features = make_dummy_features(
+        MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
     )
 
 if args.fps_limit is None:
@@ -64,23 +69,27 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # Model selection with precision-aware YAMLs for YOLOE variants
+    models_dir = Path(__file__).parent / "depthai_models"
     if args.model == "yolo-world":
         yaml_base = "yolo_world_l_fp16" if args.precision == "fp16" else "yolo_world_l"
-        model_description = dai.NNModelDescription.fromYamlFile(
-            f"{yaml_base}.{platform}.yaml"
-        )
+        yaml_filename = f"{yaml_base}.{platform}.yaml"
+        yaml_path = models_dir / yaml_filename
+        if not yaml_path.exists():
+            raise SystemExit(
+                f"Model YAML not found: {yaml_path}. Ensure the model config exists."
+            )
+        model_description = dai.NNModelDescription.fromYamlFile(str(yaml_path))
     elif args.model == "yoloe":
         yaml_base = "yoloe_v8_l_fp16" if args.precision == "fp16" else "yoloe_v8_l"
-        model_description = dai.NNModelDescription.fromYamlFile(
-            f"{yaml_base}.{platform}.yaml"
-        )
-    elif args.model == "yoloe-image":
-        yaml_base = (
-            "yoloe_v8_l_image_fp16" if args.precision == "fp16" else "yoloe_v8_l_image"
-        )
-        model_description = dai.NNModelDescription.fromYamlFile(
-            f"{yaml_base}.{platform}.yaml"
-        )
+        yaml_filename = f"{yaml_base}.{platform}.yaml"
+        yaml_path = models_dir / yaml_filename
+        print(f"YOLOE YAML path: {yaml_path}")
+        if not yaml_path.exists():
+            raise SystemExit(
+                f"Model YAML not found for YOLOE with precision {args.precision}: {yaml_path}. "
+                f"YOLOE int8 YAML is not available; run with --precision fp16."
+            )
+        model_description = dai.NNModelDescription.fromYamlFile(str(yaml_path))
     model_description.platform = platform
     model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     model_w, model_h = model_nn_archive.getInputSize()
@@ -133,21 +142,30 @@ with dai.Pipeline(device) as pipeline:
 
     textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
+    if args.model == "yoloe":
+        imagePromptInputQueue = nn_with_parser.inputs["image_prompts"].createInputQueue()
+        nn_with_parser.inputs["image_prompts"].setReusePreviousMessage(True)
 
     # filter and rename detection labels
     det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.setLabels(labels=[i for i in range(len(CLASS_NAMES))], keep=True)
     annotation_node = pipeline.create(AnnotationNode).build(
         det_process_filter.out,
         video_src_out,
-        label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
+
+    def update_labels(label_names: list[str], offset: int = 0):
+        det_process_filter.setLabels(
+            labels=[i for i in range(offset, offset + len(label_names))], keep=True
+        )
+        annotation_node.setLabelEncoding(
+            {offset + k: v for k, v in enumerate(label_names)}
+        )
     # Cache last frame for services that need full frame content
     frame_cache = pipeline.create(FrameCacheNode).build(video_src_out)
 
     if args.model == "yolo-world":
         visualizer.addTopic("Video", video_enc.out, "images")
-    elif args.model in ("yoloe", "yoloe-image"):
+    elif args.model == "yoloe":
         apply_colormap_node = pipeline.create(ApplyColormap).build(nn_with_parser.out)
         overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
             video_src_out,
@@ -173,11 +191,6 @@ with dai.Pipeline(device) as pipeline:
 
     def class_update_service(new_classes: list[str]):
         """Changes classes to detect based on the user input"""
-        if args.model == "yoloe-image":
-            print(
-                "Class update is disabled in yoloe-image mode. Upload a new image prompt instead."
-            )
-            return
         if len(new_classes) == 0:
             print("List of new classes empty, skipping.")
             return
@@ -187,7 +200,6 @@ with dai.Pipeline(device) as pipeline:
             )
             return
         CLASS_NAMES = new_classes
-
         text_features = extract_text_embeddings(
             class_names=CLASS_NAMES,
             max_num_classes=MAX_NUM_CLASSES,
@@ -205,11 +217,22 @@ with dai.Pipeline(device) as pipeline:
             ),
         )
         textInputQueue.send(inputNNData)
+        # In unified YOLOE, ensure image_prompts are dummy when text prompts are active
+        if args.model == "yoloe":
+            dummy = make_dummy_features(MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision)
+            inputNNDataImg = dai.NNData()
+            inputNNDataImg.addTensor(
+                "image_prompts",
+                dummy,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            imagePromptInputQueue.send(inputNNDataImg)
 
-        det_process_filter.setLabels(
-            labels=[i for i in range(len(CLASS_NAMES))], keep=True
-        )
-        annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
+        update_labels(CLASS_NAMES, offset=0)
         print(f"Classes set to: {CLASS_NAMES}")
 
     def conf_threshold_update_service(new_conf_threshold: float):
@@ -220,36 +243,66 @@ with dai.Pipeline(device) as pipeline:
 
     def image_upload_service(image_data):
         image = base64_to_cv2_image(image_data["data"])
-        image_features = extract_image_prompt_embeddings(
-            image, model_name=args.model, precision=args.precision
-        )
-        print("Image features extracted, sending to model...")
-        inputNNData = dai.NNData()
-        inputNNData.addTensor(
-            "texts",
-            image_features,
-            dataType=(
-                dai.TensorInfo.DataType.FP16
-                if args.precision == "fp16"
-                else dai.TensorInfo.DataType.U8F
-            ),
-        )
-        textInputQueue.send(inputNNData)
+        if args.model == "yolo-world":
+            image_features = extract_image_prompt_embeddings(
+                image, model_name=args.model, precision=args.precision
+            )
+            print("Image features extracted, sending to model as texts...")
+            inputNNData = dai.NNData()
+            inputNNData.addTensor(
+                "texts",
+                image_features,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            textInputQueue.send(inputNNData)
+            filename = image_data["filename"]
+            CLASS_NAMES = [filename.split(".")[0]]
+            update_labels(CLASS_NAMES, offset=0)
+            print(f"Classes set to: {CLASS_NAMES}")
+        else:  # yoloe unified with image_prompts input
+            image_features = extract_image_prompt_embeddings(
+                image, model_name="yoloe", precision=args.precision
+            )
+            print("Image features extracted, sending to model as image_prompts...")
+            inputNNDataImg = dai.NNData()
+            inputNNDataImg.addTensor(
+                "image_prompts",
+                image_features,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            imagePromptInputQueue.send(inputNNDataImg)
+            # Send dummy texts so only image prompts are considered
+            dummy = make_dummy_features(MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision)
+            inputNNDataTxt = dai.NNData()
+            inputNNDataTxt.addTensor(
+                "texts",
+                dummy,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            textInputQueue.send(inputNNDataTxt)
 
-        filename = image_data["filename"]
-        CLASS_NAMES = [filename.split(".")[0]]
-
-        det_process_filter.setLabels(
-            labels=[i for i in range(len(CLASS_NAMES))], keep=True
-        )
-        annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
-        print(f"Classes set to: {CLASS_NAMES}")
+            filename = image_data["filename"]
+            CLASS_NAMES = [filename.split(".")[0]]
+            update_labels(CLASS_NAMES, offset=80)
+            print(f"Classes set to (image prompts, offset 80): {CLASS_NAMES}")
 
     def bbox_prompt_service(payload):
         """
         Accepts a full-frame PNG (base64) plus a normalized bbox {x,y,width,height} in viewport space.
         - For yolo-world: crops the bbox region and extracts image prompt features from the crop.
-        - For yoloe-image: builds a binary mask from the bbox over the full frame and extracts features with mask_prompt.
+        - For yoloe: builds a binary mask from the bbox over the full frame and extracts features with mask_prompt.
         """
         print("[BBox] Service payload keys:", list(payload.keys()))
         # Try FE-provided image first, else fall back to cached live frame
@@ -306,13 +359,13 @@ with dai.Pipeline(device) as pipeline:
             image_features = extract_image_prompt_embeddings(
                 crop, model_name=args.model, precision=args.precision
             )
-        elif args.model == "yoloe-image":
+        elif args.model == "yoloe":
             mask = np.zeros((H, W), dtype=np.float32)
             mask[y0:y1, x0:x1] = 1.0
-            print(f"[BBox] YOLOE-Image mask sum: {float(mask.sum())}")
+            print(f"[BBox] YOLOE mask sum: {float(mask.sum())}")
             image_features = extract_image_prompt_embeddings(
                 image,
-                model_name=args.model,
+                model_name="yoloe",
                 mask_prompt=mask,
                 precision=args.precision,
             )
@@ -320,34 +373,58 @@ with dai.Pipeline(device) as pipeline:
             print(f"Unsupported model for bbox prompt: {args.model}")
             return {"ok": False, "reason": "unsupported_model"}
 
-        inputNNData = dai.NNData()
-        inputNNData.addTensor(
-            "texts",
-            image_features,
-            dataType=(
-                dai.TensorInfo.DataType.FP16
-                if args.precision == "fp16"
-                else dai.TensorInfo.DataType.U8F
-            ),
-        )
-        textInputQueue.send(inputNNData)
-
-        label = payload.get("label", "object")
-        CLASS_NAMES = [label]
-        det_process_filter.setLabels(
-            labels=[i for i in range(len(CLASS_NAMES))], keep=True
-        )
-        annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
-        print(f"BBox prompt applied. Classes set to: {CLASS_NAMES}")
+        if args.model == "yolo-world":
+            inputNNData = dai.NNData()
+            inputNNData.addTensor(
+                "texts",
+                image_features,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            textInputQueue.send(inputNNData)
+            label = payload.get("label", "object")
+            CLASS_NAMES = [label]
+            update_labels(CLASS_NAMES, offset=0)
+            print(f"BBox prompt applied (yolo-world). Classes set to: {CLASS_NAMES}")
+        else:  # yoloe unified
+            inputNNDataImg = dai.NNData()
+            inputNNDataImg.addTensor(
+                "image_prompts",
+                image_features,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            imagePromptInputQueue.send(inputNNDataImg)
+            # Send dummy texts so only image prompts are considered
+            dummy = make_dummy_features(MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision)
+            inputNNDataTxt = dai.NNData()
+            inputNNDataTxt.addTensor(
+                "texts",
+                dummy,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            textInputQueue.send(inputNNDataTxt)
+            label = payload.get("label", "object")
+            CLASS_NAMES = [label]
+            update_labels(CLASS_NAMES, offset=80)
+            print(f"BBox prompt applied (yoloe). Classes set to: {CLASS_NAMES} at offset 80")
         return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
 
     visualizer.registerService("Class Update Service", class_update_service)
     visualizer.registerService(
         "Threshold Update Service", conf_threshold_update_service
     )
-    if args.model == "yolo-world":
-        visualizer.registerService("Image Upload Service", image_upload_service)
-    elif args.model == "yoloe-image":
+    if args.model in ("yolo-world", "yoloe"):
         visualizer.registerService("Image Upload Service", image_upload_service)
     visualizer.registerService("BBox Prompt Service", bbox_prompt_service)
 
@@ -355,6 +432,8 @@ with dai.Pipeline(device) as pipeline:
 
     pipeline.start()
     visualizer.registerPipeline(pipeline)
+
+    update_labels(CLASS_NAMES, offset=CLASS_OFFSET)
 
     inputNNData = dai.NNData()
     inputNNData.addTensor(
@@ -367,6 +446,18 @@ with dai.Pipeline(device) as pipeline:
         ),
     )
     textInputQueue.send(inputNNData)
+    if args.model == "yoloe":
+        inputNNDataImg = dai.NNData()
+        inputNNDataImg.addTensor(
+            "image_prompts",
+            image_prompt_features,
+            dataType=(
+                dai.TensorInfo.DataType.FP16
+                if args.precision == "fp16"
+                else dai.TensorInfo.DataType.U8F
+            ),
+        )
+        imagePromptInputQueue.send(inputNNDataImg)
 
     print("Press 'q' to stop")
 

@@ -132,7 +132,7 @@ def extract_image_prompt_embeddings(
     precision="int8",
 ):
     # Select model and preprocess accordingly
-    if model_name == "yoloe-image":
+    if model_name == "yoloe":
         image_resized = cv2.resize(image, (640, 640))
         image_array = image_resized.astype(np.float32) / 255.0
         image_array = np.transpose(image_array, (2, 0, 1))
@@ -161,7 +161,7 @@ def extract_image_prompt_embeddings(
         ],
     )
 
-    if model_name == "yoloe-image":
+    if model_name == "yoloe":
         if mask_prompt is None:
             prompts = np.zeros((1, 1, 80, 80), dtype=np.float32)
             prompts[0, 0, 5:75, 5:75] = 1.0
