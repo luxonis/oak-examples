@@ -14,7 +14,7 @@ def populate_pipeline(
 ) -> Tuple[dai.Node.Output, dai.Node.Output]:
     socket = dai.CameraBoardSocket.CAM_B if left else dai.CameraBoardSocket.CAM_C
     cam = p.create(dai.node.Camera).build(socket)
-    fps = 15
+    fps = 30
     cam_output = cam.requestOutput(
         archive.getInputSize(), type=dai.ImgFrame.Type.NV12, fps=fps
     )

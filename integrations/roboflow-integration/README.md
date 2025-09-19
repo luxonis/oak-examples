@@ -27,7 +27,7 @@ Here is a list of all available parameters:
                         private API key copied from app.roboflow.com (default: None)
   --workspace WORKSPACE
                         Name of the workspace in app.roboflow.com (default: None)
-  --dataset DATASET     Name of the project in app.roboflow.com (default: None)
+  --dataset DATASET     Project ID in app.roboflow.com (default: None)
   --auto-interval AUTO_INTERVAL
                         Automatically upload annotations every [SECONDS] seconds (default: None)
   --auto-threshold AUTO_THRESHOLD

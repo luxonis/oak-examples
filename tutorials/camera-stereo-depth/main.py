@@ -35,6 +35,7 @@ with dai.Pipeline(device) as pipeline:
         right=right_output,
     )
 
+    stereo.initialConfig.setMedianFilter(dai.MedianFilter.MEDIAN_OFF)
     stereo.setRectification(True)
     stereo.setExtendedDisparity(True)
     stereo.setLeftRightCheck(True)
