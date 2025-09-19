@@ -39,11 +39,14 @@ if platform != "RVC4":
     raise ValueError("This example is supported only on RVC4 platform")
 
 frame_type = dai.ImgFrame.Type.BGR888i
+
+
 def make_dummy_features(max_num_classes: int, model_name: str, precision: str):
     if precision == "fp16":
         return np.zeros((1, 512, max_num_classes), dtype=np.float16)
     qzp = int(round(QUANT_VALUES.get(model_name, {}).get("quant_zero_point", 0)))
     return np.full((1, 512, max_num_classes), qzp, dtype=np.uint8)
+
 
 # choose initial features: text for yolo-world/yoloe
 text_features = extract_text_embeddings(
@@ -143,7 +146,9 @@ with dai.Pipeline(device) as pipeline:
     textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
     if args.model == "yoloe":
-        imagePromptInputQueue = nn_with_parser.inputs["image_prompts"].createInputQueue()
+        imagePromptInputQueue = nn_with_parser.inputs[
+            "image_prompts"
+        ].createInputQueue()
         nn_with_parser.inputs["image_prompts"].setReusePreviousMessage(True)
 
     # filter and rename detection labels
@@ -160,6 +165,7 @@ with dai.Pipeline(device) as pipeline:
         annotation_node.setLabelEncoding(
             {offset + k: v for k, v in enumerate(label_names)}
         )
+
     # Cache last frame for services that need full frame content
     frame_cache = pipeline.create(FrameCacheNode).build(video_src_out)
 
@@ -219,7 +225,9 @@ with dai.Pipeline(device) as pipeline:
         textInputQueue.send(inputNNData)
         # In unified YOLOE, ensure image_prompts are dummy when text prompts are active
         if args.model == "yoloe":
-            dummy = make_dummy_features(MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision)
+            dummy = make_dummy_features(
+                MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+            )
             inputNNDataImg = dai.NNData()
             inputNNDataImg.addTensor(
                 "image_prompts",
@@ -280,7 +288,9 @@ with dai.Pipeline(device) as pipeline:
             )
             imagePromptInputQueue.send(inputNNDataImg)
             # Send dummy texts so only image prompts are considered
-            dummy = make_dummy_features(MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision)
+            dummy = make_dummy_features(
+                MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+            )
             inputNNDataTxt = dai.NNData()
             inputNNDataTxt.addTensor(
                 "texts",
@@ -347,7 +357,9 @@ with dai.Pipeline(device) as pipeline:
 
         x0, x1 = sorted((x0, x1))
         y0, y1 = sorted((y0, y1))
-        print(f"[BBox] Image size: {W}x{H}, bbox(px): x0={x0}, y0={y0}, x1={x1}, y1={y1}")
+        print(
+            f"[BBox] Image size: {W}x{H}, bbox(px): x0={x0}, y0={y0}, x1={x1}, y1={y1}"
+        )
 
         if x1 <= x0 or y1 <= y0:
             print("Invalid bbox, ignoring bbox prompt request.")
@@ -355,7 +367,9 @@ with dai.Pipeline(device) as pipeline:
 
         if args.model == "yolo-world":
             crop = image[y0:y1, x0:x1]
-            print(f"[BBox] YOLO-World crop shape: {crop.shape if crop is not None else None}")
+            print(
+                f"[BBox] YOLO-World crop shape: {crop.shape if crop is not None else None}"
+            )
             image_features = extract_image_prompt_embeddings(
                 crop, model_name=args.model, precision=args.precision
             )
@@ -402,7 +416,9 @@ with dai.Pipeline(device) as pipeline:
             )
             imagePromptInputQueue.send(inputNNDataImg)
             # Send dummy texts so only image prompts are considered
-            dummy = make_dummy_features(MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision)
+            dummy = make_dummy_features(
+                MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+            )
             inputNNDataTxt = dai.NNData()
             inputNNDataTxt.addTensor(
                 "texts",
@@ -417,7 +433,9 @@ with dai.Pipeline(device) as pipeline:
             label = payload.get("label", "object")
             CLASS_NAMES = [label]
             update_labels(CLASS_NAMES, offset=80)
-            print(f"BBox prompt applied (yoloe). Classes set to: {CLASS_NAMES} at offset 80")
+            print(
+                f"BBox prompt applied (yoloe). Classes set to: {CLASS_NAMES} at offset 80"
+            )
         return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
 
     visualizer.registerService("Class Update Service", class_update_service)

@@ -18,4 +18,3 @@ class FrameCacheNode(dai.node.HostNode):
 
     def get_last_frame(self) -> np.ndarray | None:
         return self._last_frame
-
