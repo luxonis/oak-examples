@@ -1,4 +1,4 @@
-identifier = "com.example.custom-frontend.dynamic-yolo-world"
+identifier = "com.example.custom-frontend.open-vocabulary-object-detection"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.0"
 

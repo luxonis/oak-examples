@@ -278,11 +278,11 @@ function App() {
                 gap: 'md'
             })}>
                 <h1 className={css({ fontSize: '2xl', fontWeight: 'bold' })}>
-                    Dynamic YOLO-World/YOLOE Example
+                    Open Vocabulary Object Detection
                 </h1>
                 <p>
-                    This example showcases the integration of the YOLO-World/YOLOE model with a custom static frontend,
-                    enabling dynamic configuration of the object classes you want to detect at runtime.
+                    Run open‑vocabulary detection on‑device (YOLOE or YOLO‑World) with a custom UI.
+                    Define classes via text prompts or image crops, adjust confidence, and visualize results live.
                 </p>
 
                 {/* Class Input */}

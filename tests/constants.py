@@ -24,7 +24,7 @@ KNOWN_FAILING = {
         "reason": "Failed to start the HTTP server on peripheral.",
         "mode": "all",
     },
-    "custom-frontend/dynamic-yolo-world": {
+    "custom-frontend/open-vocabulary-object-detection": {
         "reason": "Not supported for peripheral",
         "mode": ["peripheral"],
     },

@@ -1,4 +1,4 @@
-# Dynamic YOLO World/YOLOE
+# Open Vocabulary Object Detection
 
 This example demonstrates an advanced use of a custom frontend. On the DepthAI backend, it runs either **YOLOE** (default) or **YOLO-World** on-device, with configurable class labels and confidence threshold — both controllable via the frontend.
 The frontend, built using the `@luxonis/depthai-viewer-common` package, displays a real-time video stream with detections. It is combined with the [default oakapp docker image](https://hub.docker.com/r/luxonis/oakapp-base), which enables remote access via WebRTC.
@@ -7,7 +7,7 @@ The frontend, built using the `@luxonis/depthai-viewer-common` package, displays
 
 ## Demo
 
-![dynamic-yolo-world](media/dynamic_yolo_world.gif)
+![open-vocabulary-object-detection](media/dynamic_yolo_world.gif)
 
 ## Usage
 
