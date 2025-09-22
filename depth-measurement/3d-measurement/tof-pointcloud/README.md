@@ -12,7 +12,6 @@ Finally, through an interactive GUI, one can adjust the ToF's underlying filters
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
-
 ## Peripheral Mode
 
 ### Installation
