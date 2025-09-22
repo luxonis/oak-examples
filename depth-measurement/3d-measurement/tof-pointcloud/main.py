@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import threading
 import time
+import warnings
 import open3d as o3d
 
 ## GUI-related imports
@@ -157,15 +158,25 @@ def pointcloud_visualization():
         vis_raw.create_window(
             window_name="RAW Point Cloud", width=800, height=600, left=100, top=100
         )
-        vis_raw.get_render_option().background_color = np.array([0.1, 0.1, 0.1])
-        vis_raw.get_render_option().point_size = 2.0
+        if vis_raw.get_render_option() is not None:
+            vis_raw.get_render_option().background_color = np.array([0.1, 0.1, 0.1])
+            vis_raw.get_render_option().point_size = 2.0
+        else:
+            warnings.warn(
+                "If visualization fails on Linux or in WSL, try running with: export XDG_SESSION_TYPE=x11"
+            )
 
         # Initialize final window
         vis_final.create_window(
             window_name="FINAL Point Cloud", width=800, height=600, left=950, top=100
         )
-        vis_final.get_render_option().background_color = np.array([0.1, 0.1, 0.1])
-        vis_final.get_render_option().point_size = 2.0
+        if vis_final.get_render_option() is not None:
+            vis_final.get_render_option().background_color = np.array([0.1, 0.1, 0.1])
+            vis_final.get_render_option().point_size = 2.0
+        else:
+            warnings.warn(
+                "If visualization fails on Linux or in WSL, try running with: export XDG_SESSION_TYPE=x11"
+            )
 
         # Add initial empty point clouds
         empty_pcd = o3d.geometry.PointCloud()
