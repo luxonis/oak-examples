@@ -7,6 +7,7 @@ Finally, through an interactive GUI, one can adjust the ToF's underlying filters
 **NOTE**: This example requires a ToF camera. You can get one from the official [Luxonis store](https://shop.luxonis.com/products/oak-d-sr-poe).
 
 ## Demo
+![output](https://github.com/user-attachments/assets/ab978162-cb00-4f95-89b1-f7b06c60fe7c)
 
 ## Usage
 
