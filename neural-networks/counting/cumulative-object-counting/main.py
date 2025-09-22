@@ -17,11 +17,8 @@ frame_type = (
     dai.ImgFrame.Type.BGR888p if platform == "RVC2" else dai.ImgFrame.Type.BGR888i
 )
 
-if platform != "RVC2":
-    raise ValueError("This example is only supported for RVC2 platform.")
-
 if args.fps_limit is None:
-    args.fps_limit = 25
+    args.fps_limit = 25  # if platform == "RVC2" else 30
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
@@ -30,10 +27,11 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    det_model_description = dai.NNModelDescription(args.model, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
     )
+    if det_model_description.model != args.model:
+        det_model_description = dai.NNModelDescription(args.model, platform=platform)
 
     # media/camera input
     if args.media_path:
@@ -46,14 +44,18 @@ with dai.Pipeline(device) as pipeline:
     input_node = replay if args.media_path else cam
 
     nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        input_node, det_model_nn_archive, args.fps_limit
+        input_node, det_model_description, args.fps_limit
     )
     nn.setNumInferenceThreads(2)
     nn.input.setBlocking(False)
 
     # object tracking
     objectTracker = pipeline.create(dai.node.ObjectTracker)
-    objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    if platform == "RVC2":
+        objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    else:
+        objectTracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
+
     objectTracker.setTrackerIdAssignmentPolicy(
         dai.TrackerIdAssignmentPolicy.SMALLEST_ID
     )

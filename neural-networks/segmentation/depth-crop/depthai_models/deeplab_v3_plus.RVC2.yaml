@@ -1,0 +1,2 @@
+model: luxonis/deeplab-v3-plus:256x256
+platform: RVC2

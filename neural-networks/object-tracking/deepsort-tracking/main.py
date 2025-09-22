@@ -7,8 +7,6 @@ from depthai_nodes.node.utils import generate_script_content
 from utils.arguments import initialize_argparser
 from utils.deepsort_tracking import DeepsortTracking
 
-DET_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
-EMB_MODEL = "luxonis/osnet:imagenet-128x256"
 REQ_WIDTH, REQ_HEIGHT = (
     1024,
     768,
@@ -35,16 +33,18 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
     )
+    det_model_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
     det_model_w, det_model_h = det_model_archive.getInputSize()
 
     # embeddings model
-    embeddings_model_description = dai.NNModelDescription(EMB_MODEL, platform=platform)
+    embeddings_model_description = dai.NNModelDescription.fromYamlFile(
+        f"osnet_imagenet.{platform}.yaml"
+    )
     embeddings_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(embeddings_model_description, useCached=False)
+        dai.getModelFromZoo(embeddings_model_description)
     )
     embeddings_model_w, embeddings_model_h = embeddings_model_nn_archive.getInputSize()
 

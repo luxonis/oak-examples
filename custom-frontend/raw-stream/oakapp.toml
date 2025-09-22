@@ -1,12 +1,14 @@
-identifier = "com.luxonis.custom-frontend.raw-stream"
+identifier = "com.example.custom-frontend.raw-stream"
 app_version = "0.1.0"
 
 prepare_container = [
     { type = "RUN", command = "apt-get update" },
     { type = "RUN", command = "apt-get install -y python3-pip net-tools" },
+    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
+    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
 ]
 
-build_steps = ["pip3 install -r /app/requirements.txt --break-system-packages"]
+build_steps = []
 
 prepare_build_container = []
 

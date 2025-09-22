@@ -1,0 +1,2 @@
+model: luxonis/head-pose-estimation:60x60
+platform: RVC2

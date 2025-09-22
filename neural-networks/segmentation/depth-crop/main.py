@@ -13,12 +13,6 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 platform = device.getPlatform().name
 print(f"Platform: {platform}")
 
-MODEL = (
-    "luxonis/deeplab-v3-plus:512x288"
-    if platform == "RVC4"
-    else "luxonis/deeplab-v3-plus:256x256"
-)
-
 if not args.fps_limit:
     args.fps_limit = 10 if platform == "RVC2" else 25
     print(
@@ -34,8 +28,10 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # depth estimation model
-    model_description = dai.NNModelDescription(MODEL, platform=platform)
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"deeplab_v3_plus.{platform}.yaml"
+    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
     # camera input
     color = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)

@@ -6,6 +6,12 @@ venv/
 # ignore node_modules, it will be reinstalled in the container
 node_modules/
 
+# Multimedia files
+media/
+
+# Documentation
+README.md
+
 # VCS
 .git/
 .github/

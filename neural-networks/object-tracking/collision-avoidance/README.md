@@ -6,8 +6,6 @@ You can see the visualization of the object's trajectory in the `Direction` topi
 
 > **Note:** This example requires a device with at least 3 cameras (color, left and right) since it utilizes the `StereoDepth` node.
 
-> **Note:** This example currently only works on RVC2 devices becuase dai.ObjectTracker node is not supported on RVC4.
-
 ## Demo
 
 ## Usage
@@ -22,7 +20,7 @@ Here is a list of all available parameters:
 -d DEVICE, --device DEVICE
                     Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                    FPS limit for the model runtime. (default: 20 for RVC2)
+                    FPS limit for the model runtime. (default: 20 for RVC2 and 30 for RVC4)
 ```
 
 ## Peripheral Mode

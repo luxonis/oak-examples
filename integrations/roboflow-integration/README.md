@@ -4,7 +4,7 @@ This example shows how to create a [Roboflow](https://roboflow.com) dataset usin
 
 ## Demo
 
-https://github.com/user-attachments/assets/a07070a8-6267-4348-8342-ddf77c9ddd8b
+Link to the [**video**](https://github.com/user-attachments/assets/a07070a8-6267-4348-8342-ddf77c9ddd8b).
 
 ## Usage
 
@@ -27,7 +27,7 @@ Here is a list of all available parameters:
                         private API key copied from app.roboflow.com (default: None)
   --workspace WORKSPACE
                         Name of the workspace in app.roboflow.com (default: None)
-  --dataset DATASET     Name of the project in app.roboflow.com (default: None)
+  --dataset DATASET     Project ID in app.roboflow.com (default: None)
   --auto-interval AUTO_INTERVAL
                         Automatically upload annotations every [SECONDS] seconds (default: None)
   --auto-threshold AUTO_THRESHOLD

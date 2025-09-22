@@ -16,5 +16,6 @@ repos:
     rev: 0.7.10
     hooks:
       - id: mdformat
+        args: [--number]
         additional_dependencies:
           - mdformat-gfm==0.3.6

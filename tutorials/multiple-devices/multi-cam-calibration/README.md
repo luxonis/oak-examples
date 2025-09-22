@@ -5,17 +5,17 @@ This example demonstrates how to compute extrinsic parameters (pose of the camer
 The core extrinsic calibration uses OpenCV as follows:
 
 1. **Image Capture**: A high-resolution still image featuring a checkerboard is captured.
-1. **Corner Detection**:
+2. **Corner Detection**:
    - [`cv2.findChessboardCorners`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga93efa9b0aa890de240ca32b11253dd4a) is used on the captured image to find initial locations of the inner corners of the visible checkerboard pattern.
    - [`cv2.cornerSubPix`](https://docs.opencv.org/master/dd/d1a/group__imgproc__feature.html#ga354e0d7c86d0d9da75de9b9701a9a87e) then refines these corner locations to sub-pixel accuracy.
-1. **Pose Estimation ([`cv2.solvePnP`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga549c2075fac14829ff4a58bc931c033d))**:
+3. **Pose Estimation ([`cv2.solvePnP`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga549c2075fac14829ff4a58bc931c033d))**:
    - This crucial function calculates the camera's pose. It takes:
      - The refined 2D pixel coordinates of the checkerboard corners found in the image.
      - The corresponding 3D real-world coordinates of these corners (which are known from the checkerboard's physical dimensions: `square_size` and `checkerboard_size`).
      - The camera's pre-existing intrinsic matrix `intrinsic_mat_still`.
      - The distortion coefficients.
    - It outputs the rotation vector (`rvec`) and translation vector (`tvec`), which together define the 3D pose of the checkerboard relative to the camera. These are the extrinsic parameters.
-1. **Saving & Visualization**:
+4. **Saving & Visualization**:
    - The computed pose (`rvec`, `tvec`) is saved.
    - For display, [`cv2.projectPoints`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga1019495a2c8d1743ed5cc23fa0daff8c) is used. It takes the 3D coordinates of the world axes (defined at the checkerboard's origin), the calculated `rvec` and `tvec`, and the camera's high-resolution intrinsic matrix to project these axes onto the 2D image plane. These projected 2D points are then scaled and normalized for drawing on the live preview.
 
@@ -69,13 +69,13 @@ Here is a list of all available parameters:
 1. **Position the Checkerboard**\
    Make sure the checkerboard is clearly visible to the camera you want to calibrate. Good lighting and minimal motion help ensure accurate corner detection.
 
-1. **Configure Checkerboard Settings**\
+2. **Configure Checkerboard Settings**\
    Verify that the checkerboard size and square dimensions are correctly set in the [code](utils/calibration_node.py). This example uses the checkerboard provided in the repository: [pattern.pdf](pattern.pdf).
 
-1. **Start Calibration**\
+3. **Start Calibration**\
    Press the `c` key to calibrate. Progress and errors will be printed in your terminal—use this to confirm success or diagnose failures.
 
-1. **Verify Saved Output**\
+4. **Verify Saved Output**\
    After calibration, the extrinsic parameters are saved to a file in `[your specified directory]/extrinsics_[your device id].npz`
 
 > **Note about visualizer annotations**\

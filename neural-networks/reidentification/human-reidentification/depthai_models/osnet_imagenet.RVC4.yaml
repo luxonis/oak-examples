@@ -1,0 +1,2 @@
+model: luxonis/osnet:imagenet-128x256
+platform: RVC4

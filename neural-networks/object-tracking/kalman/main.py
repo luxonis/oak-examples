@@ -3,8 +3,6 @@ import depthai as dai
 from utils.kalman_filter_node import KalmanFilterNode
 from utils.arguments import initialize_argparser
 
-DET_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
-
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -13,7 +11,7 @@ platform = device.getPlatform().name
 print(f"Platform: {platform}")
 
 if args.fps_limit is None:
-    args.fps_limit = 20
+    args.fps_limit = 20 if platform == "RVC2" else 30
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
@@ -27,8 +25,10 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
+    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     labels = nn_archive.getConfig().model.heads[0].metadata.classes
     person_label = labels.index("person")
 
@@ -65,7 +65,10 @@ with dai.Pipeline(device) as pipeline:
     # tracking
     object_tracker = pipeline.create(dai.node.ObjectTracker)
     object_tracker.setDetectionLabelsToTrack([person_label])  # track only person
-    object_tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    if platform == "RVC2":
+        object_tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    else:
+        object_tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
     object_tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
 
     nn.passthrough.link(object_tracker.inputTrackerFrame)

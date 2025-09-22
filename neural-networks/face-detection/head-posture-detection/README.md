@@ -5,12 +5,12 @@ This example demonstrates calculating head poses in a video stream. This is achi
 **How it works?**
 
 1. Color camera produces high-res frames, that are sent to Face detection NN node.
-1. The object detections (faces) are processed by CropConfigsCreator node which generates a dai.ImageManipConfig for each detection.
-1. ImageManip node uses the generated configs to crop all detections from the original image frame. It also resizes the cropped detections to (60, 60) which is the input size of the Head posture NN.
-1. Head posture NN node infers yaw, pitch and roll from the outputs of the ImageManip node.
-1. The original frame, detections and the head postures get synced back together with the use of two Gather nodes (first sync detections and postures, then sync all of them at once to the frame)
-1. The synced data is then sent to an AnnotationNode to generate text and bounding box.
-1. The annotations and frame are then registered to a dai.RemoteConnection() object to display them in a local browser.
+2. The object detections (faces) are processed by CropConfigsCreator node which generates a dai.ImageManipConfig for each detection.
+3. ImageManip node uses the generated configs to crop all detections from the original image frame. It also resizes the cropped detections to (60, 60) which is the input size of the Head posture NN.
+4. Head posture NN node infers yaw, pitch and roll from the outputs of the ImageManip node.
+5. The original frame, detections and the head postures get synced back together with the use of two Gather nodes (first sync detections and postures, then sync all of them at once to the frame)
+6. The synced data is then sent to an AnnotationNode to generate text and bounding box.
+7. The annotations and frame are then registered to a dai.RemoteConnection() object to display them in a local browser.
 
 ## Demo
 

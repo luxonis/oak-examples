@@ -1,5 +1,5 @@
-depthai==3.0.0rc2
-opencv-python==4.10.0.84
+depthai==3.0.0
+depthai-nodes==0.3.4
 numpy>=1.22
 open3d~=0.18
-matplotlib
+opencv-python-headless==4.10.0.84

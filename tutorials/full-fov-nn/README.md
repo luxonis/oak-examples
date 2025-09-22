@@ -8,8 +8,8 @@ This example demonstrates how to run NN inferencing on full FOV frames. It uses 
 There are 3 options, how to match the NN input aspect ration:
 
 1. Crop the original frame before inferencing and lose some FOV
-1. Apply letterboxing to the frame to get the correct aspect ratio and lose some accuracy
-1. Stretch the frame to the correct aspect ratio of the NN and lose some accuracy
+2. Apply letterboxing to the frame to get the correct aspect ratio and lose some accuracy
+3. Stretch the frame to the correct aspect ratio of the NN and lose some accuracy
 
 ## Demo
 

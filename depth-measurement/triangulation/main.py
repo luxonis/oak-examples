@@ -14,7 +14,7 @@ def populate_pipeline(
 ) -> Tuple[dai.Node.Output, dai.Node.Output]:
     socket = dai.CameraBoardSocket.CAM_B if left else dai.CameraBoardSocket.CAM_C
     cam = p.create(dai.node.Camera).build(socket)
-    fps = 15
+    fps = 30
     cam_output = cam.requestOutput(
         archive.getInputSize(), type=dai.ImgFrame.Type.NV12, fps=fps
     )
@@ -30,18 +30,15 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
     device_platform = device.getPlatform()
     rvc2 = device_platform == dai.Platform.RVC2
-    if device_platform == dai.Platform.RVC2:
-        model_name = "luxonis/yunet:320x240"
-        model_dimension = (320, 240)
-    else:
-        model_name = "luxonis/yunet:640x480"
-        model_dimension = (640, 480)
 
-    faceDet_modelDescription = dai.NNModelDescription(
-        model=model_name,
-        platform=device.getPlatform().name,
+    faceDet_modelDescription = dai.NNModelDescription.fromYamlFile(
+        f"yunet.{device_platform.name}.yaml"
     )
     faceDet_nnarchive = dai.NNArchive(dai.getModelFromZoo(faceDet_modelDescription))
+    model_dimension = (
+        faceDet_nnarchive.getInputWidth(),
+        faceDet_nnarchive.getInputHeight(),
+    )
 
     face_left, face_nn_left = populate_pipeline(pipeline, True, faceDet_nnarchive)
     face_right, face_nn_right = populate_pipeline(pipeline, False, faceDet_nnarchive)

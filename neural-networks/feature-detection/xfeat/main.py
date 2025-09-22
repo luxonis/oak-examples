@@ -11,8 +11,10 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 platform = device.getPlatform().name
 print(f"Platform: {platform}")
 
-model_description = dai.NNModelDescription(args.model)
-model_description.platform = platform
+model_description = dai.NNModelDescription.fromYamlFile(f"xfeat_mono.{platform}.yaml")
+if model_description.model != args.model:
+    model_description = dai.NNModelDescription(args.model, platform=platform)
+
 nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
 parser = nn_archive.getConfig().model.heads[0].parser

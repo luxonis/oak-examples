@@ -1,0 +1,2 @@
+model: luxonis/objectron:chair-224x224
+platform: RVC4

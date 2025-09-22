@@ -1,0 +1,2 @@
+model: luxonis/scrfd-face-detection:10g-640x640
+platform: RVC2

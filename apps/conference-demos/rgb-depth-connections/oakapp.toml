@@ -1,10 +1,9 @@
-identifier = "com.example.rgb-depth-connections"
+identifier = "com.example.apps.conference-demos.rgb-depth-connections"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.0"
 assign_frontend_port = true
 
 prepare_container = [
-    { type = "RUN", command = "apt-get install -y libgl1-mesa-glx" },
     { type = "COPY", source = "./requirements.txt", target = "./requirements.txt" },
     { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages"}
 ]
@@ -14,6 +13,8 @@ build_steps = [
     "cp /app/backend-run.sh /etc/service/backend/run",
     "chmod +x /etc/service/backend/run",
 ]
+
+depthai_models = { yaml_path = "./depthai_models" }
 
 [base_image]
 api_url = "https://registry-1.docker.io"

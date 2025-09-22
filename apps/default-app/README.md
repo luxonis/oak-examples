@@ -17,8 +17,6 @@ Here is a list of all available parameters:
 ```
 -d DEVICE, --device DEVICE
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
--api API_KEY, --api_key API_KEY
-                      HubAI API key to access private model. (default: )
 ```
 
 ## Peripheral Mode

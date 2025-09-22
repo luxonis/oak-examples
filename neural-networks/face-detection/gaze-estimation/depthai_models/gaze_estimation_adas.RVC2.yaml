@@ -1,0 +1,2 @@
+model: luxonis/gaze-estimation-adas:60x60
+platform: RVC2

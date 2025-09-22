@@ -1,4 +1,4 @@
-identifier = "com.luxonis.customfrontend.dynamicyoloworld"
+identifier = "com.example.custom-frontend.dynamic-yolo-world"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.0"
 
@@ -13,6 +13,8 @@ build_steps = [
     "cp /app/backend-run.sh /etc/service/backend/run",
     "chmod +x /etc/service/backend/run",
 ]
+
+depthai_models = { yaml_path = "./backend/src/depthai_models" }
 
 [static_frontend]
 dist_path = "./frontend/dist"

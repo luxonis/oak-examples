@@ -10,8 +10,6 @@ It uses our [YOLOv6 nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c
 
 > **Note:** This example requires a device with at least 3 cameras (color, left and right) since it utilizes the `StereoDepth` node.
 
-> **Note:** This example currently only works on RVC2 devices becuase dai.ObjectTracker node is not supported on RVC4.
-
 ## Demo
 
 ![video](https://user-images.githubusercontent.com/69462196/197813200-236e950e-3dda-403f-b5cd-8d11f0e86124.gif)
@@ -30,7 +28,7 @@ Here is a list of all available parameters:
 -d DEVICE, --device DEVICE
                     Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                    FPS limit for the model runtime. (default: 20)
+                    FPS limit for the model runtime. (default: 20 for RVC2 and 30 for RVC4)
 ```
 
 ## Peripheral Mode

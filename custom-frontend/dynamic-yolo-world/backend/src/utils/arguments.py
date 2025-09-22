@@ -8,15 +8,6 @@ def initialize_argparser():
     )
 
     parser.add_argument(
-        "-d",
-        "--device",
-        help="Optional name, DeviceID or IP of the camera to connect to.",
-        required=False,
-        default=None,
-        type=str,
-    )
-
-    parser.add_argument(
         "-fps",
         "--fps_limit",
         help="FPS limit for the model runtime.",
@@ -47,6 +38,23 @@ def initialize_argparser():
         help="Port to serve the frontend on.",
         required=False,
         type=int,
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        help="Name of the model to use: yolo-world or yoloe",
+        required=False,
+        default="yoloe",
+        type=str,
+        choices=["yolo-world", "yoloe"],
+    )
+    parser.add_argument(
+        "--precision",
+        help="Model precision for YOLOE models: int8 (faster) or fp16 (more accurate).",
+        required=False,
+        default="fp16",
+        type=str,
+        choices=["int8", "fp16"],
     )
 
     args = parser.parse_args()

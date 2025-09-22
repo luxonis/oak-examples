@@ -54,7 +54,7 @@ def setup_device_pipeline(
     model_description = dai.NNModelDescription(
         app_config.NN_MODEL_SLUG, platform=platform
     )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     nn_input_size = nn_archive.getInputSize()
     if not nn_input_size:
         print(

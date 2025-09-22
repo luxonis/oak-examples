@@ -6,8 +6,6 @@ from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 
-MODEL = "luxonis/yolo-p:bdd100k-320x320"
-
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -29,8 +27,10 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # yolo-p model
-    model_description = dai.NNModelDescription(MODEL, platform=platform)
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description, useCached=False))
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolop_bdd100k.{platform}.yaml"
+    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     model_w, model_h = nn_archive.getInputSize()
 
     # media/camera input

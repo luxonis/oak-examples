@@ -1,0 +1,2 @@
+model: luxonis/thermal-person-detection:256x192
+platform: RVC2

@@ -1,0 +1,8 @@
+depthai==3.0.0
+depthai-nodes==0.3.4
+onnxruntime>=1.19.0
+onnxruntime-gpu>=1.19.0
+numpy>=1.22
+opencv-python-headless~=4.10.0
+requests
+tqdm

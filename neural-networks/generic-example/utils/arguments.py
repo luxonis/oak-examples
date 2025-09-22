@@ -51,7 +51,7 @@ def initialize_argparser():
     parser.add_argument(
         "-api",
         "--api_key",
-        help="HubAI API key to access private model.",
+        help="HubAI API key to access private model. Can also use 'DEPTHAI_HUB_API_KEY' environment variable instead.",
         required=False,
         default="",
         type=str,

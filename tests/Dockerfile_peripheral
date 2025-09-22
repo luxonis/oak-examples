@@ -38,7 +38,6 @@ ENTRYPOINT ["sh", "-c", "\
     pip install -r tests/requirements.txt && \
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
-    --root-dir=${ROOT_DIR} \
     --depthai-version=${DAI_VERSION} \
     --depthai-nodes-version=${DAI_NODES_VERSION} \
     --environment-variables=DEPTHAI_PLATFORM=${PLATFORM} \
@@ -46,4 +45,5 @@ ENTRYPOINT ["sh", "-c", "\
     --platform=${PLATFORM} \
     --python-version=${PYTHON_VERSION_ENV} \
     --strict-mode=${STRICT_MODE} \
-    tests/test_examples_peripheral.py"]
+    --root-dir ${ROOT_DIR} \
+    -- tests/test_examples_peripheral.py"]

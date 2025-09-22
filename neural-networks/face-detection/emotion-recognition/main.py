@@ -7,8 +7,6 @@ from depthai_nodes.node.utils import generate_script_content
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 
-DET_MODEL = "luxonis/yunet:640x480"
-REC_MODEL = "luxonis/emotion-recognition:260x260"
 REQ_WIDTH, REQ_HEIGHT = (
     1024,
     768,
@@ -35,17 +33,17 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # face detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yunet.{platform}.yaml"
     )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
     det_model_w, det_model_h = det_model_nn_archive.getInputSize()
 
     # emotion recognition model
-    rec_model_description = dai.NNModelDescription(REC_MODEL, platform=platform)
-    rec_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(rec_model_description, useCached=False)
+    rec_model_description = dai.NNModelDescription.fromYamlFile(
+        f"emotion_recognition.{platform}.yaml"
     )
+    rec_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(rec_model_description))
 
     # media/camera input
     if args.media_path:

@@ -28,6 +28,7 @@ import string
 import struct
 import threading
 import time
+import uuid
 from urllib import parse as urllib_dot_parse
 from urllib import request as urllib_dot_request
 
@@ -4849,7 +4850,7 @@ class WebsocketWrapper(object):
 
     def _do_handshake(self, extra_headers):
         try:
-            sec_websocket_key = uuid.uuid4().bytes  # type: ignore
+            sec_websocket_key = uuid.uuid4().bytes
             sec_websocket_key = base64.b64encode(sec_websocket_key)
         except Exception as _:
             raise ValueError("Unable to generate Sec-WebSocket-Key")

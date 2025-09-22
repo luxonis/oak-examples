@@ -12,7 +12,12 @@ import re
 import json
 from typing import Optional, Dict
 
-from utils import adjust_requirements, is_valid, change_and_restore_dir
+from utils import (
+    adjust_requirements,
+    is_valid,
+    change_and_restore_dir,
+    local_base_image,
+)
 from constants import KNOWN_FAILING
 
 logger = logging.getLogger()
@@ -61,6 +66,8 @@ def test_example_runs_in_standalone(example_dir, test_args):
         requirements_path=requirements_path,
         depthai_version=test_args["depthai_version"],
         depthai_nodes_version=test_args["depthai_nodes_version"],
+        oakapp_toml_path=oakapp_toml,
+        local_static_registry=test_args["local_static_registry"],
     )
 
     with change_and_restore_dir(example_dir):
@@ -76,6 +83,8 @@ def setup_env(
     requirements_path: Path,
     depthai_version: Optional[str],
     depthai_nodes_version: Optional[str],
+    oakapp_toml_path=str,
+    local_static_registry=str,
 ):
     """Sets up the envrionment with the new requirements"""
     new_requirements = adjust_requirements(
@@ -92,6 +101,7 @@ def setup_env(
     new_req_path = base_dir / "requirements.txt"
     with open(new_req_path, "w") as f:
         f.writelines(new_requirements)
+    local_base_image(oakapp_toml_path, local_static_registry)
 
 
 def enqueue_output(out, q):

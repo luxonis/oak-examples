@@ -1,6 +1,6 @@
 # General OCR
 
-We provide here an example for running a two stage text detection and OCR pipeline. This example uses PaddlePaddle [Text Detection](https://models.luxonis.com/luxonis/paddle-text-detection/131d855c-60b1-4634-a14d-1269bb35dcd2) and [Rext Recognition](https://models.luxonis.com/luxonis/paddle-text-recognition/9ae12b58-3551-49b1-af22-721ba4bcf269) models from HubAI Model ZOO. The example visualizes the recognized text on an adjacent white image in the locations in which it was detected. This example showcases how a two stage pipeline can easily be built using DepthAI.
+We provide here an example for running a two stage text detection and OCR pipeline. This example uses PaddlePaddle [Text Detection](https://models.luxonis.com/luxonis/paddle-text-detection/131d855c-60b1-4634-a14d-1269bb35dcd2) and [Text Recognition](https://models.luxonis.com/luxonis/paddle-text-recognition/9ae12b58-3551-49b1-af22-721ba4bcf269) models from HubAI Model ZOO. The example visualizes the recognized text on an adjacent white image in the locations in which it was detected. This example showcases how a two stage pipeline can easily be built using DepthAI.
 
 ## Demo
 

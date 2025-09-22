@@ -1,19 +1,33 @@
-import { Button } from "@luxonis/common-fe-components";
+import { Button, Flex } from "@luxonis/common-fe-components";
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
 import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useNotifications } from "./Notifications.tsx";
 
-export function ImageUploader() {
+type Props = {
+    onDrawBBox?: () => void;
+}
+
+export function ImageUploader({ onDrawBBox }: Props) {
     const connection = useConnection();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const { notify } = useNotifications();
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0] || null;
+        const file: File | null = event.target.files?.[0] || null;
         setSelectedFile(file);
+        if (file) {
+            notify(`Selected: ${file.name}`, { type: 'info', durationMs: 2000 });
+        }
     };
 
     const handleUpload = () => {
         if (!selectedFile) {
+            notify('Please choose an image first', { type: 'warning' });
+            return;
+        }
+        if (!connection.connected) {
+            notify('Not connected to device. Unable to upload image.', { type: 'error' });
             return;
         }
 
@@ -22,14 +36,20 @@ export function ImageUploader() {
             const fileData = reader.result;
 
             console.log("Uploading image to backend:", selectedFile.name);
+            const sizeKb = Math.max(1, Math.round((selectedFile.size || 0) / 1024));
+            notify(`Uploading ${selectedFile.name} (${sizeKb} KB)…`, { type: 'info' });
 
             // @ts-ignore - Custom service
-            connection.daiConnection?.postToService(
+            (connection as any).daiConnection?.postToService(
                 "Image Upload Service",
                 {
                     filename: selectedFile.name,
                     type: selectedFile.type,
                     data: fileData
+                },
+                (resp: any) => {
+                    console.log("[ImageUpload] Service ack:", resp);
+                    notify(`Image uploaded: ${selectedFile.name}`, { type: 'success', durationMs: 6000 });
                 }
             );
         };
@@ -40,6 +60,7 @@ export function ImageUploader() {
     return (
         <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
             <h3 className={css({ fontWeight: "semibold" })}>Update Classes with Image Input:</h3>
+            <span className={css({ color: 'gray.600', fontSize: 'sm' })}>Important: reset view before drawing a bounding box</span>
 
             {/* Clickable file selection area */}
             <label
@@ -67,8 +88,21 @@ export function ImageUploader() {
                 style={{ display: "none" }}
             />
 
-            {/* Upload button */}
-            <Button onClick={handleUpload}>Upload Image</Button>
+            {/* Upload / Draw buttons */}
+            <Flex direction="row" gap="sm" alignItems="center">
+                <Button onClick={handleUpload}>Upload Image</Button>
+                <span className={css({ color: 'gray.500' })}>OR</span>
+                <Button
+                    variant="outline"
+                    onClick={() => {
+                        console.log("[BBox] Button clicked: enabling drawing overlay");
+                        onDrawBBox?.();
+                        notify('Drawing mode enabled. Drag on the stream to draw a box.', { type: 'info', durationMs: 6000 });
+                    }}
+                >
+                    Draw bounding box
+                </Button>
+            </Flex>
         </div>
     );
 }

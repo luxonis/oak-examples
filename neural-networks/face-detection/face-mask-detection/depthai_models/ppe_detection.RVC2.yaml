@@ -1,0 +1,2 @@
+model: luxonis/ppe-detection:640x640
+platform: RVC2

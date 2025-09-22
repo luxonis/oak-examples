@@ -5,7 +5,6 @@ import depthai as dai
 from utils.arguments import initialize_argparser
 from utils.host_decoding import HostDecoding
 
-DET_MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
 REQ_WIDTH, REQ_HEIGHT = (
     1280,
     720,
@@ -32,10 +31,10 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # detection model
-    det_model_description = dai.NNModelDescription(DET_MODEL, platform=platform)
-    det_model_nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(det_model_description, useCached=False)
+    det_model_description = dai.NNModelDescription.fromYamlFile(
+        f"yolov6_nano_r2_coco.{platform}.yaml"
     )
+    det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
 
     # media/camera input
     if args.media_path:

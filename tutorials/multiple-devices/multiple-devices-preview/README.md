@@ -5,8 +5,8 @@ This example demonstrates how to connect and use multiple DepthAI (OAK) devices 
 This tutorial contains three main scripts:
 
 1. [main.py](main.py) – Displays RGB previews from multiple connected devices.
-1. [multi-device-yolov6.py](multi-device-yolov6.py) – Runs YOLOv6 object detection on all devices.
-1. [multi-device-encoding.py](multi-device-encoding.py) – Streams and decodes H.264 video from all devices.
+2. [multi-device-yolov6.py](multi-device-yolov6.py) – Runs YOLOv6 object detection on all devices.
+3. [multi-device-encoding.py](multi-device-encoding.py) – Streams and decodes H.264 video from all devices.
 
 ## Demo
 

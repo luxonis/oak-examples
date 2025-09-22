@@ -11,8 +11,9 @@ def pytest_addoption(parser):
     parser.addoption(
         "--root-dir",
         type=Path,
+        nargs="+",
         required=True,
-        help="Path to the directory with projects or a single project.",
+        help="One or more paths to directories containing examples (space-separated).",
     )
     parser.addoption(
         "--timeout",
@@ -76,6 +77,13 @@ def pytest_addoption(parser):
         help="Specify device password. If testing just peripheral then not required.",
     )
 
+    parser.addoption(
+        "--local-static-registry",
+        type=str,
+        default="",
+        help="Local registry that will mirror used images for easier testing",
+    )
+
 
 @pytest.fixture(scope="session")
 def test_args(request):
@@ -89,6 +97,7 @@ def test_args(request):
         "platform": request.config.getoption("--platform"),
         "python_version": request.config.getoption("--python-version"),
         "device_password": request.config.getoption("--device-password"),
+        "local_static_registry": request.config.getoption("--local-static-registry"),
         "strict_mode": True
         if request.config.getoption("--strict-mode") == "yes"
         else False,
@@ -101,15 +110,19 @@ def test_args(request):
 
 def pytest_generate_tests(metafunc):
     if "example_dir" in metafunc.fixturenames:
-        root_dir = metafunc.config.getoption("--root-dir")
-        exp_dirs = []
+        root_dirs = metafunc.config.getoption("--root-dir")
+        exp_dirs = set()  # Use a set to avoid duplicates
 
-        for dirpath, dirnames, filenames in os.walk(root_dir):
-            if "main.py" in filenames and "requirements.txt" in filenames:
-                exp_dirs.append(Path(dirpath))
-            elif "main.py" in filenames and "requirements.txt" not in filenames:
-                logger.info(f"Skipping {dirpath} because it has no requirements.txt")
-            elif "main.py" not in filenames and "requirements.txt" in filenames:
-                logger.info(f"Skipping {dirpath} because it has no main.py")
+        for root_dir in root_dirs:
+            for dirpath, dirnames, filenames in os.walk(root_dir):
+                if "main.py" in filenames and "requirements.txt" in filenames:
+                    exp_dirs.add(Path(dirpath))
+                elif "main.py" in filenames and "requirements.txt" not in filenames:
+                    logger.info(
+                        f"Skipping {dirpath} because it has no requirements.txt"
+                    )
+                elif "main.py" not in filenames and "requirements.txt" in filenames:
+                    logger.info(f"Skipping {dirpath} because it has no main.py")
 
+        exp_dirs = sorted(exp_dirs)  # Sort for consistency
         metafunc.parametrize("example_dir", exp_dirs, ids=[str(p) for p in exp_dirs])

@@ -1,0 +1,2 @@
+model: yolo-world-l:640x640-host-decoding-fp16
+platform: RVC4

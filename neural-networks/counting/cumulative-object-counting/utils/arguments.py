@@ -11,7 +11,7 @@ def initialize_argparser():
         "-m",
         "--model",
         help="Object detection model HubAI reference.",
-        default="luxonis/mobilenet-ssd:300x300",
+        default="luxonis/yolov6-nano:r2-coco-512x288",
         type=str,
     )
 
