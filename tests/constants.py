@@ -62,6 +62,10 @@ KNOWN_FAILING = {
         "mode": "all",
         "platform": "all",
     },
+    "depth-measurement/3d-measurement/tof-pointcloud": {
+        "reason": "ToF cameras are only of the RVC2 variant",
+        "platform": ["rvc4"],
+    },
     "depth-measurement/triangulation": {
         "reason": "Can't sync outputs inside Triangulation node",
         "platform": ["rvc4"],
