@@ -99,11 +99,12 @@ function App() {
         let contentW = mediaDispW;
         let contentH = mediaDispH;
         if (media.type === "canvas") {
-            const side = Math.min(mediaDispW, mediaDispH);
-            contentX = mediaOffsetX + (mediaDispW - side) / 2;
-            contentY = mediaOffsetY + (mediaDispH - side) / 2;
-            contentW = side;
-            contentH = side;
+            // Assume the canvas displays a 4:3 video where the video height fills the canvas height
+            const targetAspect = 4 / 3;
+            contentH = mediaDispH;
+            contentW = contentH * targetAspect;
+            contentX = mediaOffsetX + (mediaDispW - contentW) / 2;
+            contentY = mediaOffsetY;
         }
 
         const rx0 = Math.max(x, contentX);
@@ -281,7 +282,7 @@ function App() {
                     Open Vocabulary Object Detection
                 </h1>
                 <p>
-                    Run open‑vocabulary detection on‑device (YOLOE or YOLO‑World) with a custom UI.
+                    Run Open‑Vocabulary detection on‑device (YOLOE or YOLO‑World) with a custom UI.
                     Define classes via text prompts or image crops, adjust confidence, and visualize results live.
                 </p>
 

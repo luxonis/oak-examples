@@ -29,7 +29,7 @@ CLASS_NAMES = ["person", "chair", "TV"]
 CLASS_OFFSET = 0
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.1
-VISUALIZATION_RESOLUTION = (1080, 1080)
+VISUALIZATION_RESOLUTION = (1280, 960)
 
 visualizer = dai.RemoteConnection(serveFrontend=False)
 device = dai.Device()
