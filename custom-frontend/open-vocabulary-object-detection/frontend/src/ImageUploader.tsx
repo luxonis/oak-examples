@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "./Notifications.tsx";
 
+
 type Props = {
     onDrawBBox?: () => void;
     getNextLabel?: () => string | null;
-    onImagePromptAdded?: () => void;
+    onImagePromptAdded?: (label: string) => void;
     maxReached?: boolean;
 }
 
@@ -38,7 +39,11 @@ export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, ma
             return;
         }
 
-        const label = getNextLabel?.();
+        // Derive label from filename (without extension); fallback to provided generator
+        const dotIndex = selectedFile.name.lastIndexOf('.');
+        const baseName = (dotIndex > 0 ? selectedFile.name.slice(0, dotIndex) : selectedFile.name).trim();
+        const fallback = getNextLabel?.();
+        const label = (baseName || fallback || '').trim();
         if (!label) {
             return;
         }
@@ -63,7 +68,7 @@ export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, ma
                 (resp: any) => {
                     console.log("[ImageUpload] Service ack:", resp);
                     notify(`Image uploaded: ${selectedFile.name}`, { type: 'success', durationMs: 6000 });
-                    onImagePromptAdded?.();
+                    onImagePromptAdded?.(label);
                 }
             );
         };

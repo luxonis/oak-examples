@@ -257,6 +257,34 @@ with dai.Pipeline(device) as pipeline:
         nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
         print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
 
+    def rename_image_prompt_service(payload):
+        """Rename an accumulated image prompt label by index or old name.
+        payload: { index?: int, oldLabel?: str, newLabel: str }
+        Applies to both YOLO-World (texts) and YOLOE (image_prompts) accumulation paths.
+        """
+        global IMAGE_PROMPT_LABELS
+        new_label = payload.get("newLabel")
+        if not new_label or not isinstance(new_label, str):
+            print("rename_image_prompt_service: invalid newLabel")
+            return
+        idx = payload.get("index")
+        if isinstance(idx, int) and 0 <= idx < len(IMAGE_PROMPT_LABELS):
+            IMAGE_PROMPT_LABELS[idx] = new_label
+        else:
+            old = payload.get("oldLabel")
+            if isinstance(old, str) and old in IMAGE_PROMPT_LABELS:
+                pos = IMAGE_PROMPT_LABELS.index(old)
+                IMAGE_PROMPT_LABELS[pos] = new_label
+            else:
+                print("rename_image_prompt_service: index/oldLabel not found")
+                return
+        # Re-apply labels (offset depends on model)
+        if args.model == "yoloe":
+            update_labels(IMAGE_PROMPT_LABELS, offset=80)
+        else:
+            update_labels(IMAGE_PROMPT_LABELS, offset=0)
+        print(f"Image prompt labels updated: {IMAGE_PROMPT_LABELS}")
+
     def image_upload_service(image_data):
         image = base64_to_cv2_image(image_data["data"])
         if args.model == "yolo-world":
@@ -511,6 +539,7 @@ with dai.Pipeline(device) as pipeline:
     if args.model in ("yolo-world", "yoloe"):
         visualizer.registerService("Image Upload Service", image_upload_service)
     visualizer.registerService("BBox Prompt Service", bbox_prompt_service)
+    visualizer.registerService("Rename Image Prompt Service", rename_image_prompt_service)
 
     print("Pipeline created.")
 
