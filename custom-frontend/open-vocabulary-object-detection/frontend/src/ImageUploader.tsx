@@ -82,7 +82,7 @@ export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, ma
             <span className={css({ color: 'gray.600', fontSize: 'sm' })}>Important: reset view before drawing a bounding box</span>
             {maxReached && (
                 <span className={css({ color: 'red.600', fontSize: 'sm' })}>
-                    Maximum number of image prompts reached. Please reset image prompts to add more.
+                    Maximum number of image prompts reached. Please delete or reset image prompts to add more.
                 </span>
             )}
 

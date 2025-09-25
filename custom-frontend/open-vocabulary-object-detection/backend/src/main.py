@@ -34,6 +34,7 @@ VISUALIZATION_RESOLUTION = (1280, 960)
 MAX_IMAGE_PROMPTS = 5
 IMAGE_PROMPT_VECTORS: list[np.ndarray] = []  # each vector shape: (512,)
 IMAGE_PROMPT_LABELS: list[str] = []
+LAST_TEXT_CLASSES: list[str] = CLASS_NAMES.copy()
 
 visualizer = dai.RemoteConnection(serveFrontend=False)
 device = dai.Device()
@@ -210,6 +211,8 @@ with dai.Pipeline(device) as pipeline:
             )
             return
         CLASS_NAMES = new_classes
+        global LAST_TEXT_CLASSES
+        LAST_TEXT_CLASSES = new_classes.copy()
         text_features = extract_text_embeddings(
             class_names=CLASS_NAMES,
             max_num_classes=MAX_NUM_CLASSES,
@@ -284,6 +287,118 @@ with dai.Pipeline(device) as pipeline:
         else:
             update_labels(IMAGE_PROMPT_LABELS, offset=0)
         print(f"Image prompt labels updated: {IMAGE_PROMPT_LABELS}")
+
+    def delete_image_prompt_service(payload):
+        """Delete an accumulated image prompt by index or label and update model inputs.
+        payload: { index?: int, label?: str }
+        """
+        global IMAGE_PROMPT_VECTORS, IMAGE_PROMPT_LABELS, CLASS_NAMES
+        idx = payload.get("index")
+        if isinstance(idx, int) and 0 <= idx < len(IMAGE_PROMPT_VECTORS):
+            del IMAGE_PROMPT_VECTORS[idx]
+            del IMAGE_PROMPT_LABELS[idx]
+        else:
+            lbl = payload.get("label")
+            if isinstance(lbl, str) and lbl in IMAGE_PROMPT_LABELS:
+                pos = IMAGE_PROMPT_LABELS.index(lbl)
+                del IMAGE_PROMPT_VECTORS[pos]
+                del IMAGE_PROMPT_LABELS[pos]
+            else:
+                print("delete_image_prompt_service: index/label not found")
+                return
+
+        if len(IMAGE_PROMPT_VECTORS) > 0:
+            # Rebuild combined features and apply
+            if args.model == "yoloe":
+                combined = make_dummy_features(
+                    MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+                )
+                for i, v in enumerate(IMAGE_PROMPT_VECTORS):
+                    combined[0, :, i] = v
+                inputNNDataImg = dai.NNData()
+                inputNNDataImg.addTensor(
+                    "image_prompts",
+                    combined,
+                    dataType=(
+                        dai.TensorInfo.DataType.FP16
+                        if args.precision == "fp16"
+                        else dai.TensorInfo.DataType.U8F
+                    ),
+                )
+                imagePromptInputQueue.send(inputNNDataImg)
+                # ensure texts are dummy
+                dummy = make_dummy_features(
+                    MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+                )
+                inputNNDataTxt = dai.NNData()
+                inputNNDataTxt.addTensor(
+                    "texts",
+                    dummy,
+                    dataType=(
+                        dai.TensorInfo.DataType.FP16
+                        if args.precision == "fp16"
+                        else dai.TensorInfo.DataType.U8F
+                    ),
+                )
+                textInputQueue.send(inputNNDataTxt)
+                update_labels(IMAGE_PROMPT_LABELS, offset=80)
+                print(f"Deleted image prompt; remaining (yoloe) labels: {IMAGE_PROMPT_LABELS}")
+            else:  # yolo-world
+                combined = make_dummy_features(
+                    MAX_NUM_CLASSES, model_name="yolo-world", precision=args.precision
+                )
+                for i, v in enumerate(IMAGE_PROMPT_VECTORS):
+                    combined[0, :, i] = v
+                inputNNData = dai.NNData()
+                inputNNData.addTensor(
+                    "texts",
+                    combined,
+                    dataType=(
+                        dai.TensorInfo.DataType.FP16
+                        if args.precision == "fp16"
+                        else dai.TensorInfo.DataType.U8F
+                    ),
+                )
+                textInputQueue.send(inputNNData)
+                update_labels(IMAGE_PROMPT_LABELS, offset=0)
+                print(f"Deleted image prompt; remaining (yolo-world) labels: {IMAGE_PROMPT_LABELS}")
+        else:
+            # No image prompts left: revert to last text classes
+            CLASS_NAMES = LAST_TEXT_CLASSES.copy()
+            text_features = extract_text_embeddings(
+                class_names=CLASS_NAMES,
+                max_num_classes=MAX_NUM_CLASSES,
+                model_name=args.model if args.model != "yolo-world" else "yolo-world",
+                precision=args.precision,
+            )
+            inputNNData = dai.NNData()
+            inputNNData.addTensor(
+                "texts",
+                text_features,
+                dataType=(
+                    dai.TensorInfo.DataType.FP16
+                    if args.precision == "fp16"
+                    else dai.TensorInfo.DataType.U8F
+                ),
+            )
+            textInputQueue.send(inputNNData)
+            if args.model == "yoloe":
+                dummy = make_dummy_features(
+                    MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+                )
+                inputNNDataImg = dai.NNData()
+                inputNNDataImg.addTensor(
+                    "image_prompts",
+                    dummy,
+                    dataType=(
+                        dai.TensorInfo.DataType.FP16
+                        if args.precision == "fp16"
+                        else dai.TensorInfo.DataType.U8F
+                    ),
+                )
+                imagePromptInputQueue.send(inputNNDataImg)
+            update_labels(CLASS_NAMES, offset=0)
+            print(f"All image prompts deleted; reverted to text classes: {CLASS_NAMES}")
 
     def image_upload_service(image_data):
         image = base64_to_cv2_image(image_data["data"])
@@ -540,6 +655,7 @@ with dai.Pipeline(device) as pipeline:
         visualizer.registerService("Image Upload Service", image_upload_service)
     visualizer.registerService("BBox Prompt Service", bbox_prompt_service)
     visualizer.registerService("Rename Image Prompt Service", rename_image_prompt_service)
+    visualizer.registerService("Delete Image Prompt Service", delete_image_prompt_service)
 
     print("Pipeline created.")
 

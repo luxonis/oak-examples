@@ -27,8 +27,19 @@ function App() {
             notify(`Maximum of ${MAX_IMAGE_PROMPTS} image prompts reached. Delete some before adding more.`, { type: 'warning', durationMs: 6000 });
             return null;
         }
+        const used = new Set<number>();
+        for (const lbl of imagePromptLabels) {
+            const m = /^object(\d+)$/.exec(lbl);
+            if (m) {
+                const idx = parseInt(m[1], 10);
+                if (!isNaN(idx)) used.add(idx);
+            }
+        }
+        for (let i = 1; i <= MAX_IMAGE_PROMPTS; i++) {
+            if (!used.has(i)) return `object${i}`;
+        }
         return `object${imagePromptCount + 1}`;
-    }, [imagePromptCount, notify]);
+    }, [imagePromptCount, imagePromptLabels, notify]);
 
     const getUnderlyingMediaAndSize = () => {
         const container = streamContainerRef.current;
@@ -214,7 +225,7 @@ function App() {
         setTextClasses(updated);
         if (imagePromptCount > 0) {
             setImagePromptCount(0);
-            notify('Image prompts reset due to text class update.', { type: 'info' });
+            notify('Image prompts cleared. Using text prompts for detection.', { type: 'info', durationMs: 5000 });
             setImagePromptLabels([]);
             lastCommittedImageLabelsRef.current = [];
         }
@@ -234,7 +245,7 @@ function App() {
                 setImagePromptCount(0);
                 setImagePromptLabels([]);
                 lastCommittedImageLabelsRef.current = [];
-                notify('Image prompts reset', { type: 'success' });
+                notify('Image prompts cleared. Using text prompts for detection.', { type: 'success', durationMs: 5000 });
             }
         );
     }, [connection, notify, textClasses]);
@@ -345,7 +356,7 @@ function App() {
                     Open Vocabulary Object Detection
                 </h1>
                 <p>
-                    Run Open‑Vocabulary detection on‑device (YOLOE or YOLO‑World) with a custom UI.
+                    Run open‑vocabulary detection on‑device (YOLOE or YOLO‑World) with a custom UI.
                     Define classes via text prompts or image crops, adjust confidence, and visualize results live.
                 </p>
 
@@ -434,6 +445,27 @@ function App() {
                                         });
                                     }}
                                 />
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        if (!connection.connected) {
+                                            notify('Not connected to device. Unable to delete.', { type: 'error' });
+                                            return;
+                                        }
+                                        // @ts-ignore - Custom service
+                                        (connection as any).daiConnection?.postToService('Delete Image Prompt Service', { index: idx }, () => {
+                                            setImagePromptLabels((prev) => {
+                                                const updated = prev.filter((_, i) => i !== idx);
+                                                lastCommittedImageLabelsRef.current = [...updated];
+                                                return updated;
+                                            });
+                                            setImagePromptCount((c: number) => Math.max(0, c - 1));
+                                            notify(`Deleted image prompt #${idx + 1}`, { type: 'success', durationMs: 2500 });
+                                        });
+                                    }}
+                                >
+                                    Delete
+                                </Button>
                             </div>
                         ))}
                     </div>
