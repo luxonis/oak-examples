@@ -6,9 +6,12 @@ import { useNotifications } from "./Notifications.tsx";
 
 type Props = {
     onDrawBBox?: () => void;
+    getNextLabel?: () => string | null;
+    onImagePromptAdded?: () => void;
+    maxReached?: boolean;
 }
 
-export function ImageUploader({ onDrawBBox }: Props) {
+export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, maxReached }: Props) {
     const connection = useConnection();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const { notify } = useNotifications();
@@ -22,12 +25,21 @@ export function ImageUploader({ onDrawBBox }: Props) {
     };
 
     const handleUpload = () => {
+        if (maxReached) {
+            notify('Maximum image prompts reached. Delete some before adding more.', { type: 'warning', durationMs: 6000 });
+            return;
+        }
         if (!selectedFile) {
             notify('Please choose an image first', { type: 'warning' });
             return;
         }
         if (!connection.connected) {
             notify('Not connected to device. Unable to upload image.', { type: 'error' });
+            return;
+        }
+
+        const label = getNextLabel?.();
+        if (!label) {
             return;
         }
 
@@ -45,11 +57,13 @@ export function ImageUploader({ onDrawBBox }: Props) {
                 {
                     filename: selectedFile.name,
                     type: selectedFile.type,
-                    data: fileData
+                    data: fileData,
+                    label
                 },
                 (resp: any) => {
                     console.log("[ImageUpload] Service ack:", resp);
                     notify(`Image uploaded: ${selectedFile.name}`, { type: 'success', durationMs: 6000 });
+                    onImagePromptAdded?.();
                 }
             );
         };
@@ -61,6 +75,11 @@ export function ImageUploader({ onDrawBBox }: Props) {
         <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
             <h3 className={css({ fontWeight: "semibold" })}>Update Classes with Image Input:</h3>
             <span className={css({ color: 'gray.600', fontSize: 'sm' })}>Important: reset view before drawing a bounding box</span>
+            {maxReached && (
+                <span className={css({ color: 'red.600', fontSize: 'sm' })}>
+                    Maximum number of image prompts reached. Please reset image prompts to add more.
+                </span>
+            )}
 
             {/* Clickable file selection area */}
             <label
@@ -71,9 +90,9 @@ export function ImageUploader({ onDrawBBox }: Props) {
                     borderRadius: "md",
                     padding: "md",
                     textAlign: "center",
-                    cursor: "pointer",
+                    cursor: maxReached ? "not-allowed" : "pointer",
                     backgroundColor: "gray.50",
-                    _hover: { backgroundColor: "gray.100" },
+                    _hover: { backgroundColor: maxReached ? "gray.50" : "gray.100" },
                 })}
             >
                 {selectedFile ? selectedFile.name : "Click here to choose an image file"}
@@ -86,11 +105,12 @@ export function ImageUploader({ onDrawBBox }: Props) {
                 accept="image/*"
                 onChange={handleFileSelect}
                 style={{ display: "none" }}
+                disabled={maxReached}
             />
 
             {/* Upload / Draw buttons */}
             <Flex direction="row" gap="sm" alignItems="center">
-                <Button onClick={handleUpload}>Upload Image</Button>
+                <Button onClick={handleUpload} disabled={maxReached}>Upload Image</Button>
                 <span className={css({ color: 'gray.500' })}>OR</span>
                 <Button
                     variant="outline"
@@ -99,6 +119,7 @@ export function ImageUploader({ onDrawBBox }: Props) {
                         onDrawBBox?.();
                         notify('Drawing mode enabled. Drag on the stream to draw a box.', { type: 'info', durationMs: 6000 });
                     }}
+                    disabled={maxReached}
                 >
                     Draw bounding box
                 </Button>

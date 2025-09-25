@@ -5,6 +5,7 @@ import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
 import { ImageUploader } from "./ImageUploader.tsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNotifications } from "./Notifications.tsx";
+import { Button } from "@luxonis/common-fe-components";
 
 function App() {
     const connection = useConnection();
@@ -14,6 +15,18 @@ function App() {
     const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
     const [currentRect, setCurrentRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
     const { notify } = useNotifications();
+
+    const MAX_IMAGE_PROMPTS = 5;
+    const [imagePromptCount, setImagePromptCount] = useState(0);
+    const [textClasses, setTextClasses] = useState<string[]>(["person", "chair", "TV"]);
+
+    const getNextObjectLabel = useCallback((): string | null => {
+        if (imagePromptCount >= MAX_IMAGE_PROMPTS) {
+            notify(`Maximum of ${MAX_IMAGE_PROMPTS} image prompts reached. Delete some before adding more.`, { type: 'warning', durationMs: 6000 });
+            return null;
+        }
+        return `object${imagePromptCount + 1}`;
+    }, [imagePromptCount, notify]);
 
     const getUnderlyingMediaAndSize = () => {
         const container = streamContainerRef.current;
@@ -145,6 +158,15 @@ function App() {
             `Sending box [${xNorm.toFixed(2)}, ${yNorm.toFixed(2)}, ${wNorm.toFixed(2)}, ${hNorm.toFixed(2)}]`,
             { type: 'info' }
         );
+        const label = getNextObjectLabel();
+        if (!label) {
+            setIsDrawing(false);
+            setCurrentRect(null);
+            setDragStart(null);
+            const ctx = overlay.getContext("2d");
+            if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+            return;
+        }
         // @ts-ignore - Custom service
         (connection as any).daiConnection?.postToService(
             "BBox Prompt Service",
@@ -154,11 +176,12 @@ function App() {
                 data: null,
                 bbox: { x: xNorm, y: yNorm, width: wNorm, height: hNorm },
                 bboxType: "normalized",
-                label: "object"
+                label
             },
             (resp: any) => {
                 console.log("[BBox] Service ack:", resp);
                 notify('Bounding box sent', { type: 'success' });
+                setImagePromptCount((c: number) => Math.min(MAX_IMAGE_PROMPTS, c + 1));
             }
         );
 
@@ -167,14 +190,43 @@ function App() {
         setDragStart(null);
         const ctx = overlay.getContext("2d");
         if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
-    }, [connection, currentRect]);
+    }, [connection, currentRect, getNextObjectLabel]);
 
-    const handleBeginBBoxDraw = useCallback(() => {
+    const handleBeginBBoxDrawAttempt = useCallback(() => {
+        if (imagePromptCount >= MAX_IMAGE_PROMPTS) {
+            notify(`Maximum of ${MAX_IMAGE_PROMPTS} image prompts reached. Delete some before adding more.`, { type: 'warning', durationMs: 6000 });
+            return;
+        }
         console.log("[BBox] Begin drawing requested");
         setIsDrawing(true);
         setCurrentRect(null);
         setDragStart(null);
-    }, []);
+    }, [imagePromptCount, notify]);
+
+    const handleTextClassesUpdated = useCallback((updated: string[]) => {
+        setTextClasses(updated);
+        if (imagePromptCount > 0) {
+            setImagePromptCount(0);
+            notify('Image prompts reset due to text class update.', { type: 'info' });
+        }
+    }, [imagePromptCount, notify]);
+
+    const handleResetImagePrompts = useCallback(() => {
+        if (!connection.connected) {
+            notify('Not connected to device. Unable to reset prompts.', { type: 'error' });
+            return;
+        }
+        // Re-send current text classes to trigger image prompt reset on backend
+        // @ts-ignore - Custom service
+        (connection as any).daiConnection?.postToService(
+            "Class Update Service",
+            textClasses,
+            () => {
+                setImagePromptCount(0);
+                notify('Image prompts reset', { type: 'success' });
+            }
+        );
+    }, [connection, notify, textClasses]);
 
     useEffect(() => {
         if (!isDrawing) return;
@@ -287,10 +339,22 @@ function App() {
                 </p>
 
                 {/* Class Input */}
-                <ClassSelector />
+                <ClassSelector onClassesUpdated={handleTextClassesUpdated} />
 
                 {/* Image Uploader */}
-                <ImageUploader onDrawBBox={handleBeginBBoxDraw} />
+                <ImageUploader
+                    onDrawBBox={handleBeginBBoxDrawAttempt}
+                    getNextLabel={getNextObjectLabel}
+                    onImagePromptAdded={() => setImagePromptCount((c: number) => Math.min(MAX_IMAGE_PROMPTS, c + 1))}
+                    maxReached={imagePromptCount >= MAX_IMAGE_PROMPTS}
+                />
+
+                <div className={css({ display: 'flex', flexDirection: 'column', gap: 'xs' })}>
+                    <span className={css({ color: 'gray.600', fontSize: 'sm' })}>
+                        Note: Maximum of {MAX_IMAGE_PROMPTS} image prompts.
+                    </span>
+                    <Button variant="outline" onClick={handleResetImagePrompts}>Reset Image Prompts</Button>
+                </div>
 
                 {/* Confidence Slider */}
                 <ConfidenceSlider initialValue={0.1} />

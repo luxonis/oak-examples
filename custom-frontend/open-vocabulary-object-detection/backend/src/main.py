@@ -31,6 +31,10 @@ MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.1
 VISUALIZATION_RESOLUTION = (1280, 960)
 
+MAX_IMAGE_PROMPTS = 5
+IMAGE_PROMPT_VECTORS: list[np.ndarray] = []  # each vector shape: (512,)
+IMAGE_PROMPT_LABELS: list[str] = []
+
 visualizer = dai.RemoteConnection(serveFrontend=False)
 device = dai.Device()
 platform = device.getPlatformAsString()
@@ -63,7 +67,7 @@ if args.model == "yoloe":
     )
 
 if args.fps_limit is None:
-    args.fps_limit = 5
+    args.fps_limit = 10
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
@@ -243,6 +247,10 @@ with dai.Pipeline(device) as pipeline:
         update_labels(CLASS_NAMES, offset=0)
         print(f"Classes set to: {CLASS_NAMES}")
 
+        global IMAGE_PROMPT_VECTORS, IMAGE_PROMPT_LABELS
+        IMAGE_PROMPT_VECTORS = []
+        IMAGE_PROMPT_LABELS = []
+
     def conf_threshold_update_service(new_conf_threshold: float):
         """Changes confidence threshold based on the user input"""
         CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
@@ -255,11 +263,28 @@ with dai.Pipeline(device) as pipeline:
             image_features = extract_image_prompt_embeddings(
                 image, model_name=args.model, precision=args.precision
             )
-            print("Image features extracted, sending to model as texts...")
+            print("Image features extracted (yolo-world), updating accumulated prompts as texts...")
+
+            # Extract single 512-d vector from padded features (column 0)
+            vec = image_features[0, :, 0].copy()
+            label = image_data.get("label") or image_data["filename"].split(".")[0]
+
+            IMAGE_PROMPT_VECTORS.append(vec)
+            IMAGE_PROMPT_LABELS.append(label)
+            if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
+                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+
+            combined = make_dummy_features(
+                MAX_NUM_CLASSES, model_name="yolo-world", precision=args.precision
+            )
+            for i, v in enumerate(IMAGE_PROMPT_VECTORS):
+                combined[0, :, i] = v
+
             inputNNData = dai.NNData()
             inputNNData.addTensor(
                 "texts",
-                image_features,
+                combined,
                 dataType=(
                     dai.TensorInfo.DataType.FP16
                     if args.precision == "fp16"
@@ -267,19 +292,33 @@ with dai.Pipeline(device) as pipeline:
                 ),
             )
             textInputQueue.send(inputNNData)
-            filename = image_data["filename"]
-            CLASS_NAMES = [filename.split(".")[0]]
-            update_labels(CLASS_NAMES, offset=0)
-            print(f"Classes set to: {CLASS_NAMES}")
-        else:  # yoloe unified with image_prompts input
+            update_labels(IMAGE_PROMPT_LABELS, offset=0)
+            print(f"Image prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}")
+        else:  # yoloe unified with image_prompts input (accumulate up to 5)
             image_features = extract_image_prompt_embeddings(
                 image, model_name="yoloe", precision=args.precision
             )
-            print("Image features extracted, sending to model as image_prompts...")
+            print("Image features extracted, updating accumulated image_prompts...")
+
+            vec = image_features[0, :, 0].copy()
+            label = image_data.get("label") or image_data["filename"].split(".")[0]
+
+            IMAGE_PROMPT_VECTORS.append(vec)
+            IMAGE_PROMPT_LABELS.append(label)
+            if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
+                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+
+            combined = make_dummy_features(
+                MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+            )
+            for i, v in enumerate(IMAGE_PROMPT_VECTORS):
+                combined[0, :, i] = v
+
             inputNNDataImg = dai.NNData()
             inputNNDataImg.addTensor(
                 "image_prompts",
-                image_features,
+                combined,
                 dataType=(
                     dai.TensorInfo.DataType.FP16
                     if args.precision == "fp16"
@@ -287,6 +326,7 @@ with dai.Pipeline(device) as pipeline:
                 ),
             )
             imagePromptInputQueue.send(inputNNDataImg)
+
             # Send dummy texts so only image prompts are considered
             dummy = make_dummy_features(
                 MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
@@ -303,10 +343,10 @@ with dai.Pipeline(device) as pipeline:
             )
             textInputQueue.send(inputNNDataTxt)
 
-            filename = image_data["filename"]
-            CLASS_NAMES = [filename.split(".")[0]]
-            update_labels(CLASS_NAMES, offset=80)
-            print(f"Classes set to (image prompts, offset 80): {CLASS_NAMES}")
+            update_labels(IMAGE_PROMPT_LABELS, offset=80)
+            print(
+                f"Image prompts set (n={len(IMAGE_PROMPT_LABELS)} at offset 80): {IMAGE_PROMPT_LABELS}"
+            )
 
     def bbox_prompt_service(payload):
         """
@@ -388,10 +428,25 @@ with dai.Pipeline(device) as pipeline:
             return {"ok": False, "reason": "unsupported_model"}
 
         if args.model == "yolo-world":
+            vec = image_features[0, :, 0].copy()
+            label = payload.get("label", "object")
+
+            IMAGE_PROMPT_VECTORS.append(vec)
+            IMAGE_PROMPT_LABELS.append(label)
+            if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
+                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+
+            combined = make_dummy_features(
+                MAX_NUM_CLASSES, model_name="yolo-world", precision=args.precision
+            )
+            for i, v in enumerate(IMAGE_PROMPT_VECTORS):
+                combined[0, :, i] = v
+
             inputNNData = dai.NNData()
             inputNNData.addTensor(
                 "texts",
-                image_features,
+                combined,
                 dataType=(
                     dai.TensorInfo.DataType.FP16
                     if args.precision == "fp16"
@@ -399,15 +454,28 @@ with dai.Pipeline(device) as pipeline:
                 ),
             )
             textInputQueue.send(inputNNData)
+            update_labels(IMAGE_PROMPT_LABELS, offset=0)
+            print(f"BBox prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}")
+        else:
+            vec = image_features[0, :, 0].copy()
             label = payload.get("label", "object")
-            CLASS_NAMES = [label]
-            update_labels(CLASS_NAMES, offset=0)
-            print(f"BBox prompt applied (yolo-world). Classes set to: {CLASS_NAMES}")
-        else:  # yoloe unified
+
+            IMAGE_PROMPT_VECTORS.append(vec)
+            IMAGE_PROMPT_LABELS.append(label)
+            if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
+                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+
+            combined = make_dummy_features(
+                MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
+            )
+            for i, v in enumerate(IMAGE_PROMPT_VECTORS):
+                combined[0, :, i] = v
+
             inputNNDataImg = dai.NNData()
             inputNNDataImg.addTensor(
                 "image_prompts",
-                image_features,
+                combined,
                 dataType=(
                     dai.TensorInfo.DataType.FP16
                     if args.precision == "fp16"
@@ -430,11 +498,9 @@ with dai.Pipeline(device) as pipeline:
                 ),
             )
             textInputQueue.send(inputNNDataTxt)
-            label = payload.get("label", "object")
-            CLASS_NAMES = [label]
-            update_labels(CLASS_NAMES, offset=80)
+            update_labels(IMAGE_PROMPT_LABELS, offset=80)
             print(
-                f"BBox prompt applied (yoloe). Classes set to: {CLASS_NAMES} at offset 80"
+                f"BBox prompts set (n={len(IMAGE_PROMPT_LABELS)} at offset 80): {IMAGE_PROMPT_LABELS}"
             )
         return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
 
