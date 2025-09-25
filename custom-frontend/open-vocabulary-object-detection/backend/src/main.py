@@ -342,7 +342,9 @@ with dai.Pipeline(device) as pipeline:
                 )
                 textInputQueue.send(inputNNDataTxt)
                 update_labels(IMAGE_PROMPT_LABELS, offset=80)
-                print(f"Deleted image prompt; remaining (yoloe) labels: {IMAGE_PROMPT_LABELS}")
+                print(
+                    f"Deleted image prompt; remaining (yoloe) labels: {IMAGE_PROMPT_LABELS}"
+                )
             else:  # yolo-world
                 combined = make_dummy_features(
                     MAX_NUM_CLASSES, model_name="yolo-world", precision=args.precision
@@ -361,7 +363,9 @@ with dai.Pipeline(device) as pipeline:
                 )
                 textInputQueue.send(inputNNData)
                 update_labels(IMAGE_PROMPT_LABELS, offset=0)
-                print(f"Deleted image prompt; remaining (yolo-world) labels: {IMAGE_PROMPT_LABELS}")
+                print(
+                    f"Deleted image prompt; remaining (yolo-world) labels: {IMAGE_PROMPT_LABELS}"
+                )
         else:
             # No image prompts left: revert to last text classes
             CLASS_NAMES = LAST_TEXT_CLASSES.copy()
@@ -406,7 +410,9 @@ with dai.Pipeline(device) as pipeline:
             image_features = extract_image_prompt_embeddings(
                 image, model_name=args.model, precision=args.precision
             )
-            print("Image features extracted (yolo-world), updating accumulated prompts as texts...")
+            print(
+                "Image features extracted (yolo-world), updating accumulated prompts as texts..."
+            )
 
             # Extract single 512-d vector from padded features (column 0)
             vec = image_features[0, :, 0].copy()
@@ -415,8 +421,12 @@ with dai.Pipeline(device) as pipeline:
             IMAGE_PROMPT_VECTORS.append(vec)
             IMAGE_PROMPT_LABELS.append(label)
             if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
-                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
-                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_VECTORS[
+                    0 : len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS
+                ]
+                del IMAGE_PROMPT_LABELS[
+                    0 : len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS
+                ]
 
             combined = make_dummy_features(
                 MAX_NUM_CLASSES, model_name="yolo-world", precision=args.precision
@@ -436,7 +446,9 @@ with dai.Pipeline(device) as pipeline:
             )
             textInputQueue.send(inputNNData)
             update_labels(IMAGE_PROMPT_LABELS, offset=0)
-            print(f"Image prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}")
+            print(
+                f"Image prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}"
+            )
         else:  # yoloe unified with image_prompts input (accumulate up to 5)
             image_features = extract_image_prompt_embeddings(
                 image, model_name="yoloe", precision=args.precision
@@ -449,8 +461,12 @@ with dai.Pipeline(device) as pipeline:
             IMAGE_PROMPT_VECTORS.append(vec)
             IMAGE_PROMPT_LABELS.append(label)
             if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
-                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
-                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_VECTORS[
+                    0 : len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS
+                ]
+                del IMAGE_PROMPT_LABELS[
+                    0 : len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS
+                ]
 
             combined = make_dummy_features(
                 MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
@@ -577,8 +593,12 @@ with dai.Pipeline(device) as pipeline:
             IMAGE_PROMPT_VECTORS.append(vec)
             IMAGE_PROMPT_LABELS.append(label)
             if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
-                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
-                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_VECTORS[
+                    0 : len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS
+                ]
+                del IMAGE_PROMPT_LABELS[
+                    0 : len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS
+                ]
 
             combined = make_dummy_features(
                 MAX_NUM_CLASSES, model_name="yolo-world", precision=args.precision
@@ -598,7 +618,9 @@ with dai.Pipeline(device) as pipeline:
             )
             textInputQueue.send(inputNNData)
             update_labels(IMAGE_PROMPT_LABELS, offset=0)
-            print(f"BBox prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}")
+            print(
+                f"BBox prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}"
+            )
         else:
             vec = image_features[0, :, 0].copy()
             label = payload.get("label", "object")
@@ -606,8 +628,12 @@ with dai.Pipeline(device) as pipeline:
             IMAGE_PROMPT_VECTORS.append(vec)
             IMAGE_PROMPT_LABELS.append(label)
             if len(IMAGE_PROMPT_VECTORS) > MAX_IMAGE_PROMPTS:
-                del IMAGE_PROMPT_VECTORS[0:len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS]
-                del IMAGE_PROMPT_LABELS[0:len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS]
+                del IMAGE_PROMPT_VECTORS[
+                    0 : len(IMAGE_PROMPT_VECTORS) - MAX_IMAGE_PROMPTS
+                ]
+                del IMAGE_PROMPT_LABELS[
+                    0 : len(IMAGE_PROMPT_LABELS) - MAX_IMAGE_PROMPTS
+                ]
 
             combined = make_dummy_features(
                 MAX_NUM_CLASSES, model_name="yoloe", precision=args.precision
@@ -654,8 +680,12 @@ with dai.Pipeline(device) as pipeline:
     if args.model in ("yolo-world", "yoloe"):
         visualizer.registerService("Image Upload Service", image_upload_service)
     visualizer.registerService("BBox Prompt Service", bbox_prompt_service)
-    visualizer.registerService("Rename Image Prompt Service", rename_image_prompt_service)
-    visualizer.registerService("Delete Image Prompt Service", delete_image_prompt_service)
+    visualizer.registerService(
+        "Rename Image Prompt Service", rename_image_prompt_service
+    )
+    visualizer.registerService(
+        "Delete Image Prompt Service", delete_image_prompt_service
+    )
 
     print("Pipeline created.")
 
