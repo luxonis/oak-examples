@@ -17,6 +17,15 @@ def initialize_argparser():
     )
 
     parser.add_argument(
+        "-media",
+        "--media_path",
+        help="Path to the media files you aim to run the model on. If not set, the model will run on the camera input.",
+        required=False,
+        default=None,
+        type=str,
+    )
+
+    parser.add_argument(
         "-a",
         "--axis",
         help="Axis for cumulative counting.",

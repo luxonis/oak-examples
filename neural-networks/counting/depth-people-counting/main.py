@@ -1,5 +1,5 @@
 import depthai as dai
-from pathlib import Path
+import os
 from depthai_nodes.node import ApplyColormap
 
 from utils.arguments import initialize_argparser
@@ -10,7 +10,7 @@ from utils.annotation_node import AnnotationNode
 
 _, args = initialize_argparser()
 
-PATH = (Path(__file__).parent / "resources").resolve().absolute()
+
 SIZE = (1280, 800)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
@@ -19,29 +19,40 @@ platform = device.getPlatformAsString()
 print(f"Platform: {platform}")
 
 with dai.Pipeline(device) as pipeline:
-    pipeline.setCalibrationData(dai.CalibrationHandler(PATH / "calib.json"))
+    print("Creating pipeline...")
 
-    # disparity input
-    left = pipeline.create(dai.node.ReplayVideo)
-    left.setReplayVideoFile(PATH / "left.mp4")
-    left.setOutFrameType(dai.ImgFrame.Type.RAW8)
-    left.setSize(SIZE)
+    # media/camera disparity input
+    if args.media_path:
+        pipeline.setCalibrationData(
+            dai.CalibrationHandler(os.path.join(args.media_path, "calib.json"))
+        )
 
-    right = pipeline.create(dai.node.ReplayVideo)
-    right.setReplayVideoFile(PATH / "right.mp4")
-    right.setOutFrameType(dai.ImgFrame.Type.RAW8)
-    right.setSize(SIZE)
+        left = pipeline.create(dai.node.ReplayVideo)
+        left.setReplayVideoFile(os.path.join(args.media_path, "left.mp4"))
+        left.setOutFrameType(dai.ImgFrame.Type.RAW8)
+        left.setSize(SIZE)
 
-    left_frame_editor = pipeline.create(FrameEditor, dai.CameraBoardSocket.CAM_B)
-    right_frame_editor = pipeline.create(FrameEditor, dai.CameraBoardSocket.CAM_C)
+        right = pipeline.create(dai.node.ReplayVideo)
+        right.setReplayVideoFile(os.path.join(args.media_path, "right.mp4"))
+        right.setOutFrameType(dai.ImgFrame.Type.RAW8)
+        right.setSize(SIZE)
 
-    left.out.link(left_frame_editor.input)
-    right.out.link(right_frame_editor.input)
+        left_frame_editor = pipeline.create(FrameEditor, dai.CameraBoardSocket.CAM_B)
+        right_frame_editor = pipeline.create(FrameEditor, dai.CameraBoardSocket.CAM_C)
 
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_frame_editor.output, right=right_frame_editor.output
-    )
+        left.out.link(left_frame_editor.input)
+        right.out.link(right_frame_editor.input)
 
+        left_out = left_frame_editor.output
+        right_out = right_frame_editor.output
+    else:
+        left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
+        left_out = left.requestOutput(size=SIZE, type=dai.ImgFrame.Type.GRAY8)
+
+        right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
+        right_out = right.requestOutput(size=SIZE, type=dai.ImgFrame.Type.GRAY8)
+
+    stereo = pipeline.create(dai.node.StereoDepth).build(left=left_out, right=right_out)
     stereo.initialConfig.setMedianFilter(dai.StereoDepthConfig.MedianFilter.KERNEL_7x7)
     stereo.setLeftRightCheck(True)
     stereo.setSubpixel(False)
