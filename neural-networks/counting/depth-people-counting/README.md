@@ -31,12 +31,13 @@ Here is a list of all available parameters:
 ```
 
 **NOTE**: When using the `media_path` argument, the application requires the following files to be present in the specified directory:
+
 - `calib.json`
 - `left.mp4`
 - `right.mp4`
 
 For testing, you can use the sample files included in the [resources](./resources) directory.
-However, keep in mind that these recordings were captured with RVC2. 
+However, keep in mind that these recordings were captured with RVC2.
 While they are generally compatible with RVC4, the best results are achieved with RVC2.
 
 ## Peripheral Mode
