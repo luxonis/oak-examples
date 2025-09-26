@@ -5,7 +5,7 @@ By relying solely on depth data (rather than RGB images), this approach preserve
 
 This demo uses several hard-coded values that are tuned for a specific [DepthAI recording](./resources).
 If you want to record your own recording using the [DepthAI record tool](../gen2-record-replay/).
-However, beware to adapt the hard-coded values to your own setup, as they are highly dependent on the OAK camera’s installation, its field of view (FOV), and the physical structure of the passageway.
+However, beware to adapt the hard-coded values to your own setup, as they are highly dependent on the OAK camera type, installation, its field of view (FOV), and the physical structure of the passageway.
 
 ## Demo
 
@@ -21,12 +21,23 @@ Here is a list of all available parameters:
 
 ```
 -d DEVICE, --device DEVICE
-                      Optional name, DeviceID or IP of the camera to connect to. (default: None)
+                        Optional name, DeviceID or IP of the camera to connect to. (default: None)
+-media MEDIA_PATH, --media_path MEDIA_PATH
+                        Path to the directory containing the media files used by the application. (default: live camera input).
 -a AXIS, --axis AXIS
-                      Axis for cumulative counting (either x or y). (default: x)
+                        Axis for cumulative counting (either x or y). (default: x)
 -pos AXIS_POSITION, --roi_position ROI_POSITION
-                      Position of the axis (if 0.5, axis is placed in the middle of the frame). (default: 0.5)
+                        Position of the axis (if 0.5, axis is placed in the middle of the frame). (default: 0.5)
 ```
+
+**NOTE**: When using the `media_path` argument, the application requires the following files to be present in the specified directory:
+- `calib.json`
+- `left.mp4`
+- `right.mp4`
+
+For testing, you can use the sample files included in the [resources](./resources) directory.
+However, keep in mind that these recordings were captured with RVC2. 
+While they are generally compatible with RVC4, the best results are achieved with RVC2.
 
 ## Peripheral Mode
 
