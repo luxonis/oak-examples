@@ -55,7 +55,10 @@ with dai.Pipeline(device) as pipeline:
 
     # object tracking
     objectTracker = pipeline.create(dai.node.ObjectTracker)
-    objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    if platform == "RVC2":
+        objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+    else:
+        objectTracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
     objectTracker.setTrackerIdAssignmentPolicy(
         dai.TrackerIdAssignmentPolicy.SMALLEST_ID
     )
