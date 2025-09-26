@@ -11,7 +11,7 @@ from utils.annotation_node import AnnotationNode
 _, args = initialize_argparser()
 
 
-SIZE = (1280, 800)
+SIZE = (640, 400)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
