@@ -49,10 +49,6 @@ KNOWN_FAILING = {
         "reason": "Needs thermal camera",
         "platform": "all",
     },
-    "neural-networks/counting/depth-people-counting": {
-        "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "platform": ["rvc4"],
-    },
     "neural-networks/depth-estimation/foundation-stereo": {
         "reason": "Requires a lot of host compute to run",
         "mode": ["standalone"],
