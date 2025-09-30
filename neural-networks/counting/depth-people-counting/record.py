@@ -23,7 +23,6 @@ calib.eepromToJsonFile(os.path.join(args.output, "calib.json"))
 
 # Create pipeline
 with dai.Pipeline(device) as pipeline:
-
     # Define left stream
     camB = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
     camBOut = camB.requestOutput((600, 400))

@@ -27,32 +27,37 @@ Here is a list of all available parameters:
                       Position of the axis (if 0.5, axis is placed in the middle of the frame). (default: 0.5)
 ```
 
-**Note**: This example uses hard-coded values tuned for a specific **RVC2** [recording](./recordings/demo). 
-They are generally compatible with **RVC4**, but best results are achieved with **RVC2**. 
-You can test with the provided recordings or run it with your own recordings/camera stream—just be sure to adjust the hard-coded values for optimal performance. 
+**Note**: This example uses hard-coded values tuned for a specific **RVC2** [recording](./recordings/demo).
+They are generally compatible with **RVC4**, but best results are achieved with **RVC2**.
+You can test with the provided recordings or run it with your own recordings/camera stream—just be sure to adjust the hard-coded values for optimal performance.
 These values depend on factors such as:
+
 - The type of OAK camera
 - Installation specifics
 - Field of view (FOV)
 - Physical structure of the passageway
 
 ### Creating Your Own Recordings
+
 You can generate custom recordings using the `record.py` script (refer to [Holistic Record](https://docs.luxonis.com/software-v3/depthai/examples/record_replay/holistic_record/) for more information).
 
 Run the following command to make the recording, specifying the output directory (default: `recordings/`) and the device IP address (default: first connected device):
+
 ```bash
 python record.py --output <OUTPUT_PATH> --device <DEVICE_IP>
 ```
 
 Running the script will generate:
+
 - `calib.json` – Stores the camera calibration data.
 - `recording.tar` – Contains the recorded video streams from the device.
 
 To use the recording with the example:
+
 - Extract the `.tar` file.
 - Rename the following files:
-    - `CameraCAM_B.mp4` → `left.mp4`
-    - `CameraCAM_C.mp4` → `right.mp4`
+  - `CameraCAM_B.mp4` → `left.mp4`
+  - `CameraCAM_C.mp4` → `right.mp4`
 - Place `calib.json`, `left.mp4`, and `right.mp4` in the same directory.
 - Provide the path to this directory as the `--media_path` argument when running the example.
 
