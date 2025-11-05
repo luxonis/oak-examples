@@ -90,12 +90,15 @@ with contextlib.ExitStack() as stack:
         nn_shape=nn_archive.getInputSize(),
     )
 
-    interleaved_manip = pipeline.create(dai.node.ImageManip)
-    interleaved_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)
-    tile_manager.out.link(interleaved_manip.inputImage)
+    nn_input = tile_manager.out
+    if platform == dai.Platform.RVC4:
+        interleaved_manip = pipeline.create(dai.node.ImageManip)
+        interleaved_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
+        tile_manager.out.link(interleaved_manip.inputImage)
+        nn_input = interleaved_manip.out
     
     # Run NN detection on stitched output 
-    nn = pipeline.create(ParsingNeuralNetwork).build(tile_manager.out, nn_archive)
+    nn = pipeline.create(ParsingNeuralNetwork).build(nn_input, nn_archive)
     nn.input.setMaxSize(len(tile_manager.tile_positions))
 
     patcher = pipeline.create(TilesPatcher).build(
