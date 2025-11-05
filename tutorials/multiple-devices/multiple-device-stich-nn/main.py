@@ -1,14 +1,29 @@
 #!/usr/bin/env python3
 
 from depthai_nodes.node import ParsingNeuralNetwork
-from stitch import Stitch
+from depthai_nodes.node import ParsingNeuralNetwork, TilesPatcher, Tiling
+from utils.stitch import Stitch
+from utils.arguments import initialize_argparser
 import contextlib
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, TilesPatcher, Tiling
+import pathlib
+
+
+_, args = initialize_argparser()
+
+IMG_SIZES = {"2160p": (3840, 2160), 
+             "1080p": (1920, 1080), 
+             "720p": (1280, 720),
+             "480p": (640, 480),
+             "360p": (640, 360)}
+IMG_SHAPE = IMG_SIZES[args.input_size]
 
 def createPipeline(pipeline):
     camRgb = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
-    output = camRgb.requestOutput((640, 400), dai.ImgFrame.Type.NV12 ,dai.ImgResizeMode.CROP, 20)
+    output = camRgb.requestOutput(IMG_SHAPE,
+                                  dai.ImgFrame.Type.NV12, 
+                                  dai.ImgResizeMode.CROP, 
+                                  fps=args.fps_limit)
     return pipeline, output
 
 
@@ -40,27 +55,39 @@ with contextlib.ExitStack() as stack:
 
         outputs.append(output)
 
+    script_path = pathlib.Path(__file__).parent.resolve() # get absolute path of this script
+    platform = device.getPlatform()  # get platform 
+    # Get model based on platform type from yaml file
+    model_description = dai.NNModelDescription.fromYamlFile(
+        f"{script_path}/depthai_models/yolov6_nano.{platform.name}.yaml"
+    )
+    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
+
+    # Determine stitched output resolution x = nn y size + (nn_y_size//2)*nr of cameras,
+    #                                      y = y size of nn model
+    out_stitch_res = (nn_archive.getInputSize()[0]+(nn_archive.getInputSize()[0]//2)*len(outputs),
+                      nn_archive.getInputSize()[1])
     # Create threaded node pipeline with Stitch class, setting nr on inputs and output resolution 
     # set to NN input resolution
-    stitch_pl = pipeline.create(Stitch, nr_inputs=len(outputs), output_resolution = (512,288))
+    stitch_pl = pipeline.create(Stitch,
+                                nr_inputs=len(outputs), 
+                                output_resolution = out_stitch_res)
     for i, output in enumerate(outputs):
         # Link each output of a camera to stitching inputs
         output.link(stitch_pl.inputs[i])
         # Do not block stream if image queue gets full - less delay in output detection stream
         stitch_pl.inputs[i].setBlocking(False)  
 
-    # stitch_queue = stitch_pl.out.createOutputQueue()
-    # stitched_img_frame: dai.ImgFrame = stitch_queue.tryGet()
-    grid_size = (2, 1)
+    grid_size = (len(outputs), 1)
 
     tile_manager = pipeline.create(Tiling).build(
         img_output=stitch_pl.out,
-        img_shape=(768,288),
-        overlap=0.2,
+        img_shape=out_stitch_res,
+        overlap=0.5,
         grid_size=grid_size,
         grid_matrix=None,
         global_detection=False,
-        nn_shape=(512, 288),
+        nn_shape=nn_archive.getInputSize(),
     )
 
     interleaved_manip = pipeline.create(dai.node.ImageManip)
@@ -68,7 +95,7 @@ with contextlib.ExitStack() as stack:
     tile_manager.out.link(interleaved_manip.inputImage)
     
     # Run NN detection on stitched output 
-    nn = pipeline.create(ParsingNeuralNetwork).build(tile_manager.out, "luxonis/yolov6-nano:r2-coco-512x288")
+    nn = pipeline.create(ParsingNeuralNetwork).build(tile_manager.out, nn_archive)
     nn.input.setMaxSize(len(tile_manager.tile_positions))
 
     patcher = pipeline.create(TilesPatcher).build(
@@ -76,7 +103,7 @@ with contextlib.ExitStack() as stack:
     )
 
     # Show stitched image on visualizer overlayed with nn detections
-    visualizer.addTopic("Stitched", stitch_pl.out)
+    visualizer.addTopic("Stitched full res", stitch_pl.out_full_res)
     visualizer.addTopic("Patcher", patcher.out)
 
     # Start all of the pipelines
@@ -88,6 +115,7 @@ with contextlib.ExitStack() as stack:
 
     print("Press 'r' in visualizer to recalculate homography")
     while pipeline.isRunning():
+        pipeline.processTasks()  # run processTasks in every loop since .start() doesn't do it 
         key = visualizer.waitKey(1)
         if key == ord("q"):
             print("Got q key from the remote connection!")

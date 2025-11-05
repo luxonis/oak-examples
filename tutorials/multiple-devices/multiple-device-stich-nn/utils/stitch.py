@@ -66,6 +66,7 @@ class Stitch(dai.node.ThreadedHostNode):
             self.inputs.append(self.createInput())
         # Create output stream, it is assumed that it is lined to output in main node
         self.out = self.createOutput()
+        self.out_full_res = self.createOutput()
         self.stitcher = VideoStitcher()  # initialize video stitcher
 
     def recalculate_homography(self):
@@ -88,6 +89,7 @@ class Stitch(dai.node.ThreadedHostNode):
                 stitched = cv2.hconcat(images)
 
             img_frame = dai.ImgFrame()
-            stitched = cv2.resize(stitched, (768,288))
+            self.out_full_res.send(img_frame.setCvFrame(stitched.copy(), dai.ImgFrame.Type.BGR888p))
+            stitched = cv2.resize(stitched, self.output_resolution)
             img_frame.setCvFrame(stitched, dai.ImgFrame.Type.BGR888p)
             self.out.send(img_frame)
