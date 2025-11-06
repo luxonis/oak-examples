@@ -48,24 +48,6 @@ def initialize_argparser():
         required=False,
         type=int,
     )
-    parser.add_argument(
-        "-m",
-        "--model",
-        help="Name of the model to use: yolo-world or yoloe",
-        required=False,
-        # default="yoloe",
-        default="yolo-world",
-        type=str,
-        choices=["yolo-world", "yoloe"],
-    )
-    parser.add_argument(
-        "--precision",
-        help="Model precision for YOLOE models: int8 (faster) or fp16 (more accurate).",
-        required=False,
-        default="fp16",
-        type=str,
-        choices=["int8", "fp16"],
-    )
 
     args = parser.parse_args()
 

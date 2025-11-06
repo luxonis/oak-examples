@@ -1,26 +1,33 @@
-# app/modules/handlers/base_embedding_handler.py
 from __future__ import annotations
-from typing import List
+from abc import ABC, abstractmethod
+from typing import List, Tuple, TypedDict
 import numpy as np
 
-from core.encoders.base_encoder import BaseEncoder
-from core.label_manager import LabelManager
+from core.encoders.base_prompt_encoder import BasePromptEncoder
 
 
-class BasePromptHandler:
+class BasePromptHandler(ABC):
     """
-    Abstract base handler for extracting embeddings from various input modalities.
-    Provides shared utilities for feature extraction and label management.
+    Abstract base handler for converting various input modalities
+    (image, text, bbox, etc.) into model-ready prompts.
     """
 
-    def __init__(self, encoder: BaseEncoder, label_manager: LabelManager):
-        self.encoder = encoder
-        self.label_manager = label_manager
+    def __init__(self, encoder: BasePromptEncoder):
+        self._encoder = encoder
+        self._class_names: List[str] = []
 
-    def _make_dummy(self) -> np.ndarray:
-        """Create dummy tensor for balancing model inputs."""
-        return self.encoder.make_dummy_features()
+    @abstractmethod
+    def process(self, payload: TypedDict) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Transform input (payload, image, bbox, etc.) into model-ready tensors.
+        Must return (embeddings, dummy) tuple.
+        """
+        raise NotImplementedError
 
-    def _update_labels(self, class_names: List[str], offset: int = 0):
-        """Synchronize the label manager with new or updated class names."""
-        self.label_manager.update_labels(class_names, offset=offset)
+    def get_class_names(self) -> List[str]:
+        """Return list of class names associated with the processed data."""
+        return self._class_names
+
+    def get_offset(self) -> int:
+        """Return class offset or encoder index limit."""
+        return self._encoder.offset

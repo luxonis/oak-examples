@@ -1,0 +1,17 @@
+from core.services.base_service import BaseService
+from core.services.payloads.threshold_update_payload import ThresholdUpdatePayload
+from core.services.service_name import ServiceName
+
+
+class ThresholdUpdateService(BaseService[ThresholdUpdatePayload]):
+    """Coordinates NN confidence threshold updates between handler, repository, and state."""
+
+    NAME = ServiceName.THRESHOLD_UPDATE
+
+    def handle(self, payload: ThresholdUpdatePayload) -> dict[str, any]:
+        new_threshold = payload["threshold"]
+
+        clamped = max(0.0, min(1.0, new_threshold))
+        self._controller.set_confidence_threshold(clamped)
+
+        return {"ok": True, "threshold": clamped}

@@ -1,8 +1,7 @@
 from pathlib import Path
 from dataclasses import dataclass
 import depthai as dai
-
-from config.yaml_loader import YamlLoader
+from box import Box
 
 
 @dataclass
@@ -14,7 +13,7 @@ class ModelInfo:
     height: int
     description: dai.NNModelDescription
     archive: dai.NNArchive
-    precision: str = "FP16"
+    precision: str
 
 
 @dataclass
@@ -32,6 +31,5 @@ class VideoConfig:
 class NeuralNetworkConfig:
     """Stores neural network configuration (confidence thresholds, etc.)."""
 
-    nn_yaml: YamlLoader
-    constants: YamlLoader
+    nn_yaml: Box
     model: ModelInfo

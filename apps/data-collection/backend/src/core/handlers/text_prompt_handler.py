@@ -1,14 +1,22 @@
 from __future__ import annotations
-from typing import Tuple, List
+from typing import Tuple
 import numpy as np
+
+from core.encoders.textual_prompt_encoder import TextualPromptEncoder
 from core.handlers.base_prompt_handler import BasePromptHandler
+from core.services.payloads.class_update_payload import ClassUpdatePayload
 
 
 class TextPromptHandler(BasePromptHandler):
     """Handles embedding extraction and label synchronization for class name updates."""
 
-    def process(self, new_classes: List[str]) -> Tuple[np.ndarray, np.ndarray]:
-        embeddings = self.encoder.extract_embeddings(new_classes)
-        dummy = self._make_dummy()
-        self._update_labels(new_classes)
+    def __init__(self, encoder: TextualPromptEncoder):
+        super().__init__(encoder)
+        self._payload: ClassUpdatePayload = None
+
+    def process(self, payload: ClassUpdatePayload) -> Tuple[np.ndarray, np.ndarray]:
+        self._class_names = payload["classes"]
+        embeddings = self._encoder.extract_embeddings(self.get_class_names())
+        dummy = self._encoder.make_dummy()
+
         return embeddings, dummy

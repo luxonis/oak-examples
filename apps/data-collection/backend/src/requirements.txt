@@ -11,3 +11,4 @@ onnxruntime
 # onnxruntime-gpu # if you want to use CUDAExecutionProvider
 requests
 dotenv
+python-box

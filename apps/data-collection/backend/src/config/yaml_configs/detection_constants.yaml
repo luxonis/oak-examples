@@ -1,4 +1,0 @@
-class_names: ["person", "chair", "TV"]
-class_offset: 0
-max_num_classes: 80
-confidence_threshold: 0.1
