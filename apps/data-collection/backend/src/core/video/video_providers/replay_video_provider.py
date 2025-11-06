@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from config.config_data_classes import VideoConfig
-from core.infrastructure.video_providers.base_video_provider import BaseVideoProvider
+from core.video.video_providers.base_video_provider import BaseVideoProvider
 import depthai as dai
 
 
@@ -10,7 +10,7 @@ class ReplayVideoProvider(BaseVideoProvider):
 
     def __init__(self, pipeline: dai.Pipeline, config: VideoConfig):
         super().__init__(pipeline, config)
-        self._replay = self._build_replay()
+        self._replay: dai.node.ReplayVideo = self._build_replay()
 
     def get_input_node(self) -> dai.Node.Output:
         manip = self._pipeline.create(dai.node.ImageManip)

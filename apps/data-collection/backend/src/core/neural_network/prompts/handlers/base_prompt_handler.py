@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, TypedDict
 import numpy as np
 
-from core.encoders.base_prompt_encoder import BasePromptEncoder
+from core.neural_network.prompts.encoders.base_prompt_encoder import BasePromptEncoder
 
 
 class BasePromptHandler(ABC):

@@ -4,11 +4,11 @@ from depthai_nodes.node import SnapsProducer
 
 from core.snapping.conditions_engine import ConditionsEngine
 from core.snapping.conditions_factory import ConditionsFactory
-from core.infrastructure.snaps.snaps_producer_factory import SnapsProducerFactory
+from core.snapping.snaps_producer_factory import SnapsProducerFactory
 from core.services.snap_collection_service import SnapCollectionService
 
 
-class SnapsManager:
+class SnappingServiceManager:
     """
     Facade for the snapping subsystem.
     """
@@ -29,12 +29,11 @@ class SnapsManager:
         self._producer: SnapsProducer = None
 
         self._engine: ConditionsEngine = None
+        self._snap_service: SnapCollectionService = None
 
-        self._build()
-
-    def _build(self) -> "SnapsManager":
-        cond_manager = ConditionsFactory(self._conditions_config)
-        self._engine = cond_manager.get_engine()
+    def build(self):
+        cond_factory = ConditionsFactory(self._conditions_config)
+        self._engine = cond_factory.build_engine()
 
         snaps_producer = SnapsProducerFactory.create(
             self._pipeline,
@@ -44,11 +43,11 @@ class SnapsManager:
             self._engine,
         )
         self._producer = snaps_producer
-        self._snap_service = SnapCollectionService(self._engine, self._producer)
-        return self
 
-    def get_service(self) -> SnapCollectionService:
-        return self._snap_service
+        self._snap_service = SnapCollectionService(self._engine, self._producer)
+
+    def register_service(self, visualizer: dai.RemoteConnection):
+        visualizer.registerService(self._snap_service.name, self._snap_service.handle)
 
     def get_engine(self):
         return self._engine

@@ -6,13 +6,13 @@ class YamlConfigManager:
     """Loads all YAML configuration files and exposes them as Box objects."""
 
     def __init__(self, base_dir: Path):
-        self._base = base_dir
-        self.nn: Box | None = None
-        self.video: Box | None = None
-        self.conditions: Box | None = None
-        self.prompts: Box | None = None
+        self._base: Path = base_dir
+        self.nn: Box = None
+        self.video: Box = None
+        self.conditions: Box = None
+        self.prompts: Box = None
 
-    def load_all(self) -> None:
+    def load_all(self):
         """Load all YAML configs from the given base directory."""
         print(f"[YamlConfigManager] Loading from: {self._base.resolve()}")
 

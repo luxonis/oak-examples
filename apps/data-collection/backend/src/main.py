@@ -2,13 +2,11 @@ import depthai as dai
 
 from config.system_configuration import SystemConfiguration
 from core.model_state import ModelState
-from core.infrastructure.neural_network.neural_network_manager import (
-    NeuralNetworkManager,
-)
-from core.infrastructure.neural_network.nn_pipeline_setup import NNPipelineSetup
-from core.infrastructure.snaps.snaps_manager import SnapsManager
-from core.infrastructure.video_factory import VideoFactory
-from core.infrastructure.export.export_manager import ExportManager
+from core.neural_network.prompts.nn_prompts_manager import NNPromptsManager
+from core.neural_network.pipeline.nn_pipeline_setup import NNPipelineBuilder
+from core.snapping.snaps_manager import SnappingServiceManager
+from core.video.video_factory import VideoFactory
+from core.export.export_manager import ExportServiceManager
 
 
 def main():
@@ -31,32 +29,31 @@ def main():
         visualizer.addTopic("Video", video_factory.get_encoded_output())
         input_node = video_factory.get_input_node()
 
-        nn_pipeline = NNPipelineSetup(
+        nn_pipeline = NNPipelineBuilder(
             pipeline, input_node, config.get_neural_network_config(), model_state
         )
         nn_pipeline.build()
         visualizer.addTopic("Annotations", nn_pipeline.annotation_node.out)
 
-        nn_manager = NeuralNetworkManager(
+        prompts_manager = NNPromptsManager(
             pipeline, input_node, config.get_prompts_config(), nn_pipeline.controller
         )
-        nn_manager.build()
-        for service in nn_manager.get_services():
-            visualizer.registerService(service.name, service.handle)
+        prompts_manager.build()
+        prompts_manager.register_services(visualizer)
 
-        snaps_manager = SnapsManager(
+        snaps_manager = SnappingServiceManager(
             pipeline,
             input_node,
             nn_pipeline.tracker,
             nn_pipeline.detections,
             config.get_snaps_config(),
         )
-        snaps_service = snaps_manager.get_service()
-        visualizer.registerService(snaps_service.name, snaps_service.handle)
+        snaps_manager.build()
+        snaps_manager.register_service(visualizer)
 
-        export_manager = ExportManager(model_state, snaps_manager.get_engine())
-        export_service = export_manager.get_service()
-        visualizer.registerService(export_service.name, export_service.handle)
+        export_manager = ExportServiceManager(model_state, snaps_manager.get_engine())
+        export_manager.build()
+        export_manager.register_service(visualizer)
 
         print("Pipeline created.")
         pipeline.start()

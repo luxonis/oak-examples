@@ -1,3 +1,4 @@
+from core.services.payloads.snap_payload import ConditionConfig
 from core.snapping.conditions.base_condition import Condition
 from core.snapping.conditions.condition_key import ConditionKey
 from typing import Dict, Any
@@ -14,10 +15,10 @@ class LowConfidenceCondition(Condition):
         self.threshold: float = 0.3
         self.last_lowest: float = 0.0
 
-    def apply_config(self, conf: Dict[str, Any]):
+    def apply_config(self, conf: ConditionConfig):
         super().apply_config(conf)
-        if "threshold" in conf:
-            val = float(conf["threshold"])
+        if conf.threshold:
+            val = float(conf.threshold)
             self.threshold = max(0.0, min(1.0, val))
 
     def export_config(self) -> Dict[str, Any]:

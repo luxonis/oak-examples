@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
+from pydantic import BaseModel
 
-from core.controllers.nn_prompts_controller import NnPromptsController
-from core.handlers.base_prompt_handler import BasePromptHandler
+from core.neural_network.prompts.nn_prompts_controller import NnPromptsController
+from core.neural_network.prompts.handlers.base_prompt_handler import BasePromptHandler
 from core.services.service_name import ServiceName
 
-PayloadT = TypeVar("PayloadT", bound=dict)
+PayloadT = TypeVar("PayloadT", bound=BaseModel)
 
 
 class BaseService(ABC, Generic[PayloadT]):

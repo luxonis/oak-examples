@@ -1,9 +1,9 @@
-from typing import TypedDict
+from pydantic import BaseModel, Field
 
 
-class ImageUploadPayload(TypedDict):
+class ImageUploadPayload(BaseModel):
     """Payload for uploading an image from the frontend."""
 
-    filename: str
-    type: str
-    data: str
+    filename: str = Field(..., min_length=1)
+    type: str = Field(..., min_length=1)
+    data: str = Field(..., description="Base64-encoded image data")

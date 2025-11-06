@@ -148,7 +148,7 @@ function App() {
     (connection as any).daiConnection?.postToService(
       "BBox Prompt Service",
       {
-        bbox: { x: xNorm, y: yNorm, width: wNorm, height: hNorm },
+        x: xNorm, y: yNorm, width: wNorm, height: hNorm
       },
       (resp: any) => {
         console.log("[BBox] Service ack:", resp);

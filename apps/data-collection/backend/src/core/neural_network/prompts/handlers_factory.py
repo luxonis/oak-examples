@@ -1,16 +1,22 @@
-from core.handlers.text_prompt_handler import TextPromptHandler
-from core.handlers.image_prompt_handler import ImagePromptHandler
-from core.handlers.bbox_prompt_handler import BBoxPromptHandler
-from core.infrastructure.frame_cache_node import FrameCacheNode
-from core.infrastructure.neural_network.prompt_encoders_manager import (
+from core.neural_network.prompts.handlers.base_prompt_handler import BasePromptHandler
+from core.neural_network.prompts.handlers.text_prompt_handler import TextPromptHandler
+from core.neural_network.prompts.handlers.image_prompt_handler import ImagePromptHandler
+from core.neural_network.prompts.handlers.bbox_prompt_handler import BBoxPromptHandler
+from core.neural_network.prompts.frame_cache_node import FrameCacheNode
+from core.neural_network.prompts.prompt_encoders_manager import (
     PromptEncodersManager,
 )
 
 
-class HandlersManager:
+class HandlersFactory:
     def __init__(self, encoders: PromptEncodersManager, frame_cache: FrameCacheNode):
         self._encoders = encoders
         self._frame_cache = frame_cache
+        self.class_update_handler: BasePromptHandler = None
+        self.image_update_handler: BasePromptHandler = None
+        self.bbox_prompt_handler: BasePromptHandler = None
+
+    def build(self):
         self.class_update_handler = self._class_update_handler()
         self.image_update_handler = self._image_update_handler()
         self.bbox_prompt_handler = self._bbox_prompt_handler()

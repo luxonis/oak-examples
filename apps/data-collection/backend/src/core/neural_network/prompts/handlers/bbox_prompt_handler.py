@@ -1,8 +1,10 @@
 import numpy as np
 
-from core.encoders.visual_prompt_encoder import VisualPromptEncoder
-from core.handlers.base_prompt_handler import BasePromptHandler
-from core.infrastructure.frame_cache_node import FrameCacheNode
+from core.neural_network.prompts.encoders.visual_prompt_encoder import (
+    VisualPromptEncoder,
+)
+from core.neural_network.prompts.handlers.base_prompt_handler import BasePromptHandler
+from core.neural_network.prompts.frame_cache_node import FrameCacheNode
 from core.services.payloads.bbox_prompt_payload import BBoxPromptPayload
 
 
@@ -16,14 +18,14 @@ class BBoxPromptHandler(BasePromptHandler):
     def __init__(self, encoder: VisualPromptEncoder, frame_cache: FrameCacheNode):
         super().__init__(encoder)
         self._frame_cache: FrameCacheNode = frame_cache
-        self._image: np.ndarray | None = None
-        self._bbox: dict[str, float] | None = None
+        self._image: np.ndarray = None
+        self._bbox: BBoxPromptPayload = None
         self._class_names: list[str] = ["Bounding Box Object"]
 
     def process(self, payload: BBoxPromptPayload) -> tuple[np.ndarray, np.ndarray]:
         """Crop region mask based on bbox and extract embeddings."""
         self._image = self._frame_cache.get_last_frame()
-        self._bbox = payload["bbox"]
+        self._bbox = payload
 
         mask = self._make_mask()
         embeddings = self._encoder.extract_embeddings(self._image, mask)
@@ -35,10 +37,10 @@ class BBoxPromptHandler(BasePromptHandler):
         """Build a binary mask corresponding to the provided bounding box."""
         H, W = self._image.shape[:2]
         bx, by, bw, bh = (
-            self._bbox["x"],
-            self._bbox["y"],
-            self._bbox["width"],
-            self._bbox["height"],
+            self._bbox.x,
+            self._bbox.y,
+            self._bbox.width,
+            self._bbox.height,
         )
 
         x0, y0 = int(bx * W), int(by * H)

@@ -1,3 +1,4 @@
+from pydantic import ValidationError
 from core.services.base_service import BaseService
 from core.snapping.conditions_engine import ConditionsEngine
 from depthai_nodes.node import SnapsProducer
@@ -18,14 +19,17 @@ class SnapCollectionService(BaseService[SnapPayload]):
         snaps_producer: SnapsProducer,
     ):
         super().__init__()
-        self.engine = engine
-        self.snaps_producer = snaps_producer
+        self.engine: ConditionsEngine = engine
+        self.snaps_producer: SnapsProducer = snaps_producer
 
     def handle(self, payload: SnapPayload) -> dict[str, any]:
-        self.engine.import_conditions_config(payload)
+        try:
+            payload = SnapPayload.model_validate(payload)
+        except ValidationError as e:
+            return {"ok": False, "error": e.errors()}
 
+        self.engine.import_conditions_config(payload.root)
         any_active = self.engine.any_active()
-
         self.snaps_producer.setRunning(any_active)
 
         return {"ok": True, "active": any_active}

@@ -1,5 +1,5 @@
 from core.services.base_service import BaseService
-from config.system_state_exporter import SystemStateExporter
+from core.export.system_state_exporter import SystemStateExporter
 from core.services.service_name import ServiceName
 
 

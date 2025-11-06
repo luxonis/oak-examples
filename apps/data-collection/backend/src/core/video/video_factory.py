@@ -1,10 +1,10 @@
 import depthai as dai
 from config.config_data_classes import VideoConfig
-from core.infrastructure.video_providers.base_video_provider import BaseVideoProvider
-from core.infrastructure.video_providers.camera_video_provvider import (
+from core.video.video_providers.base_video_provider import BaseVideoProvider
+from core.video.video_providers.camera_video_provvider import (
     CameraVideoProvider,
 )
-from core.infrastructure.video_providers.replay_video_provider import (
+from core.video.video_providers.replay_video_provider import (
     ReplayVideoProvider,
 )
 
@@ -13,9 +13,9 @@ class VideoFactory:
     """Facade that chooses the right source type and provides encoder."""
 
     def __init__(self, pipeline: dai.Pipeline, cfg: VideoConfig):
-        self._pipeline = pipeline
-        self._config = cfg
-        self._source = self._select_source()
+        self._pipeline: dai.Pipeline = pipeline
+        self._config: VideoConfig = cfg
+        self._source: BaseVideoProvider = self._select_source()
 
     def _select_source(self) -> BaseVideoProvider:
         if self._config.media_path:

@@ -1,7 +1,7 @@
 import depthai as dai
 
 from config.config_data_classes import VideoConfig
-from core.infrastructure.video_providers.base_video_provider import BaseVideoProvider
+from core.video.video_providers.base_video_provider import BaseVideoProvider
 
 
 class CameraVideoProvider(BaseVideoProvider):

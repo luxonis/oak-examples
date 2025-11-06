@@ -1,11 +1,9 @@
-import argparse
+from argparse import Namespace, ArgumentParser, ArgumentDefaultsHelpFormatter
 
 
-def initialize_argparser():
+def initialize_argparser() -> Namespace:
     """Initialize the argument parser for the script."""
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "-fps",

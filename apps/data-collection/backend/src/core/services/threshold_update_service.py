@@ -1,3 +1,4 @@
+from pydantic import ValidationError
 from core.services.base_service import BaseService
 from core.services.payloads.threshold_update_payload import ThresholdUpdatePayload
 from core.services.service_name import ServiceName
@@ -9,7 +10,11 @@ class ThresholdUpdateService(BaseService[ThresholdUpdatePayload]):
     NAME = ServiceName.THRESHOLD_UPDATE
 
     def handle(self, payload: ThresholdUpdatePayload) -> dict[str, any]:
-        new_threshold = payload["threshold"]
+        try:
+            payload = ThresholdUpdatePayload.model_validate(payload)
+        except ValidationError as e:
+            return {"ok": False, "error": e.errors()}
+        new_threshold = payload.threshold
 
         clamped = max(0.0, min(1.0, new_threshold))
         self._controller.set_confidence_threshold(clamped)

@@ -1,3 +1,5 @@
+from argparse import Namespace
+
 import depthai as dai
 from pathlib import Path
 from config.config_data_classes import ModelInfo
@@ -7,8 +9,8 @@ class ModelLoader:
     """Resolves DepthAI model archive and metadata."""
 
     def __init__(self, platform: str, args):
-        self.platform = platform
-        self.args = args
+        self.platform: str = platform
+        self.args: Namespace = args
 
     def load_model_info(self) -> ModelInfo:
         models_dir = Path(__file__).parent.parent / "depthai_models"

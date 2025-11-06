@@ -40,7 +40,7 @@ class BasePromptEncoder(ABC):
         """Subclasses must implement modality-specific preprocessing and inference."""
         pass
 
-    def _pad_and_quantize_features(self, features):
+    def _pad_and_quantize_features(self, features) -> np.ndarray:
         """
         Pad features to (1, 512, max_num_classes) and quantize if precision is int8.
         For FP16, return padded float16 features (no quantization).

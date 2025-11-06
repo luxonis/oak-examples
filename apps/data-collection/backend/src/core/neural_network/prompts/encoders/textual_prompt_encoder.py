@@ -2,7 +2,7 @@ from box import Box
 from tokenizers import Tokenizer
 import numpy as np
 
-from core.encoders.base_prompt_encoder import BasePromptEncoder
+from core.neural_network.prompts.encoders.base_prompt_encoder import BasePromptEncoder
 
 
 class TextualPromptEncoder(BasePromptEncoder):
@@ -16,10 +16,10 @@ class TextualPromptEncoder(BasePromptEncoder):
             config.paths.text_encoder.url,
             config.paths.text_encoder.path,
         )
-        self._offset = config.text_offset
-        self.tokenizer_url = config.paths.tokenizer.url
-        self.tokenizer_path = config.paths.tokenizer.path
-        self.tokenizer = None
+        self._offset: str = config.text_offset
+        self.tokenizer_url: str = config.paths.tokenizer.url
+        self.tokenizer_path: str = config.paths.tokenizer.path
+        self.tokenizer: Tokenizer = None
 
     def _load_tokenizer(self):
         path = self._download_file(self.tokenizer_url, self.tokenizer_path)

@@ -12,3 +12,4 @@ onnxruntime
 requests
 dotenv
 python-box
+pydantic

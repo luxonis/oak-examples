@@ -1,7 +1,7 @@
-from typing import TypedDict
+from pydantic import BaseModel, Field
 
 
-class ThresholdUpdatePayload(TypedDict):
+class ThresholdUpdatePayload(BaseModel):
     """Payload for updating NN confidence threshold."""
 
-    threshold: float
+    threshold: float = Field(..., ge=0.0, le=1.0)

@@ -1,3 +1,4 @@
+from core.services.payloads.snap_payload import ConditionConfig
 from core.snapping.conditions.base_condition import Condition
 from core.snapping.conditions.tracker_conditions.tracklet_analyzer import (
     TrackletAnalyzer,
@@ -17,10 +18,10 @@ class LostMidCondition(Condition):
         self.margin: float = 0.2
         self.prev_tracked: dict[int, bool] = {}
 
-    def apply_config(self, conf: Dict[str, Any]):
+    def apply_config(self, conf: ConditionConfig):
         super().apply_config(conf)
-        if "margin" in conf:
-            val = float(conf["margin"])
+        if conf.margin:
+            val = float(conf.margin)
             self.margin = max(0.0, min(0.49, val))
 
     def export_config(self) -> Dict[str, Any]:

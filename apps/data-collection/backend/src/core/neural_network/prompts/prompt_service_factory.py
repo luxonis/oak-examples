@@ -1,5 +1,5 @@
-from core.controllers.nn_prompts_controller import NnPromptsController
-from core.infrastructure.neural_network.handlers_manager import HandlersManager
+from core.neural_network.prompts.nn_prompts_controller import NnPromptsController
+from core.neural_network.prompts.handlers_factory import HandlersFactory
 from core.services.base_service import BaseService
 from core.services.class_update_service import ClassUpdateService
 from core.services.threshold_update_service import ThresholdUpdateService
@@ -11,13 +11,12 @@ class PromptServiceFactory:
     def __init__(
         self,
         controller: NnPromptsController,
-        handlers: HandlersManager,
+        handlers: HandlersFactory,
     ):
-        self.controller = controller
-        self.handlers = handlers
-        self.services = self._build_services()
+        self.controller: NnPromptsController = controller
+        self.handlers: HandlersFactory = handlers
 
-    def _build_services(self) -> list[BaseService]:
+    def build_services(self) -> list[BaseService]:
         return [
             ClassUpdateService(self.controller, self.handlers.class_update_handler),
             ThresholdUpdateService(self.controller),

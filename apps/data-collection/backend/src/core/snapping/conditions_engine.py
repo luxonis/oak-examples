@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Generator, Any
 
+from core.services.payloads.snap_payload import ConditionConfig
 from core.snapping.conditions.base_condition import Condition
 from core.snapping.conditions.condition_key import ConditionKey
 
@@ -30,7 +31,7 @@ class ConditionsEngine:
             if cond.should_trigger(**context):
                 yield cond
 
-    def import_conditions_config(self, config: Dict[str, dict]) -> None:
+    def import_conditions_config(self, config: Dict[str, ConditionConfig]) -> None:
         """
         Apply configuration dict to registered conditions.
         """

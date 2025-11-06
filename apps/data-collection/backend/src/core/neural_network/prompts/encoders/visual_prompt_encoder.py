@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from box import Box
 
-from core.encoders.base_prompt_encoder import BasePromptEncoder
+from core.neural_network.prompts.encoders.base_prompt_encoder import BasePromptEncoder
 
 
 class VisualPromptEncoder(BasePromptEncoder):
@@ -23,10 +23,7 @@ class VisualPromptEncoder(BasePromptEncoder):
             config.paths.visual_encoder.url,
             config.paths.visual_encoder.path,
         )
-        self._offset = config.visual_offset
-        self.tokenizer_url = config.paths.tokenizer.url
-        self.tokenizer_path = config.paths.tokenizer.path
-        self.tokenizer = None
+        self._offset: str = config.visual_offset
 
     def extract_embeddings(self, image: np.ndarray, mask_prompt=None) -> np.ndarray:
         self._load_model()

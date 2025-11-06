@@ -1,5 +1,5 @@
 from depthai_nodes.node import ImgDetectionsFilter
-from core.infrastructure.neural_network.annotation_node import AnnotationNode
+from core.neural_network.pipeline.annotation_node import AnnotationNode
 
 
 class LabelManager:

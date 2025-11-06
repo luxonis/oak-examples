@@ -8,11 +8,9 @@ from core.snapping.conditions.base_condition import Condition
 
 class ConditionsFactory:
     def __init__(self, conditions_yaml: Box):
-        self._conditions_yaml = conditions_yaml
+        self._conditions_yaml: Box = conditions_yaml
 
-        self._engine: ConditionsEngine = self._build_engine()
-
-    def _build_engine(self) -> ConditionsEngine:
+    def build_engine(self) -> ConditionsEngine:
         engine = ConditionsEngine()
 
         for entry in self._conditions_yaml.conditions:
@@ -30,9 +28,6 @@ class ConditionsFactory:
                 )
                 engine.register(cond)
             except Exception as e:
-                print(f"[WARN] Failed to import condition {entry.path}: {e}")
+                print(f"Failed to import condition {entry.path}: {e}")
 
         return engine
-
-    def get_engine(self) -> ConditionsEngine:
-        return self._engine

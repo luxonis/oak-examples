@@ -1,7 +1,7 @@
-from typing import TypedDict, List
+from pydantic import BaseModel, Field
 
 
-class ClassUpdatePayload(TypedDict):
+class ClassUpdatePayload(BaseModel):
     """Payload for updating detection classes."""
 
-    classes: List[str]
+    classes: list[str] = Field(..., min_length=1, description="List of class names")

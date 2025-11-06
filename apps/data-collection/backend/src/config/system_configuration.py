@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from argparse import Namespace
 from pathlib import Path
 from typing import Optional
 from box import Box
@@ -15,15 +17,14 @@ class SystemConfiguration:
     """
 
     def __init__(self, platform: str):
-        self._platform = platform
-        self._args = None
+        self._platform: str = platform
+        self._args: Namespace = None
         self._yaml: Optional[YamlConfigManager] = None
         self._model_info: Optional[ModelInfo] = None
 
     def build(self):
         """Initialize all configuration subsystems."""
-        cli_env = CLIEnvLoader()
-        self._args = cli_env.load()
+        self._args = CLIEnvLoader.parse_arguments()
 
         base = Path(__file__).parent / "yaml_configs"
 

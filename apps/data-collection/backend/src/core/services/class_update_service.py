@@ -1,3 +1,4 @@
+from pydantic import ValidationError
 from core.services.base_service import BaseService
 from core.services.payloads.class_update_payload import ClassUpdatePayload
 from core.services.service_name import ServiceName
@@ -9,6 +10,10 @@ class ClassUpdateService(BaseService[ClassUpdatePayload]):
     NAME = ServiceName.CLASS_UPDATE
 
     def handle(self, payload: ClassUpdatePayload) -> dict[str, any]:
+        try:
+            payload = ClassUpdatePayload.model_validate(payload)
+        except ValidationError as e:
+            return {"ok": False, "error": e.errors()}
         text_inputs, dummy = self._handler.process(payload)
         new_classes = self._handler.get_class_names()
         self._controller.send_prompts_pair(

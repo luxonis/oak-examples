@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
+
+from core.services.payloads.snap_payload import ConditionConfig
 from core.snapping.conditions.condition_key import ConditionKey
 from time import time
 
@@ -42,13 +44,11 @@ class Condition(ABC):
         """Return optional metadata attached to the snap."""
         pass
 
-    def apply_config(self, conf: Dict[str, Any]):
-        if "enabled" in conf:
-            self.enabled = bool(conf["enabled"])
-            if not self.enabled:
-                self.reset_cooldown()
-        if "cooldown" in conf:
-            self.cooldown = max(0.0, float(conf["cooldown"]))
+    def apply_config(self, conf: ConditionConfig):
+        self.enabled = conf.enabled
+        if not self.enabled:
+            self.reset_cooldown()
+        self.cooldown = conf.cooldown
 
     def export_config(self) -> Dict[str, Any]:
         return {
