@@ -20,6 +20,10 @@ KNOWN_FAILING = {
         "reason": "Not ported to latest DAI yet",
         "platform": "all",
     },
+    "tutorials/multiple-devices/multiple-device-stich-nn": {
+        "reason": "Stitching can't be performed on cameras since multiple streams need to be joined together",
+        "mode": ["standalone"],
+    },
     "custom-frontend/raw-stream": {
         "reason": "Failed to start the HTTP server on peripheral.",
         "mode": "all",

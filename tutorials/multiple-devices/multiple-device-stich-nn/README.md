@@ -1,12 +1,18 @@
 # Multi device stitching with tiling and Yolo detection
 
-multiple-device-stitch-nn connects to multiple discoverable DepthAI cameras of the same type (either RVC2 or RVC4) and stitches their image streams into a single view. At startup, the system calculates a homography between camera feeds to align them, and all subsequent warping is performed based on this fixed calibration. Cameras are assumed to be static; if they are moved, pressing “r” in the browser visualizer triggers a recalculation of the homography.
+Example **connects to multiple discoverable Luxonis cameras** of the same type (either RVC2 or RVC4) and **stitches their image streams into a single view**. It runs YoloV6-nano object detection on the resulting view by separating the wide image into tiles.
 
-The stitched image is processed by the YOLOv6-nano model for object detection. To handle large panoramic views efficiently, the stream is tiled into smaller sections for inference, and detections from all tiles are then merged into a unified output. The browser visualizer shows the live stitched feed and detection overlays, providing a simple interface for monitoring and recalibration.
+The browser visualizer shows the live stitched feed and detection overlays, providing a simple interface for monitoring and recalculation of homography.
+
+At startup, the system calculates a homography between camera feeds to align them, and all subsequent warping is performed based on this fixed calibration. **Cameras are assumed to be static**; if they are moved, pressing “r” in the browser visualizer triggers a recalculation of the homography.
+
+**Limitations:**
+
+Cameras must be **vertically aligned** and have **sufficient field-of-view overlap** for reliable stitching. The **image order (left to right) is important** and should remain consistent across runs. For best results, **use identical, well-calibrated cameras**, as differences in lens parameters or image quality can negatively impact stitching and homography accuracy.
 
 ## Demo
 
-TODO gif
+![example](media/stitching.gif)
 
 ## Usage
 
@@ -45,7 +51,7 @@ Running in peripheral mode requires a host computer and there will be communicat
 python3 main.py
 ```
 
-This will run the Stitching with YOLO detection example with the default device and camera input.
+This will run the Stitching with YOLO detection example with all the discoverable devices.
 
 ```bash
 python3 main.py -fps 10
@@ -57,4 +63,4 @@ This will run the example at 10 FPS.
 python3 main.py -is 720p
 ```
 
-This will run the example with resolution 720p from the cameras. Sitching, tiling and YOLO detections can be costly on the processing resources - especially with larger number of cameras connected - and the output FPS will depend on the CPU power. If output FPS are too low, try lowering the resolution.
+This will run the example with resolution 720p. Stitching, tiling and YOLO detections can be costly on the processing resources - especially with larger number of cameras connected - and the output FPS will depend on the CPU power. If output FPS is too low, try lowering the resolution.

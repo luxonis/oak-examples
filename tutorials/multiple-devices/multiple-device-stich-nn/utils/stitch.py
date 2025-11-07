@@ -3,8 +3,8 @@ import depthai as dai
 from stitching import Stitcher
 from stitching.images import Images
 
-class VideoStitcher(Stitcher):
 
+class VideoStitcher(Stitcher):
     def initialize_stitcher(self, **kwargs):
         super().initialize_stitcher(**kwargs)
         self.cameras = None
@@ -13,7 +13,7 @@ class VideoStitcher(Stitcher):
     def unregister_cameras(self):
         self.cameras_registered = False
         return
-		
+
     def stitch(self, images, feature_masks=[]):
         self.images = Images.of(
             images, self.medium_megapix, self.low_megapix, self.final_megapix
@@ -53,13 +53,14 @@ class VideoStitcher(Stitcher):
         self.blend_images(imgs, seam_masks, corners)
         return self.create_final_panorama()
 
+
 class Stitch(dai.node.ThreadedHostNode):
     def __init__(self, nr_inputs: int, output_resolution: list) -> None:
         super().__init__()
-        assert nr_inputs > 1  # number of inputs must be bigger then one 
+        assert nr_inputs > 1  # number of inputs must be bigger then one
         assert len(output_resolution) == 2  # resolution must be a list with len 2
-        self.output_resolution = output_resolution 
-        # Setup required number of inputs and save them in list, it is assumed that 
+        self.output_resolution = output_resolution
+        # Setup required number of inputs and save them in list, it is assumed that
         # each input is linked to a camera stream in main node
         self.inputs = []
         for _ in range(0, nr_inputs):
@@ -79,9 +80,12 @@ class Stitch(dai.node.ThreadedHostNode):
             images = []
             for input in self.inputs:
                 input_frame = input.get()  # get the frame from input
-                assert isinstance(input_frame, dai.ImgFrame)  # assert that it has correct type
+                assert isinstance(
+                    input_frame, dai.ImgFrame
+                )  # assert that it has correct type
                 images.append(input_frame.getCvFrame())  # save images as cv frames
-    
+
+            print(f"images: {len(images)}")
             try:
                 stitched = self.stitcher.stitch(images)
             except Exception as e:
@@ -89,7 +93,9 @@ class Stitch(dai.node.ThreadedHostNode):
                 stitched = cv2.hconcat(images)
 
             img_frame = dai.ImgFrame()
-            self.out_full_res.send(img_frame.setCvFrame(stitched.copy(), dai.ImgFrame.Type.BGR888p))
+            self.out_full_res.send(
+                img_frame.setCvFrame(stitched.copy(), dai.ImgFrame.Type.BGR888p)
+            )
             stitched = cv2.resize(stitched, self.output_resolution)
             img_frame.setCvFrame(stitched, dai.ImgFrame.Type.BGR888p)
             self.out.send(img_frame)
