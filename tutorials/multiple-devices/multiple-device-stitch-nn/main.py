@@ -60,7 +60,7 @@ with contextlib.ExitStack() as stack:
     script_path = pathlib.Path(
         __file__
     ).parent.resolve()  # get absolute path of this script
-    platform = device.getPlatform()  # get platform
+    platform = device.getPlatform()
     # Get model based on platform type from yaml file
     model_description = dai.NNModelDescription.fromYamlFile(
         f"{script_path}/depthai_models/yolov6_nano.{platform.name}.yaml"
@@ -116,7 +116,6 @@ with contextlib.ExitStack() as stack:
     visualizer.addTopic("Stitched full res", stitch_pl.out_full_res)
     visualizer.addTopic("Patcher", patcher.out)
 
-    # Start all of the pipelines
     for p in pipelines:
         p.start()
 

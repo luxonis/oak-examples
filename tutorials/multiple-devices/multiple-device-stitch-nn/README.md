@@ -29,7 +29,9 @@ Here is a list of all available parameters:
                     Input video stream resolution. {2160p, 1080p, 720p, 480p, 360p} (default: 360p)
 ```
 
-## Installation
+## Peripheral Mode
+
+### Installation
 
 You need to first prepare a **Python 3.10** environment with the following packages installed:
 
@@ -45,7 +47,7 @@ pip install -r requirements.txt
 
 Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
 
-## Examples
+### Examples
 
 ```bash
 python3 main.py

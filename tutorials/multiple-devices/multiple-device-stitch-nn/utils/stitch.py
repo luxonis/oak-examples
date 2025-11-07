@@ -57,8 +57,8 @@ class VideoStitcher(Stitcher):
 class Stitch(dai.node.ThreadedHostNode):
     def __init__(self, nr_inputs: int, output_resolution: list) -> None:
         super().__init__()
-        assert nr_inputs > 1  # number of inputs must be bigger then one
-        assert len(output_resolution) == 2  # resolution must be a list with len 2
+        assert nr_inputs > 1
+        assert len(output_resolution) == 2
         self.output_resolution = output_resolution
         # Setup required number of inputs and save them in list, it is assumed that
         # each input is linked to a camera stream in main node
@@ -68,7 +68,7 @@ class Stitch(dai.node.ThreadedHostNode):
         # Create output stream, it is assumed that it is lined to output in main node
         self.out = self.createOutput()
         self.out_full_res = self.createOutput()
-        self.stitcher = VideoStitcher()  # initialize video stitcher
+        self.stitcher = VideoStitcher()
 
     def recalculate_homography(self):
         # Call this function to recalculate homography. Used when the position of camera(s) has changed.
@@ -79,11 +79,9 @@ class Stitch(dai.node.ThreadedHostNode):
         while self.isRunning():
             images = []
             for input in self.inputs:
-                input_frame = input.get()  # get the frame from input
-                assert isinstance(
-                    input_frame, dai.ImgFrame
-                )  # assert that it has correct type
-                images.append(input_frame.getCvFrame())  # save images as cv frames
+                input_frame = input.get()
+                assert isinstance(input_frame, dai.ImgFrame)
+                images.append(input_frame.getCvFrame())
 
             try:
                 stitched = self.stitcher.stitch(images)
