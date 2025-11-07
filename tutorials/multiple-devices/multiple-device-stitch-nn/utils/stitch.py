@@ -85,7 +85,6 @@ class Stitch(dai.node.ThreadedHostNode):
                 )  # assert that it has correct type
                 images.append(input_frame.getCvFrame())  # save images as cv frames
 
-            print(f"images: {len(images)}")
             try:
                 stitched = self.stitcher.stitch(images)
             except Exception as e:
