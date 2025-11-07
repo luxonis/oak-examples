@@ -1,4 +1,4 @@
-from core.model_state import ModelState
+from core.neural_network.pipeline.model_state import ModelState
 from core.snapping.conditions_engine import ConditionsEngine
 from core.export.system_state_exporter import SystemStateExporter
 from core.services.export_service import ExportService

@@ -13,10 +13,5 @@ class ExportService(BaseService[None]):
         self.config_exporter = config_exporter
 
     def handle(self, payload: None = None) -> dict[str, any]:
-        try:
-            config = self.config_exporter.export_config()
-            print("[ExportService] returning:", config)
-            return config
-        except Exception as e:
-            print("[ExportService] ERROR:", e)
-            raise
+        config = self.config_exporter.export_config()
+        return config

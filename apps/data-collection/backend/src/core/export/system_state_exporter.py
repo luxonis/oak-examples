@@ -1,6 +1,6 @@
 from typing import Dict, Any
 from core.snapping.conditions_engine import ConditionsEngine
-from core.model_state import ModelState
+from core.neural_network.pipeline.model_state import ModelState
 
 
 class SystemStateExporter:
@@ -21,8 +21,8 @@ class SystemStateExporter:
         Construct the unified configuration dictionary expected by the frontend.
         """
         return {
-            "classes": self._model_state.get_classes(),
-            "confidence_threshold": self._model_state.get_threshold(),
+            "classes": self._model_state.current_classes,
+            "confidence_threshold": self._model_state.confidence_threshold,
             "snapping": {
                 "running": self._condition_engine.any_active(),
                 **self._condition_engine.export_conditions_config(),

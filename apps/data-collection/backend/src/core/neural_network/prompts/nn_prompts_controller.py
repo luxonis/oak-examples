@@ -3,7 +3,7 @@ import numpy as np
 from depthai_nodes.node import YOLOExtendedParser
 
 from core.label_manager import LabelManager
-from core.model_state import ModelState
+from core.neural_network.pipeline.model_state import ModelState
 
 
 class NnPromptsController:
@@ -15,15 +15,15 @@ class NnPromptsController:
         text_prompt_queue: dai.InputQueue,
         precision: str,
         parser: YOLOExtendedParser,
-        model_state: ModelState,
         label_manager: LabelManager,
     ):
         self._image_prompt_queue = image_prompt_queue
         self._text_prompt_queue = text_prompt_queue
         self._precision = precision
         self._parser: YOLOExtendedParser = parser
-        self._model_state = model_state
         self._label_manager = label_manager
+
+        self._model_state = ModelState()
 
     def _tensor_type(self) -> dai.TensorInfo.DataType:
         return (
@@ -46,10 +46,13 @@ class NnPromptsController:
     ):
         self._send(self._text_prompt_queue, "text_prompts", text_prompt)
         self._send(self._image_prompt_queue, "image_prompts", visual_prompt)
-        self._model_state.update_classes(class_names)
         self._label_manager.update_labels(class_names, offset)
+        self._model_state.current_classes = class_names
 
     def set_confidence_threshold(self, threshold: float):
         """Apply threshold update directly to the NN parser."""
         self._parser.setConfidenceThreshold(threshold)
-        self._model_state.update_threshold(threshold)
+        self._model_state.confidence_threshold = threshold
+
+    def get_model_state(self) -> ModelState:
+        return self._model_state

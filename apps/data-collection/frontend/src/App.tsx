@@ -216,6 +216,8 @@ function App() {
             const jsonStr = td.decode(view);
             obj = JSON.parse(jsonStr);
 
+            console.log("[App] Received payload:", obj);
+
             if (obj && obj.data && typeof obj.data === 'object') {
               obj = obj.data;
             }

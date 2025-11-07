@@ -1,7 +1,10 @@
+import os
+
+os.environ.setdefault("DEPTHAI_LEVEL", "info")
+
 import depthai as dai
 
 from config.system_configuration import SystemConfiguration
-from core.model_state import ModelState
 from core.neural_network.prompts.nn_prompts_manager import NNPromptsManager
 from core.neural_network.pipeline.nn_pipeline_setup import NNPipelineBuilder
 from core.snapping.snaps_manager import SnappingServiceManager
@@ -23,14 +26,15 @@ def main():
 
     with dai.Pipeline(device) as pipeline:
         print("Creating pipeline...")
-        model_state = ModelState()
 
         video_factory = VideoFactory(pipeline, config.get_video_config())
         visualizer.addTopic("Video", video_factory.get_encoded_output())
         input_node = video_factory.get_input_node()
 
         nn_pipeline = NNPipelineBuilder(
-            pipeline, input_node, config.get_neural_network_config(), model_state
+            pipeline,
+            input_node,
+            config.get_neural_network_config(),
         )
         nn_pipeline.build()
         visualizer.addTopic("Annotations", nn_pipeline.annotation_node.out)
@@ -51,7 +55,9 @@ def main():
         snaps_manager.build()
         snaps_manager.register_service(visualizer)
 
-        export_manager = ExportServiceManager(model_state, snaps_manager.get_engine())
+        export_manager = ExportServiceManager(
+            nn_pipeline.controller.get_model_state(), snaps_manager.get_engine()
+        )
         export_manager.build()
         export_manager.register_service(visualizer)
 

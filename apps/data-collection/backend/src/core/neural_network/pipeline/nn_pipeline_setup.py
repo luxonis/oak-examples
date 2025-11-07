@@ -8,7 +8,6 @@ from core.neural_network.pipeline.prompt_controller_factory import (
     PromptControllerFactory,
 )
 from core.neural_network.pipeline.tracker_factory import TrackerFactory
-from core.model_state import ModelState
 
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
@@ -28,12 +27,10 @@ class NNPipelineBuilder:
         pipeline: dai.Pipeline,
         input_node: dai.Node.Output,
         nn_config: NeuralNetworkConfig,
-        model_state: ModelState,
     ):
         self._pipeline: dai.Pipeline = pipeline
         self._input_node: dai.Node.Output = input_node
         self._config: NeuralNetworkConfig = nn_config
-        self._model_state: ModelState = model_state
 
         self._nn: ParsingNeuralNetwork = None
         self._det_filter: ImgDetectionsFilter = None
@@ -65,7 +62,6 @@ class NNPipelineBuilder:
             self._det_filter,
             self._annotation_node,
             self._config.model.precision,
-            self._model_state,
         )
         self._controller = controller_factory.build()
 

@@ -50,6 +50,7 @@ class NNPromptsManager:
             self._config.class_names,
             self._config.text_offset,
         )
+        self._controller.set_confidence_threshold(self._config.detection_threshold)
 
     def register_services(self, visualizer: dai.RemoteConnection):
         for service in self._services:
