@@ -2,6 +2,10 @@ import os
 
 os.environ.setdefault("DEPTHAI_LEVEL", "info")
 
+from core.export.export_service import ExportService
+
+os.environ.setdefault("DEPTHAI_LEVEL", "info")
+
 import depthai as dai
 
 from config.system_configuration import SystemConfiguration
@@ -9,7 +13,6 @@ from core.neural_network.prompts.nn_prompts_manager import NNPromptsManager
 from core.neural_network.pipeline.nn_pipeline_setup import NNPipelineBuilder
 from core.snapping.snaps_manager import SnappingServiceManager
 from core.video.video_factory import VideoFactory
-from core.export.export_manager import ExportServiceManager
 
 
 def main():
@@ -55,11 +58,10 @@ def main():
         snaps_manager.build()
         snaps_manager.register_service(visualizer)
 
-        export_manager = ExportServiceManager(
+        export_service = ExportService(
             nn_pipeline.controller.get_model_state(), snaps_manager.get_engine()
         )
-        export_manager.build()
-        export_manager.register_service(visualizer)
+        visualizer.registerService(export_service.name, export_service.handle)
 
         print("Pipeline created.")
         pipeline.start()
