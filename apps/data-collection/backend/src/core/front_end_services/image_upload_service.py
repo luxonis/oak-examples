@@ -1,7 +1,7 @@
 from pydantic import ValidationError
-from core.services.base_service import BaseService
-from core.services.payloads.image_upload_payload import ImageUploadPayload
-from core.services.service_name import ServiceName
+from core.front_end_services.base_service import BaseService
+from core.front_end_services.payloads.image_upload_payload import ImageUploadPayload
+from core.front_end_services.service_name import ServiceName
 
 
 class ImageUploadService(BaseService[ImageUploadPayload]):

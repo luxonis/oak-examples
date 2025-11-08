@@ -1,9 +1,9 @@
 from pydantic import ValidationError
-from core.services.base_service import BaseService
+from core.front_end_services.base_service import BaseService
 from core.snapping.conditions_engine import ConditionsEngine
 from depthai_nodes.node import SnapsProducer
-from core.services.payloads.snap_payload import SnapPayload
-from core.services.service_name import ServiceName
+from core.front_end_services.payloads.snap_payload import SnapPayload
+from core.front_end_services.service_name import ServiceName
 
 
 class SnapCollectionService(BaseService[SnapPayload]):

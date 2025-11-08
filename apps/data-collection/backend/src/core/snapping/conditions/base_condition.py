@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 
-from core.services.payloads.snap_payload import ConditionConfig
+from core.front_end_services.payloads.snap_payload import ConditionConfig
 from core.snapping.conditions.condition_key import ConditionKey
 from time import time
 

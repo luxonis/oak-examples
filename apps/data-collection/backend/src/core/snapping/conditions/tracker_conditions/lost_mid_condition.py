@@ -1,4 +1,4 @@
-from core.services.payloads.snap_payload import ConditionConfig
+from core.front_end_services.payloads.snap_payload import ConditionConfig
 from core.snapping.conditions.base_condition import Condition
 from core.snapping.conditions.tracker_conditions.tracklet_analyzer import (
     TrackletAnalyzer,

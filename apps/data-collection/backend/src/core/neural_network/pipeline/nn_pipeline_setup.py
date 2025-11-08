@@ -25,11 +25,11 @@ class NNPipelineBuilder:
     def __init__(
         self,
         pipeline: dai.Pipeline,
-        input_node: dai.Node.Output,
+        video_node: dai.Node.Output,
         nn_config: NeuralNetworkConfig,
     ):
         self._pipeline: dai.Pipeline = pipeline
-        self._input_node: dai.Node.Output = input_node
+        self._video_node: dai.Node.Output = video_node
         self._config: NeuralNetworkConfig = nn_config
 
         self._nn: ParsingNeuralNetwork = None
@@ -41,10 +41,10 @@ class NNPipelineBuilder:
 
     def build(self) -> "NNPipelineBuilder":
         """Build full neural-network subgraph."""
-        nn_builder = NnNodeFactory(self._pipeline, self._input_node, self._config)
+        nn_builder = NnNodeFactory(self._pipeline, self._video_node, self._config)
         self._nn = nn_builder.build()
 
-        det_graph = DetectionGraphFactory(self._pipeline, self._input_node, self._nn)
+        det_graph = DetectionGraphFactory(self._pipeline, self._video_node, self._nn)
         self._det_filter, self._annotation_node, self._filtered_bridge = (
             det_graph.build()
         )
@@ -52,7 +52,7 @@ class NNPipelineBuilder:
         tracker_factory = TrackerFactory(
             self._pipeline,
             self._filtered_bridge.out,
-            self._input_node,
+            self._video_node,
             self._config.nn_yaml.tracker,
         )
         self._tracker = tracker_factory.build()

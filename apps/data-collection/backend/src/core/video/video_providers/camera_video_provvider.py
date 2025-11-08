@@ -11,7 +11,7 @@ class CameraVideoProvider(BaseVideoProvider):
         super().__init__(pipeline, config)
         self._camera: dai.node.Camera = self._build_camera()
 
-    def get_input_node(self) -> dai.Node.Output:
+    def get_video_node(self) -> dai.Node.Output:
         return self._camera.requestOutput(
             size=(self._config.width, self._config.height),
             type=dai.ImgFrame.Type.BGR888i,

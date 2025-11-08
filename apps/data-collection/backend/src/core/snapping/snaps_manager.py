@@ -5,7 +5,7 @@ from depthai_nodes.node import SnapsProducer
 from core.snapping.conditions_engine import ConditionsEngine
 from core.snapping.conditions_factory import ConditionsFactory
 from core.snapping.snaps_producer_factory import SnapsProducerFactory
-from core.services.snap_collection_service import SnapCollectionService
+from core.front_end_services.snap_collection_service import SnapCollectionService
 
 
 class SnappingServiceManager:
@@ -16,13 +16,13 @@ class SnappingServiceManager:
     def __init__(
         self,
         pipeline: dai.Pipeline,
-        input_node: dai.Node.Output,
+        video_node: dai.Node.Output,
         tracker: dai.node.ObjectTracker,
         detections: dai.ImgDetections,
         conditions_config: Box,
     ):
         self._pipeline = pipeline
-        self._input_node = input_node
+        self._video_node = video_node
         self._tracker = tracker
         self._detections = detections
         self._conditions_config = conditions_config
@@ -37,7 +37,7 @@ class SnappingServiceManager:
 
         snaps_producer = SnapsProducerFactory.create(
             self._pipeline,
-            self._input_node,
+            self._video_node,
             self._tracker,
             self._detections,
             self._engine,

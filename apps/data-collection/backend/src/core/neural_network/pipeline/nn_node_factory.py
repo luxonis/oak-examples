@@ -9,11 +9,11 @@ class NnNodeFactory:
     def __init__(
         self,
         pipeline: dai.Pipeline,
-        input_node: dai.Node.Output,
+        video_node: dai.Node.Output,
         config: NeuralNetworkConfig,
     ):
         self._pipeline: dai.Pipeline = pipeline
-        self._input_node: dai.Node.Output = input_node
+        self._video_node: dai.Node.Output = video_node
         self._config: NeuralNetworkConfig = config
 
     def build(self) -> ParsingNeuralNetwork:
@@ -29,7 +29,7 @@ class NnNodeFactory:
             }
         )
         nn.setNumInferenceThreads(backend.inference_threads)
-        nn.getParser(0).setConfidenceThreshold(backend.confidence_threshold)
+        nn.getParser(0).setConfidenceThreshold(0.0)
 
-        self._input_node.link(nn.inputs["images"])
+        self._video_node.link(nn.inputs["images"])
         return nn

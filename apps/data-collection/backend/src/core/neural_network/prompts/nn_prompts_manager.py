@@ -11,7 +11,7 @@ from core.neural_network.prompts.prompt_encoders_manager import (
     PromptEncodersManager,
 )
 from core.neural_network.prompts.handlers_factory import HandlersFactory
-from core.services.base_service import BaseService
+from core.front_end_services.base_service import BaseService
 
 
 class NNPromptsManager:
@@ -22,12 +22,12 @@ class NNPromptsManager:
     def __init__(
         self,
         pipeline: dai.Pipeline,
-        input_node: dai.Node.Output,
+        video_node: dai.Node.Output,
         config: Box,
         controller: NnPromptsController,
     ):
         self._pipeline: dai.Pipeline = pipeline
-        self._input_node: dai.Node.Output = input_node
+        self._video_node: dai.Node.Output = video_node
         self._config: Box = config
         self._controller: NnPromptsController = controller
         self._services: List[BaseService] = []
@@ -36,7 +36,7 @@ class NNPromptsManager:
         encoders = PromptEncodersManager(self._config)
         encoders.build()
 
-        frame_cache = self._pipeline.create(FrameCacheNode).build(self._input_node)
+        frame_cache = self._pipeline.create(FrameCacheNode).build(self._video_node)
         handlers = HandlersFactory(encoders, frame_cache)
         handlers.build()
 

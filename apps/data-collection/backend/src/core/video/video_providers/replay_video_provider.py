@@ -12,7 +12,7 @@ class ReplayVideoProvider(BaseVideoProvider):
         super().__init__(pipeline, config)
         self._replay: dai.node.ReplayVideo = self._build_replay()
 
-    def get_input_node(self) -> dai.Node.Output:
+    def get_video_node(self) -> dai.Node.Output:
         manip = self._pipeline.create(dai.node.ImageManip)
         manip.setMaxOutputFrameSize(self._config.width * self._config.height * 3)
         manip.initialConfig.setOutputSize(self._config.width, self._config.height)

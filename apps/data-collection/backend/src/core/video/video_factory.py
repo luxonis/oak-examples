@@ -22,8 +22,8 @@ class VideoFactory:
             return ReplayVideoProvider(self._pipeline, self._config)
         return CameraVideoProvider(self._pipeline, self._config)
 
-    def get_input_node(self) -> dai.Node.Output:
-        return self._source.get_input_node()
+    def get_video_node(self) -> dai.Node.Output:
+        return self._source.get_video_node()
 
     def get_nv12_output(self) -> dai.Node.Output:
         return self._source.get_nv12_output()

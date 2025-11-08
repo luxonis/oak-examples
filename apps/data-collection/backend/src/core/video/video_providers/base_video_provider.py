@@ -11,7 +11,7 @@ class BaseVideoProvider(ABC):
         self._config = config
 
     @abstractmethod
-    def get_input_node(self) -> dai.Node.Output:
+    def get_video_node(self) -> dai.Node.Output:
         """Return BGR888i output for NN input."""
         pass
 

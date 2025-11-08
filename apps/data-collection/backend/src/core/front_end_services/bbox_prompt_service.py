@@ -1,7 +1,7 @@
 from pydantic import ValidationError
-from core.services.base_service import BaseService
-from core.services.payloads.bbox_prompt_payload import BBoxPromptPayload
-from core.services.service_name import ServiceName
+from core.front_end_services.base_service import BaseService
+from core.front_end_services.payloads.bbox_prompt_payload import BBoxPromptPayload
+from core.front_end_services.service_name import ServiceName
 
 
 class BBoxPromptService(BaseService[BBoxPromptPayload]):

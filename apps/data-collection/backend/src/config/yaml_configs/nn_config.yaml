@@ -3,7 +3,6 @@ nn_backend:
   runtime: "dsp"
   performance_profile: "default"
   inference_threads: 1
-  confidence_threshold: 0.1
   precision: "fp16"
 
 tracker:

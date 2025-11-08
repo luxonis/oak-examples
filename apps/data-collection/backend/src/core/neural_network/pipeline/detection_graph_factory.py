@@ -14,17 +14,17 @@ class DetectionGraphFactory:
     def __init__(
         self,
         pipeline: dai.Pipeline,
-        input_node: dai.Node.Output,
+        video_node: dai.Node.Output,
         nn: ParsingNeuralNetwork,
     ):
         self._pipeline: dai.Pipeline = pipeline
-        self._input_node: dai.Node.Output = input_node
+        self._video_node: dai.Node.Output = video_node
         self._nn: ParsingNeuralNetwork = nn
 
     def build(self):
         det_filter = self._pipeline.create(ImgDetectionsFilter).build(self._nn.out)
         annotation_node = self._pipeline.create(AnnotationNode).build(
-            det_filter.out, self._input_node
+            det_filter.out, self._video_node
         )
         filtered_bridge = self._pipeline.create(ImgDetectionsBridge).build(
             det_filter.out

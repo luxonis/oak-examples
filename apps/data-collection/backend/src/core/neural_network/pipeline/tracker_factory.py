@@ -7,12 +7,12 @@ class TrackerFactory:
         self,
         pipeline: dai.Pipeline,
         detections_bridge: dai.Node.Output,
-        input_node: dai.Node.Output,
+        video_node: dai.Node.Output,
         config: Box,
     ):
         self._pipeline: dai.Pipeline = pipeline
         self._detections_bridge: dai.Node.Output = detections_bridge
-        self._input_node: dai.Node.Output = input_node
+        self._video_node: dai.Node.Output = video_node
         self._config: Box = config
 
     def build(self) -> dai.node.ObjectTracker:
@@ -25,8 +25,8 @@ class TrackerFactory:
         tracker.setOcclusionRatioThreshold(self._config.occlusion_ratio_threshold)
         tracker.setTrackerThreshold(self._config.tracker_threshold)
 
-        self._input_node.link(tracker.inputTrackerFrame)
-        self._input_node.link(tracker.inputDetectionFrame)
+        self._video_node.link(tracker.inputTrackerFrame)
+        self._video_node.link(tracker.inputDetectionFrame)
         self._detections_bridge.link(tracker.inputDetections)
 
         return tracker

@@ -1,6 +1,6 @@
 from core.neural_network.pipeline.model_state import ModelState
-from core.services.base_service import BaseService
-from core.services.service_name import ServiceName
+from core.front_end_services.base_service import BaseService
+from core.front_end_services.service_name import ServiceName
 from core.snapping.conditions_engine import ConditionsEngine
 
 

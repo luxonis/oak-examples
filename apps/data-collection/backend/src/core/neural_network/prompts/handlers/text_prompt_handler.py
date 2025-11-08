@@ -6,7 +6,7 @@ from core.neural_network.prompts.encoders.textual_prompt_encoder import (
     TextualPromptEncoder,
 )
 from core.neural_network.prompts.handlers.base_prompt_handler import BasePromptHandler
-from core.services.payloads.class_update_payload import ClassUpdatePayload
+from core.front_end_services.payloads.class_update_payload import ClassUpdatePayload
 
 
 class TextPromptHandler(BasePromptHandler):
