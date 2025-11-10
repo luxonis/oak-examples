@@ -22,7 +22,7 @@ KNOWN_FAILING = {
     },
     "tutorials/multiple-devices/multiple-device-stich-nn": {
         "reason": "Stitching can't be performed on cameras since multiple streams need to be joined together",
-        "mode": ["standalone"],
+        "platform": ["rvc4"],
     },
     "custom-frontend/raw-stream": {
         "reason": "Failed to start the HTTP server on peripheral.",
