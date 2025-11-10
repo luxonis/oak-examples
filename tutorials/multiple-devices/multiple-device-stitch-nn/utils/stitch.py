@@ -57,8 +57,12 @@ class VideoStitcher(Stitcher):
 class Stitch(dai.node.ThreadedHostNode):
     def __init__(self, nr_inputs: int, output_resolution: list) -> None:
         super().__init__()
-        assert nr_inputs > 1
-        assert len(output_resolution) == 2
+        if nr_inputs < 2:
+            raise RuntimeError(
+                "Number of input streams for stitching must be at least 2."
+            )
+        if len(output_resolution) != 2:
+            raise RuntimeError("Output resolution must be of length 2.")
         self.output_resolution = output_resolution
         # Setup required number of inputs and save them in list, it is assumed that
         # each input is linked to a camera stream in main node
@@ -86,7 +90,7 @@ class Stitch(dai.node.ThreadedHostNode):
             try:
                 stitched = self.stitcher.stitch(images)
             except Exception as e:
-                print(f"Failed stitching because: {e}")
+                print(f"Failed stitching because: {e}.")
                 stitched = cv2.hconcat(images)
 
             img_frame = dai.ImgFrame()

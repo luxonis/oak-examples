@@ -6,7 +6,6 @@ from utils.stitch import Stitch
 from utils.arguments import initialize_argparser
 import contextlib
 import depthai as dai
-import pathlib
 
 
 _, args = initialize_argparser()
@@ -57,13 +56,10 @@ with contextlib.ExitStack() as stack:
 
         outputs.append(output)
 
-    script_path = pathlib.Path(
-        __file__
-    ).parent.resolve()  # get absolute path of this script
     platform = device.getPlatform()
     # Get model based on platform type from yaml file
     model_description = dai.NNModelDescription.fromYamlFile(
-        f"{script_path}/depthai_models/yolov6_nano.{platform.name}.yaml"
+        f"yolov6_nano.{platform.name}.yaml"
     )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
@@ -113,7 +109,7 @@ with contextlib.ExitStack() as stack:
     )
 
     # Show stitched image on visualizer overlayed with nn detections
-    visualizer.addTopic("Stitched full res", stitch_pl.out_full_res)
+    visualizer.addTopic("Stitched", stitch_pl.out_full_res)
     visualizer.addTopic("Patcher", patcher.out)
 
     for p in pipelines:
@@ -122,7 +118,7 @@ with contextlib.ExitStack() as stack:
     # Register visualizer with the first pipeline
     visualizer.registerPipeline(pipelines[0])
 
-    print("Press 'r' in visualizer to recalculate homography")
+    print("Press 'r' in visualizer to recalculate homography.")
     while pipeline.isRunning():
         pipeline.processTasks()  # run processTasks in every loop since .start() doesn't do it
         key = visualizer.waitKey(1)
@@ -130,5 +126,5 @@ with contextlib.ExitStack() as stack:
             print("Got q key from the remote connection!")
             break
         if key == ord("r"):
-            print("Got r key from the remote connection, recalculating homography")
+            print("Got r key from the remote connection, recalculating homography.")
             stitch_pl.recalculate_homography()
