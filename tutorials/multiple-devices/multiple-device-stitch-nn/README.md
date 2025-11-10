@@ -10,6 +10,8 @@ At startup, the system calculates a homography between camera feeds to align the
 
 Cameras must be **vertically aligned** and have **sufficient field-of-view overlap** for reliable stitching. The **image order (left to right) is important** and should remain consistent across runs. For best results, **use identical, well-calibrated cameras**, as differences in lens parameters or image quality can negatively impact stitching and homography accuracy.
 
+Stitching, tiling and YOLO detections run on host computer can be **costly on the processing resources** - especially with larger number of cameras connected - and the output FPS will depend on the host CPU power. If output FPS is too low, **try lowering the resolution** with `--input_size` parameter.
+
 ## Demo
 
 ![example](media/stitching.gif)
@@ -65,4 +67,19 @@ This will run the example at 10 FPS.
 python3 main.py -is 720p
 ```
 
-This will run the example with resolution 720p. Stitching, tiling and YOLO detections can be costly on the processing resources - especially with larger number of cameras connected - and the output FPS will depend on the CPU power. If output FPS is too low, try lowering the resolution.
+This will run the example with resolution 720p.
+
+## FAQ
+
+**Why aren’t the images stitching correctly (e.g., strange wrapping or distortion)?**
+
+Ensure that your cameras are ordered correctly from left to right, vertically aligned, and positioned as close together as possible. While focused on the web visualizer (http://localhost:8082), press r to recalculate the homography. Once you find the right camera order you will see a well stitched image.
+
+**Why are two separate (concatenated) images shown instead of a stitched one?**
+
+This usually means there isn’t enough field-of-view (FOV) overlap between cameras.
+Try adjusting their positions to increase the overlap until stitching occurs.
+Additionally, ensure that:
+
+- Both camera streams have similar lighting conditions (avoid direct sunlight exposure).
+- The camera lenses are clean, as smudges or fingerprints can prevent reliable keypoint detection needed for stitching.
