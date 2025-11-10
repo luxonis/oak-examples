@@ -44,7 +44,7 @@ def main():
             pipeline,
             video_node,
             nn_pipeline.tracker,
-            nn_pipeline.detections,
+            nn_pipeline.detections_bridge,
             config.get_snaps_config(),
         )
         snaps_manager.build()

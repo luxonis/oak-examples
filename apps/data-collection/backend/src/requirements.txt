@@ -3,7 +3,7 @@
 --pre
 depthai==3.0.0.dev0+d66489c671da0aee5713135222d0c628eec01d4b
 #depthai-nodes==0.3.4
-depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@feat/dai_dev_req_TEST_GROUP
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@feat/new_snaps_producer
 opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0

@@ -13,6 +13,7 @@ class TimedCondition(Condition):
 
     def should_trigger(self, **kwargs) -> bool:
         if self.enabled and self._cooldown_passed():
+            self.mark_triggered()
             return True
         return False
 

@@ -15,6 +15,7 @@ class NoDetectionsCondition(Condition):
     def should_trigger(self, detections: list[dai.ImgDetection], **kwargs) -> bool:
         if self.enabled and self._cooldown_passed():
             if not detections or len(detections) == 0:
+                self.mark_triggered()
                 return True
         return False
 

@@ -1,11 +1,14 @@
 import depthai as dai
 from box import Box
-from depthai_nodes.node import SnapsProducer
 
 from core.snapping.conditions_engine import ConditionsEngine
 from core.snapping.conditions_factory import ConditionsFactory
-from core.snapping.snaps_producer_factory import SnapsProducerFactory
-from core.front_end_services.snap_collection_service import SnapCollectionService
+from core.snapping.snaps_producer import SnapsProducer
+from core.front_end_services.snapping_service import SnappingService
+
+from depthai_nodes.node import ImgDetectionsBridge
+
+from depthai_nodes.node import SnapsUploader
 
 
 class SnappingServiceManager:
@@ -18,7 +21,7 @@ class SnappingServiceManager:
         pipeline: dai.Pipeline,
         video_node: dai.Node.Output,
         tracker: dai.node.ObjectTracker,
-        detections: dai.ImgDetections,
+        detections: ImgDetectionsBridge,
         conditions_config: Box,
     ):
         self._pipeline = pipeline
@@ -26,25 +29,25 @@ class SnappingServiceManager:
         self._tracker = tracker
         self._detections = detections
         self._conditions_config = conditions_config
-        self._producer: SnapsProducer = None
+        self._uploader: SnapsUploader = None
 
         self._engine: ConditionsEngine = None
-        self._snap_service: SnapCollectionService = None
+        self._snap_service: SnappingService = None
 
     def build(self):
         cond_factory = ConditionsFactory(self._conditions_config)
         self._engine = cond_factory.build_engine()
 
-        snaps_producer = SnapsProducerFactory.create(
-            self._pipeline,
+        collector = self._pipeline.create(SnapsProducer).build(
             self._video_node,
-            self._tracker,
-            self._detections,
             self._engine,
+            self._detections.out,
+            self._tracker.out,
         )
-        self._producer = snaps_producer
 
-        self._snap_service = SnapCollectionService(self._engine, self._producer)
+        self._uploader = self._pipeline.create(SnapsUploader).build(collector.out)
+
+        self._snap_service = SnappingService(self._engine)
 
     def register_service(self, visualizer: dai.RemoteConnection):
         visualizer.registerService(self._snap_service.name, self._snap_service.handle)

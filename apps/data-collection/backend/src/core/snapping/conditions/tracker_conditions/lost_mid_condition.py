@@ -32,6 +32,7 @@ class LostMidCondition(Condition):
     def should_trigger(self, tracklets: dai.Tracklet, **kwargs) -> bool:
         if self.enabled and self._cooldown_passed():
             if self._check_tracklets(tracklets):
+                self.mark_triggered()
                 return True
         return False
 

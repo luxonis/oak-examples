@@ -29,6 +29,7 @@ class LowConfidenceCondition(Condition):
     def should_trigger(self, detections: list[dai.ImgDetection], **kwargs) -> bool:
         if self.enabled and self._cooldown_passed():
             if self._check_detections(detections):
+                self.mark_triggered()
                 return True
         return False
 

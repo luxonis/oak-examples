@@ -70,7 +70,7 @@ class NNPipelineBuilder:
         return self._nn
 
     @property
-    def detections(self):
+    def detections_bridge(self):
         return self._filtered_bridge
 
     @property
