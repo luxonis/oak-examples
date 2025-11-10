@@ -12,10 +12,7 @@ class SnappingService(BaseService[SnapPayload]):
 
     NAME = ServiceName.SNAP_COLLECTION
 
-    def __init__(
-        self,
-        engine: ConditionsEngine
-    ):
+    def __init__(self, engine: ConditionsEngine):
         super().__init__()
         self.engine: ConditionsEngine = engine
 

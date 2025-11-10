@@ -38,7 +38,9 @@ class SnapsProducer(dai.node.HostNode):
         tracklets: dai.Tracklets,
     ) -> None:
         assert isinstance(detections, dai.ImgDetections)
-        conditions = self._engine.evaluate(detections=detections.detections, tracklets=tracklets)
+        conditions = self._engine.evaluate(
+            detections=detections.detections, tracklets=tracklets
+        )
         if not conditions:
             return
 
