@@ -21,8 +21,8 @@ KNOWN_FAILING = {
         "platform": "all",
     },
     "tutorials/multiple-devices/multiple-device-stich-nn": {
-        "reason": "Stitching can't be performed on cameras since multiple streams need to be joined together",
-        "platform": ["rvc4"],
+        "reason": "Test suite doesn't support multi-device testing",
+        "platform": "all",
     },
     "custom-frontend/raw-stream": {
         "reason": "Failed to start the HTTP server on peripheral.",
