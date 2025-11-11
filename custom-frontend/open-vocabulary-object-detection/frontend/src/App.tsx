@@ -35,15 +35,17 @@ function App() {
         console.log("[Init] Requesting current params from backend…");
 
         // @ts-ignore - Custom service
-        (connection as any).daiConnection?.postToService("Get Current Params Service", {}, (response: any) => {
-            console.log("[Init] Received current params:", response);
+        (connection as any).daiConnection?.postToService("Get Current Params Service", {}, (resp: any) => {
 
-            if (response?.confidence_threshold != null) {
-                setInitialConfidence(response.confidence_threshold);
+            console.log("[Init] Received current params:", resp);
+            console.log("CONFIDENCE", resp.confidence_threshold);
+
+            if (resp?.confidence_threshold != null) {
+                setInitialConfidence(resp.confidence_threshold);
             }
-            if (Array.isArray(response?.class_names)) {
-                setInitialClasses(response.class_names);
-                setTextClasses(response.class_names);
+            if (Array.isArray(resp?.class_names)) {
+                setInitialClasses(resp.class_names);
+                setTextClasses(resp.class_names);
             }
 
             notify("Fetched initial parameters from backend", {
@@ -398,7 +400,6 @@ function App() {
                     Run open‑vocabulary detection on‑device (YOLOE or YOLO‑World) with a custom UI.
                     Define classes via text prompts or image crops, adjust confidence, and visualize results live.
                 </p>
-+
                 {/* Confidence Slider */}
                 <ConfidenceSlider initialValue={initialConfidence} />
 

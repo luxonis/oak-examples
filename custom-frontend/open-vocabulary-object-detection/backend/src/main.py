@@ -200,12 +200,14 @@ with dai.Pipeline(device) as pipeline:
 
     visualizer.addTopic("Detections", annotation_node.out)
 
-    def get_current_params_service() -> dict[str, any]:
+    def get_current_params_service(req) -> dict[str, any]:
         """Returns current parameters used"""
-        return {
+        out_data = {
             "confidence_threshold": CONFIDENCE_THRESHOLD,
             "class_names": CLASS_NAMES,
         }
+        print("Current params:", out_data)
+        return out_data
 
     def class_update_service(new_classes: list[str]):
         """Changes classes to detect based on the user input"""
