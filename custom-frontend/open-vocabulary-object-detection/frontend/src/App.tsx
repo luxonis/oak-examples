@@ -1,18 +1,18 @@
 import { css } from "../styled-system/css/css.mjs";
-import { Streams, useConnection } from "@luxonis/depthai-viewer-common";
+import { DAIResponse, Streams, useConnection } from "@luxonis/depthai-viewer-common";
 import { ClassSelector } from "./ClassSelector.tsx";
 import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
 import { ImageUploader } from "./ImageUploader.tsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNotifications } from "./Notifications.tsx";
 import { Button } from "@luxonis/common-fe-components";
+import React from "react";
 
 function App() {
     const connection = useConnection();
     const { notify } = useNotifications();
 
     const [initialConfidence, setInitialConfidence] = useState<number>(0.1);
-    const [initialClasses, setInitialClasses] = useState<string[]>(["person", "chair", "TV"]);
 
     const streamContainerRef = useRef<HTMLDivElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -25,36 +25,32 @@ function App() {
     const [imagePromptLabels, setImagePromptLabels] = useState<string[]>([]);
     const lastCommittedImageLabelsRef = useRef<string[]>([]);
     const [textClasses, setTextClasses] = useState<string[]>(["person", "chair", "TV"]);
+    
+    const current_params_setter = React.useCallback(
+		(
+			response: DAIResponse<{
+				confidence_threshold: number;
+                class_names: string[];
+			}>,
+		) => {
+			console.log(response)
+            setInitialConfidence(0.1) // TODO: Change this
+		},
+		[],
+	);
 
-    const handleFetchParams = useCallback(() => {
+    (connection as any).daiConnection?.setOnService('Get Current Params Service', current_params_setter);
+
+    React.useEffect(() => {
         if (!connection.connected) {
             notify("Not connected to device", { type: "error" });
             return;
-        }
-
+        }    
         console.log("[Init] Requesting current params from backend…");
-
-        // @ts-ignore - Custom service
-        (connection as any).daiConnection?.postToService("Get Current Params Service", {}, (resp: any) => {
-
-            console.log("[Init] Received current params:", resp);
-            console.log("CONFIDENCE", resp.confidence_threshold);
-
-            if (resp?.confidence_threshold != null) {
-                setInitialConfidence(resp.confidence_threshold);
-            }
-            if (Array.isArray(resp?.class_names)) {
-                setInitialClasses(resp.class_names);
-                setTextClasses(resp.class_names);
-            }
-
-            notify("Fetched initial parameters from backend", {
-                type: "success",
-                durationMs: 3000,
-            });
-        });
-    }, [connection, notify]);
-
+    
+        (connection as any).daiConnection?.fetchService("Get Current Params Service");
+    
+    }, [connection])
 
     const getNextObjectLabel = useCallback((): string | null => {
         if (imagePromptCount >= MAX_IMAGE_PROMPTS) {
@@ -386,13 +382,6 @@ function App() {
                 flexDirection: 'column',
                 gap: 'md'
             })}>
-                <Button
-                    variant="outline"
-                    onClick={handleFetchParams}
-                    disabled={!connection.connected}
-                >
-                    Fetch Params
-                </Button>
                 <h1 className={css({ fontSize: '2xl', fontWeight: 'bold' })}>
                     Open Vocabulary Object Detection
                 </h1>
@@ -405,10 +394,9 @@ function App() {
 
                 {/* Class Input */}
                 <ClassSelector
-                initialClasses={initialClasses}
-                onClassesUpdated={handleTextClassesUpdated}
+                    initialClasses={textClasses}
+                    onClassesUpdated={handleTextClassesUpdated}
                 />
-
 
                 {/* Image Uploader */}
                 <ImageUploader
