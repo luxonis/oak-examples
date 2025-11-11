@@ -5,7 +5,9 @@ from core.neural_network.prompts.encoders.visual_prompt_encoder import (
 )
 from core.neural_network.prompts.handlers.base_prompt_handler import BasePromptHandler
 from core.neural_network.prompts.frame_cache_node import FrameCacheNode
-from core.front_end_services.payloads.bbox_prompt_payload import BBoxPromptPayload
+from core.neural_network.prompts.front_end_prompt_services.payloads.bbox_prompt_payload import (
+    BBoxPromptPayload,
+)
 
 
 class BBoxPromptHandler(BasePromptHandler):

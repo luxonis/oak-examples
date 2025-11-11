@@ -1,10 +1,18 @@
 from core.neural_network.prompts.nn_prompts_controller import NnPromptsController
 from core.neural_network.prompts.handlers_factory import HandlersFactory
-from core.front_end_services.base_service import BaseService
-from core.front_end_services.class_update_service import ClassUpdateService
-from core.front_end_services.threshold_update_service import ThresholdUpdateService
-from core.front_end_services.image_upload_service import ImageUploadService
-from core.front_end_services.bbox_prompt_service import BBoxPromptService
+from core.base_service import BaseService
+from core.neural_network.prompts.front_end_prompt_services.class_update_service import (
+    ClassUpdateService,
+)
+from core.neural_network.prompts.front_end_prompt_services.threshold_update_service import (
+    ThresholdUpdateService,
+)
+from core.neural_network.prompts.front_end_prompt_services.image_upload_service import (
+    ImageUploadService,
+)
+from core.neural_network.prompts.front_end_prompt_services.bbox_prompt_service import (
+    BBoxPromptService,
+)
 
 
 class PromptServiceFactory:

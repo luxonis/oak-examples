@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from core.neural_network.prompts.nn_prompts_controller import NnPromptsController
 from core.neural_network.prompts.handlers.base_prompt_handler import BasePromptHandler
-from core.front_end_services.service_name import ServiceName
+from core.service_name import ServiceName
 
 PayloadT = TypeVar("PayloadT", bound=BaseModel)
 

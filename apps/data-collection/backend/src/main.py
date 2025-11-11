@@ -1,6 +1,6 @@
 import depthai as dai
 from config.system_configuration import SystemConfiguration
-from core.front_end_services.export_service import ExportService
+from core.export_service import ExportService
 from core.neural_network.prompts.nn_prompts_manager import NNPromptsManager
 from core.neural_network.pipeline.nn_pipeline_setup import NNPipelineBuilder
 from core.snapping.snaps_manager import SnappingServiceManager
@@ -51,7 +51,7 @@ def main():
         snaps_manager.register_service(visualizer)
 
         export_service = ExportService(
-            nn_pipeline.controller.get_model_state(), snaps_manager.get_engine()
+            nn_pipeline.controller.get_model_state(), snaps_manager.get_conditions()
         )
         visualizer.registerService(export_service.name, export_service.handle)
 

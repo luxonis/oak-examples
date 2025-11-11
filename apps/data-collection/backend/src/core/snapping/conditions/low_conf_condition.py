@@ -1,4 +1,4 @@
-from core.front_end_services.payloads.snap_payload import ConditionConfig
+from core.snapping.front_end_config_service.snap_payload import ConditionConfig
 from core.snapping.conditions.base_condition import Condition
 from core.snapping.conditions.condition_key import ConditionKey
 from typing import Dict, Any

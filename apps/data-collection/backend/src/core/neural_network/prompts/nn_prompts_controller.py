@@ -2,7 +2,7 @@ import depthai as dai
 import numpy as np
 from depthai_nodes.node import YOLOExtendedParser
 
-from core.label_manager import LabelManager
+from core.neural_network.prompts.label_manager import LabelManager
 from core.neural_network.pipeline.model_state import ModelState
 
 

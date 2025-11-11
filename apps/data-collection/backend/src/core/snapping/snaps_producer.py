@@ -1,7 +1,8 @@
 import depthai as dai
 import time
-from typing import Optional
-from core.snapping.conditions_engine import ConditionsEngine
+
+from core.snapping.conditions.base_condition import Condition
+from core.snapping.conditions.condition_key import ConditionKey
 from depthai_nodes.message import SnapData
 
 
@@ -12,22 +13,22 @@ class SnapsProducer(dai.node.HostNode):
 
     Attributes
     ----------
-    _engine : ConditionsEngine
-        Engine responsible for evaluating all registered snap conditions.
+    _conditions : dict[ConditionKey, Condition]
+        A dictionary mapping condition keys to their respective snapping conditions.
     """
 
     def __init__(self):
         super().__init__()
-        self._engine: Optional[ConditionsEngine] = None
+        self._conditions: dict[ConditionKey, Condition] = {}
 
     def build(
         self,
         frame: dai.Node.Output,
-        engine: ConditionsEngine,
+        conditions: dict[ConditionKey, Condition],
         detections: dai.Node.Output,
         tracklets: dai.Node.Output,
     ):
-        self._engine = engine
+        self._conditions = conditions
         self.link_args(frame, detections, tracklets)
         return self
 
@@ -38,13 +39,12 @@ class SnapsProducer(dai.node.HostNode):
         tracklets: dai.Tracklets,
     ) -> None:
         assert isinstance(detections, dai.ImgDetections)
-        conditions = self._engine.evaluate(
-            detections=detections.detections, tracklets=tracklets
-        )
-        if not conditions:
-            return
+        for cond in self._conditions.values():
+            if not cond.should_trigger(
+                detections=detections.detections, tracklets=tracklets
+            ):
+                continue
 
-        for cond in conditions:
             snap = SnapData(
                 snap_name=cond.name,
                 file_name=f"{cond.name}_{int(time.time())}",

@@ -2,18 +2,18 @@ import importlib
 
 from box import Box
 
-from core.snapping.conditions_engine import ConditionsEngine
+from core.snapping.conditions.condition_key import ConditionKey
 from core.snapping.conditions.base_condition import Condition
 
 
 class ConditionsFactory:
-    def __init__(self, conditions_yaml: Box):
-        self._conditions_yaml: Box = conditions_yaml
+    @staticmethod
+    def build_conditions_from_yaml(
+        conditions_yaml: Box,
+    ) -> dict[ConditionKey, Condition]:
+        conditions: dict[ConditionKey, Condition] = {}
 
-    def build_engine(self) -> ConditionsEngine:
-        engine = ConditionsEngine()
-
-        for entry in self._conditions_yaml.conditions:
+        for entry in conditions_yaml.conditions:
             if not entry.path:
                 continue
 
@@ -23,11 +23,11 @@ class ConditionsFactory:
                 cls = getattr(module, class_name)
                 cond: Condition = cls(
                     name=entry.name,
-                    default_cooldown=self._conditions_yaml.cooldown,
+                    default_cooldown=conditions_yaml.cooldown,
                     tags=entry.tags,
                 )
-                engine.register(cond)
+                conditions[cond.get_key()] = cond
             except Exception as e:
                 print(f"Failed to import condition {entry.path}: {e}")
 
-        return engine
+        return conditions

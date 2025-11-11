@@ -6,7 +6,9 @@ from core.neural_network.prompts.encoders.visual_prompt_encoder import (
     VisualPromptEncoder,
 )
 from core.neural_network.prompts.handlers.base_prompt_handler import BasePromptHandler
-from core.front_end_services.payloads.image_upload_payload import ImageUploadPayload
+from core.neural_network.prompts.front_end_prompt_services.payloads.image_upload_payload import (
+    ImageUploadPayload,
+)
 
 
 class ImagePromptHandler(BasePromptHandler):

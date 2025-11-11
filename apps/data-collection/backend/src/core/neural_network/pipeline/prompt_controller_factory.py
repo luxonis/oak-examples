@@ -1,6 +1,6 @@
 from core.neural_network.pipeline.annotation_node import AnnotationNode
 from core.neural_network.prompts.nn_prompts_controller import NnPromptsController
-from core.label_manager import LabelManager
+from core.neural_network.prompts.label_manager import LabelManager
 from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
 
 

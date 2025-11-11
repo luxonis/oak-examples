@@ -11,7 +11,7 @@ from core.neural_network.prompts.prompt_encoders_manager import (
     PromptEncodersManager,
 )
 from core.neural_network.prompts.handlers_factory import HandlersFactory
-from core.front_end_services.base_service import BaseService
+from core.base_service import BaseService
 
 
 class NNPromptsManager:
