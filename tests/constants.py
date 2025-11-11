@@ -20,7 +20,7 @@ KNOWN_FAILING = {
         "reason": "Not ported to latest DAI yet",
         "platform": "all",
     },
-    "tutorials/multiple-devices/multiple-device-stich-nn": {
+    "tutorials/multiple-devices/multiple-device-stitch-nn": {
         "reason": "Test suite doesn't support multi-device testing",
         "platform": "all",
     },
