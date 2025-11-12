@@ -178,6 +178,7 @@ with dai.Pipeline(device) as pipeline:
         visualizer.addTopic("Video", video_enc.out, "images")
     elif args.model == "yoloe":
         apply_colormap_node = pipeline.create(ApplyColormap).build(nn_with_parser.out)
+        apply_colormap_node.setInstanceToSemanticMask(args.semantic_seg)
         overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
             video_src_out,
             apply_colormap_node.out,

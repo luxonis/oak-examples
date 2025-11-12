@@ -56,6 +56,11 @@ def initialize_argparser():
         type=str,
         choices=["int8", "fp16"],
     )
+    parser.add_argument(
+        "--semantic_seg",
+        help="Display output as semantic segmentation otherwise use instance segmentation (only applicable for YOLOE).",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
