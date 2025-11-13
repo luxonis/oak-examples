@@ -169,3 +169,8 @@ cython_debug/
 .depthai_cached_models
 
 .python-version
+
+# npm modules
+node_modules/
+dist/
+styled-system/
