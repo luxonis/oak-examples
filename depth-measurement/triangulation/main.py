@@ -24,6 +24,16 @@ def populate_pipeline(
     return cam_output, face_nn.out
 
 
+def create_video_encoder(p: dai.Pipeline, input_node: dai.Node, fps: float, size: int):
+    video_encoder = p.create(dai.node.VideoEncoder)
+    video_encoder.setMaxOutputFrameSize(size)
+    video_encoder.setDefaultProfilePreset(
+        fps, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    input_node.link(video_encoder.input)
+    return video_encoder.out
+
+
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 with dai.Pipeline(device) as pipeline:
@@ -52,15 +62,33 @@ with dai.Pipeline(device) as pipeline:
         resolution_number=model_dimension,
     )
 
-    visualizer.addTopic("Face Left", face_left, "left")
+    face_left_encoded = create_video_encoder(
+        p=pipeline,
+        input_node=face_left,
+        fps=30,
+        size=model_dimension[0] * model_dimension[1],
+    )
+    visualizer.addTopic("Face Left", face_left_encoded, "left")
     visualizer.addTopic("Left Detections", triangulation.bbox_left, "left")
     visualizer.addTopic("Left Keypoints", triangulation.keypoints_left, "left")
 
-    visualizer.addTopic("Face Right", face_right, "right")
+    face_right_encoded = create_video_encoder(
+        p=pipeline,
+        input_node=face_right,
+        fps=30,
+        size=model_dimension[0] * model_dimension[1],
+    )
+    visualizer.addTopic("Face Right", face_right_encoded, "right")
     visualizer.addTopic("Right Detections", triangulation.bbox_right, "right")
     visualizer.addTopic("Right Keypoints", triangulation.keypoints_right, "right")
 
-    visualizer.addTopic("Combined", triangulation.combined_frame, "combined")
+    combined_encoded = create_video_encoder(
+        p=pipeline,
+        input_node=triangulation.combined_frame,
+        fps=30,
+        size=model_dimension[0] * model_dimension[1],
+    )
+    visualizer.addTopic("Combined", combined_encoded, "combined")
     visualizer.addTopic("Left Face Detections", triangulation.bbox_left, "combined")
     visualizer.addTopic("Right Face Detections", triangulation.bbox_right, "combined")
     visualizer.addTopic(
