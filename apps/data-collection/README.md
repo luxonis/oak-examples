@@ -33,7 +33,7 @@ A **Luxonis device** (RVC4) is required
 ```text
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
                     FPS limit. (default: None)
--api, --api_key API_KEY         HubAI API key for private models. (default: "")
+-api, --api_key API_KEY         HubAI API key
 -ip IP, --ip IP     IP address to serve the frontend on. (default: None)
 -media, --media_path MEDIA_PATH Path to media file; if not set, runs on live camera. (default: None)
 -p PORT, --port PORT
