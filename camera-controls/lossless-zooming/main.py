@@ -69,21 +69,29 @@ with dai.Pipeline(device) as pipeline:
     crop_face.config_output.link(crop_manip.inputConfig)
     cam_out.link(crop_manip.inputImage)
 
-    cropped_output = crop_manip.out
+    crop_encoder = pipeline.create(dai.node.VideoEncoder)
+    crop_encoder.setMaxOutputFrameSize(1920 * 1088 * 3)
+    crop_encoder.setDefaultProfilePreset(
+        fps, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    crop_manip.out.link(crop_encoder.input)
 
-    if platform == dai.Platform.RVC4:
-        crop_encoder = pipeline.create(dai.node.VideoEncoder)
-        crop_encoder.setMaxOutputFrameSize(1920 * 1088 * 3)
-        crop_encoder.setDefaultProfilePreset(
-            fps, dai.VideoEncoderProperties.Profile.H264_MAIN
-        )
-        crop_manip.out.link(crop_encoder.input)
-        cropped_output = crop_encoder.out
+    video_encode_manip = pipeline.create(dai.node.ImageManip)
+    video_encode_manip.setMaxOutputFrameSize(model_width * model_height * 3)
+    video_encode_manip.initialConfig.setOutputSize(model_width, model_height)
+    video_encode_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+    nn_with_parser.passthrough.link(video_encode_manip.inputImage)
 
-    visualizer.addTopic("Video", image_manip.out, "images")
+    video_encoder = pipeline.create(dai.node.VideoEncoder)
+    video_encoder.setMaxOutputFrameSize(model_width * model_height * 3)
+    video_encoder.setDefaultProfilePreset(
+        fps, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    video_encode_manip.out.link(video_encoder.input)
+
+    visualizer.addTopic("Video", video_encoder.out, "images")
     visualizer.addTopic("Visualizations", nn_with_parser.out, "images")
-
-    visualizer.addTopic("Cropped Face", cropped_output, "crop")
+    visualizer.addTopic("Cropped Face", crop_encoder.out, "crop")
 
     print("Pipeline created.")
 
