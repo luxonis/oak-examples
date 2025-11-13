@@ -50,7 +50,6 @@ class NnPromptsController:
         self._model_state.current_classes = class_names
 
     def set_confidence_threshold(self, threshold: float):
-        """Apply threshold update directly to the NN parser."""
         self._parser.setConfidenceThreshold(threshold)
         self._model_state.confidence_threshold = threshold
 
