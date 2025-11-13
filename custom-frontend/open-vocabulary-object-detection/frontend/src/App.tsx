@@ -1,5 +1,5 @@
 import { css } from "../styled-system/css/css.mjs";
-import { DAIResponse, Streams, useConnection } from "@luxonis/depthai-viewer-common";
+import { DAIResponse, Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { ClassSelector } from "./ClassSelector.tsx";
 import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
 import { ImageUploader } from "./ImageUploader.tsx";
@@ -9,7 +9,7 @@ import { Button } from "@luxonis/common-fe-components";
 import React from "react";
 
 function App() {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const { notify } = useNotifications();
 
     const [initialConfidence, setInitialConfidence] = useState<number>(0.1);
@@ -49,7 +49,7 @@ function App() {
         console.log("[Init] Requesting current params from backend…");
     
         (connection as any).daiConnection?.fetchService("Get Current Params Service");
-    
+
     }, [connection])
 
     const getNextObjectLabel = useCallback((): string | null => {

@@ -1,13 +1,13 @@
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 
 interface ConfidenceSliderProps {
     initialValue?: number;
 }
 
 export function ConfidenceSlider({ initialValue = 0.5 }: ConfidenceSliderProps) {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const [value, setValue] = useState(initialValue);
 
     const handleCommit = () => {

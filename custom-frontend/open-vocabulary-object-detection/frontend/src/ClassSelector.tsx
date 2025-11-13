@@ -1,7 +1,7 @@
 import { Flex, Button, Input } from "@luxonis/common-fe-components";
 import { css } from "../styled-system/css/css.mjs";
 import { useRef, useState } from "react";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "./Notifications.tsx";
 
 interface ClassSelectorProps {
@@ -11,7 +11,7 @@ interface ClassSelectorProps {
 
 export function ClassSelector({ initialClasses = [], onClassesUpdated }: ClassSelectorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const connection = useConnection();
+  const connection = useDaiConnection();
   const [selectedClasses, setSelectedClasses] = useState<string[]>(initialClasses);
   const { notify } = useNotifications();
 

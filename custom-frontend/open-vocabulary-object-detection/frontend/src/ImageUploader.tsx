@@ -1,7 +1,7 @@
 import { Button, Flex } from "@luxonis/common-fe-components";
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "./Notifications.tsx";
 
 
@@ -13,7 +13,7 @@ type Props = {
 }
 
 export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, maxReached }: Props) {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const { notify } = useNotifications();
 
