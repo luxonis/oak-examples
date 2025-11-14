@@ -206,6 +206,7 @@ with dai.Pipeline(device) as pipeline:
         out_data = {
             "confidence_threshold": CONFIDENCE_THRESHOLD,
             "class_names": CLASS_NAMES,
+            "image_prompt_labels": IMAGE_PROMPT_LABELS,
         }
         print("Current params:", out_data)
         return out_data
@@ -220,8 +221,8 @@ with dai.Pipeline(device) as pipeline:
                 f"Number of new classes ({len(new_classes)}) exceeds maximum number of classes ({MAX_NUM_CLASSES}), skipping."
             )
             return
+        global CLASS_NAMES, LAST_TEXT_CLASSES
         CLASS_NAMES = new_classes
-        global LAST_TEXT_CLASSES
         LAST_TEXT_CLASSES = new_classes.copy()
         text_features = extract_text_embeddings(
             class_names=CLASS_NAMES,
@@ -266,6 +267,7 @@ with dai.Pipeline(device) as pipeline:
 
     def conf_threshold_update_service(new_conf_threshold: float):
         """Changes confidence threshold based on the user input"""
+        global CONFIDENCE_THRESHOLD
         CONFIDENCE_THRESHOLD = max(0.01, min(0.99, new_conf_threshold))
         nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
         print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
@@ -427,6 +429,12 @@ with dai.Pipeline(device) as pipeline:
             # Extract single 512-d vector from padded features (column 0)
             vec = image_features[0, :, 0].copy()
             label = image_data.get("label") or image_data["filename"].split(".")[0]
+
+            global \
+                IMAGE_PROMPT_VECTORS, \
+                IMAGE_PROMPT_LABELS, \
+                MAX_IMAGE_PROMPTS, \
+                MAX_NUM_CLASSES
 
             IMAGE_PROMPT_VECTORS.append(vec)
             IMAGE_PROMPT_LABELS.append(label)
@@ -595,6 +603,12 @@ with dai.Pipeline(device) as pipeline:
         else:
             print(f"Unsupported model for bbox prompt: {args.model}")
             return {"ok": False, "reason": "unsupported_model"}
+
+        global \
+            IMAGE_PROMPT_VECTORS, \
+            IMAGE_PROMPT_LABELS, \
+            MAX_IMAGE_PROMPTS, \
+            MAX_NUM_CLASSES
 
         if args.model == "yolo-world":
             vec = image_features[0, :, 0].copy()
