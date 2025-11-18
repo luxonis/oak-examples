@@ -74,7 +74,6 @@ class BasePromptEncoder(ABC):
         if path == "":
             path = self._encoder_model_path
         if not os.path.exists(path):
-            print(f"Downloading tokenizer config from {url}...")
             with open(path, "wb") as f:
                 f.write(requests.get(url).content)
         return path
