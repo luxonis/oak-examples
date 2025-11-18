@@ -22,18 +22,13 @@ class BasePromptEncoder(ABC):
         self._config: Box = config
         self._encoder_model_url: str = encoder_model_url
         self._encoder_model_path: str = encoder_model_path
-        self._providers: list[str] = [
-            "TensorrtExecutionProvider",
-            "CUDAExecutionProvider",
-            "CPUExecutionProvider",
-        ]
         self._session: InferenceSession = None
         self._offset: int = None
 
     def _load_model(self) -> None:
         """Download and initialize the ONNX model."""
         path = self._download_file()
-        self._session = InferenceSession(path, providers=self._providers)
+        self._session = InferenceSession(path)
 
     @abstractmethod
     def extract_embeddings(self, *args, **kwargs) -> np.ndarray:
