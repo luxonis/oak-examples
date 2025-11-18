@@ -4,6 +4,7 @@ import time
 from core.snapping.conditions.base_condition import Condition
 from core.snapping.conditions.condition_key import ConditionKey
 from depthai_nodes.message import SnapData
+import logging as log
 
 
 class SnapsProducer(dai.node.HostNode):
@@ -53,5 +54,7 @@ class SnapsProducer(dai.node.HostNode):
                 tags=cond.tags,
                 extras=cond.make_extras(),
             )
+
+            log.info(f"Produced snap for condition: {cond.name}")
 
             self.out.send(snap)

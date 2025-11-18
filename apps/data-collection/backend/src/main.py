@@ -5,9 +5,11 @@ from core.neural_network.prompts.nn_prompts_manager import NNPromptsManager
 from core.neural_network.pipeline.nn_pipeline_setup import NNPipelineBuilder
 from core.snapping.snaps_manager import SnappingServiceManager
 from core.video.video_factory import VideoFactory
+import logging as log
 
 
 def main():
+    log.basicConfig(level=log.INFO)
     device = dai.Device()
     visualizer = dai.RemoteConnection(serveFrontend=False)
 
@@ -20,8 +22,6 @@ def main():
     config.build()
 
     with dai.Pipeline(device) as pipeline:
-        print("Creating pipeline...")
-
         video_factory = VideoFactory(pipeline, config.get_video_config())
         visualizer.addTopic("Video", video_factory.get_encoded_output())
         video_node = video_factory.get_video_node()
@@ -55,7 +55,6 @@ def main():
         )
         visualizer.registerService(export_service.name, export_service.handle)
 
-        print("Pipeline created.")
         pipeline.start()
         visualizer.registerPipeline(pipeline)
 

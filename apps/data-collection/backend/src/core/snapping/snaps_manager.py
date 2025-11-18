@@ -40,14 +40,14 @@ class SnappingServiceManager:
             self._conditions_config
         )
 
-        collector = self._pipeline.create(SnapsProducer).build(
+        producer = self._pipeline.create(SnapsProducer).build(
             self._video_node,
             self._conditions,
             self._detections.out,
             self._tracker.out,
         )
 
-        self._uploader = self._pipeline.create(SnapsUploader).build(collector.out)
+        self._uploader = self._pipeline.create(SnapsUploader).build(producer.out)
 
         self._snap_service = SnappingService(self._conditions)
 
