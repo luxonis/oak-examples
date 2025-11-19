@@ -117,7 +117,6 @@ with dai.Pipeline(device) as pipeline:
             model=nn_archive.getConfigV1().model.metadata.name,
         ),
     )
-    snaps_producer.setUrl("https://events.cloud-stg.luxonis.com")  # TODO: Remove
 
     visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
     visualizer.addTopic("Visualizations", det_process_filter.out, "images")

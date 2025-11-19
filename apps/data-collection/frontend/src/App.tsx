@@ -1,5 +1,5 @@
 import { css } from "../styled-system/css/css.mjs";
-import { Streams, useConnection } from "@luxonis/depthai-viewer-common";
+import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { ClassSelector } from "./utils/classes/ClassSelector.tsx";
 import { ConfidenceSlider } from "./utils/classes/ConfidenceSlider.tsx";
 import { ImageUploader } from "./utils/classes/ImageUploader.tsx";
@@ -20,7 +20,7 @@ interface BackendConfig {
 }
 
 function App() {
-  const connection = useConnection();
+  const connection = useDaiConnection();
   const streamContainerRef = useRef<HTMLDivElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);

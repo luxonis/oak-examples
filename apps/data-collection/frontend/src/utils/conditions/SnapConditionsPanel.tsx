@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { css } from "../../../styled-system/css/css.mjs";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "../../Notifications.tsx";
 import { ConditionCard } from "./ConditionCard.tsx";
 import { CooldownMinutesInput } from "./CooldownMinutesInput.tsx";
@@ -21,7 +21,7 @@ interface SnapConditionsPanelProps {
 }
 
 export function SnapConditionsPanel({ initialConfig }: SnapConditionsPanelProps) {
-  const connection = useConnection();
+  const connection = useDaiConnection();
   const { notify } = useNotifications();
 
   const [running, setRunning] = useState(false);

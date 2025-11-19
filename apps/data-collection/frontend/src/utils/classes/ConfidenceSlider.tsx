@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { SliderControl } from "../SliderControl.tsx";
 
 interface ConfidenceSliderProps {
@@ -8,7 +8,7 @@ interface ConfidenceSliderProps {
 }
 
 export function ConfidenceSlider({ initialValue = 0.5, disabled }: ConfidenceSliderProps) {
-  const connection = useConnection();
+  const connection = useDaiConnection();
   const [value, setValue] = useState(initialValue);
 
   // Update value from backend config
