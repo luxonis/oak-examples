@@ -1,6 +1,6 @@
 identifier = "com.luxonis.depth-measurement.triangulation"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.1"
+app_version = "1.0.2"
 assign_frontend_port = true
 
 prepare_container = [
