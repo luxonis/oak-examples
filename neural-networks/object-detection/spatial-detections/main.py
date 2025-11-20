@@ -38,6 +38,7 @@ with dai.Pipeline(device) as pipeline:
         det_model_description = dai.NNModelDescription(args.model, platform=platform)
     det_model_nn_archive = dai.NNArchive(dai.getModelFromZoo(det_model_description))
     classes = det_model_nn_archive.getConfig().model.heads[0].metadata.classes
+    nn_size = det_model_nn_archive.getInputSize()
 
     # camera input
     cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
@@ -45,17 +46,13 @@ with dai.Pipeline(device) as pipeline:
     left_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
     right_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_cam.requestOutput(
-            det_model_nn_archive.getInputSize(), fps=args.fps_limit
-        ),
-        right=right_cam.requestOutput(
-            det_model_nn_archive.getInputSize(), fps=args.fps_limit
-        ),
+        left=left_cam.requestOutput(nn_size, fps=args.fps_limit),
+        right=right_cam.requestOutput(nn_size, fps=args.fps_limit),
         presetMode=dai.node.StereoDepth.PresetMode.HIGH_DETAIL,
     )
     stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
     if platform == "RVC2":
-        stereo.setOutputSize(*det_model_nn_archive.getInputSize())
+        stereo.setOutputSize(*nn_size)
     stereo.setLeftRightCheck(True)
     stereo.setRectification(True)
 
@@ -78,10 +75,37 @@ with dai.Pipeline(device) as pipeline:
 
     apply_colormap = pipeline.create(ApplyColormap).build(stereo.depth)
 
+    # video encoding
+    cam_nv12 = cam.requestOutput(
+        size=nn_size,
+        fps=args.fps_limit,
+        type=dai.ImgFrame.Type.NV12,
+    )
+    video_encoder = pipeline.create(dai.node.VideoEncoder)
+    video_encoder.setMaxOutputFrameSize(nn_size[0] * nn_size[1] * 3)
+    video_encoder.setDefaultProfilePreset(
+        args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    cam_nv12.link(video_encoder.input)
+
+    # depth colormap encoding
+    depth_encoder_manip = pipeline.create(dai.node.ImageManip)
+    depth_encoder_manip.setMaxOutputFrameSize(nn_size[0] * nn_size[1] * 3)
+    depth_encoder_manip.initialConfig.setOutputSize(*nn_size)
+    depth_encoder_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+    apply_colormap.out.link(depth_encoder_manip.inputImage)
+
+    depth_encoder = pipeline.create(dai.node.VideoEncoder)
+    depth_encoder.setMaxOutputFrameSize(nn_size[0] * nn_size[1] * 3)
+    depth_encoder.setDefaultProfilePreset(
+        args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    depth_encoder_manip.out.link(depth_encoder.input)
+
     # visualization
-    visualizer.addTopic("Camera", nn.passthrough)
+    visualizer.addTopic("Camera", video_encoder.out)
     visualizer.addTopic("Detections", annotation_node.out_annotations)
-    visualizer.addTopic("Depth", apply_colormap.out)
+    visualizer.addTopic("Depth", depth_encoder.out)
 
     print("Pipeline created.")
 
