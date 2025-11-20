@@ -73,10 +73,28 @@ with dai.Pipeline(device) as pipeline:
         max_disparity=stereo.initialConfig.getMaxDisparity(),
     )
 
+    output_segmentation_encoder = pipeline.create(dai.node.VideoEncoder).build(
+        input=annotation_node.output_segmentation,
+        frameRate=args.fps_limit,
+        profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+    )
+
+    output_cutout_encoder = pipeline.create(dai.node.VideoEncoder).build(
+        input=annotation_node.output_cutout,
+        frameRate=args.fps_limit,
+        profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+    )
+
+    output_depth_encoder = pipeline.create(dai.node.VideoEncoder).build(
+        input=annotation_node.output_depth,
+        frameRate=args.fps_limit,
+        profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+    )
+
     # visualization
-    visualizer.addTopic("Segmentation", annotation_node.output_segmentation)
-    visualizer.addTopic("Cutout", annotation_node.output_cutout)
-    visualizer.addTopic("Depth", annotation_node.output_depth)
+    visualizer.addTopic("Segmentation", output_segmentation_encoder.out)
+    visualizer.addTopic("Cutout", output_cutout_encoder.out)
+    visualizer.addTopic("Depth", output_depth_encoder.out)
 
     print("Pipeline created.")
 
