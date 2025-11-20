@@ -9,6 +9,11 @@ It runs **YOLOE** on the DepthAI backend, and exposes controls in the UI for:
 
 > **Note:** RVC4 standalone mode only.
 
+
+![](https://github.com/luxonis/oak-examples/blob/hub_snapping/apps/data-collection/media/data_collection_app_demo.gif)
+
+
+
 ## Features
 
 - **Class control**
