@@ -1,4 +1,4 @@
-identifier = "com.luxonis.face-detection.age-gender"
+identifier = "com.example.face-detection.age-gender"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.2"
 assign_frontend_port = true

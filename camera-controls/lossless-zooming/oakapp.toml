@@ -1,4 +1,4 @@
-identifier = "com.luxonis.camere-controls.lossless-zooming"
+identifier = "com.example.camere-controls.lossless-zooming"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.2"
 assign_frontend_port = true

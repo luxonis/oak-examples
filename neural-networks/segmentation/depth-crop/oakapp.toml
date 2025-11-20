@@ -1,4 +1,4 @@
-identifier = "com.luxonis.segmentation.depth-crop"
+identifier = "com.example.segmentation.depth-crop"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.1"
 assign_frontend_port = true
