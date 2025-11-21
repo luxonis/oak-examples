@@ -70,7 +70,6 @@ with dai.Pipeline(device) as pipeline:
         resize_width=pose_model_w,
         resize_height=pose_model_h,
         padding=PADDING,
-        valid_labels=VALID_LABELS,
         resize_mode="STRETCH",
     )
     script.setScript(script_content)
