@@ -1,6 +1,9 @@
+import logging
 import depthai as dai
 from depthai_nodes import ImgDetectionsExtended
 from typing import Dict
+
+logger = logging.getLogger(__name__)
 
 
 class AnnotationNode(dai.node.HostNode):
@@ -23,23 +26,26 @@ class AnnotationNode(dai.node.HostNode):
     def build(
         self,
         detections: dai.Node.Output,
-        frame: dai.Node.Output,
         label_encoding: Dict[int, str] = None,
     ) -> "AnnotationNode":
         if label_encoding is not None:
             self.set_label_encoding(label_encoding)
         # Link detections and reference frame inputs
-        self.link_args(detections, frame)
+        self.link_args(detections)
         return self
 
     def process(
         self,
         detections_message: dai.Buffer,
-        frame_message: dai.ImgFrame,
     ) -> None:
-        assert isinstance(detections_message, ImgDetectionsExtended)
-        # Ensure detections align with the provided frame (e.g., high-res stream)
-        detections_message.setTransformation(frame_message.getTransformation())
-        for detection in detections_message.detections:
-            detection.label_name = self._label_encoding.get(detection.label, "unknown")
-        return detections_message
+        if isinstance(detections_message, ImgDetectionsExtended):
+            for detection in detections_message.detections:
+                detection.label_name = self._label_encoding.get(
+                    detection.label, "unknown"
+                )
+        elif isinstance(detections_message, dai.ImgDetections):
+            for detection in detections_message.detections:
+                detection.labelName = self._label_encoding.get(
+                    detection.label, "unknown"
+                )
+        self.out.send(detections_message)

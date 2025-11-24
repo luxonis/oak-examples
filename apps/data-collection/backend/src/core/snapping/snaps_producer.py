@@ -56,5 +56,6 @@ class SnapsProducer(dai.node.HostNode):
             )
 
             log.info(f"Produced snap for condition: {cond.name}")
+            log.info(f"Detections: {detections.detections}")
 
             self.out.send(snap)

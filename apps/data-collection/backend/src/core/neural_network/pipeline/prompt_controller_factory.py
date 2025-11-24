@@ -11,12 +11,18 @@ class PromptControllerFactory:
         self,
         nn_node: ParsingNeuralNetwork,
         det_filter: ImgDetectionsFilter,
-        annotation_node: AnnotationNode,
+        annotated_detections_as_img_det_extended: AnnotationNode,
+        annotated_detections_as_img_detections: AnnotationNode,
         precision: str,
     ):
         self._nn_node: ParsingNeuralNetwork = nn_node
         self._det_filter: ImgDetectionsFilter = det_filter
-        self._annotation_node: AnnotationNode = annotation_node
+        self._annotated_detections_as_img_det_extended: AnnotationNode = (
+            annotated_detections_as_img_det_extended
+        )
+        self._annotated_detections_as_img_detections: AnnotationNode = (
+            annotated_detections_as_img_detections
+        )
         self._precision: str = precision
 
     def build(self) -> NnPromptsController:
@@ -26,7 +32,11 @@ class PromptControllerFactory:
         self._nn_node.inputs["image_prompts"].setReusePreviousMessage(True)
 
         parser = self._nn_node.getParser(0)
-        label_manager = LabelManager(self._det_filter, self._annotation_node)
+        label_manager = LabelManager(
+            self._det_filter,
+            self._annotated_detections_as_img_det_extended,
+            self._annotated_detections_as_img_detections,
+        )
 
         controller = NnPromptsController(
             img_q, text_q, self._precision, parser, label_manager

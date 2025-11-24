@@ -34,8 +34,8 @@ class NNPipelineBuilder:
 
         self._nn: ParsingNeuralNetwork = None
         self._det_filter: ImgDetectionsFilter = None
-        self._annotation_node: AnnotationNode = None
-        self._filtered_bridge: ImgDetectionsBridge = None
+        self._annotated_detections_as_img_det_extended: AnnotationNode = None
+        self._annotated_detections_as_img_detections: ImgDetectionsBridge = None
         self._tracker: dai.node.ObjectTracker = None
         self._controller: NnPromptsController = None
 
@@ -44,14 +44,16 @@ class NNPipelineBuilder:
         nn_builder = NnNodeFactory(self._pipeline, self._video_node, self._config)
         self._nn = nn_builder.build()
 
-        det_graph = DetectionGraphFactory(self._pipeline, self._video_node, self._nn)
-        self._det_filter, self._annotation_node, self._filtered_bridge = (
-            det_graph.build()
-        )
+        det_graph = DetectionGraphFactory(self._pipeline, self._nn)
+        (
+            self._det_filter,
+            self._annotated_detections_as_img_det_extended,
+            self._annotated_detections_as_img_detections,
+        ) = det_graph.build()
 
         tracker_factory = TrackerFactory(
             self._pipeline,
-            self._filtered_bridge.out,
+            self._annotated_detections_as_img_detections.out,
             self._video_node,
             self._config.nn_yaml.tracker,
         )
@@ -60,7 +62,8 @@ class NNPipelineBuilder:
         controller_factory = PromptControllerFactory(
             self._nn,
             self._det_filter,
-            self._annotation_node,
+            self._annotated_detections_as_img_det_extended,
+            self._annotated_detections_as_img_detections,
             self._config.model.precision,
         )
         self._controller = controller_factory.build()
@@ -70,16 +73,16 @@ class NNPipelineBuilder:
         return self._nn
 
     @property
-    def detections_bridge(self):
-        return self._filtered_bridge
+    def annotated_detections_as_img_det_extended(self):
+        return self._annotated_detections_as_img_det_extended
+
+    @property
+    def annotated_detections_as_img_detections(self):
+        return self._annotated_detections_as_img_detections
 
     @property
     def tracker(self):
         return self._tracker
-
-    @property
-    def annotation_node(self):
-        return self._annotation_node
 
     @property
     def controller(self):

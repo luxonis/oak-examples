@@ -35,7 +35,9 @@ def main():
             config.get_neural_network_config(),
         )
         nn_pipeline.build()
-        visualizer.addTopic("Annotations", nn_pipeline.annotation_node.out)
+        visualizer.addTopic(
+            "Annotations", nn_pipeline.annotated_detections_as_img_det_extended.out
+        )
 
         prompts_manager = NNPromptsManager(
             pipeline, video_node, config.get_prompts_config(), nn_pipeline.controller
@@ -47,7 +49,7 @@ def main():
             pipeline,
             video_node,
             nn_pipeline.tracker,
-            nn_pipeline.detections_bridge,
+            nn_pipeline.annotated_detections_as_img_detections,
             config.get_snaps_config(),
         )
         snaps_manager.build()

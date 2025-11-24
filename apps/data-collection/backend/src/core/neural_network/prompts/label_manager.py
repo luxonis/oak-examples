@@ -12,15 +12,26 @@ class LabelManager:
     """
 
     def __init__(
-        self, det_filter: ImgDetectionsFilter, annotation_node: AnnotationNode
+        self,
+        det_filter: ImgDetectionsFilter,
+        annotated_detections_as_img_det_extended: AnnotationNode,
+        annotated_detections_as_img_detections: AnnotationNode,
     ):
         self.det_filter = det_filter
-        self.annotation_node = annotation_node
+        self.annotated_detections_as_img_det_extended = (
+            annotated_detections_as_img_det_extended
+        )
+        self.annotated_detections_as_img_detections = (
+            annotated_detections_as_img_detections
+        )
 
     def update_labels(self, label_names: list[str], offset: int = 0):
         self.det_filter.setLabels(
             labels=[i for i in range(offset, offset + len(label_names))], keep=True
         )
-        self.annotation_node.set_label_encoding(
+        self.annotated_detections_as_img_det_extended.set_label_encoding(
+            {offset + k: v for k, v in enumerate(label_names)}
+        )
+        self.annotated_detections_as_img_detections.set_label_encoding(
             {offset + k: v for k, v in enumerate(label_names)}
         )
