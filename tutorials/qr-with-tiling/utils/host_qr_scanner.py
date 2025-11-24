@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import depthai as dai
 import numpy as np
-# from pyzbar.pyzbar import decode
+from pyzbar.pyzbar import decode
 
 from utils.qr_detections import QRDetection, QRDetections
 
@@ -68,11 +68,9 @@ class QRScanner(dai.node.HostNode):
         bbox = expand_bbox(bbox, frame, 5)  # expand bbox by 5%
         img = frame[bbox[1] : bbox[3], bbox[0] : bbox[2]]
 
-        # data = decode(img)
-        data = ""
+        data = decode(img)
         if data:
-            # text = data[0].data.decode("utf-8")
-            text = ""
+            text = data[0].data.decode("utf-8")
             return text
         else:
             print("Decoding failed")
