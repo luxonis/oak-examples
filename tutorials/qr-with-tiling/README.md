@@ -2,6 +2,8 @@
 
 This example uses [QRDet](https://models.luxonis.com/luxonis/qrdet/d1183a0f-e9a0-4fa2-8437-f2f5b0181739) neural network to detect QR codes. These QR codes are then decoded on the host. The example utilizes tiling to divide the input frame into multiple smaller frames. Each smaller frame is passed to the QR detection network and processed independently. Some sources call this technique [SAHI](https://github.com/obss/sahi) (Slicing Aided Hyper Inference). With it you can detect much smaller objects compared to running inference on the full image but you are running inference multiple times per frame so the FPS is expected to be lower. You can modify this exepriment to detect other classes as well by simply changing the detection model.
 
+**NOTE**: Due to missing bindings for RVC2, this example only works on OAK4 devices.
+
 ## Demo
 
 ![example](media/example.gif)
