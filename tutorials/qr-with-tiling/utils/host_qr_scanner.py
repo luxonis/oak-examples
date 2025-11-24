@@ -71,6 +71,7 @@ class QRScanner(dai.node.HostNode):
         data = decode(img)
         if data:
             text = data[0].data.decode("utf-8")
+            print("Decoded text", text)
             return text
         else:
             print("Decoding failed")
