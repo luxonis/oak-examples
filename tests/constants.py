@@ -80,6 +80,10 @@ KNOWN_FAILING = {
         "mode": "all",
         "platform": "all",
     },
+    "tutorials/qr-with-tiling": {
+        "reason": "Missing bindings for RVC2 in Script node.",
+        "platform": ["rvc2"],
+    },
 }
 
 IGNORED_WARNINGS = [
