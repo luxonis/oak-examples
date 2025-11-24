@@ -7,6 +7,9 @@ from core.snapping.snaps_manager import SnappingServiceManager
 from core.video.video_factory import VideoFactory
 import logging as log
 
+log.basicConfig(level=log.INFO)
+logger = log.getLogger(__name__)
+
 
 def main():
     log.basicConfig(level=log.INFO)
@@ -57,6 +60,7 @@ def main():
 
         pipeline.start()
         visualizer.registerPipeline(pipeline)
+        logger.info("Pipeline started")
 
         while pipeline.isRunning():
             pipeline.processTasks()
