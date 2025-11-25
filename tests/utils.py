@@ -132,12 +132,11 @@ def adjust_requirements(
                 else line
                 for line in requirements
             ]
-
-            if parsed_dai_version.is_devrelease:
-                requirements.insert(
+            requirements.insert(
                     0,
                     "--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/\n",
                 )
+            if parsed_dai_version.is_devrelease:
                 requirements.insert(
                     0,
                     "--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/\n",
