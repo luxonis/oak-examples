@@ -22,7 +22,7 @@ def is_valid(
     If it is known to fail it returns the reason.
     """
     for exp in known_failing_examples:
-        if exp in str(example_dir):
+        if exp in example_dir.as_posix():
             failing_mode = known_failing_examples[exp].get("mode", None)
             failing_platform = known_failing_examples[exp].get("platform", None)
             failing_python = known_failing_examples[exp].get("python_version", None)
