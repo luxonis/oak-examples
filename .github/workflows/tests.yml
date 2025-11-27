@@ -207,7 +207,7 @@ jobs:
           
       - name: Run Test
         run: |
-          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}"
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-windows"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
 
           if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
@@ -277,3 +277,41 @@ jobs:
               --docker-build-args "--build-arg PYTHON_VERSION=3.12" \
               --docker-run-args "$ENV_VARS"
 
+
+  test_standalone_windows:
+    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'standalone'}}
+    needs: [setup]
+    runs-on: ["self-hosted", "testbed-runner"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-windows"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl\
+              --commands "cd %TEMP%\oak-examples && pip install -r tests/requirements.txt && tests\run_tests_peripheral.cmd '3.10' ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }} 'rvc4' ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }}"
