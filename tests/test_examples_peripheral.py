@@ -104,7 +104,6 @@ def setup_virtual_env(
     """Creates and sets up a virtual environment with the required dependencies."""
     logger.debug(f"Setting up virtual environment for {venv_dir.parent}...")
     EnvBuilder(clear=True, with_pip=True).create(venv_dir)
-    venv_dir = example_dir / ".test-venv"
 
     if os.name == "nt":
         # Windows
