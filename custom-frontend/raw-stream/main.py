@@ -1,12 +1,12 @@
+import os
 import depthai as dai
-from frontend_server import FrontendServer
 from pathlib import Path
+from frontend_server import FrontendServer
 from utils.arguments import initialize_argparser
-
 
 _, args = initialize_argparser()
 
-FRONTEND_DIRECTORY = Path(__file__).parent / "frontend" / "dist"
+FRONTEND_DIRECTORY = Path(os.environ["OAKAPP_STATIC_FRONTEND_PATH"])
 IP = args.ip or "localhost"
 PORT = args.port or 8082
 
