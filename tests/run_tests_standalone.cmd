@@ -72,6 +72,6 @@ pytest -v -r a --log-cli-level=%LOG_LEVEL% --log-file=out.log --color=yes ^
     --device-password=%DEVICE_PASSWORD% ^
     --local-static-registry=%LOCAL_STATIC_REGISTRY% ^
     --root-dir "%ROOT_DIR%" ^
-    "%~dp0test_examples_standalone.py"
+    tests/test_examples_standalone.py"
 
 endlocal
