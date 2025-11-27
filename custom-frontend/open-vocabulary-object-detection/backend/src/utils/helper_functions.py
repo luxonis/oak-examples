@@ -5,6 +5,8 @@ import onnxruntime
 import numpy as np
 import cv2
 import base64
+import random
+
 
 QUANT_ZERO_POINT = 90.0
 QUANT_SCALE = 0.003925696481
@@ -245,3 +247,55 @@ def base64_to_cv2_image(base64_data_uri: str):
     np_arr = np.frombuffer(binary_data, np.uint8)
     img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
     return img
+
+
+def generate_high_contrast_colormap(
+    size=256, min_hue_jump=20, min_sv_jump=100, seed=42
+):
+    """
+    Creates a highly randomized OpenCV colormap where:
+      - index 0 is black
+      - hue/saturation/value vary randomly
+      - neighboring colors stay strongly different
+      - output is (256,1,3) uint8 for cv2.applyColorMap
+    """
+    assert size >= 2
+    random.seed(seed)
+
+    n = size - 1  # excluding black at index 0
+
+    # Random H, S, V
+    hues = np.random.randint(0, 180, n)
+    sats = np.random.randint(240, 256, n)
+    vals = np.random.randint(200, 256, n)
+
+    # Shuffle initial order
+    order = list(range(n))
+    random.shuffle(order)
+
+    hues = hues[order]
+    sats = sats[order]
+    vals = vals[order]
+
+    # Enforce minimum contrast between neighbors
+    for i in range(1, n):
+        if abs(int(hues[i]) - int(hues[i - 1])) < min_hue_jump:
+            hues[i] = (hues[i] + 90) % 180  # push hue away
+
+        if abs(int(sats[i]) - int(sats[i - 1])) < min_sv_jump:
+            sats[i] = 255 - sats[i]
+
+        if abs(int(vals[i]) - int(vals[i - 1])) < min_sv_jump:
+            vals[i] = 255 - vals[i]
+
+    hsv = np.zeros((size, 1, 3), dtype=np.uint8)
+    # 0 = black
+    hsv[0, 0] = [0, 0, 0]
+    # fill 1..255
+    hsv[1:, 0, 0] = hues
+    hsv[1:, 0, 1] = sats
+    hsv[1:, 0, 2] = vals
+
+    # Convert HSV → BGR for OpenCV
+    bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+    return bgr

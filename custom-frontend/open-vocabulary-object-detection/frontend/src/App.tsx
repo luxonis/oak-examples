@@ -357,7 +357,8 @@ function App() {
         })}>
             {/* Left: Stream Viewer */}
             <div className={css({ flex: 1, position: 'relative' })} ref={streamContainerRef}>
-                <Streams defaultTopics={["Video"]} />
+                {/* <Streams defaultTopics={["Video"]} /> */}
+                <Streams />
                 {isDrawing && (
                     <canvas
                         ref={overlayCanvasRef}
