@@ -36,13 +36,6 @@ echo   ROOT_DIR            = %ROOT_DIR%
 echo   LOG_LEVEL           = %LOG_LEVEL%
 echo ==========================================
 
-echo Installing dependencies...
-pip install -r tests\requirements.txt
-if errorlevel 1 (
-    echo Failed to install dependencies.
-    exit /b 1
-)
-
 echo Running tests...
 
 pytest -v -r a --log-cli-level=%LOG_LEVEL% --log-file=out.log --color=yes ^
