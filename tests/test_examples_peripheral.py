@@ -99,7 +99,14 @@ def setup_virtual_env(
     """Creates and sets up a virtual environment with the required dependencies."""
     logger.debug(f"Setting up virtual environment for {venv_dir.parent}...")
     EnvBuilder(clear=True, with_pip=True).create(venv_dir)
-    env_exe = venv_dir / "bin" / "python3"
+    venv_dir = example_dir / ".test-venv"
+
+    if os.name == "nt":
+        # Windows
+        env_exe = venv_dir / "Scripts" / "python.exe"
+    else:
+        # POSIX (Linux/macOS)
+        env_exe = venv_dir / "bin" / "python3"
 
     # Read original requirements
     with open(requirements_path, "r") as f:
