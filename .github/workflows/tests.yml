@@ -224,7 +224,7 @@ jobs:
           fi
 
           exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity \
-              --commands "cd %TEMP%\oak-examples && pip install -r tests/requirements.txt && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} '${{ github.event.inputs.root_dir }}' ${{ github.event.inputs.log_level }}"
+              --commands "cd %TEMP%\oak-examples && pip install -r tests/requirements.txt && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }}"
 
   test_standalone:
     if: ${{ inputs.subtests== 'all' || inputs.subtests== 'standalone'}}
