@@ -70,5 +70,5 @@ pytest -v -r a --log-cli-level=%LOG_LEVEL% --log-file=out.log --color=yes ^
     --python-version=%PYTHON_VERSION_ENV% ^
     --device-password=%DEVICE_PASSWORD% ^
     --local-static-registry=%LOCAL_STATIC_REGISTRY% ^
-    --root-dir "%ROOT_DIR%" ^
+    --root-dir %ROOT_DIR% ^
     -q "%~dp0test_examples_standalone.py"

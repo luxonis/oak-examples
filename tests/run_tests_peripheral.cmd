@@ -44,5 +44,5 @@ pytest -v -r a --log-cli-level=%LOG_LEVEL% --log-file=out.log --color=yes ^
     --platform=%PLATFORM% ^
     --python-version=%PYTHON_VERSION_ENV% ^
     --strict-mode=%STRICT_MODE% ^
-    --root-dir "%ROOT_DIR%" ^
+    --root-dir %ROOT_DIR% ^
     -q "%~dp0test_examples_peripheral.py"
