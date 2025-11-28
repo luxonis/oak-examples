@@ -35,6 +35,19 @@ echo   ROOT_DIR            = %ROOT_DIR%
 echo   LOG_LEVEL           = %LOG_LEVEL%
 echo ==========================================
 
+echo Creating virtual environment...
+python -m venv .venv
+
+if errorlevel 1 (
+    echo Failed to create virtual environment
+    exit /b 1
+)
+
+REM Activate venv
+call .venv\Scripts\activate.bat
+
+pip install -r tests/requirements.txt
+
 echo Running tests...
 
 pytest -v -r a --log-cli-level=%LOG_LEVEL% --log-file=out.log --color=yes ^
