@@ -141,16 +141,13 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             "text": True,
             "bufsize": 1,
         }
-        
-        # Windows encoding fixes 
+
+        # Windows encoding fixes
         if sys.platform.startswith("win"):
             popen_kwargs["encoding"] = "utf-8"
             popen_kwargs["errors"] = "replace"
 
-        process = subprocess.Popen(
-            ["oakctl", "app", "run", "."],
-            **popen_kwargs
-        )
+        process = subprocess.Popen(["oakctl", "app", "run", "."], **popen_kwargs)
         app_started = False
         start_time = None
         signal_start = time.time()
