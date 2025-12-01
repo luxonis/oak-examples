@@ -45,7 +45,7 @@ if errorlevel 1 (
 
 REM Activate venv
 call .venv\Scripts\activate.bat
-
+adb root
 pip install -r tests/requirements.txt
 
 echo Running tests...
