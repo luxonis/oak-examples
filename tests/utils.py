@@ -133,9 +133,9 @@ def adjust_requirements(
                 for line in requirements
             ]
             requirements.insert(
-                    0,
-                    "--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/\n",
-                )
+                0,
+                "--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/\n",
+            )
             if parsed_dai_version.is_devrelease:
                 requirements.insert(
                     0,
