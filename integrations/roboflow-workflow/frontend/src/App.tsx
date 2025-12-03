@@ -35,17 +35,17 @@ function App() {
             gap: 'md'
         })}>
             <h1 className={css({ fontSize: '2xl', fontWeight: 'bold' })}>
-                Roboflow Workflow Integration Example
+                Roboflow Workflow & DepthAI Integration Example
             </h1>
             <p>
-                Simple application showing integration between <b>DepthAI cameras</b> and <b>Roboflow Workflow</b> 
-                through the Inference package. Live video is streamed from the camera, processed through your Roboflow 
+                Simple application showing integration between <b>DepthAI cameras</b> and <b>Roboflow Workflow</b> through 
+                the Inference package. Live video is streamed from the camera, processed through your Roboflow 
                 workflow on the device, and both predictions and visualizations are rendered in the DepthAI Visualizer.
             </p>
 
-            <ul className={css({ listStyleType: 'disc', paddingLeft: 'lg'})}>
+            <ul className={css({ listStyleType: 'disc', paddingLeft: 'md'})}>
                 <li>To switch the displayed stream, click the <b>X</b> icon and select another source.</li>
-                <li>To toggle detection overlays on or off, use the <b>filter</b> icon at the top.</li>
+                <li>To toggle detection overlays on or off, use the <b>filter icon</b> at the top.</li>
             </ul>
             
             {/* Message Input Form */}

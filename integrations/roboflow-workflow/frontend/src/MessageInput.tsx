@@ -104,9 +104,8 @@ export function MessageInput() {
         className={css({
           display: "flex",
           flexDirection: "column",
-          gap: "sm",
-          padding: "md",
           backgroundColor: "white",
+          gap: "sm",
         })}
       >
         <label className={css({ display: "flex", flexDirection: "column" })}>
@@ -181,7 +180,7 @@ export function MessageInput() {
         <Button
           type="submit"
           className={css({
-            mt: "md",
+            mt: "sm",
             width: "full",
             justifyContent: "center",
           })}
