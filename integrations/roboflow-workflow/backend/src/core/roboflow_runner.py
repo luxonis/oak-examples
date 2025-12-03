@@ -175,4 +175,4 @@ def probe_workflow_schema(runner: RoboflowRunner):
     Runs the provided RoboflowRunner once to obtain the workflow schema.
     """
     sample = runner.run_once_and_get_prediction()
-    return sample.get("result") or sample
+    return sample

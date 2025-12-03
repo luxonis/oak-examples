@@ -27,6 +27,33 @@ Additionally you can also change some of the pipeline configurations like `outpu
 
 > **Note:** You can update any of these configuration values later while the app is running using the custom front-end form. But you need to start the app with some valid initial values.
 
+## Workflow Visualization Rules & Limitations
+
+Our system applies a few naming-based rules to determine how workflow outputs are visualized. Keep the following guidelines in mind:
+
+#### 1. Outputs containing `predictions`
+
+Outputs whose names include the substring `predictions` are treated as **DepthAI detection messages**. Only the bounding box information is processed; any additional fields in the Roboflow Detection message will be ignored.
+
+If your workflow produces a `Roboflow Detection` message, ensure its output name includes `predictions` so it can be detected and parsed correctly.
+
+#### 2. Outputs containing `visualization`
+
+Outputs whose names include the substring `visualization` are interpreted as DepthAI ImgFrame messages.
+
+If your workflow produces `Roboflow WorkflowImageData`, include `visualization` in the output name so we can display it properly.
+
+#### 3. Outputs that do not match any rule
+
+Outputs whose names do not contain either predictions or visualization are **ignored by the visualizer**.
+
+#### Advanced Visualization Options
+
+For richer or customized visual outputs, consider:
+
+- Adding `Visualization` blocks directly inside your workflow and ensuring the resulting output name contains `visualization`.
+- Extending the [AnnotationNode](./backend/src/core/annotation_node.py) with custom logic tailored to your data type.
+
 ## Standalone Mode (RVC4 only)
 
 Running the example in the standalone mode, app runs entirely on the device.
