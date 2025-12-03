@@ -1,0 +1,4 @@
+depthai==3.2.1
+depthai-nodes==0.3.6
+opencv-python~=4.10.0
+inference
