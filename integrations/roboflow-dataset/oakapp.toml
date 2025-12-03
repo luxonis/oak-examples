@@ -1,4 +1,4 @@
-identifier = "com.example.roboflow-integration"
+identifier = "com.example.integrations.roboflow-dataset"
 app_version = "1.0.0"
 
 prepare_container = [
