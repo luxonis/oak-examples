@@ -48,8 +48,13 @@ KNOWN_FAILING = {
         "reason": "Not supported for peripheral",
         "mode": ["peripheral"],
     },
-    "integrations/roboflow-integration": {
+    "integrations/roboflow-dataset": {
         "reason": "Can't run without arguments (e.g. roboflow api-key)",
+        "mode": "all",
+        "platform": "all",
+    },
+    "integrations/roboflow-workflow": {
+        "reason": "Can't run without arguments Roboflow arguments",
         "mode": "all",
         "platform": "all",
     },
