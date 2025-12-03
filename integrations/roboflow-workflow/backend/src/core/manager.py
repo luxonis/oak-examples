@@ -1,9 +1,10 @@
 import threading
+import logging
+
 from core.depthai_pipeline import DepthAIPipeline
 from core.roboflow_runner import RoboflowRunner, probe_workflow_schema
 from core.visualizer_wrapper import VisualizerWrapper
 from config.config import PipelineConfig
-import logging
 
 
 class RoboflowManager:

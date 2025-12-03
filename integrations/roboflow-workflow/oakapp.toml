@@ -18,8 +18,6 @@ prepare_container = [
     { type = "RUN", command = "bash -lc 'python3.11 -m pip install -r /app/backend/src/requirements.txt'" }
 ]
 
-
-
 prepare_build_container = [
     { type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'" }
 ]
@@ -46,4 +44,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.2.4"
+image_tag = "1.2.6"

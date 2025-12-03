@@ -1,6 +1,13 @@
-import depthai as dai
-from depthai_nodes import ImgDetectionsExtended, ImgDetectionExtended
 import logging
+import depthai as dai
+from enum import Enum
+from depthai_nodes import ImgDetectionsExtended, ImgDetectionExtended
+
+
+class OutputType(Enum):
+    FRAME = 0
+    DETECTION = 1
+    UNKNOWN = 2
 
 
 class AnnotationNode(dai.node.HostNode):
@@ -9,52 +16,63 @@ class AnnotationNode(dai.node.HostNode):
     ):
         super().__init__()
         self.schema_keys = []
-        self.outputs = {"passthrough": self.createOutput()}
+
         self.frames = {}  # key -> ImgFrame
+        self.output_frames = {"passthrough": self.createOutput()}
+
         self.detections = {}  # key -> ImgDetectionsExtended
+        self.output_detections = {}
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def build(self, cam, schema):
         self.link_args(cam)
-
         self.schema_keys = list(schema.keys())
-        self._logger.info(f"Schema keys: {self.schema_keys}")
+
+        log_output = []
         for key in self.schema_keys:
-            self.outputs[key] = self.createOutput()
+            output_type = self._parse_key(key)
+            log_output.append((key, output_type))
+            if output_type == OutputType.FRAME:
+                self.output_frames[key] = self.createOutput()
+            elif output_type == OutputType.DETECTION:
+                self.output_detections[key] = self.createOutput()
+
+        self._logger.info(f"Schema keys: {log_output}")
 
         return self
 
     def process(self, cam):
         transformation = cam.getTransformation()
-        # send the latest stored data for each schema key
-        for key, output in self.outputs.items():
-            if key in self.frames:
-                self.frames[key].setTransformation(transformation)
-                output.send(self.frames[key])
 
-            elif key in self.detections:
-                self.detections[key].setTransformation(transformation)
-                output.send(self.detections[key])
+        # send the latest stored data for each schema key
+        for key in self.frames.keys():
+            self.frames[key].setTransformation(transformation)
+            self.output_frames[key].send(self.frames[key])
+
+        for key in self.detections.keys():
+            self.detections[key].setTransformation(transformation)
+            self.output_detections[key].send(self.detections[key])
 
     def on_prediction(self, result, frame):
         """Process Roboflow output to DAI output"""
 
         dai_frame = dai.ImgFrame()
-        dai_frame.setCvFrame(frame.image, dai.ImgFrame.Type.BGR888i)
+        dai_frame.setCvFrame(frame.image, dai.ImgFrame.Type.NV12)
         self.frames["passthrough"] = dai_frame
 
         result_dict = result.get("result") or result
         for key, value in result_dict.items():
-            if "visualization" in key:
+            output_type = self._parse_key(key)
+            if output_type == OutputType.FRAME:
                 vis_frame = dai.ImgFrame()
                 vis_frame.setCvFrame(
                     value.numpy_image,
-                    dai.ImgFrame.Type.BGR888i,
+                    dai.ImgFrame.Type.NV12,
                 )
                 self.frames[key] = vis_frame
 
-            elif "prediction" in key or "predictions" in key:
+            elif output_type == OutputType.DETECTION:
                 dets = ImgDetectionsExtended()
 
                 for det in value:
@@ -88,3 +106,12 @@ class AnnotationNode(dai.node.HostNode):
                     dets.detections.append(new_det)
 
                 self.detections[key] = dets
+
+    def _parse_key(self, key: str):
+        """Parse the key to a output type"""
+        if "visualization" in key:
+            return OutputType.FRAME
+        elif "prediction" in key or "predictions" in key:
+            return OutputType.DETECTION
+        else:
+            return OutputType.UNKNOWN

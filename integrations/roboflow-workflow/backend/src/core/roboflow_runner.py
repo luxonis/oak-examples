@@ -3,10 +3,11 @@ import time
 import copy
 import cv2
 import numpy as np
-from inference import InferencePipeline
-from core.generator_capture import GeneratorCapture
 import logging
+from inference import InferencePipeline
 from typing import Dict, Callable, Union, Optional
+
+from core.generator_capture import GeneratorCapture
 
 
 class RoboflowRunner:

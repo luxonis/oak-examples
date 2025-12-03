@@ -1,12 +1,13 @@
 import depthai as dai
+import cv2
+import threading
+import logging
+from typing import Dict
+
 from core.annotation_node import AnnotationNode
 from core.generator_capture import GeneratorCapture
 from config.config import PipelineConfig
 from core.visualizer_wrapper import VisualizerWrapper
-from typing import Dict
-import cv2
-import threading
-import logging
 
 
 class DepthAIPipeline:
@@ -42,9 +43,18 @@ class DepthAIPipeline:
                 cam=frames, schema=workflow_schema
             )
 
-            # Visualizer topics
-            for key in self.annotation.outputs.keys():
-                topic = self.annotation.outputs[key]
+            # Visualization
+            encoders = {}
+            for key in self.annotation.output_frames.keys():
+                encoders[key] = p.create(dai.node.VideoEncoder).build(
+                    input=self.annotation.output_frames[key],
+                    frameRate=self._pipeline_config.fps,
+                    profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+                )
+                self._visualizer.add_topic(key, encoders[key].out)
+
+            for key in self.annotation.output_detections.keys():
+                topic = self.annotation.output_detections[key]
                 self._visualizer.add_topic(key, topic)
 
             self._pipeline = p

@@ -1,13 +1,14 @@
+import time
+import logging
+
 from config.config import load_config
 from core.depthai_pipeline import DepthAIPipeline
 from core.roboflow_runner import RoboflowRunner, probe_workflow_schema
 from core.manager import RoboflowManager
 from core.visualizer_wrapper import VisualizerWrapper
 
-import time
-import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, force=True)
 logger = logging.getLogger(__name__)
 
 
