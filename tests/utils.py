@@ -5,6 +5,7 @@ import logging
 from contextlib import contextmanager
 import os
 import re
+import platform
 
 BASE_IMAGE_HEADER_RE = re.compile(r"^\s*\[base_image\]\s*$", re.MULTILINE)
 logger = logging.getLogger()
@@ -27,6 +28,7 @@ def is_valid(
             failing_platform = known_failing_examples[exp].get("platform", None)
             failing_python = known_failing_examples[exp].get("python_version", None)
             failing_dai = known_failing_examples[exp].get("depthai_version", None)
+            failing_os = known_failing_examples[exp].get("os", None)
 
             mode_failed = None
             if failing_mode is not None:
@@ -44,10 +46,21 @@ def is_valid(
             if failing_dai is not None:
                 dai_failed = not check_dai(desired_dai, failing_dai)
 
+            os_failed = None
+            desired_os = platform.system()
+            if failing_os is not None:
+                os_failed = not check_general(desired_os, failing_os)
+
             # Return False only if all checks failed and exclude non relevant checks
             failed = [
                 f
-                for f in [mode_failed, platform_failed, python_failed, dai_failed]
+                for f in [
+                    mode_failed,
+                    platform_failed,
+                    python_failed,
+                    dai_failed,
+                    os_failed,
+                ]
                 if f is not None
             ]
             if all(f is True for f in failed):
@@ -66,6 +79,10 @@ def is_valid(
                 if dai_failed:
                     logger.info(
                         f"DepthAI version check failed: Got `{desired_dai}`, shouldn't be `{known_failing_examples[exp]['depthai_version']}`"
+                    )
+                if os_failed:
+                    logger.info(
+                        f"OS check failed: Got `{desired_os}`, shouldn't be `{known_failing_examples[exp]['os']}`"
                     )
                 return (
                     False,

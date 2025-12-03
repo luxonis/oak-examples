@@ -6,6 +6,7 @@
 #     platform ("all" | List[Literal["rvc2", "rvc4"]]): On which platform is it failing
 #     python_version ("all" | List[Literal["3.8", "3.10", "3.12"]]): On which python version is it failing
 #     dai_version ("all" | str): On which dai version is it failing. Can be e.g. >3.0.0rc1, <=3.0.0a14, etc. Supported ops: <,>,<=,>=
+#     os ("all" | List[Literal["mac", "win", "linux"]]): On which OS is it failing
 
 KNOWN_FAILING = {
     "apps/ros/ros-driver-basic": {
@@ -48,6 +49,14 @@ KNOWN_FAILING = {
         "reason": "Not supported for peripheral",
         "mode": ["peripheral"],
     },
+    "integrations/foxglove": {
+        "reason": "No matching distribution found for open3d~=0.18 on Windows",
+        "os": ["win"],
+    },
+    "integrations/rerun": {
+        "reason": "No matching distribution found for rerun-sdk==0.15.1 on Windows",
+        "os": ["win"],
+    },
     "integrations/roboflow-integration": {
         "reason": "Can't run without arguments (e.g. roboflow api-key)",
         "mode": "all",
@@ -86,6 +95,18 @@ KNOWN_FAILING = {
         "reason": "Can't sync outputs inside Triangulation node",
         "platform": ["rvc4"],
     },
+    "depth-measurement/3d-measurement/box-measurement": {
+        "reason": "No matching distribution found for open3d~=0.18 on Windows",
+        "os": ["win"],
+    },
+    "streaming/on-device-encoding": {
+        "reason": "Cannot open include file: 'libavutil/mathematics.h': No such file or directory",
+        "os": ["win"],
+    },
+    "streaming/webrtc-streaming": {
+        "reason": "Cannot open include file: 'libavutil/mathematics.h': No such file or directory",
+        "os": ["win"],
+    },
     "streaming/rtsp-streaming": {
         "reason": "PyCairo installation issues",
         "mode": "all",
@@ -97,8 +118,14 @@ KNOWN_FAILING = {
         "platform": "all",
     },
     "tutorials/qr-with-tiling": {
-        "reason": "Missing bindings for RVC2 in Script node.",
+        "reason": "Missing bindings for RVC2 in Script node. Missing `libzbar-64.dll` module on Windows",
         "platform": ["rvc2"],
+        "os": ["win"],
+    },
+    "tutorials/play-encoded-stream": {
+        "reason": "Missing bindings for RVC2 in Script node. Cannot open include file: 'libavutil/mathematics.h': No such file or directory for Windows",
+        "platform": ["rvc2"],
+        "os": ["win"],
     },
 }
 
