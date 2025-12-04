@@ -12,27 +12,27 @@ REM   %7 = LOG_LEVEL
 REM -----------------------------------------------------------
 
 if "%4"=="" (
-    echo Usage: run_tests.cmd PYTHON_VERSION DAI_VERSION DAI_NODES_VERSION PLATFORM STRICT_MODE ROOT_DIR LOG_LEVEL
+    echo Usage: run_tests.cmd PYTHON_VERSION PLATFORM STRICT_MODE ROOT_DIR LOG_LEVEL DAI_VERSION DAI_NODES_VERSION
     exit /b 1
 )
 
 set PYTHON_VERSION_ENV=%1
-set DAI_VERSION=%2
-set DAI_NODES_VERSION=%3
-set PLATFORM=%4
-set STRICT_MODE=%5
-set ROOT_DIR=%6
-set LOG_LEVEL=%7
+set PLATFORM=%2
+set STRICT_MODE=%3
+set ROOT_DIR=%4
+set LOG_LEVEL=%5
+set DAI_VERSION=%6
+set DAI_NODES_VERSION=%7
 
 echo ==========================================
 echo Running tests with:
 echo   PYTHON_VERSION_ENV = %PYTHON_VERSION_ENV%
-echo   DAI_VERSION         = %DAI_VERSION%
-echo   DAI_NODES_VERSION   = %DAI_NODES_VERSION%
 echo   PLATFORM            = %PLATFORM%
 echo   STRICT_MODE         = %STRICT_MODE%
 echo   ROOT_DIR            = %ROOT_DIR%
 echo   LOG_LEVEL           = %LOG_LEVEL%
+echo   DAI_VERSION         = %DAI_VERSION%
+echo   DAI_NODES_VERSION   = %DAI_NODES_VERSION%
 echo ==========================================
 
 echo Creating virtual environment...
