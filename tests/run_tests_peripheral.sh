@@ -37,7 +37,7 @@ echo "  DAI_NODES_VERSION     = ${DAI_NODES_VERSION}"
 echo "=========================================="
 
 echo "Creating virtual environment..."
-python3 -m venv .venv
+python3.12 -m venv .venv
 
 echo "Activating venv..."
 # shellcheck disable=SC1091
