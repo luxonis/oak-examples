@@ -25,7 +25,10 @@ class DepthAIPipeline:
         self._visualizer = visualizer
         self.workflow_schema = workflow_schema
 
-        self._device = dai.Device()
+        device_ip = self._pipeline_config.device
+        self._device = (
+            dai.Device(dai.DeviceInfo(device_ip)) if device_ip else dai.Device()
+        )
         with dai.Pipeline(self._device) as p:
             cam = p.create(dai.node.Camera)
             cam.build()

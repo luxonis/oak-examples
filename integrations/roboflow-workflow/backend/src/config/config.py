@@ -5,6 +5,9 @@ from pathlib import Path
 
 
 class PipelineConfig(BaseModel):
+    device: str = Field(
+        "", description="Device IP, if empty then default device is used"
+    )
     output_size: Tuple[int, int] = Field(..., description="(width, height)")
     fps: int = Field(..., description="Frames per second for camera output")
 
