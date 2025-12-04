@@ -14,6 +14,7 @@ from helper_functions import (
     print_final_calibration_results,
 )
 
+
 def nice_disparity_viz(in_disp_frame):
     # 1) to float, keep a valid mask
     disp = in_disp_frame.astype(np.float32)
@@ -48,6 +49,7 @@ def nice_disparity_viz(in_disp_frame):
     colormap = getattr(cv2, "COLORMAP_TURBO", cv2.COLORMAP_JET)
     vis = cv2.applyColorMap(disp_eq, colormap)
     return vis
+
 
 # Rolling average for depth ROI means
 DEPTH_HISTORY_SIZE = 10
