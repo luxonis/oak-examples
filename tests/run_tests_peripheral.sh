@@ -57,4 +57,4 @@ pytest -v -r a --log-cli-level="${LOG_LEVEL}" --log-file=out.log --color=yes \
   --python-version="${PYTHON_VERSION_ENV}" \
   --strict-mode="${STRICT_MODE}" \
   --root-dir "${ROOT_DIR}" \
-  -q "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/test_examples_peripheral.py"
+  -q tests/test_examples_peripheral.py"
