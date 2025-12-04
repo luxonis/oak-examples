@@ -298,7 +298,7 @@ jobs:
           fi
 
           exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity \
-              --commands "cd %TEMP%\oak-examples && tests/run_tests_peripheral.sh ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+              --commands "cd /tmp/oak-examples && tests/run_tests_peripheral.sh ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
   test_standalone:
     if: >
