@@ -48,6 +48,7 @@ def is_valid(
 
             os_failed = None
             desired_os = platform.system()
+            logger.warning(f"FAILING OS: {failing_os}, desired OS: {desired_os}")
             if failing_os is not None:
                 os_failed = not check_general(desired_os, failing_os)
 
