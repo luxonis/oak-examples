@@ -45,6 +45,7 @@ with dai.Pipeline(device) as pipeline:
             replay.setFps(args.fps_limit)
     else:
         cam = pipeline.create(dai.node.Camera).build()
+        cam.initialControl.setManualExposure(3000, 200)
 
         cam_out = cam.requestOutput((2592, 1944), frame_type, fps=args.fps_limit)
     input_node = replay.out if args.media_path else cam_out

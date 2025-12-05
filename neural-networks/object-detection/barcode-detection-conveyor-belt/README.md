@@ -22,7 +22,7 @@ The application will also run on **OAK4-S** and **OAK4-D** devices. For rolling-
 
 ## Demo
 
-![Demo](media/barcode_demo.gif)
+![Demo](media/conveyor_application.gif)
 
 > **Note:** The stream may appear purplish because the OAK4-CS lacks an IR-cut filter.
 
