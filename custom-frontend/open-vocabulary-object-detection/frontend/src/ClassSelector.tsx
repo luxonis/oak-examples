@@ -4,7 +4,11 @@ import { css } from "../styled-system/css/css.mjs";
 import { useConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "./Notifications.tsx";
 
-export function ClassSelector() {
+type Props = {
+    onClassesUpdated?: (classes: string[]) => void;
+}
+
+export function ClassSelector({ onClassesUpdated }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
     const connection = useConnection();
     const [selectedClasses, setSelectedClasses] = useState<string[]>(["person", "chair", "TV"]);
@@ -38,6 +42,7 @@ export function ClassSelector() {
                     console.log('Backend acknowledged class update');
                     setSelectedClasses(updatedClasses);
                     notify(`Classes updated (${updatedClasses.join(', ')})`, { type: 'success', durationMs: 6000 });
+                    onClassesUpdated?.(updatedClasses);
                 }
             );
 

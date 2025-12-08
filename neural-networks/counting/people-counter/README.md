@@ -25,8 +25,6 @@ Here is a list of all available parameters:
                     Path to the media file you aim to run the model on. If not set, the model will run on the camera input. (default: None)
 ```
 
-> **Note:** This example currently only works on RVC2 devices becuase dai.ObjectTracker node is not supported on RVC4.
-
 ## Peripheral Mode
 
 ### Installation

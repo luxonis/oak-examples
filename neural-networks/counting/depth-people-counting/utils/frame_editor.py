@@ -24,15 +24,3 @@ class FrameEditor(dai.node.ThreadedHostNode):
 
             self.output.send(buffer)
             self.timestamp += self.frame_interval
-
-
-class InputsConnector(dai.node.ThreadedHostNode):
-    def __init__(self):
-        super().__init__()
-        self.input = self.createInput()
-        self.output = self.createOutput()
-
-    def run(self):
-        while self.isRunning():
-            buffer = self.input.get()
-            self.output.send(buffer)

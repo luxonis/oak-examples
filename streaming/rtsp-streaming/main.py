@@ -1,4 +1,5 @@
 import depthai as dai
+
 from utils.arguments import initialize_argparser
 from utils.host_stream_output import StreamOutput
 
@@ -19,7 +20,9 @@ with dai.Pipeline(device) as pipeline:
     )
     cam_out.link(vid_enc.input)
 
-    node = pipeline.create(StreamOutput).build(stream=vid_enc.bitstream)
+    node = pipeline.create(StreamOutput).build(
+        stream=vid_enc.bitstream, fps=args.fps_limit
+    )
     node.inputs["stream"].setBlocking(True)
     node.inputs["stream"].setMaxSize(args.fps_limit)
 

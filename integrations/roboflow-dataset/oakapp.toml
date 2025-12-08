@@ -1,0 +1,21 @@
+identifier = "com.example.integrations.roboflow-dataset"
+app_version = "1.0.0"
+
+prepare_container = [
+    { type = "RUN", command = "apt-get update" },
+    { type = "RUN", command = "apt-get install -y python3-pip" },
+    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
+    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
+]
+
+prepare_build_container = []
+
+build_steps = []
+
+depthai_models = { yaml_path = "./depthai_models" }
+
+entrypoint = [
+    "bash",
+    "-c",
+    "python3 -u /app/main.py --api-key <API_KEY> --workspace <WORKSPACE_NAME> --dataset <DATASET_NAME>",
+]

@@ -1,4 +1,4 @@
-# Roboflow Integration
+# Roboflow Dataset
 
 This example shows how to create a [Roboflow](https://roboflow.com) dataset using detections from a **Luxonis device**. It uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) model for object detection.
 

@@ -1,0 +1,10 @@
+roboflow:  
+  api_key: #TODO
+  workspace: #TODO
+  workflow_id: #TODO
+  workflow_parameters: {}
+
+pipeline:
+  device: ""
+  output_size: [640,640]
+  fps: 20

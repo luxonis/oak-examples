@@ -1,4 +1,4 @@
-identifier = "com.example.rerun-integration"
+identifier = "com.example.integrations.rerun-integration"
 app_version = "1.0.0"
 
 prepare_container = [

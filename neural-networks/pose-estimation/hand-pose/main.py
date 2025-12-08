@@ -124,8 +124,22 @@ with dai.Pipeline(device) as pipeline:
         connections_pairs=connection_pairs,
     )
 
+    # video encoding
+    video_encode_manip = pipeline.create(dai.node.ImageManip)
+    video_encode_manip.setMaxOutputFrameSize(768 * 768 * 3)
+    video_encode_manip.initialConfig.setOutputSize(768, 768)
+    video_encode_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+    input_node.link(video_encode_manip.inputImage)
+
+    video_encoder = pipeline.create(dai.node.VideoEncoder)
+    video_encoder.setMaxOutputFrameSize(768 * 768 * 3)
+    video_encoder.setDefaultProfilePreset(
+        args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    video_encode_manip.out.link(video_encoder.input)
+
     # visualization
-    visualizer.addTopic("Video", input_node, "images")
+    visualizer.addTopic("Video", video_encoder.out, "images")
     visualizer.addTopic("Detections", annotation_node.out_detections, "images")
     visualizer.addTopic("Pose", annotation_node.out_pose_annotations, "images")
 

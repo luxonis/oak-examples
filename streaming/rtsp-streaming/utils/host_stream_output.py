@@ -1,13 +1,14 @@
 import depthai as dai
+
 from utils.rtsp_server import RTSPServer
 
 
 class StreamOutput(dai.node.HostNode):
     def __init__(self) -> None:
         super().__init__()
-        self.server = RTSPServer()
 
-    def build(self, stream: dai.Node.Output) -> "StreamOutput":
+    def build(self, stream: dai.Node.Output, fps: int) -> "StreamOutput":
+        self.server = RTSPServer(fps)
         self.link_args(stream)
         self.sendProcessingToPipeline(True)
         return self

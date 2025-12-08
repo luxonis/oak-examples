@@ -1,0 +1,31 @@
+identifier = "example.apps.ros.driver-custom_workspace"
+app_version = "0.9.0"
+
+prepare_container = [
+    { type = "COPY", source = "resolv.conf", target = "/etc/resolv.conf" },
+    { type = "RUN", command = "apt-get update -qq" },
+    { type = "RUN", command = "apt install -y ros2-testing-apt-source"},
+    { type = "RUN", command = "apt-get update -qq" },
+    { type = "RUN", command = "apt-get install -qy ros-kilted-depthai-ros python3-colcon-common-extensions"},
+]
+
+prepare_build_container = [
+
+]
+
+build_steps = [
+    "mkdir -p /ws/src",
+    "cp -r /app/src/ /ws/",
+    'bash -c "cd /ws && source /opt/ros/kilted/setup.bash && colcon build"'
+]
+
+entrypoint = ["bash", "-c", " ls -la /ws &&  source /ws/install/setup.bash && ros2 launch example_package example.launch.py"]
+
+[base_image]
+api_url = "https://registry-1.docker.io" 
+service = "registry.docker.io" 
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository" 
+auth_name = "library/ros"
+image_name = "library/ros"
+image_tag = "kilted-ros-base"

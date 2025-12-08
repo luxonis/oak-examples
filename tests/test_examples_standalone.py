@@ -3,6 +3,7 @@ import subprocess
 import shutil
 import pytest
 import time
+import sys
 from pathlib import Path
 from collections import deque
 import logging
@@ -134,14 +135,19 @@ def run_example(example_dir: Path, args: Dict) -> bool:
     try:
         logger.debug(f"Installing {example_dir} app")
 
-        process = subprocess.Popen(
-            ["oakctl", "app", "run", "."],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+            "bufsize": 1,
+        }
 
+        # Windows encoding fixes
+        if sys.platform.startswith("win"):
+            popen_kwargs["encoding"] = "utf-8"
+            popen_kwargs["errors"] = "replace"
+
+        process = subprocess.Popen(["oakctl", "app", "run", "."], **popen_kwargs)
         app_started = False
         start_time = None
         signal_start = time.time()

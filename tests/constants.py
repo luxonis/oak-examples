@@ -51,6 +51,53 @@ KNOWN_FAILING = {
     "apps/data-collection": {
         "reason": "Not supported for peripheral",
         "mode": ["peripheral"],
+    "integrations/roboflow-dataset": {
+        "reason": "Can't run without arguments (e.g. roboflow api-key)",
+        "mode": "all",
+        "platform": "all",
+    },
+    "integrations/roboflow-workflow": {
+        "reason": "Can't run without arguments Roboflow arguments",
+        "mode": "all",
+        "platform": "all",
+    },
+    "neural-networks/speech-recognition/whisper-tiny-en": {
+        "reason": "Complex example, works only on RVC4",
+        "platform": ["rvc2"],
+    },
+    "neural-networks/object-detection/yolo-world": {
+        "reason": "Complex example, works only on RVC4",
+        "platform": ["rvc2"],
+    },
+    "neural-networks/ocr/license-plate-recognition": {
+        "reason": "Complex example, works only on RVC4",
+        "platform": ["rvc2"],
+    },
+    "neural-networks/object-detection/thermal-detection": {
+        "reason": "Needs thermal camera",
+        "platform": "all",
+    },
+    "neural-networks/depth-estimation/foundation-stereo": {
+        "reason": "Requires a lot of host compute to run",
+        "mode": ["standalone"],
+    },
+    "integrations/hub-snaps-events": {
+        "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method - Needs to be set by the user.",
+        "mode": "all",
+        "platform": "all",
+    },
+    "depth-measurement/3d-measurement/tof-pointcloud": {
+        "reason": "ToF cameras are only of the RVC2 variant",
+        "platform": ["rvc4"],
+    },
+    "depth-measurement/triangulation": {
+        "reason": "Can't sync outputs inside Triangulation node",
+        "platform": ["rvc4"],
+    },
+    "streaming/rtsp-streaming": {
+        "reason": "PyCairo installation issues",
+        "mode": "all",
+        "platform": "all",
     },
     "integrations/roboflow-integration": {
         "integrations/roboflow-dataset": {
@@ -110,6 +157,10 @@ KNOWN_FAILING = {
             "reason": "Missing bindings for RVC2 in Script node.",
             "platform": ["rvc2"],
         },
+    },
+    "tutorials/qr-with-tiling": {
+        "reason": "Missing bindings for RVC2 in Script node.",
+        "platform": ["rvc2"],
     },
 }
 

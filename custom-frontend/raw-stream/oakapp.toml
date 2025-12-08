@@ -1,15 +1,20 @@
 identifier = "com.example.custom-frontend.raw-stream"
+entrypoint = ["bash", "-c", "python3 -u /app/main.py --ip $(hostname -I | awk '{print $1}')"]
 app_version = "0.1.0"
 
 prepare_container = [
     { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3-pip net-tools" },
+    { type = "RUN", command = "apt-get install -y python3-pip net-tools curl" },
     { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
     { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
 ]
+prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
 
 build_steps = []
 
-prepare_build_container = []
+[static_frontend]
+dist_path = "./frontend/dist"
 
-entrypoint = ["bash", "-c", "python3 -u /app/main.py --ip $(hostname -I | awk '{print $1}')"]
+[static_frontend.build]
+source_path = "./frontend"
+steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]

@@ -1,6 +1,6 @@
 identifier = "com.example.camere-controls.lossless-zooming"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.0"
+app_version = "1.0.2"
 assign_frontend_port = true
 
 prepare_container = [
@@ -23,4 +23,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.2.5"
+image_tag = "1.2.6"

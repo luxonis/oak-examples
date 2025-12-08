@@ -93,7 +93,7 @@ class QRScanner(dai.node.HostNode):
         img_annot = dai.ImgAnnotation()
 
         for idx, tile_info in enumerate(self.tile_positions):
-            x1, y1, x2, y2 = tile_info["coords"]
+            x1, y1, x2, y2 = tile_info
             color = colors[idx % len(colors)]
             rect = dai.PointsAnnotation()
             rect.fillColor = color

@@ -1,0 +1,4 @@
+depthai==3.0.0
+depthai-nodes==0.3.4
+imutils
+stitching==0.6.1

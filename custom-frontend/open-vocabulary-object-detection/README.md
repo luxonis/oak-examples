@@ -37,14 +37,6 @@ Notes:
 
 - Backend function `extract_image_prompt_embeddings(image, max_num_classes=80, model_name, mask_prompt=None)` accepts an optional `mask_prompt` of shape `(80,80)` or `(1,1,80,80)` for `yoloe`. When `None`, a default central mask is used.
 
-### Prerequisites
-
-Before running the example you’ll need to first build the frontend. Follow these steps:
-
-1. Install FE dependencies: `cd frontend/ && npm i`
-2. Build the FE: `npm run build`
-3. Move back to origin directory: `cd ..`
-
 ## Standalone Mode (RVC4 only)
 
 Running the example in the standalone mode, app runs entirely on the device.

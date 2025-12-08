@@ -54,7 +54,11 @@ jobs:
       run: |
         EVENT_NAME="${{ github.event_name }}"
 
-        RAW_LABELS='${{ toJson(github.event.pull_request.labels) }}'
+        RAW_LABELS=$(cat <<'JSON'
+        ${{ toJson(github.event.pull_request.labels) }}
+        JSON
+        )
+
         if [[ "$RAW_LABELS" == "null" || -z "$RAW_LABELS" ]]; then
           LABELS="[]"
         else

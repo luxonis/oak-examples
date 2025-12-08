@@ -1,2 +1,2 @@
-model: yoloe-v8-l:640x640-text-visual-prompt:e23da0f
+model: yoloe-v8-l:640x480-text-visual-prompt:4989b89
 platform: RVC4
