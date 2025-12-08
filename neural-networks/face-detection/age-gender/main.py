@@ -15,9 +15,9 @@ REQ_WIDTH, REQ_HEIGHT = (
 _, args = initialize_argparser()
 
 
-import platform  # noqa: E402
+import platform as pl  # noqa: E402
 
-if platform.system() == "Darwin":
+if pl.system() == "Darwin":
     exit(1)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
