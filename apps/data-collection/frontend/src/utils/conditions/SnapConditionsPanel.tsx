@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { css } from "../../../styled-system/css/css.mjs";
 import { useDaiConnection } from "@luxonis/depthai-viewer-common";
-import { useNotifications } from "../../Notifications.tsx";
+import { useToast } from "@luxonis/common-fe-components";
 import { ConditionCard } from "./ConditionCard.tsx";
 import { CooldownMinutesInput } from "./CooldownMinutesInput.tsx";
 import { EdgeBufferPercentInput } from "./EdgeBufferPercentInput.tsx";
@@ -22,7 +22,7 @@ interface SnapConditionsPanelProps {
 
 export function SnapConditionsPanel({ initialConfig }: SnapConditionsPanelProps) {
   const connection = useDaiConnection();
-  const { notify } = useNotifications();
+  const { toast } = useToast();
 
   const [running, setRunning] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -120,7 +120,11 @@ export function SnapConditionsPanel({ initialConfig }: SnapConditionsPanelProps)
 
   const warnIfTooManyDecimals = (label: string, value: string) => {
     if (value.trim() !== "" && hasTooManyDecimals(value)) {
-      notify(`${label} allows at most one decimal place.`, { type: "warning" });
+    toast({
+      description: `${label} allows at most one decimal place.`,
+      colorVariant: "warning",
+      duration: "default",
+    });
     }
   };
 
@@ -154,7 +158,11 @@ export function SnapConditionsPanel({ initialConfig }: SnapConditionsPanelProps)
     postToService(payload, () => {
       setBusy(false);
       setRunning(runFlag);
-      notify(runFlag ? "Snapping started." : "Snapping stopped.", { type: "success" });
+      toast({
+        description: runFlag ? "Snapping started." : "Snapping stopped.",
+        colorVariant: "success",
+        duration: "default",
+      });
     });
   };
 
@@ -176,7 +184,11 @@ export function SnapConditionsPanel({ initialConfig }: SnapConditionsPanelProps)
 
   const handleStartStop = () => {
     if (!connection.connected) {
-      notify("Not connected to device.", { type: "error" });
+      toast({
+        description: "Not connected to device.",
+        colorVariant: "error",
+        duration: "default",
+      });
       return;
     }
     if (busy) return;
@@ -184,37 +196,65 @@ export function SnapConditionsPanel({ initialConfig }: SnapConditionsPanelProps)
     // validations before starting
     if (!running) {
       if (timingEnabled && !timingValid) {
-        notify("Please enter a positive timing cooldown (minutes, max 1 decimal).", { type: "error" });
+          toast({
+            description: "Please enter a positive timing cooldown (minutes, max 1 decimal).",
+            colorVariant: "error",
+            duration: "default",
+          });
         return;
       }
       if (noDetEnabled && !noDetValid) {
-        notify("Please enter a non-negative no-detections cooldown (minutes, max 1 decimal).", { type: "error" });
+          toast({
+            description: "Please enter a non-negative no-detections cooldown (minutes, max 1 decimal).",
+            colorVariant: "error",
+            duration: "default",
+          });
         return;
       }
       if (lowConfEnabled) {
         if (!lowConfValid) {
-          notify("Please enter a non-negative low-confidence cooldown (minutes, max 1 decimal).", { type: "error" });
+          toast({
+            description: "Please enter a non-negative low-confidence cooldown (minutes, max 1 decimal).",
+            colorVariant: "error",
+            duration: "default",
+          });
           return;
         }
         if (!(lowConfThreshold >= 0 && lowConfThreshold <= 1)) {
-          notify("Confidence threshold must be between 0.00 and 1.00.", { type: "error" });
+          toast({
+            description: "Confidence threshold must be between 0.00 and 1.00.",
+            colorVariant: "error",
+            duration: "default",
+          });
           return;
         }
       }
       if (lostMidEnabled) {
         if (!lostMidValid) {
-          notify("Please enter a non-negative lost-in-middle cooldown (minutes, max 1 decimal).", { type: "error" });
+          toast({
+            description: "Please enter a non-negative lost-in-middle cooldown (minutes, max 1 decimal).",
+            colorVariant: "error",
+            duration: "default",
+          });
           return;
         }
         if (!lostMidPctValid) {
-          notify("Edge buffer must be between 0% and 49%.", { type: "error" });
+          toast({
+            description: "Edge buffer must be between 0% and 49%.",
+            colorVariant: "error",
+            duration: "default",
+          });
           return;
         }
       }
     }
 
     setBusy(true);
-    notify(!running ? "Starting snapping…" : "Stopping snapping…", { type: "info" });
+    toast({
+      description: !running ? "Starting snapping…" : "Stopping snapping…",
+      colorVariant: "gray",
+      duration: "default",
+    });
     postConfig(!running);
   };
 
@@ -307,7 +347,11 @@ export function SnapConditionsPanel({ initialConfig }: SnapConditionsPanelProps)
           onChange={setLostMidStr}
           onBlur={() => {
             if (lostMidStr.trim() !== "" && /\.\d{2,}$/.test(lostMidStr)) {
-              notify("Lost-in-middle cooldown allows at most one decimal place.", { type: "warning" });
+              toast({
+              description: "Lost-in-middle cooldown allows at most one decimal place.",
+              colorVariant: "warning",
+              duration: "default",
+            });
             }
             pushLostMidUpdate();
           }}

@@ -2,7 +2,7 @@ import { Flex, Button, Input } from "@luxonis/common-fe-components";
 import { useRef, useState, useEffect } from "react";
 import { css } from "../../../styled-system/css/css.mjs";
 import { useDaiConnection } from "@luxonis/depthai-viewer-common";
-import { useNotifications } from "../../Notifications.tsx";
+import { useToast } from "@luxonis/common-fe-components";
 
 interface ClassSelectorProps {
     initialClasses?: string[];
@@ -12,7 +12,7 @@ export function ClassSelector({ initialClasses }: ClassSelectorProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const connection = useDaiConnection();
     const [selectedClasses, setSelectedClasses] = useState<string[]>(["person", "chair", "TV"]);
-    const { notify } = useNotifications();
+    const { toast } = useToast();
 
     // Update classes from backend config
     useEffect(() => {
@@ -31,16 +31,30 @@ export function ClassSelector({ initialClasses }: ClassSelectorProps) {
                 .filter(Boolean);
 
             if (updatedClasses.length === 0) {
-                notify('Please enter at least one class (comma separated).', { type: 'warning', durationMs: 5000 });
+                toast({
+                    description: "Please enter at least one class (comma separated).",
+                    colorVariant: "warning",
+                    duration: "long",
+                });                
                 return;
             }
             if (!connection.connected) {
-                notify('Not connected to device. Unable to update classes.', { type: 'error' });
+                toast({
+                    description: "Not connected to device. Unable to update classes.",
+                    colorVariant: "error",
+                    duration: "default",
+                });
                 return;
             }
 
             console.log('Sending new class list to backend:', updatedClasses);
-            notify(`Updating ${updatedClasses.length} class${updatedClasses.length > 1 ? 'es' : ''}…`, { type: 'info' });
+            toast({
+                description: `Updating ${updatedClasses.length} class${
+                    updatedClasses.length > 1 ? "es" : ""
+                }…`,
+                colorVariant: "gray",
+                duration: "default",
+            });
 
             connection.daiConnection?.postToService(
                 // @ts-ignore - Custom service
@@ -49,8 +63,12 @@ export function ClassSelector({ initialClasses }: ClassSelectorProps) {
                 () => {
                     console.log('Backend acknowledged class update');
                     setSelectedClasses(updatedClasses);
-                    notify(`Classes updated (${updatedClasses.join(', ')})`, { type: 'success', durationMs: 6000 });
-                }
+                toast({
+                    description: `Classes updated (${updatedClasses.join(", ")})`,
+                    colorVariant: "success",
+                    duration: "long",
+                    });                
+                },
             );
 
             inputRef.current.value = '';

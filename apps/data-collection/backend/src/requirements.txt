@@ -1,7 +1,7 @@
-# depthai==3.0.0
---extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/
---pre
-depthai==3.2.0-rc0
+depthai==3.2.1
+#--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/
+#--pre
+#depthai==3.2.0-rc0
 #depthai-nodes==0.3.6
 depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@feat/new_snaps_producer
 opencv-python-headless~=4.10.0

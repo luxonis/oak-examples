@@ -1,11 +1,11 @@
 import { css } from "../styled-system/css/css.mjs";
-import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
+import { Streams, useDaiConnection} from "@luxonis/depthai-viewer-common";
 import { ClassSelector } from "./utils/classes/ClassSelector.tsx";
 import { ConfidenceSlider } from "./utils/classes/ConfidenceSlider.tsx";
 import { ImageUploader } from "./utils/classes/ImageUploader.tsx";
 import { SnapConditionsPanel } from "./utils/conditions/SnapConditionsPanel.tsx";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNotifications } from "./Notifications.tsx";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useToast } from "@luxonis/common-fe-components";
 
 interface BackendConfig {
   classes: string[];
@@ -28,7 +28,9 @@ function App() {
   const [currentRect, setCurrentRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [backendConfig, setBackendConfig] = useState<BackendConfig | null>(null);
   const [configLoaded, setConfigLoaded] = useState(false);
-  const { notify } = useNotifications();
+  const { toast } = useToast();
+  const topicGroups = useMemo(() => ({ images: "Video" }), []);
+  const allowedTopics = useMemo(() => ["Video"], []);
 
   const getUnderlyingMediaAndSize = () => {
     const container = streamContainerRef.current;
@@ -85,13 +87,21 @@ function App() {
       setDragStart(null);
       const ctx = overlay.getContext("2d");
       if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
-      notify("Selection too small. Please draw a larger box.", { type: "warning" });
+      toast({
+        description: "Selection too small. Please draw a larger box.",
+        colorVariant: "warning",
+        duration: "default",
+      });
       return;
     }
 
     const media = getUnderlyingMediaAndSize();
     if (!media) {
-      notify("No video/canvas found. Reset the view and try again.", { type: "error", durationMs: 6000 });
+      toast({
+      description: "No video/canvas found. Reset the view and try again.",
+      colorVariant: "error",
+      duration: "long",
+    });
       return;
     }
 
@@ -123,7 +133,11 @@ function App() {
     const rw = Math.max(0, rx1 - rx0);
     const rh = Math.max(0, ry1 - ry0);
     if (rw <= 1 || rh <= 1) {
-      notify("Box outside of content area. Try again within the stream.", { type: "warning", durationMs: 6000 });
+      toast({
+        description: "Box outside of content area. Try again within the stream.",
+        colorVariant: "warning",
+        duration: "long",
+      });
       return;
     }
 
@@ -141,8 +155,10 @@ function App() {
     const wNorm = sw / srcW;
     const hNorm = sh / srcH;
 
-    notify(`Sending box [${xNorm.toFixed(2)}, ${yNorm.toFixed(2)}, ${wNorm.toFixed(2)}, ${hNorm.toFixed(2)}]`, {
-      type: "info",
+    toast({
+      description: 'Sending box [${xNorm.toFixed(2)}, ${yNorm.toFixed(2)}, ${wNorm.toFixed(2)}, ${hNorm.toFixed(2)}]',
+      colorVariant: "gray",
+      duration: "default",
     });
 
     (connection as any).daiConnection?.postToService(
@@ -152,7 +168,11 @@ function App() {
       },
       (resp: any) => {
         console.log("[BBox] Service ack:", resp);
-        notify("Bounding box sent", { type: "success" });
+        toast({
+          description: "Bounding box sent",
+          colorVariant: "success",
+          duration: "default",
+        });
       }
     );
 
@@ -161,7 +181,7 @@ function App() {
     setDragStart(null);
     const ctx = overlay.getContext("2d");
     if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
-  }, [connection, currentRect, notify]);
+  }, [connection, currentRect, toast]);
 
   const handleBeginBBoxDraw = useCallback(() => {
     setIsDrawing(true);
@@ -187,11 +207,12 @@ function App() {
   }, [isDrawing]);
 
   useEffect(() => {
-    notify(connection.connected ? "Connected to device" : "Disconnected from device", {
-      type: connection.connected ? "success" : "warning",
-      durationMs: 1200,
+    toast({
+      description: connection.connected ? "Connected to device" : "Disconnected from device",
+      colorVariant: connection.connected ? "success" : "warning",
+      duration: "default",
     });
-  }, [connection.connected, notify]);
+  }, [connection.connected, toast]);
 
   // Fetch backend config on connection
   useEffect(() => {
@@ -232,7 +253,11 @@ function App() {
             setBackendConfig(config);
             setConfigLoaded(true);
             console.log("[App] Config restored from backend");
-            notify("Configuration restored from backend", { type: "success", durationMs: 2000 });
+            toast({
+              description: "Configuration restored from backend",
+              colorVariant: "success",
+              duration: "default",
+            });
           } else {
             console.log("[App] Invalid config format - using defaults");
           }
@@ -241,7 +266,7 @@ function App() {
     }, 1500);
 
     return () => clearTimeout(timeoutId);
-  }, [connection.connected, configLoaded, notify]);
+  }, [connection.connected, configLoaded, toast]);
 
   // Reset config loaded flag when disconnected
   useEffect(() => {
@@ -304,7 +329,11 @@ function App() {
       })}
     >
       <div className={css({ flex: 1, minWidth: 0, position: "relative", overflow: "hidden" })} ref={streamContainerRef}>
-        <Streams />
+        <Streams
+          allowedTopics={allowedTopics}
+          defaultTopics={allowedTopics}
+          topicGroups={topicGroups}
+        />
         {isDrawing && (
           <canvas
             ref={overlayCanvasRef}
