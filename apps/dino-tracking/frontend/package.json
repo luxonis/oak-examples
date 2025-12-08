@@ -1,0 +1,31 @@
+{
+	"name": "frontend",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"prepare": "panda coden",
+		"dev": "vite",
+		"build": "tsc -b && vite build",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"preview": "vite preview"
+	},
+	"dependencies": {
+		"@luxonis/depthai-viewer-common": "1.2.8",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"react-router": "^7.5.0",
+		"react-router-dom": "^7.5.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@pandacss/dev": "0.53.0",
+		"@types/react": "^18.3.20",
+		"@types/react-dom": "^18.3.6",
+		"@vitejs/plugin-react": "^4.3.4",
+		"globals": "^16.0.0",
+		"typescript": "~5.7.2",
+		"vite": "^6.3.1"
+	}
+}
