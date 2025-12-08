@@ -50,8 +50,12 @@ KNOWN_FAILING = {
     },
     "apps/data-collection": {
         "reason": "Not supported for peripheral; RVC4 only app",
-        "mode": ["peripheral"],
-        "platform": ["rvc2"],
+        "rules": {
+            "and": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
     },
     "integrations/roboflow-dataset": {
         "reason": "Can't run without arguments (e.g. roboflow api-key)",
