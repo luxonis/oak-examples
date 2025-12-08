@@ -34,7 +34,7 @@ function App() {
             const displayHeight = r.height;
             const offsetX = r.left - containerRect.left;
             const offsetY = r.top - containerRect.top;
-            console.log("[BBox] Capturing from video element", {
+            console.log("Capturing from video element", {
                 width: videoEl.videoWidth,
                 height: videoEl.videoHeight,
                 displayWidth,
@@ -60,7 +60,7 @@ function App() {
             const displayHeight = r.height;
             const offsetX = r.left - containerRect.left;
             const offsetY = r.top - containerRect.top;
-            console.log("[BBox] Capturing from canvas element", {
+            console.log("Capturing from canvas element", {
                 width: canvasEl.width,
                 height: canvasEl.height,
                 displayWidth,
@@ -90,7 +90,7 @@ function App() {
 
         const media = getUnderlyingMediaAndSize();
         if (!media) {
-            console.warn("[BBox] No media found under overlay; aborting bbox post");
+            console.warn("No media found under overlay; aborting post");
             notify("No video/canvas found. Reset the view and try again.", {
                 type: "error",
                 durationMs: 6000,
@@ -124,7 +124,7 @@ function App() {
         const rx0 = Math.max(x, contentX);
         const ry0 = Math.max(y, contentY);
         if (rx0 <= 1 || ry0 <= 1) {
-            console.warn("[BBox] BBox outside content area; aborting");
+            console.warn("Click outside content area; aborting");
             notify("Box outside of content area. Try again within the stream.", {
                 type: "warning",
                 durationMs: 6000,
@@ -146,18 +146,8 @@ function App() {
         const xNorm = sx0 / srcW;
         const yNorm = sy0 / srcH;
 
-        console.log("[BBox] Posting BBox Prompt Service (normalized source)", {
-            bbox: { x: xNorm, y: yNorm },
-            src: { width: srcW, height: srcH },
-            overlay: { width: overlayW, height: overlayH },
-            display: {
-                width: mediaDispW,
-                height: mediaDispH,
-                offsetX: mediaOffsetX,
-                offsetY: mediaOffsetY,
-            },
-            content: { x: contentX, y: contentY, width: contentW, height: contentH },
-            scales: { scaleX, scaleY },
+        console.log("Posting Prompt Service (normalized source)", {
+            click: { x: xNorm, y: yNorm },
         });
 
         notify(`Sending box [${xNorm.toFixed(2)}, ${yNorm.toFixed(2)}]`, {
@@ -166,12 +156,12 @@ function App() {
 
         // @ts-ignore - Custom service
         (connection as any).daiConnection?.postToService(
-            "BBox Prompt Service",
+            "Click Prompt Service",
             {
-                bbox: { x: xNorm, y: yNorm },
+                click: { x: xNorm, y: yNorm },
             },
             (resp: any) => {
-                console.log("[BBox] Service ack:", resp);
+                console.log("Service ack:", resp);
                 notify("Bounding box sent", { type: "success" });
             }
         );
@@ -210,7 +200,7 @@ function App() {
         console.log("[Selection] Clearing selection via service");
         // @ts-ignore - Custom service
         (connection as any).daiConnection?.postToService(
-            "Clear Selection Service",
+            "Clear Click Prompt Service",
             {},
             (resp: any) => {
                 console.log("[Selection] Clear selection ack:", resp);

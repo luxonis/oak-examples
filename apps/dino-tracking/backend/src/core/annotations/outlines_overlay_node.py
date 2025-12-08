@@ -16,16 +16,13 @@ class OutlinesOverlayNode(BaseHostNode):
     def __init__(self):
         super().__init__()
         self.last_seg: np.ndarray | None = None
-        self.mode: str = "off"   # default: outlines enabled
+        self.mode: str = "off"
 
     def build(self, video, seg):
         self.link_args(video, seg)
         return self
 
     def set_mode(self, mode: str):
-        """
-        mode: "on" | "off"
-        """
         if mode in ("on", "off"):
             self.mode = mode
             self._logger.info(f"OutlinesOverlayNode mode set to '{mode}'")
@@ -33,6 +30,7 @@ class OutlinesOverlayNode(BaseHostNode):
             self._logger.warning(
                 f"OutlinesOverlayNode: invalid mode '{mode}', keeping '{self.mode}'"
             )
+            return {"status": "error", "message": f"Invalid mode '{mode}'"}
 
     def process(self, video_msg, seg_msg):
         frame = video_msg.getCvFrame()

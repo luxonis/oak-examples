@@ -1,17 +1,18 @@
 from dotenv import load_dotenv
 import os
+
 os.environ.setdefault("DEPTHAI_LEVEL", "INFO")
 import depthai as dai
 
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
-from utils.input import create_input_node
 
-from utils.outlines_overlay_node import OutlinesOverlayNode
-from utils.segmentation_selection_service import SegmentationSelectionService
-from utils.dino_seg_tracker_node import DinoSegTrackerNode
-from utils.dino_annotation_node import DinoAnnotationNode
-from utils.neural_network_builder import NNBuilder
+from core.annotations.outlines_overlay_node import OutlinesOverlayNode
+from core.dino_node.prompting.click_prompt_service import ClickPromptService
+from core.dino_node.dino_tracker_node import DinoTrackerNode
+from core.annotations.dino_annotation_node import DinoAnnotationNode
+from core.neural_network_builder import NNBuilder
+from core.video_provider import VideoProvider
 
 
 load_dotenv(override=True)
@@ -26,17 +27,14 @@ print(f"Platform: {platform}")
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    input_node = create_input_node(
-        pipeline,
-        platform,
-        args.media_path,
+    video = VideoProvider(
+        pipeline=pipeline,
+        platform=platform,
+        fps_limit=args.fps_limit,
+        media_path=args.media_path,
     )
 
-    video_full = input_node.requestOutput(
-        size=(1280, 720),
-        type=dai.ImgFrame.Type.BGR888i,
-        fps=args.fps_limit,
-    )
+    video_full = video.get_main_stream()
 
     fastsam_nn = NNBuilder(
         pipeline=pipeline,
@@ -59,11 +57,11 @@ with dai.Pipeline(device) as pipeline:
         seg_out,
     )
 
-    tracker = pipeline.create(DinoSegTrackerNode).build(
+    tracker = pipeline.create(DinoTrackerNode).build(
         video_full,
         seg_out,
         dino_out,
-        fs_size=fastsam_nn.input_size,
+        sam_size=fastsam_nn.input_size,
         dino_size=dino_nn.input_size,
     )
 
@@ -73,26 +71,13 @@ with dai.Pipeline(device) as pipeline:
         tracker.out,
     )
 
-    im = pipeline.create(dai.node.ImageManip)
-    im.initialConfig.setOutputSize(1280, 720)
-    im.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
-    im.setMaxOutputFrameSize(int(1280 * 720 * 3))
-    annot_node.out.link(im.inputImage)
+    prompt_service = ClickPromptService(tracker)
 
-    video_enc = pipeline.create(dai.node.VideoEncoder)
+    video_enc = video.encode(annot_node.out)
 
-    video_enc.setDefaultProfilePreset(
-        30,
-        dai.VideoEncoderProperties.Profile.H264_MAIN,
-    )
-
-    im.out.link(video_enc.input)
-
-    selection_service = SegmentationSelectionService(tracker)
-
-    visualizer.addTopic("Video", video_enc.out, "images")
-    visualizer.registerService(selection_service.NAME, selection_service.process)
-    visualizer.registerService("Clear Selection Service", selection_service.clear)
+    visualizer.addTopic("Video", video_enc, "images")
+    visualizer.registerService(prompt_service.NAME_CLICK, prompt_service.process)
+    visualizer.registerService(prompt_service.NAME_CLEAR, prompt_service.clear)
     visualizer.registerService("Threshold Update Service", annot_node.set_confidence)
     visualizer.registerService("Annotation Mode Service", annot_node.set_mode)
     visualizer.registerService("Outlines Mode Service", outlines_node.set_mode)
