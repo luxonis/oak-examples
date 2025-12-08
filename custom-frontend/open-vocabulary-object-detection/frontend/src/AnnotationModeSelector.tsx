@@ -3,8 +3,9 @@ import { useState } from "react";
 import { css } from "../styled-system/css/css.mjs";
 import { useConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "./Notifications.tsx";
+import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
 
-type Mode =  "heatmap" | "bbox";
+type Mode = "heatmap" | "bbox";
 
 type Props = {
     onModeChanged?: (mode: Mode) => void;
@@ -14,12 +15,12 @@ export function AnnotationModeSelector({ onModeChanged }: Props) {
     const connection = useConnection();
     const { notify } = useNotifications();
 
-    // Default mode – pick what you want as startup
+    // Default mode – startup is "heatmap"
     const [currentMode, setCurrentMode] = useState<Mode>("heatmap");
 
     const modes: { id: Mode; label: string }[] = [
-        { id: "heatmap",  label: "Heatmap" },
-        { id: "bbox",     label: "BBoxes" },
+        { id: "heatmap", label: "Heatmap" },
+        { id: "bbox", label: "BBoxes" },
     ];
 
     const handleClick = (mode: Mode) => {
@@ -39,7 +40,7 @@ export function AnnotationModeSelector({ onModeChanged }: Props) {
         notify(`Switching visualization mode to "${mode}"…`, { type: "info" });
 
         // Name the service however you wired it on BE
-        // e.g. in Python service: NAME = "Annotation Mode Service"
+        // e.g. in Python service: "Annotation Mode Service"
         connection.daiConnection?.postToService(
             // @ts-ignore - custom DepthAI service
             "Annotation Mode Service",
@@ -57,10 +58,14 @@ export function AnnotationModeSelector({ onModeChanged }: Props) {
     };
 
     return (
-        <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
-            <h3 className={css({ fontWeight: "semibold" })}>
-                Annotation mode
-            </h3>
+        <div
+            className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "sm",
+            })}
+        >
+            <h3 className={css({ fontWeight: "semibold" })}>Annotation mode</h3>
 
             <Flex direction="row" gap="sm">
                 {modes.map(({ id, label }) => {
@@ -74,7 +79,6 @@ export function AnnotationModeSelector({ onModeChanged }: Props) {
                             className={css({
                                 flex: "1 1 0",
                                 fontSize: "sm",
-                                // active (current) = grey
                                 ...(isActive
                                     ? {
                                           backgroundColor: "gray.400",
@@ -93,6 +97,17 @@ export function AnnotationModeSelector({ onModeChanged }: Props) {
                     );
                 })}
             </Flex>
+
+            {/* Only show confidence slider when BBox mode is active */}
+            {currentMode === "bbox" && (
+                <div
+                    className={css({
+                        marginTop: "xs",
+                    })}
+                >
+                    <ConfidenceSlider initialValue={0.5} />
+                </div>
+            )}
         </div>
     );
 }

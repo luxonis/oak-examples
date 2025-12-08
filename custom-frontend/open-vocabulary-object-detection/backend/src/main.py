@@ -10,13 +10,13 @@ from utils.input import create_input_node
 from utils.outlines_overlay_node import OutlinesOverlayNode
 from utils.segmentation_selection_service import SegmentationSelectionService
 from utils.dino_seg_tracker_node import DinoSegTrackerNode
-from utils.dino_annotation_node import DinoAnnotationNode   # NEW
+from utils.dino_annotation_node import DinoAnnotationNode
+from utils.neural_network_builder import NNBuilder
 
 
 load_dotenv(override=True)
 _, args = initialize_argparser()
 
-# ----- VISUALIZER -----
 visualizer = dai.RemoteConnection(httpPort=8082)
 
 device = dai.Device()
@@ -26,9 +26,6 @@ print(f"Platform: {platform}")
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    # ------------------------------------------------------------
-    # 1) CAMERA / VIDEO INPUT — FULL RESOLUTION FOR FE & OVERLAY
-    # ------------------------------------------------------------
     input_node = create_input_node(
         pipeline,
         platform,
@@ -36,86 +33,44 @@ with dai.Pipeline(device) as pipeline:
     )
 
     video_full = input_node.requestOutput(
-        size=(1280, 720),      # Full resolution for FE
+        size=(1280, 720),
         type=dai.ImgFrame.Type.BGR888i,
         fps=args.fps_limit,
     )
 
-    # ------------------------------------------------------------
-    # 2) FASTSAM INPUT (RESIZED)
-    # ------------------------------------------------------------
-    fs_model = dai.NNModelDescription("luxonis/fastsam-x:640x352")
-    fs_model.platform = platform
-    fs_archive = dai.NNArchive(dai.getModelFromZoo(fs_model))
-
-    fastsam_manip = pipeline.create(dai.node.ImageManip)
-    fastsam_manip.initialConfig.setOutputSize(
-        fs_archive.getInputWidth(),
-        fs_archive.getInputHeight(),
+    fastsam_nn = NNBuilder(
+        pipeline=pipeline,
+        platform=platform,
+        model_name="luxonis/fastsam-x:640x352",
+        nn_cls=ParsingNeuralNetwork,
     )
-    fastsam_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
-    fastsam_manip.setMaxOutputFrameSize(
-        fs_archive.getInputWidth() * fs_archive.getInputHeight() * 3
+    seg_out = fastsam_nn.build(video_full)
+
+    dino_nn = NNBuilder(
+        pipeline=pipeline,
+        platform=platform,
+        model_name="luxonis/dinov3-backbone:convnext-small-640x480",
+        nn_cls=dai.node.NeuralNetwork,
     )
+    dino_out = dino_nn.build(video_full)
 
-    video_full.link(fastsam_manip.inputImage)
-
-    fastsam_nn = pipeline.create(ParsingNeuralNetwork).build(
-        fastsam_manip.out,
-        fs_archive,
-        fps=args.fps_limit,
-    )
-
-    seg_out = fastsam_nn.out
-
-    # ------------------------------------------------------------
-    # 3) DINO INPUT (RESIZED)
-    # ------------------------------------------------------------
-    dino_model = dai.NNModelDescription("luxonis/dinov3-backbone:convnext-small-640x480")
-    dino_model.platform = platform
-    dino_archive = dai.NNArchive(dai.getModelFromZoo(dino_model))
-
-    dino_manip = pipeline.create(dai.node.ImageManip)
-    dino_manip.initialConfig.setOutputSize(*dino_archive.getInputSize())
-    dino_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
-    dino_manip.setMaxOutputFrameSize(
-        dino_archive.getInputWidth() * dino_archive.getInputHeight() * 3
-    )
-
-    video_full.link(dino_manip.inputImage)
-
-    dino_nn = pipeline.create(dai.node.NeuralNetwork).build(
-        dino_manip.out,
-        dino_archive,
-    )
-
-    # ------------------------------------------------------------
-    # 4) OUTLINES NODE – only draws FastSAM outlines
-    # ------------------------------------------------------------
     outlines_node = pipeline.create(OutlinesOverlayNode).build(
         video_full,
         seg_out,
     )
 
-    # ------------------------------------------------------------
-    # 5) DINO TRACKER – computes reference + HEATMAP ONLY
-    # ------------------------------------------------------------
     tracker = pipeline.create(DinoSegTrackerNode).build(
         video_full,
         seg_out,
-        dino_nn.out,
-        fs_size=(fs_archive.getInputWidth(), fs_archive.getInputHeight()),
-        dino_size=dino_archive.getInputSize(),
+        dino_out,
+        fs_size=fastsam_nn.input_size,
+        dino_size=dino_nn.input_size,
     )
 
-    # ------------------------------------------------------------
-    # 6) ANNOTATION NODE – gets outlined video + seg + heatmap
-    #    and fills ONLY the segment containing the hottest pixel
-    # ------------------------------------------------------------
     annot_node = pipeline.create(DinoAnnotationNode).build(
-        outlines_node.out,   # outlined video
-        seg_out,             # FastSAM segmentation
-        tracker.out,         # heatmap from tracker
+        outlines_node.out,
+        seg_out,
+        tracker.out,
     )
 
     im = pipeline.create(dai.node.ImageManip)
@@ -131,26 +86,19 @@ with dai.Pipeline(device) as pipeline:
         dai.VideoEncoderProperties.Profile.H264_MAIN,
     )
 
-    # Feed annotated frames into encoder
     im.out.link(video_enc.input)
 
-    # ------------------------------------------------------------
-    # 7) SELECTION SERVICE (clicks from FE → tracker)
-    # ------------------------------------------------------------
     selection_service = SegmentationSelectionService(tracker)
 
     visualizer.addTopic("Video", video_enc.out, "images")
     visualizer.registerService(selection_service.NAME, selection_service.process)
     visualizer.registerService("Clear Selection Service", selection_service.clear)
-    visualizer.registerService("Threshold Update Service", tracker.set_confidence)
+    visualizer.registerService("Threshold Update Service", annot_node.set_confidence)
     visualizer.registerService("Annotation Mode Service", annot_node.set_mode)
     visualizer.registerService("Outlines Mode Service", outlines_node.set_mode)
 
     print("Pipeline created.")
 
-    # ------------------------------------------------------------
-    # START PIPELINE
-    # ------------------------------------------------------------
     pipeline.start()
     visualizer.registerPipeline(pipeline)
 

@@ -7,7 +7,6 @@ from depthai_nodes.node.base_host_node import BaseHostNode
 class OutlinesOverlayNode(BaseHostNode):
     """
     Takes full-res video + FastSAM segmentation and ONLY draws segment outlines.
-    No tracking, no heatmap, no fill.
 
     Modes:
       - "on":  draw outlines on top of the frame
@@ -23,7 +22,6 @@ class OutlinesOverlayNode(BaseHostNode):
         self.link_args(video, seg)
         return self
 
-    # Service handler: called from FE via visualizer.registerService(...)
     def set_mode(self, mode: str):
         """
         mode: "on" | "off"
@@ -40,26 +38,21 @@ class OutlinesOverlayNode(BaseHostNode):
         frame = video_msg.getCvFrame()
         H, W = frame.shape[:2]
 
-        # If outlines are disabled, just forward the original frame
         if self.mode == "off":
             self._send(frame, video_msg)
             return
 
-        # When enabled, try to draw outlines
         seg = getattr(seg_msg, "mask", None)
         if seg is None:
-            # No segmentation yet -> just forward frame
             self._send(frame, video_msg)
             return
 
-        # resize seg to full resolution if needed
         if seg.shape != (H, W):
             seg = cv2.resize(seg, (W, H), interpolation=cv2.INTER_NEAREST)
 
         seg = seg.astype(np.int32)
         self.last_seg = seg
 
-        # Draw outlines
         overlay = np.zeros_like(frame)
         ids = np.unique(seg)
         ids = ids[ids != 0]
@@ -75,7 +68,6 @@ class OutlinesOverlayNode(BaseHostNode):
 
         self._send(result, video_msg)
 
-    # small helper so we don’t repeat boilerplate
     def _send(self, frame: np.ndarray, ref_msg: dai.ImgFrame):
         out = dai.ImgFrame()
         out.setCvFrame(frame, self._img_frame_type)

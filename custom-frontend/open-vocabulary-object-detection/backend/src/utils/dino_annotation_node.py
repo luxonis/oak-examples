@@ -21,8 +21,11 @@ class DinoAnnotationNode(BaseHostNode):
         super().__init__()
         self.mode = mode
 
+        # === User-facing threshold: ONLY used in BBOX mode ===
+        # 0.0 = very permissive (any heat), 1.0 = only very hot pixels
+        self.bbox_conf_thresh = 0.5
+
         # BBox tuning params (for "bbox" mode)
-        self.bbox_rel_thresh = 0.5   # keep pixels >= 50% of max heat
         self.bbox_min_area = 50      # ignore tiny blobs
         self.bbox_max_boxes = 6      # draw at most N bboxes
 
@@ -33,6 +36,34 @@ class DinoAnnotationNode(BaseHostNode):
     def build(self, video_in, seg_in, mask_in):
         self.link_args(video_in, seg_in, mask_in)
         return self
+
+    # ------------------------------------------------------------------
+    # Public API (called from FE via RemoteConnection services)
+    # ------------------------------------------------------------------
+    def set_mode(self, mode: str):
+        if mode in ["segments", "heatmap", "bbox"]:
+            self.mode = mode
+            self._logger.info(f"DinoAnnotationNode mode set to '{mode}'")
+        else:
+            self._logger.warning(
+                f"DinoAnnotationNode: invalid mode '{mode}'"
+            )
+
+    def set_confidence(self, conf: float):
+        """
+        Set bbox confidence threshold from FE.
+
+        Expected range: 0..1, interpreted as an absolute threshold on the
+        normalized heatmap (0..1) coming from the tracker.
+
+        Used *only* in 'bbox' mode.
+        'heatmap' mode just visualizes the heat as-is.
+        """
+        conf = float(conf)
+        self.bbox_conf_thresh = float(np.clip(conf, 0.0, 1.0))
+        self._logger.info(
+            f"DinoAnnotationNode: bbox_conf_thresh set to {self.bbox_conf_thresh:.2f}"
+        )
 
     # ------------------------------------------------------------------
     # Main processing
@@ -89,6 +120,9 @@ class DinoAnnotationNode(BaseHostNode):
             selected_sids = []
 
             for sid in candidate_sids:
+                if self.seg_ignore_sid_zero and sid == 0:
+                    continue
+
                 sid_mask = (seg_full == sid)
                 area = int(np.count_nonzero(sid_mask))
                 if area < min_area:
@@ -96,7 +130,7 @@ class DinoAnnotationNode(BaseHostNode):
 
                 sid_heat = heat[sid_mask]
 
-                # Segment ON if any pixel passed sim_thresh in tracker
+                # Segment ON if any pixel has non-zero heat
                 if np.any(sid_heat > 0.0):
                     selected_mask |= sid_mask
                     selected_sids.append(sid)
@@ -120,6 +154,7 @@ class DinoAnnotationNode(BaseHostNode):
 
         # ----------------------------------------------------------
         # MODE 2: heatmap overlay (mask as intensity)
+        #  - NO threshold here; we show heat "as is"
         # ----------------------------------------------------------
         if mode == "heatmap":
             heat_norm = np.clip(mask_gray.astype(np.float32) / 255.0, 0.0, 1.0)
@@ -140,6 +175,7 @@ class DinoAnnotationNode(BaseHostNode):
 
         # ----------------------------------------------------------
         # MODE 3: bbox (tight rectangles around hot blobs)
+        #  - HERE we use bbox_conf_thresh as the only threshold
         # ----------------------------------------------------------
         if mode == "bbox":
             heat = mask_gray.astype(np.float32) / 255.0
@@ -148,9 +184,11 @@ class DinoAnnotationNode(BaseHostNode):
                 self._send(frame, video_msg)
                 return
 
-            thr = self.bbox_rel_thresh * m
+            # Absolute threshold from slider (0..1)
+            thr = self.bbox_conf_thresh
             hot = (heat >= thr).astype(np.uint8)
 
+            # Small morphology to clean up noise
             kernel = np.ones((3, 3), np.uint8)
             hot = cv2.morphologyEx(hot, cv2.MORPH_OPEN, kernel)
             hot = cv2.dilate(hot, kernel, iterations=1)
@@ -168,6 +206,13 @@ class DinoAnnotationNode(BaseHostNode):
                 area = int(stats[lbl, cv2.CC_STAT_AREA])
                 if area < self.bbox_min_area:
                     continue
+
+                # Optional sanity: ensure blob has strong heat
+                blob_mask = (labels == lbl)
+                blob_max = float(heat[blob_mask].max())
+                if blob_max < thr:
+                    continue
+
                 blobs.append((lbl, area))
 
             if not blobs:
@@ -196,6 +241,9 @@ class DinoAnnotationNode(BaseHostNode):
         )
         self._send(frame, video_msg)
 
+    # ------------------------------------------------------------------
+    # Helper: send result as ImgFrame
+    # ------------------------------------------------------------------
     def _send(self, frame: np.ndarray, ref_msg: dai.ImgFrame):
         out = dai.ImgFrame()
         out.setCvFrame(frame, self._img_frame_type)
@@ -203,12 +251,3 @@ class DinoAnnotationNode(BaseHostNode):
         out.setTimestamp(ref_msg.getTimestamp())
         out.setTimestampDevice(ref_msg.getTimestampDevice())
         self.out.send(out)
-
-    def set_mode(self, mode: str):
-        if mode in ["segments", "heatmap", "bbox"]:
-            self.mode = mode
-            self._logger.info(f"DinoAnnotationNode mode set to '{mode}'")
-        else:
-            self._logger.warning(
-                f"DinoAnnotationNode: invalid mode '{mode}'"
-            )

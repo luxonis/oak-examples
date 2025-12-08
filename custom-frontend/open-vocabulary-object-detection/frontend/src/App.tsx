@@ -1,7 +1,6 @@
 import { css } from "../styled-system/css/css.mjs";
 import { Streams, useConnection } from "@luxonis/depthai-viewer-common";
 import { AnnotationModeSelector } from "./AnnotationModeSelector.tsx";
-import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
 import { OutlinesToggle } from "./OutlinesToggle.tsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNotifications } from "./Notifications.tsx";
@@ -337,29 +336,68 @@ function App() {
                     Dino Tracker
                 </h1>
 
+                {/* Short explanation */}
+                <p
+                    className={css({
+                        fontSize: "sm",
+                        color: "gray.600",
+                        lineHeight: "normal",
+                    })}
+                >
+                    1) Turn on outlines to see FastSAM segments. 2) Click{" "}
+                    <strong>Pick object</strong> and then click on the stream to
+                    select what to track. 3) Choose how to visualize tracking
+                    (heatmap or bounding boxes) and, in BBox mode, tune the
+                    confidence slider.
+                </p>
+
                 {/* 1) Outlines toggle */}
                 <OutlinesToggle />
 
-                {/* 2) Annotation mode */}
-                <AnnotationModeSelector />
-
-                {/* 3) Selection controls */}
+                {/* 2) Object selection (moved ABOVE annotation mode) */}
                 <div
                     className={css({
                         display: "flex",
-                        gap: "sm",
+                        flexDirection: "column",
+                        gap: "xs",
                     })}
                 >
-                    <Button onClick={handleStartSelection}>
-                        {isDrawing ? "Click on stream…" : "Pick object"}
-                    </Button>
-                    <Button variant="outline" onClick={handleClearSelection}>
-                        Clear selection
-                    </Button>
+                    <h3 className={css({ fontWeight: "semibold" })}>
+                        Object selection
+                    </h3>
+                    <p
+                        className={css({
+                            fontSize: "sm",
+                            color: "gray.600",
+                        })}
+                    >
+                        Press{" "}
+                        <span className={css({ fontWeight: "semibold" })}>
+                            Pick object
+                        </span>{" "}
+                        and click once on the object in the stream. Use{" "}
+                        <span className={css({ fontWeight: "semibold" })}>
+                            Clear selection
+                        </span>{" "}
+                        to reset and choose a new object.
+                    </p>
+                    <div
+                        className={css({
+                            display: "flex",
+                            gap: "sm",
+                        })}
+                    >
+                        <Button onClick={handleStartSelection}>
+                            {isDrawing ? "Click on stream…" : "Pick object"}
+                        </Button>
+                        <Button variant="outline" onClick={handleClearSelection}>
+                            Clear selection
+                        </Button>
+                    </div>
                 </div>
 
-                {/* 4) Confidence Slider */}
-                <ConfidenceSlider initialValue={0.1} />
+                {/* 3) Annotation mode + (conditionally) confidence slider */}
+                <AnnotationModeSelector />
 
                 {/* Connection Status */}
                 <div
