@@ -28,20 +28,24 @@ ______________________________________________________________________
 
 ## Usage
 
-A **Luxonis device** (RVC4) is required
+Running this example requires a **Luxonis RVC4 device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to set up your device if you haven't already.
 
 ______________________________________________________________________
 
 ## Standalone Mode (RVC4)
 
-Install `oakctl` (see [docs](https://docs.luxonis.com/software-v3/oak-apps/oakctl)), then:
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+
+The app can then be run with:
 
 ```bash
 oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
+Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
+
 ### Remote access
 
 1. You can upload oakapp to Luxonis Hub via oakctl
-2. And then you can just remotely open App UI via App detail -->
+2. And then you can just remotely open App UI via App detail
