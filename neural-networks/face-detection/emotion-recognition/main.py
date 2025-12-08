@@ -19,6 +19,12 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 platform = device.getPlatform().name
 print(f"Platform: {platform}")
 
+import platform as pl  # noqa: E402
+
+if pl.system() == "Windows":
+    exit(1)
+
+
 frame_type = (
     dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
 )
