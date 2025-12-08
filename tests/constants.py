@@ -8,6 +8,22 @@
 #     dai_version ("all" | str): On which dai version is it failing. Can be e.g. >3.0.0rc1, <=3.0.0a14, etc. Supported ops: <,>,<=,>=
 
 KNOWN_FAILING = {
+    "apps/ros/ros-driver-basic": {
+        "reason": "Needs ros base image",
+        "mode": ["standalone"],
+    },
+    "apps/ros/ros-driver-custom-workspace": {
+        "reason": "Needs ros base image",
+        "mode": ["standalone"],
+    },
+    "apps/ros/ros-driver-rgb-pcl": {
+        "reason": "Needs ros base image",
+        "mode": ["standalone"],
+    },
+    "apps/ros/ros-driver-spatial-bb": {
+        "reason": "Needs ros base image",
+        "mode": ["standalone"],
+    },
     "tutorials/multiple-devices/multi-cam-calibration": {
         "reason": "Needs --include-ip flag turned to work on RVC4.",
         "platform": ["rvc4"],
@@ -18,6 +34,10 @@ KNOWN_FAILING = {
     },
     "tutorials/multiple-devices/spatial-detection-fusion": {
         "reason": "Not ported to latest DAI yet",
+        "platform": "all",
+    },
+    "tutorials/multiple-devices/multiple-device-stitch-nn": {
+        "reason": "Test suite doesn't support multi-device testing",
         "platform": "all",
     },
     "custom-frontend/raw-stream": {
@@ -33,56 +53,63 @@ KNOWN_FAILING = {
         "mode": ["peripheral"],
     },
     "integrations/roboflow-integration": {
-        "reason": "Can't run without arguments (e.g. roboflow api-key)",
-        "mode": "all",
-        "platform": "all",
-    },
-    "neural-networks/speech-recognition/whisper-tiny-en": {
-        "reason": "Complex example, works only on RVC4",
-        "platform": ["rvc2"],
-    },
-    "neural-networks/object-detection/yolo-world": {
-        "reason": "Complex example, works only on RVC4",
-        "platform": ["rvc2"],
-    },
-    "neural-networks/ocr/license-plate-recognition": {
-        "reason": "Complex example, works only on RVC4",
-        "platform": ["rvc2"],
-    },
-    "neural-networks/object-detection/thermal-detection": {
-        "reason": "Needs thermal camera",
-        "platform": "all",
-    },
-    "neural-networks/counting/depth-people-counting": {
-        "reason": "Pipeline node with name: 'ObjectTracker' doesn't exist",
-        "platform": ["rvc4"],
-    },
-    "neural-networks/depth-estimation/foundation-stereo": {
-        "reason": "Requires a lot of host compute to run",
-        "mode": ["standalone"],
-    },
-    "integrations/hub-snaps-events": {
-        "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method - Needs to be set by the user.",
-        "mode": "all",
-        "platform": "all",
-    },
-    "depth-measurement/3d-measurement/tof-pointcloud": {
-        "reason": "ToF cameras are only of the RVC2 variant",
-        "platform": ["rvc4"],
-    },
-    "depth-measurement/triangulation": {
-        "reason": "Can't sync outputs inside Triangulation node",
-        "platform": ["rvc4"],
-    },
-    "streaming/rtsp-streaming": {
-        "reason": "PyCairo installation issues",
-        "mode": "all",
-        "platform": "all",
-    },
-    "streaming/poe-mqtt": {
-        "reason": "Needs backend connection sometimes, flaky to test.",
-        "mode": "all",
-        "platform": "all",
+        "integrations/roboflow-dataset": {
+            "reason": "Can't run without arguments (e.g. roboflow api-key)",
+            "mode": "all",
+            "platform": "all",
+        },
+        "integrations/roboflow-workflow": {
+            "reason": "Can't run without arguments Roboflow arguments",
+            "mode": "all",
+            "platform": "all",
+        },
+        "neural-networks/speech-recognition/whisper-tiny-en": {
+            "reason": "Complex example, works only on RVC4",
+            "platform": ["rvc2"],
+        },
+        "neural-networks/object-detection/yolo-world": {
+            "reason": "Complex example, works only on RVC4",
+            "platform": ["rvc2"],
+        },
+        "neural-networks/ocr/license-plate-recognition": {
+            "reason": "Complex example, works only on RVC4",
+            "platform": ["rvc2"],
+        },
+        "neural-networks/object-detection/thermal-detection": {
+            "reason": "Needs thermal camera",
+            "platform": "all",
+        },
+        "neural-networks/depth-estimation/foundation-stereo": {
+            "reason": "Requires a lot of host compute to run",
+            "mode": ["standalone"],
+        },
+        "integrations/hub-snaps-events": {
+            "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method - Needs to be set by the user.",
+            "mode": "all",
+            "platform": "all",
+        },
+        "depth-measurement/3d-measurement/tof-pointcloud": {
+            "reason": "ToF cameras are only of the RVC2 variant",
+            "platform": ["rvc4"],
+        },
+        "depth-measurement/triangulation": {
+            "reason": "Can't sync outputs inside Triangulation node",
+            "platform": ["rvc4"],
+        },
+        "streaming/rtsp-streaming": {
+            "reason": "PyCairo installation issues",
+            "mode": "all",
+            "platform": "all",
+        },
+        "streaming/poe-mqtt": {
+            "reason": "Needs backend connection sometimes, flaky to test.",
+            "mode": "all",
+            "platform": "all",
+        },
+        "tutorials/qr-with-tiling": {
+            "reason": "Missing bindings for RVC2 in Script node.",
+            "platform": ["rvc2"],
+        },
     },
 }
 
