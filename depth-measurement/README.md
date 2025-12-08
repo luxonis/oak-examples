@@ -14,5 +14,6 @@ This section contains examples demonstrating depth perception capabilities and s
 | [stereo-on-host](stereo-on-host/)                                 | ✅   | ✅                | ✅                | [gen2-stereo-on-host](https://github.com/luxonis/oak-examples/tree/master/gen2-stereo-on-host)               | Example performing stereo depth calculations on host                 |
 | [stereo-runtime-configuration](stereo-runtime-configuration/)     | ✅   | ✅                | ✅                | [gen2-qt-gui](https://github.com/luxonis/oak-examples/tree/master/gen2-qt-gui)                               | Stereo depth configuration during runtime                            |
 | [triangulation](triangulation/)                                   | ✅   | ✅                | ✅                | [gen2-triangulation](https://github.com/luxonis/oak-examples/tree/master/gen2-triangulation)                 | Demonstration of 3D position calculation using triangulation         |
+| [dynamic-calibration](dynamic-calibration/)                       | ✅   | ✅                | ✅                |                                                                                                              | Shows off the dynamic recalibration in action                        |
 
 ✅: available; ❌: not available; 🚧: work in progress

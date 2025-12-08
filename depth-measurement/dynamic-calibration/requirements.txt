@@ -1,0 +1,5 @@
+depthai==3.2.1
+depthai-nodes==0.3.6
+numpy>=1.22
+opencv-python==4.10.0.84
+opencv-contrib-python==4.10.0.84

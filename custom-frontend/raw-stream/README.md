@@ -23,12 +23,6 @@ Here is a list of all available parameters:
 -p PORT, --port PORT  Port to serve the frontend on. (default: None)
 ```
 
-Before running the example in either mode, you’ll need to first build the frontend. Follow these steps:
-
-1. Install FE dependencies: `cd frontend/ && npm i`
-2. Build the FE: `npm run build`
-3. Move back to origin directory: `cd ..`
-
 ## Peripheral Mode
 
 ### Installation

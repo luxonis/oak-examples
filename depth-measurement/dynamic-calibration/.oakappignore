@@ -1,0 +1,37 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Node.js
+# ignore node_modules, it will be reinstalled in the container
+node_modules/
+
+# Multimedia files
+media/
+
+# Documentation
+README.md
+
+# VCS
+.git/
+.github/
+.gitlab/
+
+# Ignore specific files in utils/
+utils/dynamic_calibration_interative.py
+utils/helper_functions.py
+
+# The following files are ignored by default
+# uncomment a line if you explicitly need it
+
+# !*.oakapp
+
+# Python
+# !**/.mypy_cache/
+# !**/.ruff_cache/
+
+# IDE files
+# !**/.idea
+# !**/.vscode
+# !**/.zed
+

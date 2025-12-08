@@ -9,6 +9,9 @@ _, args = initialize_argparser()
 
 IMG_SIZES = {"2160p": (3840, 2160), "1080p": (1920, 1080), "720p": (1280, 720)}
 IMG_SHAPE = IMG_SIZES[args.input_size]
+OVERLAP = 0.2
+GRID_MATRIX = None
+GLOBAL_DETECTION = False
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
@@ -41,11 +44,12 @@ with dai.Pipeline(device) as pipeline:
     tile_manager = pipeline.create(Tiling).build(
         img_output=cam_out,
         img_shape=IMG_SHAPE,
-        overlap=0.2,
+        overlap=OVERLAP,
         grid_size=grid_size,
-        grid_matrix=None,
-        global_detection=False,
+        grid_matrix=GRID_MATRIX,
+        global_detection=GLOBAL_DETECTION,
         nn_shape=nn_archive.getInputSize(),
+        resize_mode=dai.ImageManipConfig.ResizeMode.STRETCH,
     )
 
     nn_input = tile_manager.out
@@ -57,15 +61,23 @@ with dai.Pipeline(device) as pipeline:
 
     nn = pipeline.create(ParsingNeuralNetwork).build(nn_input, nn_archive)
 
-    nn.input.setMaxSize(len(tile_manager.tile_positions))
+    nn.input.setMaxSize(grid_size[0] * grid_size[1])
     nn.input.setBlocking(False)
 
     patcher = pipeline.create(TilesPatcher).build(
-        tile_manager=tile_manager, nn=nn.out, conf_thresh=0.3, iou_thresh=0.2
+        img_frames=cam_out, nn=nn.out, conf_thresh=0.3, iou_thresh=0.2
+    )
+
+    tile_positions = tile_manager._computeTilePositions(
+        overlap=OVERLAP,
+        grid_size=grid_size,
+        img_shape=IMG_SHAPE,
+        grid_matrix=GRID_MATRIX,
+        global_detection=GLOBAL_DETECTION,
     )
 
     scanner = pipeline.create(QRScanner).build(
-        preview=cam_out, nn=patcher.out, tile_positions=tile_manager.tile_positions
+        preview=cam_out, nn=patcher.out, tile_positions=tile_positions
     )
     scanner.inputs["detections"].setBlocking(False)
     scanner.inputs["detections"].setMaxSize(2)

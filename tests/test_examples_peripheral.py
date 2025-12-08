@@ -47,7 +47,12 @@ def test_example_runs_in_peripheral(example_dir, test_args):
         pytest.skip(f"Skipping {example_dir}, no requirements.txt found.")
 
     venv_dir = example_dir / ".test-venv"
-    env_exe = venv_dir / "bin" / "python3"
+    if os.name == "nt":
+        # Windows
+        env_exe = venv_dir / "Scripts" / "python.exe"
+    else:
+        # POSIX (Linux/macOS)
+        env_exe = venv_dir / "bin" / "python3"
 
     setup_virtual_env(
         venv_dir=venv_dir,
@@ -99,7 +104,13 @@ def setup_virtual_env(
     """Creates and sets up a virtual environment with the required dependencies."""
     logger.debug(f"Setting up virtual environment for {venv_dir.parent}...")
     EnvBuilder(clear=True, with_pip=True).create(venv_dir)
-    env_exe = venv_dir / "bin" / "python3"
+
+    if os.name == "nt":
+        # Windows
+        env_exe = venv_dir / "Scripts" / "python.exe"
+    else:
+        # POSIX (Linux/macOS)
+        env_exe = venv_dir / "bin" / "python3"
 
     # Read original requirements
     with open(requirements_path, "r") as f:

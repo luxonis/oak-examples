@@ -6,11 +6,8 @@ on:
       distinct_id:
         description: 'run identifier'
         required: false
-      depthai_version:
-        description: 'Version of DepthAI to install for the test run. If specified the version will override version specified in requirements.txt'
-        required: false
-      depthai_nodes_version:
-        description: 'Version of depthai-nodes to install for the test run. If specified the version will override version specified in requirements.txt'
+      dai_versions:
+        description: "DepthAI & depthai-nodes versions in the form: depthai=<ver>,nodes=<ver> (e.g. depthai=2.26.0,nodes=1.9.0). Each key is optional."
         required: false
       python_version:
         description: 'Python version to use. By default 3.8, 3.10 and 3.12 are used but you can use only one by passing only `3.8`, `3.10` or `3.12`.'
@@ -37,23 +34,22 @@ on:
         decription: 'One or more space-separated paths to example directories you want to test. Defaults to "." (all).'
         default: "."
         required: false
-      strict_mode:
+      strict_mode: 
         description: "If set to 'yes', tests will fail on DepthAI warnings."
         type: choice
         options:
           - "yes"
           - "no"
         default: "no"
+        required: false 
+      additional_options:
         required: false
+        type: string
       subtests:
-        description: "Specify if should run only peripheral, only standalone or both"
-        type: choice
-        options:
-          - "all"
-          - "peripheral"
-          - "standalone"
-        default: "all"
+        description: "System OS and type of tests (e.g. os=windows,subtests=peripheral). Each key is optional and defaults to all."
         required: false
+        type: string
+        default: "os=all,subtests=all"
 
 jobs:
   id:
@@ -68,28 +64,68 @@ jobs:
     outputs:
       matrix_platform: ${{ steps.set-matrix.outputs.platform }}
       matrix_python: ${{ steps.set-matrix.outputs.python }}
+      dai_version: ${{ steps.set-matrix.outputs.dai_version }}
+      dai_nodes_version: ${{ steps.set-matrix.outputs.dai_nodes_version }}
+      os: ${{ steps.set-matrix.outputs.os }}
+      subtests: ${{ steps.set-matrix.outputs.subtests_kind }}
     steps:
       - id: set-matrix
         env:
           INPUT_PLATFORM: ${{ github.event.inputs.platform }}
           INPUT_PYTHON: ${{ github.event.inputs.python_version }}
+          INPUT_DAI_VERSIONS: ${{ github.event.inputs.dai_versions }}
+          INPUT_SUBTESTS: ${{ github.event.inputs.subtests }}
         run: |
-          if [ "$INPUT_PLATFORM" = "all" ]; then
-            echo 'platform=["rvc2","rvc4"]' >> $GITHUB_OUTPUT
+          # Matrix platform
+          if [ "$INPUT_PLATFORM" = "all" ] || [ -z "$INPUT_PLATFORM" ]; then
+            echo 'platform=["rvc2","rvc4"]' >> "$GITHUB_OUTPUT"
           else
-            echo "platform=[\"$INPUT_PLATFORM\"]" >> $GITHUB_OUTPUT
+            echo "platform=[\"$INPUT_PLATFORM\"]" >> "$GITHUB_OUTPUT"
           fi
 
-          if [ "$INPUT_PYTHON" = "all" ]; then
-            echo 'python=["3.8", "3.10", "3.12"]' >> $GITHUB_OUTPUT
+          # Matrix python
+          if [ "$INPUT_PYTHON" = "all" ] || [ -z "$INPUT_PYTHON" ]; then
+            echo 'python=["3.8", "3.10", "3.12"]' >> "$GITHUB_OUTPUT"
           else
-            echo "python=[\"$INPUT_PYTHON\"]" >> $GITHUB_OUTPUT
+            echo "python=[\"$INPUT_PYTHON\"]" >> "$GITHUB_OUTPUT"
           fi
+
+          # Parse combined versions input like: depthai=2.26.0,nodes=1.9.0
+          DAI_VERSION=""
+          DAI_NODES_VERSION=""
+          if [ -n "$INPUT_DAI_VERSIONS" ]; then
+            S="$(echo "$INPUT_DAI_VERSIONS" | tr -d '[:space:]')"  # strip spaces
+            if echo "$S" | grep -qi 'depthai='; then
+              DAI_VERSION="$(printf '%s' "$S" | sed -n 's/.*depthai=\([^,]*\).*/\1/p')"
+            fi
+            if echo "$S" | grep -qi 'nodes='; then
+              DAI_NODES_VERSION="$(printf '%s' "$S" | sed -n 's/.*nodes=\([^,]*\).*/\1/p')"
+            fi
+          fi
+          echo "dai_version=$DAI_VERSION" >> "$GITHUB_OUTPUT"
+          echo "dai_nodes_version=$DAI_NODES_VERSION" >> "$GITHUB_OUTPUT"
+
+          # Parse subtests input like: os=windows,subtests=peripheral
+          OS_VAL=""
+          SUBTESTS_KIND=""
+          if [ -n "$INPUT_SUBTESTS" ]; then
+            S2="$(echo "$INPUT_SUBTESTS" | tr -d '[:space:]')"  # strip spaces
+            if echo "$S2" | grep -qi 'os='; then
+              OS_VAL="$(printf '%s' "$S2" | sed -n 's/.*os=\([^,]*\).*/\1/p')"
+            fi
+            if echo "$S2" | grep -qi 'subtests='; then
+              SUBTESTS_KIND="$(printf '%s' "$S2" | sed -n 's/.*subtests=\([^,]*\).*/\1/p')"
+            fi
+          fi
+          echo "os=$OS_VAL" >> "$GITHUB_OUTPUT"
+          echo "subtests_kind=$SUBTESTS_KIND" >> "$GITHUB_OUTPUT"
 
   test_peripheral:
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
-    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'peripheral'}}
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'linux') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'peripheral')
     strategy:
       matrix:
         python-version: ${{ fromJSON(needs.setup.outputs.matrix_python) }}
@@ -126,12 +162,12 @@ jobs:
           
           ENV_VARS="\
             --env PLATFORM=${{ matrix.platform }} \
-            --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
-            --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
+            --env DAI_VERSION=${{ needs.setup.outputs.dai_version }} \
+            --env DAI_NODES_VERSION=${{ needs.setup.outputs.dai_nodes_version }} \
             --env PYTHON_VERSION_ENV=${{ matrix.python-version }} \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
             --env ROOT_DIR='${{ github.event.inputs.root_dir }}' \
-            --env STRICT_MODE=${{ github.event.inputs.strict_mode }} "
+            --env STRICT_MODE='${{ github.event.inputs.strict_mode }}' "
 
           if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
                 RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
@@ -142,13 +178,132 @@ jobs:
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
 
-          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait --sync-workspace \
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace \
               --dockerfile ./tests/Dockerfile_peripheral \
               --docker-build-args "--build-arg PYTHON_VERSION=${{ matrix.python-version }}" \
               --docker-run-args "$ENV_VARS"
 
+
+  test_peripheral_windows:
+    needs: [setup]
+    runs-on: ["self-hosted", "testbed-runner"]
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'windows') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'peripheral')
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+        platform: ["rvc4"] #for now
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Set model variable
+        run: |
+          if [ "${{ matrix.platform }}" = "rvc2" ]; then
+            echo "MODEL=oak_d_s2" >> $GITHUB_ENV
+          elif [ "${{ matrix.platform }}" = "rvc4" ]; then
+            echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
+          fi
+          
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-windows"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity \
+              --commands "cd %TEMP%\oak-examples && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+
+  test_peripheral_mac:
+    needs: [setup]
+    runs-on: ["self-hosted", "testbed-runner"]
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'mac') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'peripheral')
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+        platform: ["rvc4"] #for now
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Set model variable
+        run: |
+          if [ "${{ matrix.platform }}" = "rvc2" ]; then
+            echo "MODEL=oak_d_s2" >> $GITHUB_ENV
+          elif [ "${{ matrix.platform }}" = "rvc4" ]; then
+            echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
+          fi
+          
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-mac"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity \
+              --commands "cd /tmp/oak-examples && tests/run_tests_peripheral.sh ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+
   test_standalone:
-    if: ${{ inputs.subtests== 'all' || inputs.subtests== 'standalone'}}
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'linux') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'standalone')
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
     steps:
@@ -172,12 +327,12 @@ jobs:
           
           ENV_VARS="\
             --env PLATFORM="rvc4" \
-            --env DAI_VERSION=${{ github.event.inputs.depthai_version }} \
-            --env DAI_NODES_VERSION=${{ github.event.inputs.depthai_nodes_version }} \
+            --env DAI_VERSION=${{ needs.setup.outputs.dai_version }} \
+            --env DAI_NODES_VERSION=${{ needs.setup.outputs.dai_nodes_version }} \
             --env PYTHON_VERSION_ENV="3.10" \
             --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
             --env ROOT_DIR='${{ github.event.inputs.root_dir }}' \
-            --env STRICT_MODE=${{ github.event.inputs.strict_mode }} \
+            --env STRICT_MODE='${{ github.event.inputs.strict_mode }}' \
             --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}\
             --env LOCAL_STATIC_REGISTRY=${{ secrets.LOCAL_STATIC_REGISTRY }}"
 
@@ -189,8 +344,92 @@ jobs:
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --oakctl --sync-workspace \
+          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --oakctl --sync-workspace \
               --dockerfile ./tests/Dockerfile_standalone \
               --docker-build-args "--build-arg PYTHON_VERSION=3.12" \
               --docker-run-args "$ENV_VARS"
+
+
+  test_standalone_windows:
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'windows') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'standalone')
+    needs: [setup]
+    runs-on: ["self-hosted", "testbed-runner"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-windows"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl \
+              --commands "cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+
+  test_standalone_mac:
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'mac') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'standalone')
+    needs: [setup]
+    runs-on: ["self-hosted", "testbed-runner"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-mac"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity --oakctl \
+              --commands "cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"

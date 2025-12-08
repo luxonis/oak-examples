@@ -1,17 +1,26 @@
 identifier = "com.example.segmentation.depth-crop"
-app_version = "1.0.0"
+entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+app_version = "1.0.2"
+assign_frontend_port = true
 
 prepare_container = [
-    { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3-pip" },
-    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
-    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
+    { type = "COPY", source = "./requirements.txt", target = "./requirements.txt" },
+    { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages"}
 ]
 
-prepare_build_container = []
-
-build_steps = []
+build_steps = [
+    "mkdir -p /etc/service/backend",
+    "cp /app/backend-run.sh /etc/service/backend/run",
+    "chmod +x /etc/service/backend/run",
+]
 
 depthai_models = { yaml_path = "./depthai_models" }
 
-entrypoint = ["bash", "-c", "python3 -u /app/main.py"]
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.6"

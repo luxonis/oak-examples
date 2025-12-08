@@ -1,0 +1,47 @@
+identifier = "com.example.integrations.roboflow-workflow"
+entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+app_version = "1.0.0"
+
+prepare_container = [
+    # --- Install Python 3.11, dev headers, and build tools ---
+    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-distutils python3.11-dev build-essential cmake ninja-build curl'" },
+
+    # --- Remove Debian’s PEP 668 marker ---
+    { type = "RUN", command = "bash -lc 'rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED || true'" },
+
+    # --- Install pip for Python 3.11 ---
+    { type = "RUN", command = "bash -lc 'curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11'" },
+
+    # --- Copy and install requirements ---
+    { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
+    { type = "RUN", command = "bash -lc 'python3.11 -m pip install --upgrade pip setuptools wheel'" },
+    { type = "RUN", command = "bash -lc 'python3.11 -m pip install -r /app/backend/src/requirements.txt'" }
+]
+
+prepare_build_container = [
+    { type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'" }
+]
+
+build_steps = [
+    "mkdir -p /etc/service/backend",
+    "cp /app/backend-run.sh /etc/service/backend/run",
+    "chmod +x /etc/service/backend/run"
+]
+
+[static_frontend]
+dist_path = "./frontend/dist"
+
+[static_frontend.build]
+source_path = "./frontend"
+steps = [
+    "bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"
+]
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.6"

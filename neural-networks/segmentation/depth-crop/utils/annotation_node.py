@@ -70,15 +70,15 @@ class AnnotationNode(dai.node.HostNode):
         cutout_frame = depth_frame * mask_data[:, :, np.newaxis]
 
         mask_overlay_msg = dai.ImgFrame()
-        mask_overlay_msg.setCvFrame(mask_overlay, dai.ImgFrame.Type.BGR888p)
+        mask_overlay_msg.setCvFrame(mask_overlay, dai.ImgFrame.Type.NV12)
         mask_overlay_msg.setTimestamp(preview.getTimestamp())
 
         cutout_msg = dai.ImgFrame()
-        cutout_msg.setCvFrame(cutout_frame, dai.ImgFrame.Type.BGR888p)
+        cutout_msg.setCvFrame(cutout_frame, dai.ImgFrame.Type.NV12)
         cutout_msg.setTimestamp(preview.getTimestamp())
 
         depth_msg = dai.ImgFrame()
-        depth_msg.setCvFrame(depth_frame, dai.ImgFrame.Type.BGR888p)
+        depth_msg.setCvFrame(depth_frame, dai.ImgFrame.Type.NV12)
         depth_msg.setTimestamp(preview.getTimestamp())
 
         self.output_segmentation.send(mask_overlay_msg)

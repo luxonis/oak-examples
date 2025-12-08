@@ -1,0 +1,26 @@
+identifier = "example.apps.ros.driver-rgb_pcl"
+app_version = "0.9.0"
+
+prepare_container = [
+    { type = "COPY", source = "resolv.conf", target = "/etc/resolv.conf" },
+    { type = "RUN", command = "apt-get update" },
+    { type = "RUN", command = "apt-get install -y ros-kilted-depthai-ros"},
+]
+
+prepare_build_container = [
+
+]
+
+build_steps = [
+]
+
+entrypoint = ["bash", "-c", "source /opt/ros/kilted/setup.bash && ros2 launch depthai_ros_driver rgbd_pcl.launch.py"]
+
+[base_image]
+api_url = "https://registry-1.docker.io" 
+service = "registry.docker.io" 
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository" 
+auth_name = "library/ros"
+image_name = "library/ros"
+image_tag = "kilted-ros-base"
