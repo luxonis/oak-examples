@@ -19,6 +19,11 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 platform = device.getPlatformAsString()
 print(f"Platform: {platform}")
 
+import platform  # noqa: E402
+
+if platform.system() == "Windows":
+    exit(1)
+
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
