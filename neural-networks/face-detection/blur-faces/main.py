@@ -16,10 +16,6 @@ print(f"Platform: {platform}")
 frame_type = (
     dai.ImgFrame.Type.BGR888i if platform == "RVC4" else dai.ImgFrame.Type.BGR888p
 )
-import platform as pl  # noqa: E402
-
-if pl.system() == "Linux":
-    exit(1)
 
 if args.fps_limit is None:
     args.fps_limit = 20 if platform == "RVC2" else 30
