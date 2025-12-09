@@ -81,7 +81,6 @@ with dai.Pipeline(device) as pipeline:
         time_interval=args.time_interval,
     )
     snaps_uploader = pipeline.create(SnapsUploader).build(snaps_producer.out)
-    snaps_uploader._em.setLogResponse(True)
 
     visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
     visualizer.addTopic("Visualizations", det_process_filter.out, "images")
