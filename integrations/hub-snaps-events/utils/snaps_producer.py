@@ -44,7 +44,7 @@ class SnapsProducer(dai.node.HostNode):
         if time.time() - self._last_sent >= self._time_interval:
             snap = SnapData(
                 snap_name="test_snap",
-                file_name=f"file_name",
+                file_name=None,
                 frame=frame,
                 detections=detections,
                 tags=["test_tag"],
