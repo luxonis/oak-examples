@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Flex, Button } from "@luxonis/common-fe-components";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { css } from "../styled-system/css/css.mjs";
 import { useNotifications } from "./Notifications.tsx";
 
 export function OutlinesToggle() {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const { notify } = useNotifications();
 
     // FE state only. We assume BE starts with outlines OFF,

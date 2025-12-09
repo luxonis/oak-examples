@@ -1,7 +1,7 @@
 import { Flex, Button } from "@luxonis/common-fe-components";
 import { useState } from "react";
 import { css } from "../styled-system/css/css.mjs";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "./Notifications.tsx";
 import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
 
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function AnnotationModeSelector({ onModeChanged }: Props) {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const { notify } = useNotifications();
 
     // Default mode – startup is "heatmap"
