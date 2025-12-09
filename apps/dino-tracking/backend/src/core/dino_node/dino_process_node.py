@@ -4,10 +4,10 @@ import depthai as dai
 
 from depthai_nodes.node import BaseHostNode
 from .prompting.click_processor import ClickProcessor
-from .tracker.dino_tracker import DinoTracker
+from .tracker.dino_similarity_engine import DinoSimilarityEngine
 
 
-class DinoTrackerNode(BaseHostNode):
+class DinoProcessNode(BaseHostNode):
     """
     Per frame:
       - process pending click (using cached previous frame)
@@ -22,7 +22,7 @@ class DinoTrackerNode(BaseHostNode):
         super().__init__()
 
         self.clicks = ClickProcessor()
-        self.tracker = DinoTracker()
+        self.tracker = DinoSimilarityEngine()
 
     def build(self, frame_in, seg_in, dino_in, sam_size, dino_size):
         self.link_args(frame_in, seg_in, dino_in)
@@ -57,13 +57,12 @@ class DinoTrackerNode(BaseHostNode):
             self._send_heatmap(frame_msg, heat)
             return
 
-        ref_mask_fs = self.clicks.get_selection_mask()
+        reference_segmentation = self.clicks.get_selection_mask()
 
         heat = self.tracker.update(
             dino_msg=dino_msg,
             frame_shape=frame_shape,
-            ref_mask_fs=ref_mask_fs,
-            logger=self._logger,
+            reference_segmentation=reference_segmentation,
         )
 
         self._send_heatmap(frame_msg, heat)

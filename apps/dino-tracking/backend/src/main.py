@@ -9,7 +9,7 @@ from utils.arguments import initialize_argparser
 
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
 from core.dino_node.prompting.click_prompt_service import ClickPromptService
-from core.dino_node.dino_tracker_node import DinoTrackerNode
+from core.dino_node.dino_process_node import DinoProcessNode
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.neural_network_builder import NNBuilder
 from core.video_provider import VideoProvider
@@ -57,7 +57,7 @@ with dai.Pipeline(device) as pipeline:
         seg_out,
     )
 
-    tracker = pipeline.create(DinoTrackerNode).build(
+    tracker = pipeline.create(DinoProcessNode).build(
         video_full,
         seg_out,
         dino_out,
