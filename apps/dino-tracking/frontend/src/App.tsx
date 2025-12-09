@@ -2,9 +2,10 @@ import { css } from "../styled-system/css/css.mjs";
 import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { AnnotationModeSelector } from "./AnnotationModeSelector.tsx";
 import { OutlinesToggle } from "./OutlinesToggle.tsx";
-import { useState, useMemo } from "react";
+import {useMemo, useRef, useCallback, useState} from "react";
 import { useNotifications } from "./Notifications.tsx";
 import { Button } from "@luxonis/common-fe-components";
+import * as React from "react";
 
 type OnClickHandler = (
     event: React.MouseEvent,
@@ -20,43 +21,52 @@ function App() {
     const connection = useDaiConnection();
     const { notify } = useNotifications();
 
-    const [isPicking, setIsPicking] = useState(false);
+    // Use a ref for the internal picking flag to avoid frequent re-renders.
+    // Keep a small UI state to trigger renders when the label/button needs to update.
+    const isPickingRef = useRef(false);
+    const [isPickingUi, setIsPickingUi] = useState(false);
     console.log("Available topics:", connection.topics);
 
-    const handleStreamClick: OnClickHandler = (_event, coords) => {
-        console.log("[DINO FE] Correct clickable UV coordinates:", {
-            coords,
-            isPicking,
-        });
-        if (!isPicking) return;
+    const handleStreamClick: OnClickHandler = useCallback(
+        (_event, coords) => {
+            console.log("[DINO FE] Correct clickable UV coordinates:", {
+                coords,
+                isPicking: isPickingRef.current,
+            });
 
-        if (!coords) {
-            notify("Click was outside the video area.", { type: "warning" });
-            return;
-        }
+            if (!isPickingRef.current) return;
 
-        const { offsetX, offsetY } = coords;
+            if (!coords) {
+                notify("Click was outside the video area.", { type: "warning" });
 
-        console.log("[DINO FE] Correct clickable UV coordinates:", {
-            xNorm: offsetX,
-            yNorm: offsetY,
-        });
+                setIsPickingUi(false);
+                isPickingRef.current = false;
+                return;
+            }
 
-        // Send to DepthAI
-        (connection as any).daiConnection?.postToService(
-            "Click Prompt Service",
-            { click: { x: offsetX, y: offsetY } },
-            () => notify("Object selected!", { type: "success" })
-        );
+            const { offsetX, offsetY } = coords;
 
-        setIsPicking(false);
-    };
+            console.log("[DINO FE] Correct clickable UV coordinates:", {
+                xNorm: offsetX,
+                yNorm: offsetY,
+            });
+
+            // Send to DepthAI
+            (connection as any).daiConnection?.postToService(
+                "Click Prompt Service",
+                { click: { x: offsetX, y: offsetY } },
+                () => notify("Object selected!", { type: "success" })
+            );
+
+            setIsPickingUi(false);
+            isPickingRef.current = false;
+        },
+        [connection, notify]
+    );
 
     const clickHandlers = useMemo(() => {
-        return new Map<string, OnClickHandler>([
-            ["Video", handleStreamClick],
-        ]);
-    }, [isPicking]);
+        return new Map<string, OnClickHandler>([["Video", handleStreamClick]]);
+    }, [handleStreamClick]);
 
     const handleStartPicking = () => {
         if (!connection.connected) {
@@ -64,7 +74,9 @@ function App() {
             return;
         }
         notify("Click on the video to pick object.", { type: "info" });
-        setIsPicking(true);
+
+        setIsPickingUi(true);
+        isPickingRef.current = true;
     };
 
     const handleClearSelection = () => {
@@ -122,7 +134,9 @@ function App() {
 
                     <div className={css({ display: "flex", gap: "sm" })}>
                         <Button onClick={handleStartPicking}>
-                            {isPicking ? "Click on the stream…" : "Pick object"}
+                            {isPickingUi
+                                ? "Click on the stream…"
+                                : "Pick object"}
                         </Button>
 
                         <Button variant="outline" onClick={handleClearSelection}>
