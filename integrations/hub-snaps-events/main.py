@@ -1,15 +1,15 @@
 import os
 from pathlib import Path
-from functools import partial
-from typing import Dict
 from dotenv import load_dotenv
 
 import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
     ImgDetectionsFilter,
-    SnapsProducer,
 )
+from depthai_nodes.node import SnapsUploader
+
+from utils.snaps_producer import SnapsProducer
 from utils.arguments import initialize_argparser
 
 load_dotenv(override=True)
@@ -27,38 +27,6 @@ if args.api_key:
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
-
-
-def custom_snap_process(
-    producer: SnapsProducer,
-    frame: dai.ImgFrame,
-    det_data: dai.ImgDetections,
-    label_map: Dict[str, int],
-    model: str,
-):
-    detections = det_data.detections
-    if len(detections) == 0:
-        return
-
-    dets_xyxy = [(det.xmin, det.ymin, det.xmax, det.ymax) for det in detections]
-    dets_labels = [det.label for det in detections]
-    dets_labels_str = [label_map[det.label] for det in detections]
-    dets_confs = [det.confidence for det in detections]
-
-    extras = {
-        "model": model,
-        "detection_xyxy": str(dets_xyxy),
-        "detection_label": str(dets_labels),
-        "detection_label_str": str(dets_labels_str),
-        "detection_confidence": str(dets_confs),
-    }
-
-    file_group = [dai.FileData(frame, "rgb"), dai.FileData(det_data, "detections")]
-    if producer.sendSnap(
-        name="rgb", file_group=file_group, tags=["demo"], extras=extras
-    ):
-        print("Snap sent!")
-
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
@@ -109,14 +77,11 @@ with dai.Pipeline(device) as pipeline:
 
     snaps_producer = pipeline.create(SnapsProducer).build(
         frame=nn_with_parser.passthrough,
-        msg=det_process_filter.out,
+        detections=det_process_filter.out,
         time_interval=args.time_interval,
-        process_fn=partial(
-            custom_snap_process,
-            label_map=label_map,
-            model=nn_archive.getConfigV1().model.metadata.name,
-        ),
     )
+    snaps_uploader = pipeline.create(SnapsUploader).build(snaps_producer.out)
+    snaps_uploader._em.setLogResponse(True)
 
     visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
     visualizer.addTopic("Visualizations", det_process_filter.out, "images")

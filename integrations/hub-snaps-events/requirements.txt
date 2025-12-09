@@ -1,8 +1,4 @@
-# depthai==3.0.0
---extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local
---pre
-depthai==3.0.0.dev0+c74b28c8e4ccdc9869fbfa99d73b95ac0893249e
-#depthai-nodes==0.3.4
-depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@feat/dai_dev_req
+depthai==3.2.1
+depthai-nodes==0.3.7
 python-dotenv
 

@@ -1,10 +1,9 @@
 depthai==3.2.1
-depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@feat/new_snaps_producer
+depthai-nodes==0.3.7
 opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0
 onnxruntime
-# onnxruntime-gpu # if you want to use CUDAExecutionProvider
 requests
 dotenv
 python-box
