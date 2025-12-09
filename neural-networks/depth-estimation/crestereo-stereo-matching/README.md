@@ -1,6 +1,6 @@
 # CREStereo: Depth Estimation
 
-This example compares depth output of neural stereo matching using [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) to output of stereo disparity. The model is not yet quantized for RVC4, thus is executed on cpu and is slower. The example works on both RVC2 and RVC4.
+This example compares depth output of neural stereo matching using [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) to output of stereo disparity. The example works on both RVC2 and RVC4.
 
 There are 2 available model variants for the [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) model for each platform. If you choose to use a different model please adjust `fps_limit` argument accordingly.
 

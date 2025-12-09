@@ -14,10 +14,15 @@ from utils.helper_functions import (
     extract_image_prompt_embeddings,
     base64_to_cv2_image,
     QUANT_VALUES,
+    generate_high_contrast_colormap,
 )
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 from utils.frame_cache_node import FrameCacheNode
+
+import logging as log
+
+log.basicConfig(level=log.INFO)
 
 _, args = initialize_argparser()
 
@@ -69,12 +74,12 @@ if args.model == "yoloe":
 
 if args.fps_limit is None:
     args.fps_limit = 10
-    print(
+    log.info(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
 
 with dai.Pipeline(device) as pipeline:
-    print("Creating pipeline...")
+    log.info("Creating pipeline...")
 
     # Model selection with precision-aware YAMLs for YOLOE variants
     models_dir = Path(__file__).parent / "depthai_models"
@@ -91,7 +96,7 @@ with dai.Pipeline(device) as pipeline:
         yaml_base = "yoloe_v8_l_fp16" if args.precision == "fp16" else "yoloe_v8_l"
         yaml_filename = f"{yaml_base}.{platform}.yaml"
         yaml_path = models_dir / yaml_filename
-        print(f"YOLOE YAML path: {yaml_path}")
+        log.debug(f"YOLOE YAML path: {yaml_path}")
         if not yaml_path.exists():
             raise SystemExit(
                 f"Model YAML not found for YOLOE with precision {args.precision}: {yaml_path}. "
@@ -178,6 +183,8 @@ with dai.Pipeline(device) as pipeline:
         visualizer.addTopic("Video", video_enc.out, "images")
     elif args.model == "yoloe":
         apply_colormap_node = pipeline.create(ApplyColormap).build(nn_with_parser.out)
+        apply_colormap_node.setColormap(generate_high_contrast_colormap())
+        apply_colormap_node.setInstanceToSemanticMask(args.semantic_seg)
         overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
             video_src_out,
             apply_colormap_node.out,
@@ -200,18 +207,28 @@ with dai.Pipeline(device) as pipeline:
 
     visualizer.addTopic("Detections", annotation_node.out)
 
+    def get_current_params_service(req) -> dict[str, any]:
+        """Returns current parameters used"""
+        out_data = {
+            "confidence_threshold": CONFIDENCE_THRESHOLD,
+            "class_names": CLASS_NAMES,
+            "image_prompt_labels": IMAGE_PROMPT_LABELS,
+        }
+        log.info(f"Current params: {out_data}")
+        return out_data
+
     def class_update_service(new_classes: list[str]):
         """Changes classes to detect based on the user input"""
         if len(new_classes) == 0:
-            print("List of new classes empty, skipping.")
+            log.info("List of new classes empty, skipping.")
             return
         if len(new_classes) > MAX_NUM_CLASSES:
-            print(
+            log.info(
                 f"Number of new classes ({len(new_classes)}) exceeds maximum number of classes ({MAX_NUM_CLASSES}), skipping."
             )
             return
+        global CLASS_NAMES, LAST_TEXT_CLASSES
         CLASS_NAMES = new_classes
-        global LAST_TEXT_CLASSES
         LAST_TEXT_CLASSES = new_classes.copy()
         text_features = extract_text_embeddings(
             class_names=CLASS_NAMES,
@@ -248,7 +265,7 @@ with dai.Pipeline(device) as pipeline:
             imagePromptInputQueue.send(inputNNDataImg)
 
         update_labels(CLASS_NAMES, offset=0)
-        print(f"Classes set to: {CLASS_NAMES}")
+        log.info(f"Classes set to: {CLASS_NAMES}")
 
         global IMAGE_PROMPT_VECTORS, IMAGE_PROMPT_LABELS
         IMAGE_PROMPT_VECTORS = []
@@ -256,9 +273,10 @@ with dai.Pipeline(device) as pipeline:
 
     def conf_threshold_update_service(new_conf_threshold: float):
         """Changes confidence threshold based on the user input"""
-        CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
+        global CONFIDENCE_THRESHOLD
+        CONFIDENCE_THRESHOLD = max(0.01, min(0.99, new_conf_threshold))
         nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
-        print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
+        log.info(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
 
     def rename_image_prompt_service(payload):
         """Rename an accumulated image prompt label by index or old name.
@@ -268,7 +286,7 @@ with dai.Pipeline(device) as pipeline:
         global IMAGE_PROMPT_LABELS
         new_label = payload.get("newLabel")
         if not new_label or not isinstance(new_label, str):
-            print("rename_image_prompt_service: invalid newLabel")
+            log.info("rename_image_prompt_service: invalid newLabel")
             return
         idx = payload.get("index")
         if isinstance(idx, int) and 0 <= idx < len(IMAGE_PROMPT_LABELS):
@@ -279,14 +297,14 @@ with dai.Pipeline(device) as pipeline:
                 pos = IMAGE_PROMPT_LABELS.index(old)
                 IMAGE_PROMPT_LABELS[pos] = new_label
             else:
-                print("rename_image_prompt_service: index/oldLabel not found")
+                log.info("rename_image_prompt_service: index/oldLabel not found")
                 return
         # Re-apply labels (offset depends on model)
         if args.model == "yoloe":
             update_labels(IMAGE_PROMPT_LABELS, offset=80)
         else:
             update_labels(IMAGE_PROMPT_LABELS, offset=0)
-        print(f"Image prompt labels updated: {IMAGE_PROMPT_LABELS}")
+        log.info(f"Image prompt labels updated: {IMAGE_PROMPT_LABELS}")
 
     def delete_image_prompt_service(payload):
         """Delete an accumulated image prompt by index or label and update model inputs.
@@ -304,7 +322,7 @@ with dai.Pipeline(device) as pipeline:
                 del IMAGE_PROMPT_VECTORS[pos]
                 del IMAGE_PROMPT_LABELS[pos]
             else:
-                print("delete_image_prompt_service: index/label not found")
+                log.info("delete_image_prompt_service: index/label not found")
                 return
 
         if len(IMAGE_PROMPT_VECTORS) > 0:
@@ -342,7 +360,7 @@ with dai.Pipeline(device) as pipeline:
                 )
                 textInputQueue.send(inputNNDataTxt)
                 update_labels(IMAGE_PROMPT_LABELS, offset=80)
-                print(
+                log.info(
                     f"Deleted image prompt; remaining (yoloe) labels: {IMAGE_PROMPT_LABELS}"
                 )
             else:  # yolo-world
@@ -363,7 +381,7 @@ with dai.Pipeline(device) as pipeline:
                 )
                 textInputQueue.send(inputNNData)
                 update_labels(IMAGE_PROMPT_LABELS, offset=0)
-                print(
+                log.info(
                     f"Deleted image prompt; remaining (yolo-world) labels: {IMAGE_PROMPT_LABELS}"
                 )
         else:
@@ -402,7 +420,9 @@ with dai.Pipeline(device) as pipeline:
                 )
                 imagePromptInputQueue.send(inputNNDataImg)
             update_labels(CLASS_NAMES, offset=0)
-            print(f"All image prompts deleted; reverted to text classes: {CLASS_NAMES}")
+            log.info(
+                f"All image prompts deleted; reverted to text classes: {CLASS_NAMES}"
+            )
 
     def image_upload_service(image_data):
         image = base64_to_cv2_image(image_data["data"])
@@ -410,13 +430,19 @@ with dai.Pipeline(device) as pipeline:
             image_features = extract_image_prompt_embeddings(
                 image, model_name=args.model, precision=args.precision
             )
-            print(
+            log.info(
                 "Image features extracted (yolo-world), updating accumulated prompts as texts..."
             )
 
             # Extract single 512-d vector from padded features (column 0)
             vec = image_features[0, :, 0].copy()
             label = image_data.get("label") or image_data["filename"].split(".")[0]
+
+            global \
+                IMAGE_PROMPT_VECTORS, \
+                IMAGE_PROMPT_LABELS, \
+                MAX_IMAGE_PROMPTS, \
+                MAX_NUM_CLASSES
 
             IMAGE_PROMPT_VECTORS.append(vec)
             IMAGE_PROMPT_LABELS.append(label)
@@ -446,14 +472,14 @@ with dai.Pipeline(device) as pipeline:
             )
             textInputQueue.send(inputNNData)
             update_labels(IMAGE_PROMPT_LABELS, offset=0)
-            print(
+            log.info(
                 f"Image prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}"
             )
         else:  # yoloe unified with image_prompts input (accumulate up to 5)
             image_features = extract_image_prompt_embeddings(
                 image, model_name="yoloe", precision=args.precision
             )
-            print("Image features extracted, updating accumulated image_prompts...")
+            log.info("Image features extracted, updating accumulated image_prompts...")
 
             vec = image_features[0, :, 0].copy()
             label = image_data.get("label") or image_data["filename"].split(".")[0]
@@ -503,7 +529,7 @@ with dai.Pipeline(device) as pipeline:
             textInputQueue.send(inputNNDataTxt)
 
             update_labels(IMAGE_PROMPT_LABELS, offset=80)
-            print(
+            log.info(
                 f"Image prompts set (n={len(IMAGE_PROMPT_LABELS)} at offset 80): {IMAGE_PROMPT_LABELS}"
             )
 
@@ -513,26 +539,26 @@ with dai.Pipeline(device) as pipeline:
         - For yolo-world: crops the bbox region and extracts image prompt features from the crop.
         - For yoloe: builds a binary mask from the bbox over the full frame and extracts features with mask_prompt.
         """
-        print("[BBox] Service payload keys:", list(payload.keys()))
+        log.info(f"[BBox] Service payload keys: {list(payload.keys())}")
         # Try FE-provided image first, else fall back to cached live frame
         image = base64_to_cv2_image(payload["data"]) if payload.get("data") else None
         if image is None:
             image = frame_cache.get_last_frame()
             if image is None:
-                print("[BBox] No image data and no cached frame available")
+                log.info("[BBox] No image data and no cached frame available")
                 return {"ok": False, "reason": "no_image"}
         if image is None:
-            print("[BBox] Decoded image is None")
+            log.info("[BBox] Decoded image is None")
             return {"ok": False, "reason": "decode_failed"}
         if (image == 0).all():
-            print("[BBox] Warning: decoded image is all zeros")
+            log.info("[BBox] Warning: decoded image is all zeros")
         # print image stats
-        print(f"[BBox] Image shape: {image.shape}")
-        print(f"[BBox] Image dtype: {image.dtype}")
-        print(f"[BBox] Image min: {image.min()}")
-        print(f"[BBox] Image max: {image.max()}")
-        print(f"[BBox] Image mean: {image.mean()}")
-        print(f"[BBox] Image std: {image.std()}")
+        log.debug(f"[BBox] Image shape: {image.shape}")
+        log.debug(f"[BBox] Image dtype: {image.dtype}")
+        log.debug(f"[BBox] Image min: {image.min()}")
+        log.debug(f"[BBox] Image max: {image.max()}")
+        log.debug(f"[BBox] Image mean: {image.mean()}")
+        log.debug(f"[BBox] Image std: {image.std()}")
 
         bbox = payload.get("bbox", {})
         bx = float(bbox.get("x", 0.0))
@@ -556,17 +582,17 @@ with dai.Pipeline(device) as pipeline:
 
         x0, x1 = sorted((x0, x1))
         y0, y1 = sorted((y0, y1))
-        print(
+        log.info(
             f"[BBox] Image size: {W}x{H}, bbox(px): x0={x0}, y0={y0}, x1={x1}, y1={y1}"
         )
 
         if x1 <= x0 or y1 <= y0:
-            print("Invalid bbox, ignoring bbox prompt request.")
+            log.info("Invalid bbox, ignoring bbox prompt request.")
             return {"ok": False, "reason": "invalid_bbox"}
 
         if args.model == "yolo-world":
             crop = image[y0:y1, x0:x1]
-            print(
+            log.info(
                 f"[BBox] YOLO-World crop shape: {crop.shape if crop is not None else None}"
             )
             image_features = extract_image_prompt_embeddings(
@@ -575,7 +601,7 @@ with dai.Pipeline(device) as pipeline:
         elif args.model == "yoloe":
             mask = np.zeros((H, W), dtype=np.float32)
             mask[y0:y1, x0:x1] = 1.0
-            print(f"[BBox] YOLOE mask sum: {float(mask.sum())}")
+            log.info(f"[BBox] YOLOE mask sum: {float(mask.sum())}")
             image_features = extract_image_prompt_embeddings(
                 image,
                 model_name="yoloe",
@@ -583,8 +609,14 @@ with dai.Pipeline(device) as pipeline:
                 precision=args.precision,
             )
         else:
-            print(f"Unsupported model for bbox prompt: {args.model}")
+            log.info(f"Unsupported model for bbox prompt: {args.model}")
             return {"ok": False, "reason": "unsupported_model"}
+
+        global \
+            IMAGE_PROMPT_VECTORS, \
+            IMAGE_PROMPT_LABELS, \
+            MAX_IMAGE_PROMPTS, \
+            MAX_NUM_CLASSES
 
         if args.model == "yolo-world":
             vec = image_features[0, :, 0].copy()
@@ -618,7 +650,7 @@ with dai.Pipeline(device) as pipeline:
             )
             textInputQueue.send(inputNNData)
             update_labels(IMAGE_PROMPT_LABELS, offset=0)
-            print(
+            log.info(
                 f"BBox prompts set as texts (yolo-world, n={len(IMAGE_PROMPT_LABELS)}): {IMAGE_PROMPT_LABELS}"
             )
         else:
@@ -668,11 +700,12 @@ with dai.Pipeline(device) as pipeline:
             )
             textInputQueue.send(inputNNDataTxt)
             update_labels(IMAGE_PROMPT_LABELS, offset=80)
-            print(
+            log.info(
                 f"BBox prompts set (n={len(IMAGE_PROMPT_LABELS)} at offset 80): {IMAGE_PROMPT_LABELS}"
             )
         return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
 
+    visualizer.registerService("Get Current Params Service", get_current_params_service)
     visualizer.registerService("Class Update Service", class_update_service)
     visualizer.registerService(
         "Threshold Update Service", conf_threshold_update_service
@@ -687,7 +720,7 @@ with dai.Pipeline(device) as pipeline:
         "Delete Image Prompt Service", delete_image_prompt_service
     )
 
-    print("Pipeline created.")
+    log.info("Pipeline created.")
 
     pipeline.start()
     visualizer.registerPipeline(pipeline)
@@ -718,11 +751,11 @@ with dai.Pipeline(device) as pipeline:
         )
         imagePromptInputQueue.send(inputNNDataImg)
 
-    print("Press 'q' to stop")
+    log.info("Press 'q' to stop")
 
     while pipeline.isRunning():
         pipeline.processTasks()
         key = visualizer.waitKey(1)
         if key == ord("q"):
-            print("Got q key. Exiting...")
+            log.info("Got q key. Exiting...")
             break

@@ -8,7 +8,7 @@ You can read more about spatial detection network in our [documentation](https:/
 
 ## Demo
 
-![Exampe](media/spatial-detections.gif)
+![Example](media/spatial-detections.gif)
 
 ## Usage
 

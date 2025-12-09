@@ -19,24 +19,24 @@ if "%4"=="" (
 )
 
 set PYTHON_VERSION_ENV=%1
-set DAI_VERSION=%2
-set DAI_NODES_VERSION=%3
-set PLATFORM=%4
-set DEVICE_PASSWORD=%5
-set LOCAL_STATIC_REGISTRY=%6
-set ROOT_DIR=%7
-set LOG_LEVEL=%8
+set PLATFORM=%2
+set DEVICE_PASSWORD=%3
+set LOCAL_STATIC_REGISTRY=%4
+set ROOT_DIR=%5
+set LOG_LEVEL=%6
+set DAI_VERSION=%7
+set DAI_NODES_VERSION=%8
 
 echo ==========================================
 echo Running standalone tests with:
 echo   PYTHON_VERSION_ENV = %PYTHON_VERSION_ENV%
-echo   DAI_VERSION         = %DAI_VERSION%
-echo   DAI_NODES_VERSION   = %DAI_NODES_VERSION%
 echo   PLATFORM            = %PLATFORM%
 echo   DEVICE_PASSWORD     = %DEVICE_PASSWORD%
 echo   LOCAL_STATIC_REG    = %LOCAL_STATIC_REGISTRY%
 echo   ROOT_DIR            = %ROOT_DIR%
 echo   LOG_LEVEL           = %LOG_LEVEL%
+echo   DAI_VERSION         = %DAI_VERSION%
+echo   DAI_NODES_VERSION   = %DAI_NODES_VERSION%
 echo ==========================================
 
 REM ==============================================================================

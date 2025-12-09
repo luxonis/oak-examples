@@ -55,12 +55,34 @@ def test_example_runs_in_standalone(example_dir, test_args):
     main_script = example_dir / "main.py"
     requirements_path = example_dir / "requirements.txt"
     oakapp_toml = example_dir / "oakapp.toml"
+
+    if not oakapp_toml.exists():
+        logger.debug(
+            "Checking for oakapp.toml in fallback location. Expected example structure: <root>/oakapp.toml and <root>/backend/src/."
+        )
+        # try fallback: oakapp.toml two levels up
+        candidate_root = example_dir.parents[1]
+        fallback_oak = candidate_root / "oakapp.toml"
+
+        # expect structure: <root>/oakapp.toml and <root>/backend/src/
+        fallback_main = candidate_root / "backend" / "src" / "main.py"
+        fallback_req = candidate_root / "backend" / "src" / "requirements.txt"
+
+        if fallback_oak.exists() and fallback_main.exists() and fallback_req.exists():
+            logger.debug("Fallback example structure confirmed.")
+            oakapp_toml = fallback_oak
+            main_script = fallback_main
+            requirements_path = fallback_req
+            example_dir = candidate_root
+        else:
+            pytest.skip(
+                f"Skipping {example_dir}, no oakapp.toml found in expected locations."
+            )
+
     if not main_script.exists():
         pytest.skip(f"Skipping {example_dir}, no main.py found.")
     if not requirements_path.exists():
         pytest.skip(f"Skipping {example_dir}, no requirements.txt found.")
-    if not oakapp_toml.exists():
-        pytest.skip(f"Skipping {example_dir}, no oakapp.toml found.")
 
     setup_env(
         base_dir=example_dir,

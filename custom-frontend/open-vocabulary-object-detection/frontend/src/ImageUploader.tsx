@@ -1,7 +1,7 @@
 import { Button, Flex } from "@luxonis/common-fe-components";
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { useNotifications } from "./Notifications.tsx";
 
 
@@ -13,7 +13,7 @@ type Props = {
 }
 
 export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, maxReached }: Props) {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const { notify } = useNotifications();
 
@@ -79,7 +79,7 @@ export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, ma
     return (
         <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
             <h3 className={css({ fontWeight: "semibold" })}>Update Classes with Image Input:</h3>
-            <span className={css({ color: 'gray.600', fontSize: 'sm' })}>Important: reset view before drawing a bounding box</span>
+            <span className={css({ color: 'gray.600', fontSize: 'sm' })}>❗Reset the view before drawing a bounding box.</span>
             {maxReached && (
                 <span className={css({ color: 'red.600', fontSize: 'sm' })}>
                     Maximum number of image prompts reached. Please delete or reset image prompts to add more.
@@ -100,7 +100,7 @@ export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, ma
                     _hover: { backgroundColor: maxReached ? "gray.50" : "gray.100" },
                 })}
             >
-                {selectedFile ? selectedFile.name : "Click here to choose an image file"}
+                {selectedFile ? selectedFile.name : "Click here to choose an image file."}
             </label>
 
             {/* Hidden file input */}
@@ -114,21 +114,34 @@ export function ImageUploader({ onDrawBBox, getNextLabel, onImagePromptAdded, ma
             />
 
             {/* Upload / Draw buttons */}
-            <Flex direction="row" gap="sm" alignItems="center">
-                <Button onClick={handleUpload} disabled={maxReached}>Upload Image</Button>
-                <span className={css({ color: 'gray.500' })}>OR</span>
-                <Button
-                    variant="outline"
-                    onClick={() => {
-                        console.log("[BBox] Button clicked: enabling drawing overlay");
-                        onDrawBBox?.();
-                        notify('Drawing mode enabled. Drag on the stream to draw a box.', { type: 'info', durationMs: 6000 });
-                    }}
-                    disabled={maxReached}
-                >
-                    Draw bounding box
-                </Button>
+            <Flex
+            direction="row"
+            alignItems="center"
+            justify="center"
+            gap="md"
+            className={css({ marginTop: "md" })}
+            >
+            <Button onClick={handleUpload} disabled={maxReached}>
+                Upload Image
+            </Button>
+
+            <span>or</span>
+
+            <Button
+                onClick={() => {
+                console.log("[BBox] Button clicked: enabling drawing overlay");
+                onDrawBBox?.();
+                notify("Drawing mode enabled. Drag on the stream to draw a box.", {
+                    type: "info",
+                    durationMs: 6000,
+                });
+                }}
+                disabled={maxReached}
+            >
+                Draw Bounding Box
+            </Button>
             </Flex>
+
         </div>
     );
 }

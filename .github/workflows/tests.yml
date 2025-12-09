@@ -242,7 +242,63 @@ jobs:
           fi
 
           exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity \
-              --commands "cd %TEMP%\oak-examples && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }}"
+              --commands "cd %TEMP%\oak-examples && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+
+  test_peripheral_mac:
+    needs: [setup]
+    runs-on: ["self-hosted", "testbed-runner"]
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'mac') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'peripheral')
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+        platform: ["rvc4"] #for now
+
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Set model variable
+        run: |
+          if [ "${{ matrix.platform }}" = "rvc2" ]; then
+            echo "MODEL=oak_d_s2" >> $GITHUB_ENV
+          elif [ "${{ matrix.platform }}" = "rvc4" ]; then
+            echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
+          fi
+          
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-mac"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity \
+              --commands "cd /tmp/oak-examples && tests/run_tests_peripheral.sh ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
   test_standalone:
     if: >
@@ -336,4 +392,44 @@ jobs:
           fi
 
           exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl \
-              --commands "cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }} rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }}"
+              --commands "cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+
+  test_standalone_mac:
+    if: >
+      (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'mac') &&
+      (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'standalone')
+    needs: [setup]
+    runs-on: ["self-hosted", "testbed-runner"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Run Test
+        run: |
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-mac"
+          export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
+
+          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
+                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+                  HOLD_RESERVATION="--hold-reservation"
+                fi
+            else
+                RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
+          fi
+          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
+            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          fi
+
+          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity --oakctl \
+              --commands "cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"

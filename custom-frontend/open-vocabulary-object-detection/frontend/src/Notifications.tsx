@@ -55,44 +55,62 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 function Toast({ notification, onClose, index }: { notification: Notification; onClose: () => void; index: number }) {
     const { message, type } = notification;
     const colorMap: Record<NonNullable<Notification["type"]>, { bg: string; border: string; text: string }> = {
-        info: { bg: "blue.50", border: "blue.300", text: "blue.900" },
-        success: { bg: "green.50", border: "green.300", text: "green.900" },
-        warning: { bg: "yellow.50", border: "yellow.300", text: "yellow.900" },
-        error: { bg: "red.50", border: "red.300", text: "red.900" },
+        info: { bg: "white", border: "blue.400", text: "blue.900" },
+        success: { bg: "white", border: "green.400", text: "green.900" },
+        warning: { bg: "white", border: "yellow.400", text: "yellow.900" },
+        error: { bg: "white", border: "red.400", text: "red.900" },
     };
     const colors = colorMap[type ?? "info"];
 
     return (
-        <div className={css({
-            backgroundColor: colors.bg,
-            border: "1px solid",
-            borderColor: colors.border,
-            color: colors.text,
-            borderRadius: "lg",
-            paddingX: "4",
-            paddingY: "3",
-            width: "60%",
-            boxShadow: "xl",
-            pointerEvents: "auto",
-            transform: "translateY(8px)",
-            animation: "slideInUp 180ms ease-out forwards",
-            _motionSafe: {
+        <div
+            className={css({
+                backgroundColor: colors.bg,
+                border: "1px solid",
+                borderColor: colors.border,
+                color: colors.text,
+                borderRadius: "lg",
+                paddingX: "4",
+                paddingY: "3",
+                width: "60%",
+                boxShadow: "xl",
+                pointerEvents: "auto",
+                transform: "translateY(8px)",
                 animation: "slideInUp 180ms ease-out forwards",
-            },
-            wordBreak: "break-word",
-            boxSizing: "border-box",
-        })}
+                _motionSafe: { animation: "slideInUp 180ms ease-out forwards" },
+                wordBreak: "break-word",
+                boxSizing: "border-box",
+                opacity: 1,
+            })}
             style={{ animationDelay: `${index * 30}ms` }}
         >
             <div className={css({ display: "flex", alignItems: "center", gap: "3" })}>
                 <span className={css({ fontWeight: "medium" })}>{message}</span>
-                <button className={css({ marginLeft: "auto", color: colors.text, _hover: { opacity: 0.8 } })} onClick={onClose}>
+
+                {/* Close button */}
+                <button
+                    className={css({
+                        marginLeft: "auto",
+                        color: colors.text,
+                        fontSize: "lg",
+                        fontWeight: "bold",
+                        lineHeight: "1",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "0 4px",
+                        _hover: { opacity: 0.7, transform: "scale(1.1)" },
+                        transition: "transform 0.15s ease",
+                    })}
+                    onClick={onClose}
+                >
                     ×
                 </button>
             </div>
         </div>
     );
 }
+
 
 // Keyframes for smooth appear (no opacity change to keep background fully opaque)
 const styleEl = (typeof document !== 'undefined') ? document.createElement('style') : null;

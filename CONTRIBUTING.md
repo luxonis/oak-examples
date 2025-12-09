@@ -80,7 +80,7 @@ To be picked up by the tests, an example must contain both `main.py` and `requir
 
 You can read more about running tests locally in [`tests/README.md`](tests/README.md).
 
-Some examples may be incompatible with certain versions or modes (e.g., only standalone, only RVC4). These constraints must be listed in [`tests/constants.py`](tests/constants.py) under the dictionary of known failing examples. See the docstring at the top of that file for editing guidelines.
+Some examples may be incompatible with certain versions or modes (e.g., only standalone, only RVC4). These constraints must be listed in [`tests/constants.py`](tests/constants.py) under the dictionary of known failing examples. See the `Known Failing Examples (Rule System)` section in [tests/README.md](./tests/README.md) for editing guidelines.
 
 ### Making the PR
 
