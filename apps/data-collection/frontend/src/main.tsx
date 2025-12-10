@@ -23,6 +23,7 @@ createRoot(document.getElementById('root')!).render(
           // @ts-ignore - We're using an example service here which isn't part of the DAI services enum
           ['Custom Service']
         }
+        messageHandlerVersion={'v2'}
       >
         <Routes>
           <Route path="/" element={<App/>}/>
