@@ -17,6 +17,7 @@ class OutlinesOverlayNode(BaseHostNode):
         super().__init__()
         self.last_seg: np.ndarray | None = None
         self.mode: str = "off"
+        self.kernel = np.ones((3, 3), np.uint8)
 
     def build(self, video, seg):
         self.link_args(video, seg)
@@ -48,22 +49,17 @@ class OutlinesOverlayNode(BaseHostNode):
         if seg.shape != (H, W):
             seg = cv2.resize(seg, (W, H), interpolation=cv2.INTER_NEAREST)
 
-        seg = seg.astype(np.int32)
+        # IMPORTANT FIX: Use uint16 (supported by OpenCV morphology)
+        seg = seg.astype(np.uint16)
         self.last_seg = seg
 
-        overlay = np.zeros_like(frame)
-        ids = np.unique(seg)
-        ids = ids[ids != 0]
+        # Very fast outline extraction
+        edges = cv2.morphologyEx(seg, cv2.MORPH_GRADIENT, self.kernel)
 
-        for sid in ids:
-            binary = np.uint8(seg == sid)
-            contours, _ = cv2.findContours(
-                binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-            )
-            cv2.drawContours(overlay, contours, -1, (15, 255, 80), 1)
+        overlay = np.zeros_like(frame)
+        overlay[edges != 0] = (15, 255, 80)
 
         result = cv2.addWeighted(frame, 1.0, overlay, 1.0, 0.0)
-
         self._send(result, video_msg)
 
     def _send(self, frame: np.ndarray, ref_msg: dai.ImgFrame):
