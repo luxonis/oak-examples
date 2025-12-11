@@ -2,6 +2,8 @@ from collections import deque
 import numpy as np
 import cv2
 import time
+import argparse
+from datetime import datetime
 
 import depthai as dai
 from helper_functions import (
@@ -13,6 +15,29 @@ from helper_functions import (
     draw_key_commands,
     print_final_calibration_results,
 )
+
+def log_quality(tag, rx, ry, rz, norm, sam_new, sam_cur):
+    timestamp = datetime.now().isoformat()
+
+    if args.log:
+        # TXT
+        txt_log.write(
+            f"[{timestamp}] {tag}: XYZ=({rx:.6f},{ry:.6f},{rz:.6f}), "
+            f"‖ΔR‖={norm:.6f}, sampson_new={sam_new:.6f}, sampson_current={sam_cur:.6f}\n"
+        )
+        txt_log.flush()
+
+        # CSV
+        csv_log.write(
+            f"{timestamp},{tag},{rx:.6f},{ry:.6f},{rz:.6f},{norm:.6f},{sam_new:.6f},{sam_cur:.6f}\n"
+        )
+        csv_log.flush()
+
+# ---------------- ARGPARSE ----------------
+parser = argparse.ArgumentParser()
+parser.add_argument("--log", action="store_true",
+                    help="Enable logging to TXT and CSV")
+args = parser.parse_args()
 
 
 def nice_disparity_viz(in_disp_frame):
@@ -106,6 +131,15 @@ calibNew = device.readCalibration()
 calibOld = device.readCalibration()
 device.setCalibration(calibOld)
 # ---------- Device and runtime loop ----------
+
+if args.log:
+    txt_log = open(f"dynamic_calibration_log_{device.getDeviceId()}_{datetime.now().isoformat()}.txt", "a")
+    csv_log = open(f"dynamic_calibration_log_{device.getDeviceId()}_{datetime.now().isoformat()}.csv", "a")
+
+    # CSV header if empty
+    if csv_log.tell() == 0:
+        csv_log.write("timestamp,type,rx_deg,ry_deg,rz_deg,rot_norm,sampson_new,sampson_current\n")
+
 pipeline.start()
 start = time.time()
 leftFrame = None
@@ -187,6 +221,13 @@ with pipeline:
                     [],
                 ).copy()
             )
+            rx, ry, rz = calibration_result.calibrationData.calibrationDifference.rotationChange
+            rot_norm = np.sqrt(rx*rx + ry*ry + rz*rz)
+            print("Successfully Recalibrated")
+            print(f"Rotation XYZ: X={rx:.4f}°, Y={ry:.4f}°, Z={rz:.4f}°")
+            print(f"‖ΔR‖ = {rot_norm:.4f}°")
+            log_quality("CALIBRATE", rx, ry, rz, rot_norm, calibration_result.calibrationData.calibrationDifference.sampsonErrorNew, calibration_result.calibrationData.calibrationDifference.sampsonErrorCurrent)
+            
             depthDiff = getattr(
                 calibration_result.calibrationData.calibrationDifference,
                 "depthErrorDifference",
@@ -387,6 +428,13 @@ with pipeline:
             finalDisplay = True
             depthDiff = getattr(quality.qualityData, "depthErrorDifference", []).copy()
             rotationDiff = getattr(quality.qualityData, "rotationChange", []).copy()
+            if rotationDiff != []:
+                rx, ry, rz = rotationDiff
+                rot_norm = np.sqrt(rx*rx + ry*ry + rz*rz)
+                print("Successfully evaluated Quality")
+                print(f"Rotation XYZ: X={rx:.4f}°, Y={ry:.4f}°, Z={rz:.4f}°")
+                print(f"‖ΔR‖ = {rot_norm:.4f}°")
+                log_quality("QUALITY", rx, ry, rz, rot_norm, quality.qualityData.sampsonErrorNew, quality.qualityData.sampsonErrorCurrent)
             print_final_calibration_results(quality.qualityData, state)
             print("Sending command for calibQualityCheck")
 
@@ -417,6 +465,12 @@ with pipeline:
             state = "Calibration check"
             depthDiff = getattr(quality.qualityData, "depthErrorDifference", []).copy()
             rotationDiff = getattr(quality.qualityData, "rotationChange", []).copy()
+            rx, ry, rz = rotationDiff
+            rot_norm = np.sqrt(rx*rx + ry*ry + rz*rz)
+            print("Successfully evaluated Quality")
+            print(f"Rotation XYZ: X={rx:.4f}°, Y={ry:.4f}°, Z={rz:.4f}°")
+            print(f"‖ΔR‖ = {rot_norm:.4f}°")
+            log_quality("QUALITY", rx, ry, rz, rot_norm, quality.qualityData.sampsonErrorNew, quality.qualityData.sampsonErrorCurrent)
             finalDisplay = True
             print_final_calibration_results(quality.qualityData, state)
             print("Sending command for forced calibQualityCheck")
