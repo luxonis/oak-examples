@@ -7,15 +7,12 @@ import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 
-from utils.outlines_overlay_node import DummyNode
-from utils.neural_network_builder import NNBuilder
-from utils.video_provider import VideoProvider
+from utils.dummy import DummyNode
 
 
 load_dotenv(override=True)
 _, args = initialize_argparser()
 
-visualizer = dai.RemoteConnection(httpPort=8082)
 
 device = dai.Device()
 platform = device.getPlatformAsString()
@@ -24,39 +21,40 @@ print(f"Platform: {platform}")
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    video = VideoProvider(
-        pipeline=pipeline,
-        platform=platform,
-        fps_limit=args.fps_limit,
-        media_path=args.media_path,
+    cam = pipeline.create(dai.node.Camera).build()
+
+    video_full = cam.requestOutput(
+        size=(1280, 720),
+        type=dai.ImgFrame.Type.BGR888i,
+        fps=args.fps_limit,
     )
 
-    video_full = video.get_main_stream()
+    model = dai.NNModelDescription("luxonis/fastsam-s:512x288")
+    model.platform = platform
+    archive = dai.NNArchive(dai.getModelFromZoo(model))
+    w, h = archive.getInputSize()
 
-    fastsam_nn = NNBuilder(
-        pipeline=pipeline,
-        platform=platform,
-        model_name="luxonis/fastsam-s:512x288",
-        nn_cls=ParsingNeuralNetwork,
+    manip = pipeline.create(dai.node.ImageManip)
+    manip.initialConfig.setOutputSize(w, h)
+    manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
+    manip.setMaxOutputFrameSize(w * h * 3)
+
+    video_full.link(manip.inputImage)
+
+    nn_node = pipeline.create(ParsingNeuralNetwork).build(
+        manip.out,
+        archive,
     )
-    seg_out = fastsam_nn.build(video_full)
 
     outlines_node = pipeline.create(DummyNode).build(
         video_full,
-        seg_out,
     )
-
-    video_enc = video.encode(outlines_node.out)
-
-    visualizer.addTopic("Video", video_enc, "images")
 
     print("Pipeline created.")
 
     pipeline.start()
-    visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():
-        key = visualizer.waitKey(1)
-        if key == ord("q"):
+        if 1 == ord("q"):
             print("Received q. Exiting...")
             break
