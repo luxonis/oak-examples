@@ -3,7 +3,7 @@ import depthai as dai
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
-class DummyNode(BaseHostNode):
+class FpsMeasureNode(BaseHostNode):
     """
     Measures NN FPS based on segmentation output arrival rate
     and forwards video unchanged.
