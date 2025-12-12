@@ -27,9 +27,15 @@ class DinoAnnotationNode(BaseHostNode):
             self.mode = mode
             self._logger.info(f"DinoAnnotationNode mode set to '{mode}'")
 
+    def get_mode(self) -> str:
+        return self.mode
+
     def set_confidence(self, conf: float):
         self.bbox_conf_thresh = float(np.clip(float(conf), 0.0, 1.0))
         self._logger.info(f"DinoAnnotationNode: bbox_conf_thresh set to {self.bbox_conf_thresh:.2f}")
+
+    def get_confidence(self) -> float:
+        return self.bbox_conf_thresh
 
     def process(self, video_msg, seg_msg, mask_msg):
         frame = video_msg.getCvFrame()

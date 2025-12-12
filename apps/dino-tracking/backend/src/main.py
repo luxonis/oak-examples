@@ -13,6 +13,7 @@ from core.dino_node.dino_process_node import DinoProcessNode
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.neural_network_builder import NNBuilder
 from core.video_provider import VideoProvider
+from core.state_service import StateService
 
 
 load_dotenv(override=True)
@@ -39,7 +40,7 @@ with dai.Pipeline(device) as pipeline:
     fastsam_nn = NNBuilder(
         pipeline=pipeline,
         platform=platform,
-        model_name="luxonis/fastsam-x:640x352",
+        model_name="luxonis/fastsam-s:512x288",
         nn_cls=ParsingNeuralNetwork,
     )
     seg_out = fastsam_nn.build(video_full)
@@ -74,13 +75,15 @@ with dai.Pipeline(device) as pipeline:
     prompt_service = ClickPromptService(tracker)
 
     video_enc = video.encode(annot_node.out)
+    state_service = StateService(annot_node, outlines_node)
 
     visualizer.addTopic("Video", video_enc, "images")
-    visualizer.registerService(prompt_service.NAME_CLICK, prompt_service.process)
+    visualizer.registerService(prompt_service.NAME_CLICK, prompt_service.handle)
     visualizer.registerService(prompt_service.NAME_CLEAR, prompt_service.clear)
     visualizer.registerService("Threshold Update Service", annot_node.set_confidence)
     visualizer.registerService("Annotation Mode Service", annot_node.set_mode)
-    visualizer.registerService("Outlines Mode Service", outlines_node.set_mode)
+    visualizer.registerService("Outlines Mode Service", outlines_node.set_active)
+    visualizer.registerService(state_service.NAME, state_service.handle)
 
     print("Pipeline created.")
 

@@ -1,37 +1,42 @@
 import { css } from "../styled-system/css/css.mjs";
-import { useState } from "react";
 import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 
 interface ConfidenceSliderProps {
-    initialValue?: number;
+    value: number;
+    setValue: (v: number) => void;
 }
 
-export function ConfidenceSlider({ initialValue = 0.5 }: ConfidenceSliderProps) {
+export function ConfidenceSlider({ value, setValue }: ConfidenceSliderProps) {
     const connection = useDaiConnection();
-    const [value, setValue] = useState(initialValue);
 
     const handleCommit = () => {
         if (typeof value === "number" && !isNaN(value)) {
-            console.log('Sending threshold to backend:', value);
+            console.log("[Threshold] Sending to backend:", value);
 
-            connection.daiConnection?.postToService(
-                // @ts-ignore - Custom service
+            (connection as any).daiConnection?.postToService(
                 "Threshold Update Service",
                 value,
                 (response: any) => {
-                    console.log('Backend acknowledged threshold update:', response);
+                    console.log("[Threshold] Backend acknowledged:", response);
                 }
             );
         } else {
-            console.warn("Invalid value, skipping update:", value);
+            console.warn("[Threshold] Invalid value:", value);
         }
     };
 
     return (
-        <div className={css({ display: 'flex', flexDirection: 'column', gap: 'xs' })}>
-            <label className={css({ fontWeight: 'medium' })}>
+        <div
+            className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "xs",
+            })}
+        >
+            <label className={css({ fontWeight: "medium" })}>
                 Confidence Threshold: {value.toFixed(2)}
             </label>
+
             <input
                 type="range"
                 min="0"
@@ -42,27 +47,27 @@ export function ConfidenceSlider({ initialValue = 0.5 }: ConfidenceSliderProps) 
                 onMouseUp={handleCommit}
                 onTouchEnd={handleCommit}
                 className={css({
-                    width: '100%',
-                    appearance: 'none',
-                    height: '4px',
-                    borderRadius: 'full',
-                    backgroundColor: 'gray.300',
-                    '&::-webkit-slider-thumb': {
-                        appearance: 'none',
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: 'full',
-                        backgroundColor: 'blue.500',
-                        cursor: 'pointer',
+                    width: "100%",
+                    appearance: "none",
+                    height: "4px",
+                    borderRadius: "full",
+                    backgroundColor: "gray.300",
+                    "&::-webkit-slider-thumb": {
+                        appearance: "none",
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "full",
+                        backgroundColor: "blue.500",
+                        cursor: "pointer",
                     },
-                    '&::-moz-range-thumb': {
-                        appearance: 'none',
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: 'full',
-                        backgroundColor: 'blue.500',
-                        cursor: 'pointer',
-                    }
+                    "&::-moz-range-thumb": {
+                        appearance: "none",
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "full",
+                        backgroundColor: "blue.500",
+                        cursor: "pointer",
+                    },
                 })}
             />
         </div>

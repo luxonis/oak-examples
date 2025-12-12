@@ -2,7 +2,8 @@ import { css } from "../styled-system/css/css.mjs";
 import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { AnnotationModeSelector } from "./AnnotationModeSelector.tsx";
 import { OutlinesToggle } from "./OutlinesToggle.tsx";
-import {useMemo, useRef, useCallback, useState} from "react";
+import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
+import { useCallback, useMemo, useEffect, useState } from "react";
 import { useNotifications } from "./Notifications.tsx";
 import { Button } from "@luxonis/common-fe-components";
 import * as React from "react";
@@ -16,69 +17,54 @@ type OnClickHandler = (
           }
         | undefined
 ) => void;
+interface BackendConfig {
+    confidence: number;
+    annotation_mode: "heatmap" | "bbox";
+    outlines: boolean;
+}
 
-function App() {
+export default function App() {
     const connection = useDaiConnection();
     const { notify } = useNotifications();
 
-    // Use a ref for the internal picking flag to avoid frequent re-renders.
-    // Keep a small UI state to trigger renders when the label/button needs to update.
-    const isPickingRef = useRef(false);
-    const [isPickingUi, setIsPickingUi] = useState(false);
+    // UI state
+    const [threshold, setThreshold] = useState(0.35);
+    const [annotationMode, setAnnotationMode] = useState<"heatmap" | "bbox">("heatmap");
+    const [outlinesEnabled, setOutlinesEnabled] = useState(false);
+
+    // Backend config
+    const [configLoaded, setConfigLoaded] = useState(false);
+
     console.log("Available topics:", connection.topics);
 
     const handleStreamClick: OnClickHandler = useCallback(
         (_event, coords) => {
-            console.log("[DINO FE] Correct clickable UV coordinates:", {
-                coords,
-                isPicking: isPickingRef.current,
-            });
-
-            if (!isPickingRef.current) return;
 
             if (!coords) {
                 notify("Click was outside the video area.", { type: "warning" });
-
-                setIsPickingUi(false);
-                isPickingRef.current = false;
                 return;
             }
 
             const { offsetX, offsetY } = coords;
 
-            console.log("[DINO FE] Correct clickable UV coordinates:", {
-                xNorm: offsetX,
-                yNorm: offsetY,
-            });
-
-            // Send to DepthAI
             (connection as any).daiConnection?.postToService(
                 "Click Prompt Service",
                 { click: { x: offsetX, y: offsetY } },
                 () => notify("Object selected!", { type: "success" })
             );
 
-            setIsPickingUi(false);
-            isPickingRef.current = false;
         },
         [connection, notify]
     );
 
-    const clickHandlers = useMemo(() => {
-        return new Map<string, OnClickHandler>([["Video", handleStreamClick]]);
-    }, [handleStreamClick]);
+    const clickHandlers = useMemo(
+        () => new Map<string, OnClickHandler>([["Video", handleStreamClick]]),
+        [handleStreamClick]
+    );
 
-    const handleStartPicking = () => {
-        if (!connection.connected) {
-            notify("Device is not connected.", { type: "error" });
-            return;
-        }
-        notify("Click on the video to pick object.", { type: "info" });
-
-        setIsPickingUi(true);
-        isPickingRef.current = true;
-    };
-
+    // ----------------------------------------------------
+    // CLEAR SELECTION
+    // ----------------------------------------------------
     const handleClearSelection = () => {
         (connection as any).daiConnection?.postToService(
             "Clear Click Prompt Service",
@@ -86,6 +72,65 @@ function App() {
             () => notify("Selection cleared.", { type: "success" })
         );
     };
+
+    // ----------------------------------------------------
+    // LOAD CONFIG FROM BACKEND (like Export Service)
+    // ----------------------------------------------------
+    useEffect(() => {
+        if (!connection.connected || configLoaded) return;
+
+        const timeoutId = setTimeout(() => {
+            console.log("[DinoTracker] Fetching backend configuration…");
+
+            (connection as any).daiConnection?.postToService(
+                "BE State Service",
+                null,
+                (response: any) => {
+                    console.log("[DinoTracker] Raw state payload:", response);
+                    if (!response) {
+                        notify("BE State Service unavailable", { type: "warning" });
+                        return;
+                    }
+
+                    try {
+                        let obj = response;
+
+                        // If device returned ArrayBuffer
+                        if (obj.buffer instanceof ArrayBuffer) {
+                            const td = new TextDecoder("utf-8");
+                            const view = new Uint8Array(obj.buffer, obj.byteOffset, obj.byteLength);
+                            obj = JSON.parse(td.decode(view));
+                        }
+
+                        const cfg = obj as BackendConfig;
+                        setConfigLoaded(true);
+
+                        notify("Configuration restored from backend", { type: "success" });
+
+                        if (cfg.confidence !== undefined) setThreshold(cfg.confidence);
+                        if (cfg.annotation_mode) setAnnotationMode(cfg.annotation_mode);
+                        if (cfg.outlines) setOutlinesEnabled(cfg.outlines);
+
+                        setConfigLoaded(true);
+
+                        console.log("[DinoTracker] Applied config:", cfg);
+
+                    } catch (e) {
+                        console.error("[DinoTracker] Failed parsing config:", e);
+                        notify("Failed to load configuration", { type: "error" });
+                    }
+                }
+            );
+        }, 600);
+
+        return () => clearTimeout(timeoutId);
+    }, [connection.connected, configLoaded, notify]);
+
+    useEffect(() => {
+        if (!connection.connected) {
+            setConfigLoaded(false);
+        }
+    }, [connection.connected]);
 
     return (
         <main
@@ -98,12 +143,12 @@ function App() {
                 padding: "md",
             })}
         >
-            {/* LEFT: Streams Viewer */}
+            {/* LEFT SIDE: STREAM */}
             <div className={css({ flex: 1, position: "relative" })}>
                 <Streams topicOnClickHandlersMap={clickHandlers} />
             </div>
 
-            {/* divider */}
+            {/* DIVIDER */}
             <div className={css({ width: "2px", backgroundColor: "gray.300" })} />
 
             {/* RIGHT SIDEBAR */}
@@ -115,39 +160,59 @@ function App() {
                     gap: "md",
                 })}
             >
-                <h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
+                <h1 className={css({fontSize: "2xl", fontWeight: "bold"})}>
                     Dino Tracker
                 </h1>
 
-                <OutlinesToggle />
-
-                <div
+                <p
                     className={css({
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "xs",
+                        fontSize: "sm",
+                        color: "gray.600",
+                        lineHeight: "normal",
                     })}
                 >
-                    <h3 className={css({ fontWeight: "semibold" })}>
-                        Object selection
-                    </h3>
+                    1) Turn on outlines to see FastSAM segments. 2) Click on the stream to
+                    select what to track. 3) Choose how to visualize tracking
+                    (heatmap or bounding boxes) and, in BBox mode, tune the
+                    confidence slider.
+                </p>
 
-                    <div className={css({ display: "flex", gap: "sm" })}>
-                        <Button onClick={handleStartPicking}>
-                            {isPickingUi
-                                ? "Click on the stream…"
-                                : "Pick object"}
-                        </Button>
+                {/* OUTLINES */}
+                <OutlinesToggle enabled={outlinesEnabled} setEnabled={setOutlinesEnabled}/>
 
-                        <Button variant="outline" onClick={handleClearSelection}>
+
+                {/* SELECTION */}
+                <p
+                    className={css({
+                        fontSize: "sm",
+                        color: "gray.600",
+                    })}
+                >
+                    Click once on the object in the stream. Use{" "}
+                    <span className={css({fontWeight: "semibold"})}>
                             Clear selection
-                        </Button>
-                    </div>
+                        </span>{" "}
+                    to reset and choose a new object.
+                </p>
+
+                <div className={css({display: "flex", gap: "sm"})}>
+                    <Button variant="outline" onClick={handleClearSelection}>
+                        Clear selection
+                    </Button>
                 </div>
 
-                <AnnotationModeSelector />
+                {/* MODE */}
+                <AnnotationModeSelector
+                    currentMode={annotationMode}
+                    setCurrentMode={setAnnotationMode}
+                />
 
-                {/* Connection status */}
+                {/* THRESHOLD */}
+                {annotationMode === "bbox" && (
+                    <ConfidenceSlider value={threshold} setValue={setThreshold}/>
+                )}
+
+                {/* CONNECTION STATUS */}
                 <div
                     className={css({
                         marginTop: "auto",
@@ -168,14 +233,10 @@ function App() {
                         })}
                     />
                     <span>
-                        {connection.connected
-                            ? "Connected to device"
-                            : "Disconnected"}
+                        {connection.connected ? "Connected to device" : "Disconnected"}
                     </span>
                 </div>
             </div>
         </main>
     );
 }
-
-export default App;

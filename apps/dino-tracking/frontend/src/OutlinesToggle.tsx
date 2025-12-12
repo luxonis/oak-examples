@@ -1,51 +1,39 @@
-import { useState } from "react";
 import { Flex, Button } from "@luxonis/common-fe-components";
-import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { css } from "../styled-system/css/css.mjs";
 import { useNotifications } from "./Notifications.tsx";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 
-export function OutlinesToggle() {
+type Props = {
+    enabled: boolean;
+    setEnabled: (v: boolean) => void;
+};
+
+export function OutlinesToggle({ enabled, setEnabled }: Props) {
     const connection = useDaiConnection();
     const { notify } = useNotifications();
 
-    // FE state only. We assume BE starts with outlines OFF,
-    // so default label is "Draw outlines".
-    const [enabled, setEnabled] = useState(false);
-
     const handleToggle = () => {
         if (!connection.connected) {
-            notify("Not connected to device. Unable to toggle outlines.", {
-                type: "error",
-                durationMs: 5000,
-            });
+            notify("Not connected to device.", { type: "error" });
             return;
         }
 
-        const nextEnabled = !enabled;
-        const mode = nextEnabled ? "on" : "off";
+        notify(!enabled ? "Enabling outlines…" : "Hiding outlines…", {
+            type: "info",
+        });
 
-        console.log("[Outlines] Sending outlines mode to backend:", mode);
-        notify(
-            nextEnabled ? "Enabling FastSAM outlines…" : "Hiding outlines…",
-            { type: "info", durationMs: 2500 }
-        );
-
-        // @ts-ignore - custom DepthAI service
         (connection as any).daiConnection?.postToService(
             "Outlines Mode Service",
-            mode,
+            !enabled,
             () => {
-                console.log("[Outlines] Backend acknowledged outlines mode:", mode);
-                setEnabled(nextEnabled);
-                notify(
-                    nextEnabled ? "Outlines enabled." : "Outlines hidden.",
-                    { type: "success", durationMs: 3000 }
-                );
+                console.log("[Outlines] BE ack:", !enabled);
+                setEnabled(!enabled);
+                notify(!enabled ? "Outlines enabled." : "Outlines disabled.", {
+                    type: "success",
+                });
             }
         );
     };
-
-    const label = enabled ? "Hide outlines" : "Draw outlines";
 
     return (
         <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
@@ -62,7 +50,7 @@ export function OutlinesToggle() {
                         cursor: "pointer",
                     })}
                 >
-                    {label}
+                    {enabled ? "Hide outlines" : "Draw outlines"}
                 </Button>
             </Flex>
         </div>
