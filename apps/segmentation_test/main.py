@@ -47,7 +47,7 @@ with dai.Pipeline(device) as pipeline:
     # and does not freeze.
     # ------------------------------------------------------------------
 
-    fps_node = pipeline.create(FpsMeasureNode).build(nn_node.out)
+    # fps_node = pipeline.create(FpsMeasureNode).build(nn_node.out)
 
     # ------------------------------------------------------------------
     # Two-input Host Node (OutlinesOverlayNode):
@@ -65,12 +65,17 @@ with dai.Pipeline(device) as pipeline:
 
     # ------------------------------------------------------------------
 
-    # outlines = pipeline.create(OutlinesOverlayNode).build(
-    #     video_full,
-    #     nn_node.out,
-    # )
-    #
-    # fps_node = pipeline.create(FpsMeasureNode).build(outlines.out)
+    video_test = cam.requestOutput(
+        size=(1280, 720),
+        type=dai.ImgFrame.Type.BGR888i,
+        fps=30,
+    )
+    outlines = pipeline.create(OutlinesOverlayNode).build(
+        video_test,
+        nn_node.out,
+    )
+
+    fps_node = pipeline.create(FpsMeasureNode).build(outlines.out)
 
     print("Pipeline created.")
 
