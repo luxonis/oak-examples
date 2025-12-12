@@ -47,7 +47,7 @@ with dai.Pipeline(device) as pipeline:
     )
 
     outlines_node = pipeline.create(DummyNode).build(
-        video_full,
+        nn_node.out
     )
 
     print("Pipeline created.")
