@@ -19,7 +19,7 @@ class DinoSimilarityEngine:
         self._tracker = AdaptiveReferenceTracker()
         self._heatmap = HeatmapProcessor()
 
-    def set_sizes(self, fs_size, dino_size):
+    def set_sizes(self, fs_size: tuple[int, int], dino_size: tuple[int, int]):
         self._mapper.set_sizes(fs_size, dino_size)
 
     def tick_frame(self):
@@ -29,7 +29,7 @@ class DinoSimilarityEngine:
         self._tracker.reset()
         self._heatmap.reset()
 
-    def empty_heatmap(self, frame_shape):
+    def empty_heatmap(self, frame_shape:  tuple[int, int]):
         return self._heatmap.empty(frame_shape)
 
     def update(

@@ -16,7 +16,7 @@ class OutlinesOverlayNode(BaseHostNode):
         self._is_active: bool = False
         self.kernel = np.ones((3, 3), np.uint8)
 
-    def build(self, video, seg):
+    def build(self, video: dai.ImgFrame, seg: dai.Node.Output):
         self.link_args(video, seg)
         return self
 
@@ -26,7 +26,7 @@ class OutlinesOverlayNode(BaseHostNode):
     def get_active(self) -> bool:
         return self._is_active
 
-    def process(self, video_msg, seg_msg):
+    def process(self, video_msg: dai.Buffer, seg_msg: dai.Buffer):
         frame = video_msg.getCvFrame()
         H, W = frame.shape[:2]
 

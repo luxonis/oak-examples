@@ -27,11 +27,8 @@ class SelectionProcessor:
         y_norm: float,
         seg_full: np.ndarray,
         seg_fs: np.ndarray,
-        logger=None,
     ) -> bool:
         if seg_full is None or seg_fs is None:
-            if logger:
-                logger.info("_SelectionProcessor: no segmentation for click")
             return False
 
         H_full, W_full = seg_full.shape
@@ -50,25 +47,11 @@ class SelectionProcessor:
 
         patch = seg_full[y0:y1, x0:x1]
         if patch.size == 0:
-            if logger:
-                logger.info("_SelectionProcessor: click patch empty; ignoring")
             return False
 
         vals, counts = np.unique(patch, return_counts=True)
         sid = int(vals[np.argmax(counts)])
 
-        if logger:
-            logger.info(
-                f"Click at ({x_full}, {y_full}) -> majority SID={sid} "
-                f"in window x[{x0}:{x1}), y[{y0}:{y1})"
-            )
-
         self._ref_mask_fs = (seg_fs == sid)
-
-        if logger:
-            logger.info(
-                f"_SelectionProcessor: selected SID={sid}, "
-                f"stored reference mask in FS space"
-            )
 
         return True

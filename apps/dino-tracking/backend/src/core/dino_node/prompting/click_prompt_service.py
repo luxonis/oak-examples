@@ -5,7 +5,7 @@ class ClickPromptService:
     def __init__(self, tracker):
         self.tracker = tracker
 
-    def handle(self, payload):
+    def handle(self, payload: dict[str, any]):
         click = payload.get("click")
         if click is None:
             self.tracker._logger.info("No click in payload")

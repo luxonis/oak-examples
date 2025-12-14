@@ -145,7 +145,7 @@ export default function App() {
         >
             {/* LEFT SIDE: STREAM */}
             <div className={css({ flex: 1, position: "relative" })}>
-                <Streams topicOnClickHandlersMap={clickHandlers} />
+                <Streams topicOnClickHandlersMap={clickHandlers} defaultTopics={["Video"]}/>
             </div>
 
             {/* DIVIDER */}
