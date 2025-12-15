@@ -23,8 +23,8 @@ export function OutlinesToggle({ enabled, setEnabled }: Props) {
         });
 
         (connection as any).daiConnection?.postToService(
-            "Outlines Mode Service",
-            !enabled,
+            "Outlines Trigger Service",
+            { "active": !enabled },
             () => {
                 console.log("[Outlines] BE ack:", !enabled);
                 setEnabled(!enabled);

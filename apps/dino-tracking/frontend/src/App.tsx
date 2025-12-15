@@ -49,7 +49,7 @@ export default function App() {
 
             (connection as any).daiConnection?.postToService(
                 "Click Prompt Service",
-                { click: { x: offsetX, y: offsetY } },
+                { x: offsetX, y: offsetY },
                 () => notify("Object selected!", { type: "success" })
             );
 
@@ -67,7 +67,7 @@ export default function App() {
     // ----------------------------------------------------
     const handleClearSelection = () => {
         (connection as any).daiConnection?.postToService(
-            "Clear Click Prompt Service",
+            "Clear Selection Service",
             {},
             () => notify("Selection cleared.", { type: "success" })
         );

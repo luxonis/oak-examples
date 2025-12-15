@@ -5,3 +5,4 @@ numpy>=1.22
 python-dotenv
 python-box
 PyYAML>=6.0
+pydantic

@@ -15,7 +15,7 @@ export function ConfidenceSlider({ value, setValue }: ConfidenceSliderProps) {
 
             (connection as any).daiConnection?.postToService(
                 "Threshold Update Service",
-                value,
+                { "threshold": value },
                 (response: any) => {
                     console.log("[Threshold] Backend acknowledged:", response);
                 }

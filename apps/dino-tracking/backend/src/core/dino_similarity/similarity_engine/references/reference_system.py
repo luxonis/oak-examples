@@ -1,6 +1,6 @@
 import numpy as np
-from core.dino_node.tracker.references.reference_adaptation_state import ReferenceAdaptationState
-from core.dino_node.tracker.references.reference_embedding import ReferenceEmbedding
+from core.dino_similarity.similarity_engine.references.reference_adaptation_state import ReferenceAdaptationState
+from core.dino_similarity.similarity_engine.references.reference_embedding import ReferenceEmbedding
 
 
 class ReferenceSystem:

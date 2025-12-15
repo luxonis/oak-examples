@@ -4,10 +4,10 @@ import depthai as dai
 
 from depthai_nodes.node import BaseHostNode
 from .prompting.click_processor import ClickProcessor
-from .tracker.dino_similarity_engine import DinoSimilarityEngine
+from .similarity_engine.dino_similarity_engine import DinoSimilarityEngine
 
 
-class DinoProcessNode(BaseHostNode):
+class DinoSelectionNode(BaseHostNode):
     """
     Per frame:
       - process pending click (using cached previous frame)

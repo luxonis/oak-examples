@@ -31,7 +31,7 @@ export function AnnotationModeSelector({ currentMode, setCurrentMode }: Props) {
 
         (connection as any).daiConnection?.postToService(
             "Annotation Mode Service",
-            mode,
+            { "mode": mode },
             () => {
                 console.log("[Annotation] BE acknowledged:", mode);
                 setCurrentMode(mode);   // <-- update FE

@@ -1,9 +1,9 @@
 import numpy as np
 import depthai as dai
 
-from core.dino_node.tracker.features.dino_feature_space import DinoFeatureSpace
-from core.dino_node.tracker.heatmap_producer import HeatmapProducer
-from core.dino_node.tracker.references.reference_system import ReferenceSystem
+from core.dino_similarity.similarity_engine.features.dino_feature_space import DinoFeatureSpace
+from core.dino_similarity.similarity_engine.heatmap_producer import HeatmapProducer
+from core.dino_similarity.similarity_engine.references.reference_system import ReferenceSystem
 
 
 class DinoSimilarityEngine:
