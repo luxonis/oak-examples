@@ -25,33 +25,25 @@ class MaskToGridMapper:
         )
 
     def mask_to_grid_indices(self, ref_mask_fs: np.ndarray, grid_shape: tuple[int, int]) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Takes the FS/SAM mask (H_fs × W_fs boolean mask) and converts it
-        into arrays of row/col indices for the DINO grid.
-
-        Returns:
-            is_: array of row indices in DINO grid
-            js_: array of col indices in DINO grid
-        """
 
         if not self.is_ready():
             return np.array([]), np.array([])
 
         H_grid, W_grid = grid_shape
 
-        # 1) Find all selected pixels
+        # Find all selected pixels
         ys, xs = np.where(ref_mask_fs)
         if len(xs) == 0:
             return np.array([]), np.array([])
 
-        # 2) FS → DINO input coordinate system
+        # FS → DINO input coordinate system
         xs_d = (xs.astype(np.float32) / float(self.sam_w)) * float(self.dino_w)
         ys_d = (ys.astype(np.float32) / float(self.sam_h)) * float(self.dino_h)
 
         xs_d = np.clip(xs_d, 0, self.dino_w - 1)
         ys_d = np.clip(ys_d, 0, self.dino_h - 1)
 
-        # 3) DINO input → DINO grid coordinates
+        # DINO input → DINO grid coordinates
         js = (xs_d / float(self.dino_w) * float(W_grid)).astype(np.int32)
         is_ = (ys_d / float(self.dino_h) * float(H_grid)).astype(np.int32)
 

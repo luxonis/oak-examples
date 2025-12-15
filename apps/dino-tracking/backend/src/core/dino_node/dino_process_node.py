@@ -24,9 +24,9 @@ class DinoProcessNode(BaseHostNode):
         self.clicks = ClickProcessor()
         self.tracker = DinoSimilarityEngine()
 
-    def build(self, frame_in: dai.ImgFrame, seg_in: dai.Node.Output, dino_in: dai.Node.Output, sam_size: dai.Node.Output, dino_size: tuple[int, int]):
+    def build(self, frame_in: dai.ImgFrame, seg_in: dai.Node.Output, dino_in: dai.Node.Output, sam_size: tuple[int, int], dino_size: tuple[int, int]):
         self.link_args(frame_in, seg_in, dino_in)
-        self.tracker.set_sizes(sam_size, dino_size)
+        self.tracker.configure_geometry(sam_size, dino_size)
         return self
 
     def set_selection_click(self, x_norm: float, y_norm: float):
@@ -36,28 +36,22 @@ class DinoProcessNode(BaseHostNode):
         self.clicks.clear()
         self.tracker.reset()
 
-    def process(self, frame_msg: dai.Buffer, seg_msg: dai.Buffer, dino_msg: dai.Buffer):
-        selection_changed = self.clicks.process_pending_click()
-
-        if selection_changed:
+    def process(self, frame_msg, seg_msg, dino_msg):
+        if self.clicks.process_pending_click():
             self.tracker.reset()
 
-        self.tracker.tick_frame()
-
-        H_full, W_full = self.clicks.update_cache_from_msgs(frame_msg, seg_msg)
-        frame_shape = (H_full, W_full)
+        H, W = self.clicks.update_cache_from_msgs(frame_msg, seg_msg)
+        frame_shape = (H, W)
 
         if not self.clicks.has_object():
             heat = self.tracker.empty_heatmap(frame_shape)
             self._send_heatmap(frame_msg, heat)
             return
 
-        reference_segmentation = self.clicks.get_selection_mask()
-
-        heat = self.tracker.update(
+        heat = self.tracker.process_frame(
             dino_msg=dino_msg,
             frame_shape=frame_shape,
-            reference_segmentation=reference_segmentation,
+            reference_segmentation=self.clicks.get_selection_mask(),
         )
 
         self._send_heatmap(frame_msg, heat)

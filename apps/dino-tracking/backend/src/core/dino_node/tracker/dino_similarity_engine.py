@@ -1,70 +1,52 @@
 import numpy as np
 import depthai as dai
 
-from .mask_to_grid_mapper import MaskToGridMapper
-from .reference_embedding import ReferenceEmbedding
-from .adaptive_reference_tracker import AdaptiveReferenceTracker
-from .dino_feature_extractor import DinoFeatureExtractor
-from .heatmap_processor import HeatmapProcessor
+from core.dino_node.tracker.features.dino_feature_space import DinoFeatureSpace
+from core.dino_node.tracker.heatmap_producer import HeatmapProducer
+from core.dino_node.tracker.references.reference_system import ReferenceSystem
 
 
 class DinoSimilarityEngine:
     """
+    Stateful per-stream DINO similarity tracker.
     """
 
     def __init__(self):
-        self._features = DinoFeatureExtractor()
-        self._mapper = MaskToGridMapper()
-        self._embed = ReferenceEmbedding()
-        self._tracker = AdaptiveReferenceTracker()
-        self._heatmap = HeatmapProcessor()
+        self._features = DinoFeatureSpace()
+        self._reference = ReferenceSystem()
+        self._heatmap = HeatmapProducer()
 
-    def set_sizes(self, fs_size: tuple[int, int], dino_size: tuple[int, int]):
-        self._mapper.set_sizes(fs_size, dino_size)
-
-    def tick_frame(self):
-        self._tracker.tick()
+    def configure_geometry(self, fs_size, dino_size):
+        self._features.set_sizes(fs_size, dino_size)
 
     def reset(self):
-        self._tracker.reset()
+        self._reference.reset()
         self._heatmap.reset()
 
-    def empty_heatmap(self, frame_shape:  tuple[int, int]):
+    def empty_heatmap(self, frame_shape: tuple[int, int]) -> np.ndarray:
         return self._heatmap.empty(frame_shape)
 
-    def update(
+    def process_frame(
         self,
         dino_msg: dai.NNData,
         frame_shape: tuple[int, int],
         reference_segmentation: np.ndarray | None,
     ) -> np.ndarray:
 
-        grid = self._features.extract_grid(dino_msg)
-        H_grid, W_grid, _ = grid.shape
+        self._reference.tick()
 
-        if self._tracker.reference_init is None and reference_segmentation is not None:
-            is_, js = self._mapper.mask_to_grid_indices(
-                reference_segmentation, (H_grid, W_grid)
+        self._features.begin_frame(dino_msg)
+
+        if reference_segmentation is not None and not self._reference.has_reference():
+            vectors = self._features.reference_vectors_from_mask(
+                reference_segmentation
             )
+            self._reference.initialize_from_vectors(vectors)
 
-            if len(is_) > 0:
-                vectors = grid[is_, js]
-                ref = self._embed.initialize_from_vectors(vectors)
-                if ref is not None:
-                    self._tracker.initialize(ref)
-
-        if not self._tracker.is_ready():
-            self._heatmap.reset()
+        if not self._reference.has_reference():
             return self._heatmap.empty(frame_shape)
 
-        cos_grid, best_idx, best_val = self._embed.cosine_grid(
-            grid,
-            self._tracker.reference_init,
-            self._tracker.reference_track,
-            self._tracker.combine_alpha,
-        )
-
-        best_vec = self._embed.best_vector(grid, best_idx)
-        self._tracker.update_tracking_reference(best_vec, best_val)
+        grid = self._features.get_grid()
+        cos_grid = self._reference.compute_similarity(grid)
 
         return self._heatmap.from_cosine_grid(cos_grid, frame_shape)

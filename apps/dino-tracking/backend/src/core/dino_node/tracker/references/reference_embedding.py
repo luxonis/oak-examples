@@ -8,8 +8,6 @@ class ReferenceEmbedding:
       - normalization
       - cosine similarity grid computation
       - finding best-match vector
-
-    This class does NOT update references over time.
     """
 
     @staticmethod

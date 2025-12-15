@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class AdaptiveReferenceTracker:
+class ReferenceAdaptationState:
     """
     Holds and updates:
       - reference_init (frozen)
@@ -31,7 +31,7 @@ class AdaptiveReferenceTracker:
         self.frame_idx = 0
         self.last_learn_frame = -10**9
 
-    def is_ready(self) -> bool:
+    def has_reference(self) -> bool:
         return self.reference_init is not None and self.reference_track is not None
 
     def initialize(self, ref_embedding: np.ndarray):

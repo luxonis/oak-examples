@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 
-class HeatmapProcessor:
+class HeatmapProducer:
     """
     Turns cosine grid into a full-res heatmap and applies (currently
     disabled) temporal smoothing.

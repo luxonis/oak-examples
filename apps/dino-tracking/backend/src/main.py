@@ -56,11 +56,6 @@ with dai.Pipeline(device) as pipeline:
     )
     dino_out = dino_nn.build(video_full)
 
-    outlines_node = pipeline.create(OutlinesOverlayNode).build(
-        video_full,
-        seg_out,
-    )
-
     dino_process = pipeline.create(DinoProcessNode).build(
         video_full,
         seg_out,
@@ -80,6 +75,11 @@ with dai.Pipeline(device) as pipeline:
     )
 
     tracker = tracker_factory.build()
+
+    outlines_node = pipeline.create(OutlinesOverlayNode).build(
+        video_full,
+        seg_out,
+    )
 
     annot_node = pipeline.create(DinoAnnotationNode).build(
         outlines_node.out,
