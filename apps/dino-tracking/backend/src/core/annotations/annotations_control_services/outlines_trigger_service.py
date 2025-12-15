@@ -17,9 +17,13 @@ class OutlinesTriggerService(BaseService[OutlinesTogglePayload]):
         try:
             payload = OutlinesTogglePayload.model_validate(payload)
         except ValidationError as e:
-            self._outlines_node._logger.info(f"Validation error in OutlinesTriggerService:{e}")
+            self._outlines_node._logger.info(
+                f"Validation error in OutlinesTriggerService:{e}"
+            )
             return {"ok": False, "error": e.errors()}
-        self._outlines_node._logger.info(f"Setting outlines active state to {payload.active}")
+        self._outlines_node._logger.info(
+            f"Setting outlines active state to {payload.active}"
+        )
         self._outlines_node.set_active(payload.active)
         return {
             "ok": True,

@@ -3,9 +3,15 @@ from pathlib import Path
 
 os.environ.setdefault("DEPTHAI_LEVEL", "INFO")
 from constants.yml_constants_loader import YamlFilesLoader
-from core.annotations.annotations_control_services.annotation_mode_service import AnnotationModeService
-from core.dino_similarity.prompting.FE_prompt_services.clear_selection_sevice import ClearSelectionService
-from core.annotations.annotations_control_services.outlines_trigger_service import OutlinesTriggerService
+from core.annotations.annotations_control_services.annotation_mode_service import (
+    AnnotationModeService,
+)
+from core.dino_similarity.prompting.FE_prompt_services.clear_selection_sevice import (
+    ClearSelectionService,
+)
+from core.annotations.annotations_control_services.outlines_trigger_service import (
+    OutlinesTriggerService,
+)
 from core.detections_tracking.threshold_service import ThresholdService
 
 from dotenv import load_dotenv
@@ -18,7 +24,9 @@ import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.dino_similarity.prompting.FE_prompt_services.click_prompt_service import ClickPromptService
+from core.dino_similarity.prompting.FE_prompt_services.click_prompt_service import (
+    ClickPromptService,
+)
 from core.dino_similarity.dino_selection_node import DinoSelectionNode
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.neural_network_builder import NNBuilder

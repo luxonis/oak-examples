@@ -22,8 +22,13 @@ class ReferenceEmbedding:
         ref = self.normalize(ref.astype(np.float32))
         return ref
 
-    def cosine_grid(self, grid: np.ndarray, reference_init: np.ndarray,
-                    reference_adapt: np.ndarray, alpha: float) -> tuple[np.ndarray, int, float]:
+    def cosine_grid(
+        self,
+        grid: np.ndarray,
+        reference_init: np.ndarray,
+        reference_adapt: np.ndarray,
+        alpha: float,
+    ) -> tuple[np.ndarray, int, float]:
         H, W, D = grid.shape
         feats = grid.reshape(-1, D).astype(np.float32)
 

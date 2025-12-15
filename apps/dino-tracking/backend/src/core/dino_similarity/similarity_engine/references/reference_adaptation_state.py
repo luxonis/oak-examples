@@ -20,7 +20,7 @@ class ReferenceAdaptationState:
         self.combine_alpha = 0.7
 
         self.frame_idx = 0
-        self.last_learn_frame = -10**9
+        self.last_learn_frame = -(10**9)
 
     def tick(self):
         self.frame_idx += 1
@@ -29,7 +29,7 @@ class ReferenceAdaptationState:
         self.reference_init = None
         self.reference_adapt = None
         self.frame_idx = 0
-        self.last_learn_frame = -10**9
+        self.last_learn_frame = -(10**9)
 
     def has_reference(self) -> bool:
         return self.reference_init is not None and self.reference_adapt is not None
@@ -42,7 +42,6 @@ class ReferenceAdaptationState:
         self.reference_adapt = ref_embedding.copy()
 
     def update_adapting_reference(self, best_vector: np.ndarray, best_value: float):
-
         if (
             best_value >= self.learn_thresh
             and (self.frame_idx - self.last_learn_frame) >= self.learn_interval

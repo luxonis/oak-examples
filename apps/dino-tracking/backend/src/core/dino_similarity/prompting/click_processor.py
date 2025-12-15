@@ -46,9 +46,9 @@ class ClickProcessor:
         return changed
 
     def update_cache_from_msgs(
-            self,
-            frame_msg: dai.ImgFrame,
-            seg_msg: dai.Node.Output,
+        self,
+        frame_msg: dai.ImgFrame,
+        seg_msg: dai.Node.Output,
     ) -> tuple[int, int]:
         frame_full = frame_msg.getCvFrame()
         H_full, W_full = frame_full.shape[:2]

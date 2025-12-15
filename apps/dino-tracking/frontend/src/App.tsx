@@ -17,6 +17,7 @@ type OnClickHandler = (
           }
         | undefined
 ) => void;
+
 interface BackendConfig {
     confidence: number;
     annotation_mode: "heatmap" | "bbox";
@@ -27,19 +28,40 @@ export default function App() {
     const connection = useDaiConnection();
     const { notify } = useNotifications();
 
-    // UI state
+    // ----------------------------------------------------
+    // UI STATE
+    // ----------------------------------------------------
     const [threshold, setThreshold] = useState(0.35);
-    const [annotationMode, setAnnotationMode] = useState<"heatmap" | "bbox">("heatmap");
+    const [annotationMode, setAnnotationMode] =
+        useState<"heatmap" | "bbox">("heatmap");
     const [outlinesEnabled, setOutlinesEnabled] = useState(false);
 
     // Backend config
     const [configLoaded, setConfigLoaded] = useState(false);
 
-    console.log("Available topics:", connection.topics);
+    // 🔒 STREAM LATCH (key fix)
+    const [streamEverAvailable, setStreamEverAvailable] = useState(false);
 
+    // ----------------------------------------------------
+    // LATCH FIRST VIDEO STREAM APPEARANCE
+    // ----------------------------------------------------
+    useEffect(() => {
+        if (streamEverAvailable) return;
+
+        if (
+            Array.isArray(connection.topics) &&
+            connection.topics.some((t) => t.name === "Video")
+        ) {
+            console.log("[App] Video stream appeared → latching Streams ON");
+            setStreamEverAvailable(true);
+        }
+    }, [connection.topics, streamEverAvailable]);
+
+    // ----------------------------------------------------
+    // STREAM CLICK HANDLER
+    // ----------------------------------------------------
     const handleStreamClick: OnClickHandler = useCallback(
         (_event, coords) => {
-
             if (!coords) {
                 notify("Click was outside the video area.", { type: "warning" });
                 return;
@@ -52,7 +74,6 @@ export default function App() {
                 { x: offsetX, y: offsetY },
                 () => notify("Object selected!", { type: "success" })
             );
-
         },
         [connection, notify]
     );
@@ -74,50 +95,54 @@ export default function App() {
     };
 
     // ----------------------------------------------------
-    // LOAD CONFIG FROM BACKEND (like Export Service)
+    // LOAD CONFIG FROM BACKEND
     // ----------------------------------------------------
     useEffect(() => {
         if (!connection.connected || configLoaded) return;
 
         const timeoutId = setTimeout(() => {
-            console.log("[DinoTracker] Fetching backend configuration…");
-
             (connection as any).daiConnection?.postToService(
                 "BE State Service",
                 null,
                 (response: any) => {
-                    console.log("[DinoTracker] Raw state payload:", response);
                     if (!response) {
-                        notify("BE State Service unavailable", { type: "warning" });
+                        notify("BE State Service unavailable", {
+                            type: "warning",
+                        });
                         return;
                     }
 
                     try {
                         let obj = response;
 
-                        // If device returned ArrayBuffer
                         if (obj.buffer instanceof ArrayBuffer) {
                             const td = new TextDecoder("utf-8");
-                            const view = new Uint8Array(obj.buffer, obj.byteOffset, obj.byteLength);
+                            const view = new Uint8Array(
+                                obj.buffer,
+                                obj.byteOffset,
+                                obj.byteLength
+                            );
                             obj = JSON.parse(td.decode(view));
                         }
 
                         const cfg = obj as BackendConfig;
                         setConfigLoaded(true);
 
-                        notify("Configuration restored from backend", { type: "success" });
+                        if (cfg.confidence !== undefined)
+                            setThreshold(cfg.confidence);
+                        if (cfg.annotation_mode)
+                            setAnnotationMode(cfg.annotation_mode);
+                        if (cfg.outlines !== undefined)
+                            setOutlinesEnabled(cfg.outlines);
 
-                        if (cfg.confidence !== undefined) setThreshold(cfg.confidence);
-                        if (cfg.annotation_mode) setAnnotationMode(cfg.annotation_mode);
-                        if (cfg.outlines) setOutlinesEnabled(cfg.outlines);
-
-                        setConfigLoaded(true);
-
-                        console.log("[DinoTracker] Applied config:", cfg);
-
+                        notify("Configuration restored from backend", {
+                            type: "success",
+                        });
                     } catch (e) {
-                        console.error("[DinoTracker] Failed parsing config:", e);
-                        notify("Failed to load configuration", { type: "error" });
+                        console.error(e);
+                        notify("Failed to load configuration", {
+                            type: "error",
+                        });
                     }
                 }
             );
@@ -145,7 +170,26 @@ export default function App() {
         >
             {/* LEFT SIDE: STREAM */}
             <div className={css({ flex: 1, position: "relative" })}>
-                <Streams topicOnClickHandlersMap={clickHandlers} defaultTopics={["Video"]}/>
+                {streamEverAvailable ? (
+                    <Streams
+                        topicOnClickHandlersMap={clickHandlers}
+                        defaultTopics={["Video"]}
+                    />
+                ) : (
+                    <div
+                        className={css({
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "gray.500",
+                            fontSize: "sm",
+                        })}
+                    >
+                        Downloading neural network models and waiting for video stream...
+                    </div>
+                )}
             </div>
 
             {/* DIVIDER */}
@@ -160,7 +204,12 @@ export default function App() {
                     gap: "md",
                 })}
             >
-                <h1 className={css({fontSize: "2xl", fontWeight: "bold"})}>
+                <h1
+                    className={css({
+                        fontSize: "2xl",
+                        fontWeight: "bold",
+                    })}
+                >
                     Dino Tracker
                 </h1>
 
@@ -201,13 +250,11 @@ export default function App() {
                     </Button>
                 </div>
 
-                {/* MODE */}
                 <AnnotationModeSelector
                     currentMode={annotationMode}
                     setCurrentMode={setAnnotationMode}
                 />
 
-                {/* THRESHOLD */}
                 {annotationMode === "bbox" && (
                     <ConfidenceSlider value={threshold} setValue={setThreshold}/>
                 )}

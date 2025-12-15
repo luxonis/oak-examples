@@ -17,7 +17,12 @@ class DinoAnnotationNode(BaseHostNode):
         super().__init__()
         self.mode = mode
 
-    def build(self, frame_msg: dai.Node.Output, heatmap_in: dai.Node.Output, tracklets_in: dai.Node.Output):
+    def build(
+        self,
+        frame_msg: dai.Node.Output,
+        heatmap_in: dai.Node.Output,
+        tracklets_in: dai.Node.Output,
+    ):
         self.link_args(frame_msg, heatmap_in, tracklets_in)
         return self
 
@@ -71,11 +76,12 @@ class DinoAnnotationNode(BaseHostNode):
 
         self._send(result, ref_msg)
 
-    def _draw_bboxes(self, frame: dai.ImgFrame, tracklets: dai.Tracklets, ref_msg: dai.ImgFrame):
+    def _draw_bboxes(
+        self, frame: dai.ImgFrame, tracklets: dai.Tracklets, ref_msg: dai.ImgFrame
+    ):
         H, W = frame.shape[:2]
 
         for t in tracklets.tracklets:
-
             if t.status != dai.Tracklet.TrackingStatus.TRACKED:
                 continue
 

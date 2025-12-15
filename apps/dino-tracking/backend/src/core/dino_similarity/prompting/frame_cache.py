@@ -8,12 +8,18 @@ class FrameCache:
     Used by the click processor to map FE click -> FS-space mask
     based on the previous frame's segmentation.
     """
+
     def __init__(self):
         self._last_frame: np.ndarray | None = None
         self._last_seg_fast_sam: np.ndarray | None = None
         self._last_seg_full_res: np.ndarray | None = None
 
-    def update(self, frame: np.ndarray, segmentation_fast_sam: np.ndarray, segmentation_full_res: np.ndarray) -> None:
+    def update(
+        self,
+        frame: np.ndarray,
+        segmentation_fast_sam: np.ndarray,
+        segmentation_full_res: np.ndarray,
+    ) -> None:
         self._last_frame = frame
         self._last_seg_fast_sam = segmentation_fast_sam
         self._last_seg_full_res = segmentation_full_res

@@ -19,10 +19,11 @@ class ThresholdService(BaseService[ThresholdUpdatePayload]):
         except ValidationError as e:
             self._heatmap_det._logger.info(f"Validation error in ThresholdService:{e}")
             return {"ok": False, "error": e.errors()}
-        self._heatmap_det._logger.info(f"Updating confidence threshold to {payload.threshold}")
+        self._heatmap_det._logger.info(
+            f"Updating confidence threshold to {payload.threshold}"
+        )
         self._heatmap_det.set_confidence_threshold(payload.threshold)
         return {
             "ok": True,
             "confidence": self._heatmap_det.get_confidence_threshold(),
         }
-

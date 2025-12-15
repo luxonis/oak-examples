@@ -1,8 +1,12 @@
 import numpy as np
 import depthai as dai
 
-from core.dino_similarity.similarity_engine.features.dino_feature_extractor import DinoFeatureExtractor
-from core.dino_similarity.similarity_engine.features.mask_to_grid_mapper import MaskToGridMapper
+from core.dino_similarity.similarity_engine.features.dino_feature_extractor import (
+    DinoFeatureExtractor,
+)
+from core.dino_similarity.similarity_engine.features.mask_to_grid_mapper import (
+    MaskToGridMapper,
+)
 
 
 class DinoFeatureSpace:

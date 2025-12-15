@@ -18,7 +18,9 @@ class AnnotationModeService(BaseService[AnnotationModePayload]):
         try:
             payload = AnnotationModePayload.model_validate(payload)
         except ValidationError as e:
-            self._annotations_node._logger.info(f"Validation error in AnnotationModeService:{e}")
+            self._annotations_node._logger.info(
+                f"Validation error in AnnotationModeService:{e}"
+            )
             return {"ok": False, "error": e.errors()}
 
         self._annotations_node.set_mode(payload.mode)

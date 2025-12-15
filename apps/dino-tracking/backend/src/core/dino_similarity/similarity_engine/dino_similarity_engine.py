@@ -1,9 +1,13 @@
 import numpy as np
 import depthai as dai
 
-from core.dino_similarity.similarity_engine.features.dino_feature_space import DinoFeatureSpace
+from core.dino_similarity.similarity_engine.features.dino_feature_space import (
+    DinoFeatureSpace,
+)
 from core.dino_similarity.similarity_engine.heatmap_producer import HeatmapProducer
-from core.dino_similarity.similarity_engine.references.reference_system import ReferenceSystem
+from core.dino_similarity.similarity_engine.references.reference_system import (
+    ReferenceSystem,
+)
 
 
 class DinoSimilarityEngine:
@@ -32,7 +36,6 @@ class DinoSimilarityEngine:
         frame_sizes: tuple[int, int],
         reference_segmentation: np.ndarray | None,
     ) -> np.ndarray:
-
         self._reference.tick()
 
         self._features.begin_frame(dino_embedding)

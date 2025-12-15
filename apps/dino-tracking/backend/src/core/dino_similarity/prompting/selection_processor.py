@@ -52,6 +52,6 @@ class SelectionProcessor:
         vals, counts = np.unique(patch, return_counts=True)
         sid = int(vals[np.argmax(counts)])
 
-        self._ref_mask_fs = (segmentation_fast_sam == sid)
+        self._ref_mask_fs = segmentation_fast_sam == sid
 
         return True

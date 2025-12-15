@@ -19,6 +19,6 @@ class DinoFeatureExtractor:
         feats = arr.transpose(0, 3, 1, 2)
         feats = feats.reshape(-1, feats.shape[3])
 
-        feats /= (np.linalg.norm(feats, axis=1, keepdims=True) + 1e-8)
+        feats /= np.linalg.norm(feats, axis=1, keepdims=True) + 1e-8
 
         return feats.reshape(arr.shape[3], arr.shape[1], arr.shape[2])

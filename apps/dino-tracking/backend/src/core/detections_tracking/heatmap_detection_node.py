@@ -54,7 +54,7 @@ class HeatmapDetectionNode(BaseHostNode):
             w = int(stats[lbl, cv2.CC_STAT_WIDTH])
             h = int(stats[lbl, cv2.CC_STAT_HEIGHT])
 
-            conf = float(heat[y:y + h, x:x + w].max())
+            conf = float(heat[y : y + h, x : x + w].max())
 
             det = dai.ImgDetection()
             det.label = 0
@@ -87,7 +87,7 @@ class HeatmapDetectionNode(BaseHostNode):
             if area < self.min_area:
                 continue
 
-            blob_mask = (labels == lbl)
+            blob_mask = labels == lbl
             if float(heat[blob_mask].max()) < self.conf_thresh:
                 continue
 

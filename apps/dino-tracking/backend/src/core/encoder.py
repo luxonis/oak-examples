@@ -1,11 +1,9 @@
 import depthai as dai
-from pathlib import Path
 
 from box import Box
 
 
 class Encoder:
-
     def __init__(self, pipeline: dai.Pipeline, config: Box):
         self.pipeline = pipeline
         self.output_w = config.resolution[0]
@@ -20,7 +18,9 @@ class Encoder:
         video.link(manip.inputImage)
 
         enc = self.pipeline.create(dai.node.VideoEncoder)
-        enc.setDefaultProfilePreset(self.fps, dai.VideoEncoderProperties.Profile.H264_MAIN)
+        enc.setDefaultProfilePreset(
+            self.fps, dai.VideoEncoderProperties.Profile.H264_MAIN
+        )
         manip.out.link(enc.input)
 
         return enc.out

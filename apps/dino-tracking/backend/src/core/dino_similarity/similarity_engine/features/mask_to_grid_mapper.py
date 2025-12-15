@@ -24,8 +24,9 @@ class MaskToGridMapper:
             and self.dino_h is not None
         )
 
-    def segmentation_to_grid_indices(self, segmentation: np.ndarray, grid_shape: tuple[int, int]) -> tuple[np.ndarray, np.ndarray]:
-
+    def segmentation_to_grid_indices(
+        self, segmentation: np.ndarray, grid_shape: tuple[int, int]
+    ) -> tuple[np.ndarray, np.ndarray]:
         if not self.is_ready():
             return np.array([]), np.array([])
 
@@ -37,8 +38,12 @@ class MaskToGridMapper:
             return np.array([]), np.array([])
 
         # FS → DINO input coordinate system
-        x_dino = (x_segmentation.astype(np.float32) / float(self.sam_w)) * float(self.dino_w)
-        y_dino = (y_segmentation.astype(np.float32) / float(self.sam_h)) * float(self.dino_h)
+        x_dino = (x_segmentation.astype(np.float32) / float(self.sam_w)) * float(
+            self.dino_w
+        )
+        y_dino = (y_segmentation.astype(np.float32) / float(self.sam_h)) * float(
+            self.dino_h
+        )
 
         x_dino = np.clip(x_dino, 0, self.dino_w - 1)
         y_dino = np.clip(y_dino, 0, self.dino_h - 1)

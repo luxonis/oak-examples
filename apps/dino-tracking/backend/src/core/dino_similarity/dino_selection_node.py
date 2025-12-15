@@ -24,8 +24,14 @@ class DinoSelectionNode(BaseHostNode):
         self.clicks: ClickProcessor = ClickProcessor()
         self.tracker: DinoSimilarityEngine = DinoSimilarityEngine()
 
-    def build(self, frame_in: dai.ImgFrame, segmentations: dai.Node.Output, dino_embeddings: dai.Node.Output,
-              sam_size: tuple[int, int], dino_size: tuple[int, int]):
+    def build(
+        self,
+        frame_in: dai.ImgFrame,
+        segmentations: dai.Node.Output,
+        dino_embeddings: dai.Node.Output,
+        sam_size: tuple[int, int],
+        dino_size: tuple[int, int],
+    ):
         self.link_args(frame_in, segmentations, dino_embeddings)
         self.tracker.configure_geometry(sam_size, dino_size)
         return self
@@ -37,7 +43,12 @@ class DinoSelectionNode(BaseHostNode):
         self.clicks.clear()
         self.tracker.reset()
 
-    def process(self, frame_msg: dai.Buffer, segmentation: dai.Buffer, dino_embedding: dai.Buffer):
+    def process(
+        self,
+        frame_msg: dai.Buffer,
+        segmentation: dai.Buffer,
+        dino_embedding: dai.Buffer,
+    ):
         if self.clicks.process_pending_click():
             self.tracker.reset()
 
