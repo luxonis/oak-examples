@@ -1,4 +1,5 @@
 import depthai as dai
+from depthai_nodes.node import ParsingNeuralNetwork
 
 
 class NNBuilder:
@@ -11,7 +12,7 @@ class NNBuilder:
         pipeline: dai.Pipeline,
         platform: str,
         model_name: str,
-        nn_cls,
+        nn_cls: type[dai.node.NeuralNetwork] | type[ParsingNeuralNetwork],
     ):
         self.pipeline = pipeline
         self.platform = platform

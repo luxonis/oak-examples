@@ -1,6 +1,6 @@
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.heatmap_detection_node import HeatmapDetectionNode
+from core.detections_tracking.heatmap_detection_node import HeatmapDetectionNode
 
 
 class StateService:

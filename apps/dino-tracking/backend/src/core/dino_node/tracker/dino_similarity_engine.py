@@ -28,25 +28,25 @@ class DinoSimilarityEngine:
 
     def process_frame(
         self,
-        dino_msg: dai.NNData,
-        frame_shape: tuple[int, int],
+        dino_embedding: dai.NNData,
+        frame_sizes: tuple[int, int],
         reference_segmentation: np.ndarray | None,
     ) -> np.ndarray:
 
         self._reference.tick()
 
-        self._features.begin_frame(dino_msg)
+        self._features.begin_frame(dino_embedding)
 
         if reference_segmentation is not None and not self._reference.has_reference():
-            vectors = self._features.reference_vectors_from_mask(
+            vectors = self._features.reference_vectors_from_segmentation(
                 reference_segmentation
             )
             self._reference.initialize_from_vectors(vectors)
 
         if not self._reference.has_reference():
-            return self._heatmap.empty(frame_shape)
+            return self._heatmap.empty(frame_sizes)
 
         grid = self._features.get_grid()
         cos_grid = self._reference.compute_similarity(grid)
 
-        return self._heatmap.from_cosine_grid(cos_grid, frame_shape)
+        return self._heatmap.from_cosine_grid(cos_grid, frame_sizes)

@@ -1,7 +1,7 @@
 import depthai as dai
 
 
-class TrackerFactory:
+class Tracker:
     """
     Creates and wires a dai.node.ObjectTracker for heatmap-based detections.
     """
@@ -9,12 +9,12 @@ class TrackerFactory:
     def __init__(
         self,
         pipeline: dai.Pipeline,
-        detections_out: dai.Node.Output,
-        video_out: dai.Node.Output,
+        detections: dai.Node.Output,
+        frame: dai.Node.Output,
     ):
         self._pipeline = pipeline
-        self._detections_out = detections_out
-        self._video_out = video_out
+        self._detections = detections
+        self._frame = frame
 
     def build(self) -> dai.node.ObjectTracker:
         tracker = self._pipeline.create(dai.node.ObjectTracker)
@@ -25,9 +25,10 @@ class TrackerFactory:
             dai.TrackerIdAssignmentPolicy.UNIQUE_ID
         )
         tracker.setDetectionLabelsToTrack([0])
+        tracker.setTrackletMaxLifespan(30)
 
-        self._video_out.link(tracker.inputDetectionFrame)
-        self._video_out.link(tracker.inputTrackerFrame)
-        self._detections_out.link(tracker.inputDetections)
+        self._frame.link(tracker.inputDetectionFrame)
+        self._frame.link(tracker.inputTrackerFrame)
+        self._detections.link(tracker.inputDetections)
 
         return tracker

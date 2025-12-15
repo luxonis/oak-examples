@@ -25,13 +25,13 @@ class SelectionProcessor:
         self,
         x_norm: float,
         y_norm: float,
-        seg_full: np.ndarray,
-        seg_fs: np.ndarray,
+        segmentation_full_res: np.ndarray,
+        segmentation_fast_sam: np.ndarray,
     ) -> bool:
-        if seg_full is None or seg_fs is None:
+        if segmentation_full_res is None or segmentation_fast_sam is None:
             return False
 
-        H_full, W_full = seg_full.shape
+        H_full, W_full = segmentation_full_res.shape
 
         x_full = int(x_norm * W_full)
         y_full = int(y_norm * H_full)
@@ -45,13 +45,13 @@ class SelectionProcessor:
         y0 = max(0, y_full - R)
         y1 = min(H_full, y_full + R + 1)
 
-        patch = seg_full[y0:y1, x0:x1]
+        patch = segmentation_full_res[y0:y1, x0:x1]
         if patch.size == 0:
             return False
 
         vals, counts = np.unique(patch, return_counts=True)
         sid = int(vals[np.argmax(counts)])
 
-        self._ref_mask_fs = (seg_fs == sid)
+        self._ref_mask_fs = (segmentation_fast_sam == sid)
 
         return True

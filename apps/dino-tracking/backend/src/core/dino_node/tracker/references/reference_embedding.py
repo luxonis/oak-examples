@@ -22,12 +22,13 @@ class ReferenceEmbedding:
         ref = self.normalize(ref.astype(np.float32))
         return ref
 
-    def cosine_grid(self, grid: np.ndarray, ref_init: np.ndarray, ref_track: np.ndarray, alpha: float) -> tuple[np.ndarray, int, float]:
+    def cosine_grid(self, grid: np.ndarray, reference_init: np.ndarray,
+                    reference_adapt: np.ndarray, alpha: float) -> tuple[np.ndarray, int, float]:
         H, W, D = grid.shape
         feats = grid.reshape(-1, D).astype(np.float32)
 
-        cos_init = feats @ ref_init.astype(np.float32)
-        cos_track = feats @ ref_track.astype(np.float32)
+        cos_init = feats @ reference_init.astype(np.float32)
+        cos_track = feats @ reference_adapt.astype(np.float32)
 
         cos = alpha * cos_track + (1.0 - alpha) * cos_init
         cos_grid = cos.reshape(H, W).astype(np.float32)
@@ -35,7 +36,9 @@ class ReferenceEmbedding:
         best_idx = int(np.argmax(cos_track))
         best_val_track = float(cos_track[best_idx])
 
-        return cos_grid, best_idx, best_val_track
+        best_vector = self.best_vector(grid, best_idx)
+
+        return cos_grid, best_vector, best_val_track
 
     def best_vector(self, grid: np.ndarray, best_idx: int) -> np.ndarray:
         feats = grid.reshape(-1, grid.shape[-1]).astype(np.float32)

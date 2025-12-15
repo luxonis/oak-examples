@@ -1,26 +1,31 @@
 import os
+from pathlib import Path
+
+from constants.yml_constants_loader import YamlFilesLoader
+
 os.environ.setdefault("DEPTHAI_LEVEL", "INFO")
 from dotenv import load_dotenv
 
-from core.heatmap_detection_node import HeatmapDetectionNode
-from core.tracker_factory import TrackerFactory
+from core.detections_tracking.heatmap_detection_node import HeatmapDetectionNode
+from core.detections_tracking.tracker import Tracker
 
 import depthai as dai
 
 from depthai_nodes.node import ParsingNeuralNetwork
-from utils.arguments import initialize_argparser
 
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
 from core.dino_node.prompting.click_prompt_service import ClickPromptService
 from core.dino_node.dino_process_node import DinoProcessNode
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.neural_network_builder import NNBuilder
-from core.video_provider import VideoProvider
+from core.encoder import Encoder
 from core.state_service import StateService
 
 
 load_dotenv(override=True)
-_, args = initialize_argparser()
+
+constants = YamlFilesLoader(Path(__file__).parent / "constants")
+constants.load_all()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 
@@ -31,66 +36,65 @@ print(f"Platform: {platform}")
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    video = VideoProvider(
-        pipeline=pipeline,
-        platform=platform,
-        fps_limit=args.fps_limit,
-        media_path=args.media_path,
-    )
+    camera = pipeline.create(dai.node.Camera).build()
 
-    video_full = video.get_main_stream()
+    rgb_sensor = camera.requestOutput(
+        size=constants.camera.resolution,
+        type=dai.ImgFrame.Type.BGR888i,
+        fps=constants.camera.fps,
+    )
 
     fastsam_nn = NNBuilder(
         pipeline=pipeline,
         platform=platform,
-        model_name="luxonis/fastsam-s:512x288",
+        model_name=constants.nn.segmentation.model_name,
         nn_cls=ParsingNeuralNetwork,
     )
-    seg_out = fastsam_nn.build(video_full)
+    seg_out = fastsam_nn.build(rgb_sensor)
 
     dino_nn = NNBuilder(
         pipeline=pipeline,
         platform=platform,
-        model_name="luxonis/dinov3-backbone:convnext-small-640x480",
+        model_name=constants.nn.dino.model_name,
         nn_cls=dai.node.NeuralNetwork,
     )
-    dino_out = dino_nn.build(video_full)
+    dino_out = dino_nn.build(rgb_sensor)
 
     dino_process = pipeline.create(DinoProcessNode).build(
-        video_full,
-        seg_out,
-        dino_out,
+        frame_in=rgb_sensor,
+        segmentations=seg_out,
+        dino_embeddings=dino_out,
         sam_size=fastsam_nn.input_size,
         dino_size=dino_nn.input_size,
     )
 
     heatmap_det = pipeline.create(HeatmapDetectionNode).build(
-        dino_process.out
+        heatmap_in=dino_process.out
     )
 
-    tracker_factory = TrackerFactory(
+    tracker_factory = Tracker(
         pipeline=pipeline,
-        detections_out=heatmap_det.out,
-        video_out=video_full,
+        detections=heatmap_det.out,
+        frame=rgb_sensor,
     )
 
     tracker = tracker_factory.build()
 
     outlines_node = pipeline.create(OutlinesOverlayNode).build(
-        video_full,
-        seg_out,
+        frame=rgb_sensor,
+        segmentation=seg_out,
     )
 
     annot_node = pipeline.create(DinoAnnotationNode).build(
-        outlines_node.out,
-        dino_process.out,
-        tracker.out,
+        frame_msg=outlines_node.out,
+        heatmap_in=dino_process.out,
+        tracklets_in=tracker.out,
     )
 
     prompt_service = ClickPromptService(dino_process)
-
-    video_enc = video.encode(annot_node.out)
     state_service = StateService(heatmap_det, annot_node, outlines_node)
+
+    video_enc = Encoder(pipeline, constants.camera).encode(annot_node.out)
 
     visualizer.addTopic("Video", video_enc, "images")
     visualizer.registerService(prompt_service.NAME_CLICK, prompt_service.handle)

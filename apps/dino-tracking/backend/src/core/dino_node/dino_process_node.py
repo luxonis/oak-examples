@@ -21,11 +21,12 @@ class DinoProcessNode(BaseHostNode):
     def __init__(self):
         super().__init__()
 
-        self.clicks = ClickProcessor()
-        self.tracker = DinoSimilarityEngine()
+        self.clicks: ClickProcessor = ClickProcessor()
+        self.tracker: DinoSimilarityEngine = DinoSimilarityEngine()
 
-    def build(self, frame_in: dai.ImgFrame, seg_in: dai.Node.Output, dino_in: dai.Node.Output, sam_size: tuple[int, int], dino_size: tuple[int, int]):
-        self.link_args(frame_in, seg_in, dino_in)
+    def build(self, frame_in: dai.ImgFrame, segmentations: dai.Node.Output, dino_embeddings: dai.Node.Output,
+              sam_size: tuple[int, int], dino_size: tuple[int, int]):
+        self.link_args(frame_in, segmentations, dino_embeddings)
         self.tracker.configure_geometry(sam_size, dino_size)
         return self
 
@@ -36,34 +37,34 @@ class DinoProcessNode(BaseHostNode):
         self.clicks.clear()
         self.tracker.reset()
 
-    def process(self, frame_msg, seg_msg, dino_msg):
+    def process(self, frame_msg: dai.Buffer, segmentation: dai.Buffer, dino_embedding: dai.Buffer):
         if self.clicks.process_pending_click():
             self.tracker.reset()
 
-        H, W = self.clicks.update_cache_from_msgs(frame_msg, seg_msg)
-        frame_shape = (H, W)
+        H, W = self.clicks.update_cache_from_msgs(frame_msg, segmentation)
+        frame_size = (H, W)
 
         if not self.clicks.has_object():
-            heat = self.tracker.empty_heatmap(frame_shape)
+            heat = self.tracker.empty_heatmap(frame_size)
             self._send_heatmap(frame_msg, heat)
             return
 
         heat = self.tracker.process_frame(
-            dino_msg=dino_msg,
-            frame_shape=frame_shape,
+            dino_embedding=dino_embedding,
+            frame_sizes=frame_size,
             reference_segmentation=self.clicks.get_selection_mask(),
         )
 
         self._send_heatmap(frame_msg, heat)
 
-    def _send_heatmap(self, ref_msg: dai.ImgFrame, heat: np.ndarray):
+    def _send_heatmap(self, reference_frame: dai.ImgFrame, heat: np.ndarray):
         heat_clipped = np.clip(heat, 0.0, 1.0)
         heat_u8 = (heat_clipped * 255.0).astype(np.uint8)
         heat_bgr = cv2.merge([heat_u8, heat_u8, heat_u8])
 
         out = dai.ImgFrame()
         out.setCvFrame(heat_bgr, self._img_frame_type)
-        out.setSequenceNum(ref_msg.getSequenceNum())
-        out.setTimestamp(ref_msg.getTimestamp())
-        out.setTimestampDevice(ref_msg.getTimestampDevice())
+        out.setSequenceNum(reference_frame.getSequenceNum())
+        out.setTimestamp(reference_frame.getTimestamp())
+        out.setTimestampDevice(reference_frame.getTimestampDevice())
         self.out.send(out)

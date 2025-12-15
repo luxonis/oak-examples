@@ -17,8 +17,8 @@ class DinoAnnotationNode(BaseHostNode):
         super().__init__()
         self.mode = mode
 
-    def build(self, video_in: dai.Node.Output, heatmap_in: dai.Node.Output, tracklets_in: dai.Node.Output):
-        self.link_args(video_in, heatmap_in, tracklets_in)
+    def build(self, frame_msg: dai.Node.Output, heatmap_in: dai.Node.Output, tracklets_in: dai.Node.Output):
+        self.link_args(frame_msg, heatmap_in, tracklets_in)
         return self
 
     def set_mode(self, mode: str):
@@ -31,29 +31,27 @@ class DinoAnnotationNode(BaseHostNode):
 
     def process(
         self,
-        video_msg: dai.Buffer,
-        heatmap_msg: dai.Buffer,
-        tracklets_msg: dai.Buffer,
+        frame_msg: dai.Buffer,
+        heatmap: dai.Buffer,
+        tracklets: dai.Buffer,
     ):
-        frame = video_msg.getCvFrame()
+        frame = frame_msg.getCvFrame()
 
         if self.mode == "heatmap":
-            self._draw_heatmap(frame, heatmap_msg, video_msg)
+            self._draw_heatmap(frame, heatmap, frame_msg)
             return
 
         if self.mode == "bbox":
-            self._draw_bboxes(frame, tracklets_msg, video_msg)
+            self._draw_bboxes(frame, tracklets, frame_msg)
             return
-
-        self._send(frame, video_msg)
 
     def _draw_heatmap(
         self,
         frame: np.ndarray,
-        heatmap_msg: dai.ImgFrame,
+        heatmap: dai.ImgFrame,
         ref_msg: dai.ImgFrame,
     ):
-        mask = heatmap_msg.getCvFrame()
+        mask = heatmap.getCvFrame()
         mask_gray = mask[..., 0] if mask.ndim == 3 else mask
 
         if mask_gray.shape[:2] != frame.shape[:2]:
@@ -73,10 +71,10 @@ class DinoAnnotationNode(BaseHostNode):
 
         self._send(result, ref_msg)
 
-    def _draw_bboxes(self, frame: dai.ImgFrame, tracklets_msg: dai.Tracklets, ref_msg: dai.ImgFrame):
+    def _draw_bboxes(self, frame: dai.ImgFrame, tracklets: dai.Tracklets, ref_msg: dai.ImgFrame):
         H, W = frame.shape[:2]
 
-        for t in tracklets_msg.tracklets:
+        for t in tracklets.tracklets:
 
             if t.status != dai.Tracklet.TrackingStatus.TRACKED:
                 continue
@@ -95,7 +93,7 @@ class DinoAnnotationNode(BaseHostNode):
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
                 (0, 255, 0),
-                1,
+                2,
             )
 
         self._send(frame, ref_msg)

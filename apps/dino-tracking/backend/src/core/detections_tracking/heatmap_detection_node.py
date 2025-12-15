@@ -12,12 +12,10 @@ class HeatmapDetectionNode(BaseHostNode):
     def __init__(
         self,
         min_area: int = 50,
-        max_boxes: int = 6,
     ):
         super().__init__()
         self.conf_thresh = 0.5
         self.min_area = min_area
-        self.max_boxes = max_boxes
 
     def set_confidence_threshold(self, conf_thresh: float):
         self.conf_thresh = conf_thresh
@@ -26,7 +24,7 @@ class HeatmapDetectionNode(BaseHostNode):
     def get_confidence_threshold(self) -> float:
         return self.conf_thresh
 
-    def build(self, heatmap_in):
+    def build(self, heatmap_in: dai.Node.Output):
         self.link_args(heatmap_in)
         return self
 
@@ -96,4 +94,4 @@ class HeatmapDetectionNode(BaseHostNode):
             blobs.append((lbl, area))
 
         blobs.sort(key=lambda x: x[1], reverse=True)
-        return blobs[: self.max_boxes], stats
+        return blobs, stats

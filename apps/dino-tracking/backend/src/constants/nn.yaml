@@ -1,0 +1,5 @@
+segmentation:
+    model_name: "luxonis/fastsam-s:512x288"
+
+dino:
+    model_name: "luxonis/dinov3-backbone:convnext-small-640x480"

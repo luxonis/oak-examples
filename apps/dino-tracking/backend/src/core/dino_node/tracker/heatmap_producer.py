@@ -21,16 +21,17 @@ class HeatmapProducer:
     def reset(self) -> None:
         self.prev_heat = None
 
-    def empty(self, frame_shape: tuple[int, int]) -> np.ndarray:
-        H_full, W_full = frame_shape
-        return np.zeros((H_full, W_full), dtype=np.float32)
+    @staticmethod
+    def empty(frame_size: tuple[int, int]) -> np.ndarray:
+        frame_h, frame_w = frame_size
+        return np.zeros((frame_h, frame_w), dtype=np.float32)
 
     def from_cosine_grid(
         self,
         cos_grid: np.ndarray,
-        frame_shape: tuple[int, int],
+        frame_size: tuple[int, int],
     ) -> np.ndarray:
-        H_full, W_full = frame_shape
+        H_full, W_full = frame_size
 
         heat_full = cv2.resize(
             cos_grid,
@@ -48,7 +49,6 @@ class HeatmapProducer:
                 blended = a * heat_clipped + (1.0 - a) * self.prev_heat
         else:
             blended = np.zeros_like(heat_clipped, dtype=np.float32)
-
 
         self.prev_heat = blended
         return blended

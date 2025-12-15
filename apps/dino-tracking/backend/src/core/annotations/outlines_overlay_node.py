@@ -16,8 +16,8 @@ class OutlinesOverlayNode(BaseHostNode):
         self._is_active: bool = False
         self.kernel = np.ones((3, 3), np.uint8)
 
-    def build(self, video: dai.ImgFrame, seg: dai.Node.Output):
-        self.link_args(video, seg)
+    def build(self, frame: dai.ImgFrame, segmentation: dai.Node.Output):
+        self.link_args(frame, segmentation)
         return self
 
     def set_active(self, is_active: bool):
@@ -26,18 +26,18 @@ class OutlinesOverlayNode(BaseHostNode):
     def get_active(self) -> bool:
         return self._is_active
 
-    def process(self, video_msg: dai.Buffer, seg_msg: dai.Buffer):
-        frame = video_msg.getCvFrame()
-        H, W = frame.shape[:2]
-
+    def process(self, frame_msg: dai.Buffer, segmentation: dai.Buffer):
         if not self._is_active:
-            self._send(frame, video_msg)
+            self.out.send(frame_msg)
             return
 
-        seg = getattr(seg_msg, "mask", None)
+        seg = getattr(segmentation, "mask", None)
         if seg is None:
-            self._send(frame, video_msg)
+            self.out.send(frame_msg)
             return
+
+        frame = frame_msg.getCvFrame()
+        H, W = frame.shape[:2]
 
         if seg.shape != (H, W):
             seg = cv2.resize(seg, (W, H), interpolation=cv2.INTER_NEAREST)
@@ -51,7 +51,7 @@ class OutlinesOverlayNode(BaseHostNode):
         overlay[edges != 0] = (15, 255, 80)
 
         result = cv2.addWeighted(frame, 1.0, overlay, 1.0, 0.0)
-        self._send(result, video_msg)
+        self._send(result, frame_msg)
 
     def _send(self, frame: np.ndarray, ref_msg: dai.ImgFrame):
         out = dai.ImgFrame()

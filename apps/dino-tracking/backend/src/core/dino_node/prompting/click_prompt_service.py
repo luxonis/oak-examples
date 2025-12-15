@@ -1,25 +1,25 @@
+from core.dino_node.dino_process_node import DinoProcessNode
+
+
 class ClickPromptService:
     NAME_CLICK = "Click Prompt Service"
     NAME_CLEAR = "Clear Click Prompt Service"
 
-    def __init__(self, tracker):
-        self.tracker = tracker
+    def __init__(self, dino_process: DinoProcessNode):
+        self._dino_process = dino_process
 
     def handle(self, payload: dict[str, any]):
         click = payload.get("click")
         if click is None:
-            self.tracker._logger.info("No click in payload")
             return {"status": "error"}
 
         x = click.get("x")
         y = click.get("y")
         if x is None or y is None:
-            self.tracker._logger.info("No x/y in click")
             return {"status": "error"}
-        self.tracker._logger.info(f"Received selection click at normalized coords: ({x}, {y})")
-        self.tracker.set_selection_click(x, y)
+        self._dino_process.set_selection_click(x, y)
         return {"status": "ok"}
 
     def clear(self, payload):
-        self.tracker.clear_selection()
+        self._dino_process.clear_selection()
         return {"status": "ok"}

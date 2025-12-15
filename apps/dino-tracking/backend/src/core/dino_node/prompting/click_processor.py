@@ -23,9 +23,6 @@ class ClickProcessor:
         self._click_state.clear()
         self._selection.clear()
 
-    def update_cache(self, frame_full: np.ndarray, seg_fs: np.ndarray, seg_full: np.ndarray) -> None:
-        self._frame_cache.update(frame_full, seg_fs, seg_full)
-
     def process_pending_click(self) -> bool:
         click = self._click_state.consume_click()
         if click is None:
@@ -42,8 +39,8 @@ class ClickProcessor:
         changed = self._selection.set_from_click(
             x_norm=x_norm,
             y_norm=y_norm,
-            seg_full=seg_full,
-            seg_fs=seg_fs,
+            segmentation_full_res=seg_full,
+            segmentation_fast_sam=seg_fs,
         )
 
         return changed
