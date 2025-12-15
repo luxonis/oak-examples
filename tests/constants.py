@@ -32,6 +32,15 @@ KNOWN_FAILING = {
         "reason": "Not supported for peripheral",
         "mode": ["peripheral"],
     },
+    "apps/dino-tracking": {
+        "reason": "Not supported for peripheral; RVC4 only app",
+        "rules": {
+            "and": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
     "integrations/roboflow-integration": {
         "reason": "Can't run without arguments (e.g. roboflow api-key)",
         "mode": "all",
