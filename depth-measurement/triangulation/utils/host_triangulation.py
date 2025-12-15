@@ -233,6 +233,6 @@ class Triangulation(dai.node.HostNode):
         self, msg: dai.ImgFrame, frame: np.ndarray
     ) -> dai.ImgFrame:
         output_frame = dai.ImgFrame()
-        output_frame.setCvFrame(frame, dai.ImgFrame.Type.BGR888i)
+        output_frame.setCvFrame(frame, dai.ImgFrame.Type.NV12)
         output_frame.setTimestamp(msg.getTimestamp())
         return output_frame

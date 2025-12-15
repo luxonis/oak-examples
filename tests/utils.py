@@ -5,9 +5,12 @@ import logging
 from contextlib import contextmanager
 import os
 import re
+import platform
 
 BASE_IMAGE_HEADER_RE = re.compile(r"^\s*\[base_image\]\s*$", re.MULTILINE)
 logger = logging.getLogger()
+
+OS_MAPPING = {"Windows": "win", "Linux": "linux", "Darwin": "mac"}
 
 
 def is_valid(
@@ -18,61 +21,68 @@ def is_valid(
     desired_py: str,
     desired_dai: str,
 ) -> Tuple[bool, str]:
-    """Checks if the example is valid or known to fail with this parameters.
-    If it is known to fail it returns the reason.
+    desired = {
+        "mode": desired_mode,
+        "platform": desired_platform,
+        "python_version": desired_py,
+        "depthai_version": desired_dai,
+        "os": OS_MAPPING.get(platform.system(), None),
+    }
+
+    for exp, cfg in known_failing_examples.items():
+        if exp in example_dir.as_posix():
+            rules = cfg["rules"]  # We require rules to always exist
+            if evaluate_rule(rules, desired):
+                return False, cfg.get("reason", "No reason provided")
+
+    return True, ""
+
+
+def evaluate_rule(rule: dict, desired: dict, log_prefix: str = "") -> bool:
     """
-    for exp in known_failing_examples:
-        if exp in str(example_dir):
-            failing_mode = known_failing_examples[exp].get("mode", None)
-            failing_platform = known_failing_examples[exp].get("platform", None)
-            failing_python = known_failing_examples[exp].get("python_version", None)
-            failing_dai = known_failing_examples[exp].get("depthai_version", None)
+    Recursively evaluates a rule tree.
+    Returns True if the rule means the example SHOULD FAIL.
+    Also logs detailed information about which rule failed.
+    """
 
-            mode_failed = None
-            if failing_mode is not None:
-                mode_failed = not check_general(desired_mode, failing_mode)
+    # OR block
+    if "or" in rule:
+        results = []
+        for idx, subrule in enumerate(rule["or"]):
+            r = evaluate_rule(subrule, desired, log_prefix + f"OR[{idx}] -> ")
+            results.append(r)
+        return any(results)
 
-            platform_failed = None
-            if failing_platform is not None:
-                platform_failed = not check_general(desired_platform, failing_platform)
+    # AND block
+    if "and" in rule:
+        results = []
+        for idx, subrule in enumerate(rule["and"]):
+            r = evaluate_rule(subrule, desired, log_prefix + f"AND[{idx}] -> ")
+            results.append(r)
+        return all(results)
 
-            python_failed = None
-            if failing_python is not None:
-                python_failed = not check_general(desired_py, failing_python)
+    # Leaf block
+    key, failing_value = next(iter(rule.items()))
+    have = desired[key]
 
-            dai_failed = None
-            if failing_dai is not None:
-                dai_failed = not check_dai(desired_dai, failing_dai)
+    # Run condition checks
+    if key in ("mode", "platform", "python_version", "os"):
+        failed = not check_general(have, failing_value)
 
-            # Return False only if all checks failed and exclude non relevant checks
-            failed = [
-                f
-                for f in [mode_failed, platform_failed, python_failed, dai_failed]
-                if f is not None
-            ]
-            if all(f is True for f in failed):
-                if mode_failed:
-                    logger.info(
-                        f"Mode check failed: Got `{desired_mode}`, shouldn't be `{known_failing_examples[exp]['mode']}`"
-                    )
-                if platform_failed:
-                    logger.info(
-                        f"Platform check failed: Got `{desired_platform}`, shouldn't be `{known_failing_examples[exp]['platform']}`"
-                    )
-                if python_failed:
-                    logger.info(
-                        f"Python version check failed: Got `{desired_py}`, shouldn't be `{known_failing_examples[exp]['python_version']}`"
-                    )
-                if dai_failed:
-                    logger.info(
-                        f"DepthAI version check failed: Got `{desired_dai}`, shouldn't be `{known_failing_examples[exp]['depthai_version']}`"
-                    )
-                return (
-                    False,
-                    known_failing_examples[exp].get("reason", "No reason set."),
-                )
+    elif key == "depthai_version":
+        failed = not check_dai(have, failing_value)
 
-    return (True, "")
+    else:
+        raise ValueError(f"Unknown rule condition: {key}")
+
+    # Logging for leaf nodes
+    if failed:
+        logger.info(
+            f"{log_prefix}Condition failed: `{key}` "
+            f"Got `{have}`, should not match `{failing_value}`"
+        )
+
+    return failed
 
 
 def check_general(have: str, failing: Union[str, List[str]]):
@@ -132,12 +142,11 @@ def adjust_requirements(
                 else line
                 for line in requirements
             ]
-
+            requirements.insert(
+                0,
+                "--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/\n",
+            )
             if parsed_dai_version.is_devrelease:
-                requirements.insert(
-                    0,
-                    "--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-release-local/\n",
-                )
                 requirements.insert(
                     0,
                     "--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/\n",

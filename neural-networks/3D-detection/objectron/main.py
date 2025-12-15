@@ -56,15 +56,19 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_model_description, args.fps_limit
     )
 
+    first_stage_filter = pipeline.create(ImgDetectionsFilter).build(
+        det_nn.out,
+        labels_to_keep=VALID_LABELS,
+    )
+
     # detection processing
     script = pipeline.create(dai.node.Script)
-    det_nn.out.link(script.inputs["det_in"])
+    first_stage_filter.out.link(script.inputs["det_in"])
     det_nn.passthrough.link(script.inputs["preview"])
     script_content = generate_script_content(
         resize_width=pos_model_w,
         resize_height=pos_model_h,
         padding=PADDING,
-        valid_labels=VALID_LABELS,
         resize_mode="STRETCH",
     )
     script.setScript(script_content)

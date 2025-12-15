@@ -1,0 +1,10 @@
+depthai==3.2.1
+depthai-nodes==0.3.7
+opencv-python-headless~=4.10.0
+numpy>=1.22
+tokenizers~=0.21.0
+onnxruntime
+requests
+dotenv
+python-box
+pydantic

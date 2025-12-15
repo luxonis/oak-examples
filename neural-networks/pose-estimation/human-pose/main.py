@@ -79,7 +79,6 @@ with dai.Pipeline(device) as pipeline:
         resize_width=rec_model_nn_archive.getInputWidth(),
         resize_height=rec_model_nn_archive.getInputHeight(),
         padding=PADDING,
-        valid_labels=valid_labels,
     )
     script_node.setScript(script_content)
 

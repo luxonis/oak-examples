@@ -62,15 +62,18 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_nn_archive, fps=args.fps_limit
     )
 
+    detections_filter = pipeline.create(ImgDetectionsFilter).build(
+        detection_nn.out, labels_to_keep=VALID_LABELS
+    )
+
     # detection processing
     script = pipeline.create(dai.node.Script)
-    detection_nn.out.link(script.inputs["det_in"])
+    detections_filter.out.link(script.inputs["det_in"])
     detection_nn.passthrough.link(script.inputs["preview"])
     script_content = generate_script_content(
         resize_width=pose_model_w,
         resize_height=pose_model_h,
         padding=PADDING,
-        valid_labels=VALID_LABELS,
         resize_mode="STRETCH",
     )
     script.setScript(script_content)
@@ -84,10 +87,6 @@ with dai.Pipeline(device) as pipeline:
 
     pose_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         pose_manip.out, pose_nn_archive
-    )
-
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(
-        detection_nn.out, labels_to_keep=VALID_LABELS
     )
 
     detections_bridge = pipeline.create(ImgDetectionsBridge).build(

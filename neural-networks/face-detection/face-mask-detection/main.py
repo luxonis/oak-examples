@@ -64,7 +64,7 @@ with dai.Pipeline(device) as pipeline:
 
     # visualization
     visualizer.addTopic("Video", det_nn.passthrough, "images")
-    visualizer.addTopic("Detections", det_process_bridge.out, "detections")
+    visualizer.addTopic("Detections", det_process_bridge.out, "images")
 
     print("Pipeline created.")
 

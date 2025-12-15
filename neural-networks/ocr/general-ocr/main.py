@@ -105,8 +105,22 @@ with dai.Pipeline(device) as pipeline:
     gather_data_node.out.link(annotation_node.input)
     det_nn.passthrough.link(annotation_node.passthrough)
 
+    # video encoding
+    video_encode_manip = pipeline.create(dai.node.ImageManip)
+    video_encode_manip.setMaxOutputFrameSize(REQ_WIDTH * REQ_HEIGHT * 3)
+    video_encode_manip.initialConfig.setOutputSize(REQ_WIDTH, REQ_HEIGHT)
+    video_encode_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+    annotation_node.frame_output.link(video_encode_manip.inputImage)
+
+    video_encoder = pipeline.create(dai.node.VideoEncoder)
+    video_encoder.setMaxOutputFrameSize(REQ_WIDTH * REQ_HEIGHT * 3)
+    video_encoder.setDefaultProfilePreset(
+        args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    video_encode_manip.out.link(video_encoder.input)
+
     # visualization
-    visualizer.addTopic("Video", annotation_node.frame_output)
+    visualizer.addTopic("Video", video_encoder.out)
     visualizer.addTopic("Text", annotation_node.text_annotations_output)
 
     print("Pipeline created.")

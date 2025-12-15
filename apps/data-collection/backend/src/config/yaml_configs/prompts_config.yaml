@@ -1,0 +1,29 @@
+name: "yoloe"
+precision: "fp16"
+class_names: ["person", "chair", "TV"]
+detection_threshold: 0.1
+text_offset: 0
+visual_offset: 80
+max_num_classes: 80
+
+
+quant_values:
+  yoloe:
+    quant_zero_point: 174.0
+    quant_scale: 0.003328413470
+  yoloe-image:
+    quant_zero_point: 137.0
+    quant_scale: 0.002327915514
+
+paths:
+  tokenizer:
+    url: "https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/tokenizer.json"
+    path: "tokenizer.json"
+
+  text_encoder:
+    url: "https://huggingface.co/Xenova/mobileclip_blt/resolve/main/onnx/text_model.onnx"
+    path: "mobileclip_textual_hf.onnx"
+
+  visual_encoder:
+    url: "https://huggingface.co/sokovninn/yoloe-v8l-seg-visual-encoder/resolve/main/yoloe-v8l-seg_visual_encoder.onnx"
+    path: "yoloe-v8l-seg_visual_encoder.onnx"

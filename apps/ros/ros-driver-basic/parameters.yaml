@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    driver:
+      i_enable_ir: true
+    pipeline_gen:
+      i_pipeline_type: RGBD

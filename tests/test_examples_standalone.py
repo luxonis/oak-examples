@@ -3,6 +3,7 @@ import subprocess
 import shutil
 import pytest
 import time
+import sys
 from pathlib import Path
 from collections import deque
 import logging
@@ -54,12 +55,34 @@ def test_example_runs_in_standalone(example_dir, test_args):
     main_script = example_dir / "main.py"
     requirements_path = example_dir / "requirements.txt"
     oakapp_toml = example_dir / "oakapp.toml"
+
+    if not oakapp_toml.exists():
+        logger.debug(
+            "Checking for oakapp.toml in fallback location. Expected example structure: <root>/oakapp.toml and <root>/backend/src/."
+        )
+        # try fallback: oakapp.toml two levels up
+        candidate_root = example_dir.parents[1]
+        fallback_oak = candidate_root / "oakapp.toml"
+
+        # expect structure: <root>/oakapp.toml and <root>/backend/src/
+        fallback_main = candidate_root / "backend" / "src" / "main.py"
+        fallback_req = candidate_root / "backend" / "src" / "requirements.txt"
+
+        if fallback_oak.exists() and fallback_main.exists() and fallback_req.exists():
+            logger.debug("Fallback example structure confirmed.")
+            oakapp_toml = fallback_oak
+            main_script = fallback_main
+            requirements_path = fallback_req
+            example_dir = candidate_root
+        else:
+            pytest.skip(
+                f"Skipping {example_dir}, no oakapp.toml found in expected locations."
+            )
+
     if not main_script.exists():
         pytest.skip(f"Skipping {example_dir}, no main.py found.")
     if not requirements_path.exists():
         pytest.skip(f"Skipping {example_dir}, no requirements.txt found.")
-    if not oakapp_toml.exists():
-        pytest.skip(f"Skipping {example_dir}, no oakapp.toml found.")
 
     setup_env(
         base_dir=example_dir,
@@ -134,14 +157,19 @@ def run_example(example_dir: Path, args: Dict) -> bool:
     try:
         logger.debug(f"Installing {example_dir} app")
 
-        process = subprocess.Popen(
-            ["oakctl", "app", "run", "."],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-        )
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+            "bufsize": 1,
+        }
 
+        # Windows encoding fixes
+        if sys.platform.startswith("win"):
+            popen_kwargs["encoding"] = "utf-8"
+            popen_kwargs["errors"] = "replace"
+
+        process = subprocess.Popen(["oakctl", "app", "run", "."], **popen_kwargs)
         app_started = False
         start_time = None
         signal_start = time.time()

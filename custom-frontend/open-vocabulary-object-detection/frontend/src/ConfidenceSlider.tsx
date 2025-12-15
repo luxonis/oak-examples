@@ -1,13 +1,13 @@
 import { css } from "../styled-system/css/css.mjs";
 import { useState } from "react";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 
 interface ConfidenceSliderProps {
     initialValue?: number;
 }
 
 export function ConfidenceSlider({ initialValue = 0.5 }: ConfidenceSliderProps) {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const [value, setValue] = useState(initialValue);
 
     const handleCommit = () => {
@@ -34,8 +34,8 @@ export function ConfidenceSlider({ initialValue = 0.5 }: ConfidenceSliderProps) 
             </label>
             <input
                 type="range"
-                min="0"
-                max="1"
+                min="0.01"
+                max="0.99"
                 step="0.01"
                 value={value}
                 onChange={(e) => setValue(parseFloat(e.target.value))}

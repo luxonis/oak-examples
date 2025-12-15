@@ -16,14 +16,17 @@ Running this example requires a **Luxonis device** connected to your computer. R
 Here is a list of all available parameters:
 
 ```
--fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                    FPS limit. (default: None)
- -ip IP, --ip IP       IP address to serve the frontend on. (default: None)
- -p PORT, --port PORT  Port to serve the frontend on. (default: None)
- -m MODEL, --model MODEL
-                    Name of the model to use: yolo-world or yoloe (default: yoloe)
- --precision PRECISION
-                    Model precision for YOLOE models: int8 (faster) or fp16 (more accurate) (default: fp16)
+  -fps FPS_LIMIT, --fps_limit FPS_LIMIT
+                        FPS limit for the model runtime. (default: None)
+  -media MEDIA_PATH, --media_path MEDIA_PATH
+                        Path to the media file you aim to run the model on. If not set, the model will run on the camera input. (default: None)
+  -ip IP, --ip IP       IP address to serve the frontend on. (default: None)
+  -p PORT, --port PORT  Port to serve the frontend on. (default: None)
+  -m {yolo-world,yoloe}, --model {yolo-world,yoloe}
+                        Name of the model to use: yolo-world or yoloe (default: yoloe)
+  --precision {int8,fp16}
+                        Model precision for YOLOE models: int8 (faster) or fp16 (more accurate). (default: fp16)
+  --semantic_seg        Display output as semantic segmentation otherwise use instance segmentation (only applicable for YOLOE). (default: False)
 ```
 
 ### Model Options
@@ -36,14 +39,6 @@ This example supports two YOLO models:
 Notes:
 
 - Backend function `extract_image_prompt_embeddings(image, max_num_classes=80, model_name, mask_prompt=None)` accepts an optional `mask_prompt` of shape `(80,80)` or `(1,1,80,80)` for `yoloe`. When `None`, a default central mask is used.
-
-### Prerequisites
-
-Before running the example you’ll need to first build the frontend. Follow these steps:
-
-1. Install FE dependencies: `cd frontend/ && npm i`
-2. Build the FE: `npm run build`
-3. Move back to origin directory: `cd ..`
 
 ## Standalone Mode (RVC4 only)
 

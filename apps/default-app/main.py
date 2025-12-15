@@ -42,12 +42,9 @@ with dai.Pipeline(device) as pipeline:
 
     outputToEncode = cameraNode.requestOutput((1440, 1080), type=dai.ImgFrame.Type.NV12)
     h264Encoder = pipeline.create(dai.node.VideoEncoder)
-    encoding = (
-        dai.VideoEncoderProperties.Profile.MJPEG
-        if platform == dai.Platform.RVC2
-        else dai.VideoEncoderProperties.Profile.H264_MAIN
+    h264Encoder.setDefaultProfilePreset(
+        30, dai.VideoEncoderProperties.Profile.H264_MAIN
     )
-    h264Encoder.setDefaultProfilePreset(30, encoding)
     outputToEncode.link(h264Encoder.input)
 
     # Add the remote connector topics

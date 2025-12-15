@@ -1,0 +1,21 @@
+cooldown: 300
+conditions:
+  - path: core.snapping.conditions.timed_condition.TimedCondition
+    enabled: false
+    name: Timed Snap
+    tags: ["timed"]
+
+  - path: core.snapping.conditions.low_conf_condition.LowConfidenceCondition
+    enabled: false
+    name: Low Confidence
+    tags: ["confidence"]
+
+  - path: core.snapping.conditions.no_detections_condition.NoDetectionsCondition
+    enabled: false
+    name: No Detections
+    tags: ["no detections"]
+
+  - path: core.snapping.conditions.tracker_conditions.lost_mid_condition.LostMidCondition
+    enabled: false
+    name: Lost in Middle
+    tags: ["lost"]

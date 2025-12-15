@@ -1,0 +1,5 @@
+<library path="dai_ros_plugins">
+  <class type="dai_ros_plugins::DaiRosPlugins" base_class_type="depthai_ros_driver::pipeline_gen::BasePipeline">
+    <description>This is a square plugin.</description>
+  </class>
+</library>

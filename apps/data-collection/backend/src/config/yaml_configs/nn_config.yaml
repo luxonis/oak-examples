@@ -1,0 +1,13 @@
+nn_backend:
+  type: "snpe"
+  runtime: "dsp"
+  performance_profile: "default"
+  inference_threads: 1
+  precision: "fp16"
+
+tracker:
+  track_per_class: true
+  birth_threshold: 3
+  max_lifespan: 90
+  occlusion_ratio_threshold: 0.5
+  tracker_threshold: 0.25

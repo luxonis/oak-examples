@@ -76,7 +76,7 @@ with dai.Pipeline(device) as pipeline:
         script.setScript(f"{paho_script}\n{script_text}")
 
     visualizer.addTopic("Video", nn_with_parser.passthrough, "images")
-    visualizer.addTopic("Detections", nn_with_parser.out, "detections")
+    visualizer.addTopic("Detections", nn_with_parser.out, "images")
 
     print("Pipeline created.")
 
