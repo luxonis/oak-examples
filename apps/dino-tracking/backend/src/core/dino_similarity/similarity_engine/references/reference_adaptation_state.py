@@ -15,7 +15,9 @@ class ReferenceAdaptationState:
     """
 
     def __init__(self):
-        constants = YamlFileLoader(Path(__file__).parent.parent.parent.parent.parent / "constants")
+        constants = YamlFileLoader(
+            Path(__file__).parent.parent.parent.parent.parent / "constants"
+        )
         consts = constants.load("dino_adaptation.yaml")
         self.reference_init: np.ndarray = None
         self.reference_adapt: np.ndarray = None
