@@ -1,8 +1,5 @@
-import os
 from pathlib import Path
-
-os.environ.setdefault("DEPTHAI_LEVEL", "INFO")
-from constants.yml_constants_loader import YamlFilesLoader
+from constants.yml_constants_loader import YamlFileLoader
 from core.annotations.annotations_control_services.annotation_mode_service import (
     AnnotationModeService,
 )
@@ -38,8 +35,9 @@ load_dotenv(override=True)
 
 
 def main():
-    constants = YamlFilesLoader(Path(__file__).parent / "constants")
-    constants.load_all()
+    constants = YamlFileLoader(Path(__file__).parent / "constants")
+    camera_constants = constants.load("camera.yaml")
+    nn_constants = constants.load("nn.yaml")
 
     visualizer = dai.RemoteConnection(httpPort=8082)
 
@@ -53,15 +51,15 @@ def main():
         camera = pipeline.create(dai.node.Camera).build()
 
         rgb_sensor = camera.requestOutput(
-            size=constants.camera.resolution,
+            size=camera_constants.resolution,
             type=dai.ImgFrame.Type.BGR888i,
-            fps=constants.camera.fps,
+            fps=camera_constants.fps,
         )
 
         fastsam_nn = NNBuilder(
             pipeline=pipeline,
             platform=platform,
-            model_name=constants.nn.segmentation.model_name,
+            model_name=nn_constants.segmentation.model_name,
             nn_cls=ParsingNeuralNetwork,
         )
         seg_out = fastsam_nn.build(rgb_sensor)
@@ -69,7 +67,7 @@ def main():
         dino_nn = NNBuilder(
             pipeline=pipeline,
             platform=platform,
-            model_name=constants.nn.dino.model_name,
+            model_name=nn_constants.dino.model_name,
             nn_cls=dai.node.NeuralNetwork,
         )
         dino_out = dino_nn.build(rgb_sensor)
@@ -115,7 +113,7 @@ def main():
         annotation_service = AnnotationModeService(annot_node)
         visualizer.registerService(annotation_service.NAME, annotation_service.handle)
 
-        video_enc = Encoder(pipeline, constants.camera).encode(annot_node.out)
+        video_enc = Encoder(pipeline, camera_constants).encode(annot_node.out)
 
         visualizer.addTopic("Video", video_enc, "images")
 

@@ -1,4 +1,8 @@
+from pathlib import Path
+
 import numpy as np
+
+from constants.yml_constants_loader import YamlFileLoader
 
 
 class ReferenceAdaptationState:
@@ -11,13 +15,15 @@ class ReferenceAdaptationState:
     """
 
     def __init__(self):
+        constants = YamlFileLoader(Path(__file__).parent.parent.parent.parent.parent / "constants")
+        consts = constants.load("dino_adaptation.yaml")
         self.reference_init: np.ndarray = None
         self.reference_adapt: np.ndarray = None
 
-        self.learn_thresh = 0.85
-        self.learn_interval = 30
-        self.learn_blend = 0.3
-        self.combine_alpha = 0.7
+        self.learn_thresh = consts.learn_thresh
+        self.learn_interval = consts.learn_interval
+        self.learn_blend = consts.learn_blend
+        self.combine_alpha = consts.combine_alpha
 
         self.frame_idx = 0
         self.last_learn_frame = -(10**9)
