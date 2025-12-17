@@ -4,7 +4,7 @@ import depthai as dai
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
-class HeatmapDetectionNode(BaseHostNode):
+class HeatmapToBoundingBoxNode(BaseHostNode):
     """
     Converts heatmap into ImgDetections.
     """

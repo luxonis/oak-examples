@@ -1,7 +1,7 @@
 from core.base_service import BaseService
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.detections_tracking.heatmap_detection_node import HeatmapDetectionNode
+from core.detections_tracking.heatmap_to_bounding_box_node import HeatmapToBoundingBoxNode
 
 
 class StateService(BaseService[None]):
@@ -9,7 +9,7 @@ class StateService(BaseService[None]):
 
     def __init__(
         self,
-        heatmap_det: HeatmapDetectionNode,
+        heatmap_det: HeatmapToBoundingBoxNode,
         annotations_node: DinoAnnotationNode,
         outlines_node: OutlinesOverlayNode,
     ):
