@@ -32,7 +32,6 @@ class NNBuilder:
         return self.input_width, self.input_height
 
     def build(self, rgb_sensor: dai.Node.Output) -> dai.Node.Output:
-
         nn_node = self.pipeline.create(self.nn_cls).build(
             rgb_sensor,
             self.archive,

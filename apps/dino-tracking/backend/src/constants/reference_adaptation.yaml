@@ -1,4 +1,4 @@
 learn_thresh: 0.85 # A similarity gate for reference adaptation.
 learn_interval: 30 # Cooldown between adaptation updates.
 learn_blend: 0.3 # Reference update strength.
-combine_alpha: 0.7 # How much similarity trusts the adapting reference.
+adaptation_strength: 0.7 # How much similarity trusts the adapting reference.

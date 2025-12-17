@@ -1,36 +1,41 @@
+from typing import Optional
 import numpy as np
 import depthai as dai
-
 from depthai_nodes.node import BaseHostNode
 
-from core.dino_similarity.vector_manager import VectorManager
 
-
-class ReferenceVectorNode(BaseHostNode):
+class InitVectors(dai.Buffer):
     """
-    Extracts DINO features from selected regions and initializes reference.
+    A custom DepthAI buffer to hold initialized vectors extracted from the DINO grid.
 
-    Input: selection_mask, dino_embeddings
-    Output: sync message (triggers downstream processing)
+    Attributes
+    ----------
+    vectors : Optional[np.ndarray]
+        The extracted vectors, represented as a NumPy array. Defaults to None.
+    """
+
+    vectors: Optional[np.ndarray] = None
+
+
+class SelectionReferenceExtractorNode(BaseHostNode):
+    """
+    A DepthAI node that extracts DINO features from regions specified by a mask.
+
+    Processes a selection mask and DINO grid to send extracted vectors as `InitVectors`.
     """
 
     def __init__(self):
         super().__init__()
-        self._manager: VectorManager | None = None
         self._last_mask: np.ndarray | None = None
-
-        # Feature extraction
         self._dino_input_size: tuple[int, int] | None = None
-        self._sam_size: tuple[int, int] | None = None
+        self._last_vectors = None
 
     def build(
         self,
-        manager: VectorManager,
         mask_in: dai.Node.Output,
         dino_in: dai.Node.Output,
         dino_input_size: tuple[int, int],
     ):
-        self._manager = manager
         self._dino_input_size = dino_input_size
         self.link_args(mask_in, dino_in)
         return self
@@ -39,14 +44,21 @@ class ReferenceVectorNode(BaseHostNode):
         mask = mask_msg.getCvFrame() > 0
 
         if self._mask_changed(mask):
-            self._manager.reset()
             self._last_mask = mask.copy() if mask.any() else None
 
             if mask.any():
-                vectors = self._extract_vectors(mask, dino_grid.grid)
-                self._manager.initialize(vectors)
+                self._last_vectors = self._extract_vectors(mask, dino_grid.grid)
+            else:
+                self._last_vectors = None
 
-        self.out.send(dino_grid)
+        out = InitVectors()
+        out.vectors = self._last_vectors
+
+        out.setSequenceNum(mask_msg.getSequenceNum())
+        out.setTimestamp(mask_msg.getTimestamp())
+        out.setTimestampDevice(mask_msg.getTimestampDevice())
+
+        self.out.send(out)
 
     def _extract_vectors(self, mask: np.ndarray, dino_grid: np.ndarray) -> np.ndarray:
         H_grid, W_grid, D = dino_grid.shape
@@ -55,6 +67,7 @@ class ReferenceVectorNode(BaseHostNode):
         y_mask, x_mask = np.where(mask)
         if len(x_mask) == 0:
             return np.empty((0, D), dtype=np.float32)
+
         x_grid = (x_mask / W_mask * W_grid).astype(np.int32)
         y_grid = (y_mask / H_mask * H_grid).astype(np.int32)
 

@@ -1,6 +1,6 @@
 from core.base_service import BaseService
-from core.detections_tracking.heatmap_to_bounding_box_node import (
-    HeatmapToBoundingBoxNode,
+from core.detections_tracking.heatmap_to_detections_node import (
+    HeatmapToDetectionsNode,
 )
 from pydantic import BaseModel, Field, ValidationError
 
@@ -13,7 +13,7 @@ class ThresholdService(BaseService[ThresholdUpdatePayload]):
     NAME = "Threshold Update Service"
     PAYLOAD_MODEL = ThresholdUpdatePayload
 
-    def __init__(self, heatmap_det: HeatmapToBoundingBoxNode):
+    def __init__(self, heatmap_det: HeatmapToDetectionsNode):
         self._heatmap_det = heatmap_det
 
     def on_validation_error(self, e: ValidationError) -> None:

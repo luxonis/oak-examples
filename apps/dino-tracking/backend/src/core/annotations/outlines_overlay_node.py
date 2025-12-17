@@ -13,9 +13,8 @@ class OutlinesOverlayNode(BaseHostNode):
 
     def __init__(self):
         super().__init__()
-        self.last_seg: np.ndarray | None = None
         self._is_active: bool = False
-        self.kernel: np.ndarray = np.ones((3, 3), np.uint8)
+        self._kernel: np.ndarray = np.ones((3, 3), np.uint8)
 
     def build(self, frame: dai.ImgFrame, segmentation: dai.Node.Output):
         self.link_args(frame, segmentation)
@@ -46,9 +45,8 @@ class OutlinesOverlayNode(BaseHostNode):
             mask = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)
 
         mask = mask.astype(np.uint16)
-        self.last_seg = mask
 
-        edges = cv2.morphologyEx(mask, cv2.MORPH_GRADIENT, self.kernel)
+        edges = cv2.morphologyEx(mask, cv2.MORPH_GRADIENT, self._kernel)
 
         overlay = np.zeros_like(frame)
         overlay[edges != 0] = (15, 255, 80)

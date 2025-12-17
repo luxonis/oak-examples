@@ -15,7 +15,7 @@ class DinoAnnotationNode(BaseHostNode):
 
     def __init__(self, mode: str = "heatmap"):
         super().__init__()
-        self.mode = mode
+        self._mode = mode
 
     def build(
         self,
@@ -28,11 +28,11 @@ class DinoAnnotationNode(BaseHostNode):
 
     def set_mode(self, mode: str):
         if mode in ["heatmap", "bbox"]:
-            self.mode = mode
+            self._mode = mode
             self._logger.info(f"DinoAnnotationNode mode set to '{mode}'")
 
     def get_mode(self) -> str:
-        return self.mode
+        return self._mode
 
     def process(
         self,
@@ -44,11 +44,11 @@ class DinoAnnotationNode(BaseHostNode):
         assert isinstance(frame_msg, dai.ImgFrame)
         image = frame_msg.getCvFrame()
 
-        if self.mode == "heatmap":
+        if self._mode == "heatmap":
             self._draw_heatmap(image, heatmap, frame_msg)
             return
 
-        if self.mode == "bbox":
+        if self._mode == "bbox":
             self._draw_bboxes(image, tracklets, frame_msg)
             return
 

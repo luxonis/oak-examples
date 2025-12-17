@@ -4,7 +4,7 @@ import depthai as dai
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
-class HeatmapToBoundingBoxNode(BaseHostNode):
+class HeatmapToDetectionsNode(BaseHostNode):
     """
     Converts heatmap into ImgDetections.
     """
@@ -14,14 +14,14 @@ class HeatmapToBoundingBoxNode(BaseHostNode):
         min_area: int = 50,
     ):
         super().__init__()
-        self.conf_threshold = 0.5
-        self.min_area = min_area
+        self._conf_threshold = 0.5
+        self._min_area = min_area
 
     def set_confidence_threshold(self, conf_thresh: float):
-        self.conf_threshold = conf_thresh
+        self._conf_threshold = conf_thresh
 
     def get_confidence_threshold(self) -> float:
-        return self.conf_threshold
+        return self._conf_threshold
 
     def build(self, heatmap_in: dai.Node.Output):
         self.link_args(heatmap_in)
@@ -70,7 +70,7 @@ class HeatmapToBoundingBoxNode(BaseHostNode):
         self.out.send(detections)
 
     def _extract_blobs(self, heat: np.ndarray):
-        hot = (heat >= self.conf_threshold).astype(np.uint8)
+        hot = (heat >= self._conf_threshold).astype(np.uint8)
 
         kernel = np.ones((3, 3), np.uint8)
         hot = cv2.morphologyEx(hot, cv2.MORPH_OPEN, kernel)
@@ -83,11 +83,11 @@ class HeatmapToBoundingBoxNode(BaseHostNode):
         blobs = []
         for lbl in range(1, num_labels):
             area = int(stats[lbl, cv2.CC_STAT_AREA])
-            if area < self.min_area:
+            if area < self._min_area:
                 continue
 
             blob_mask = labels == lbl
-            if float(heat[blob_mask].max()) < self.conf_threshold:
+            if float(heat[blob_mask].max()) < self._conf_threshold:
                 continue
 
             blobs.append((lbl, area))

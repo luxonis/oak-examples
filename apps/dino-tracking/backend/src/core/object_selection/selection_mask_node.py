@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import depthai as dai
 
@@ -8,7 +7,10 @@ from depthai_nodes.message import SegmentationMask
 
 class SelectionMaskNode(BaseHostNode):
     """
-    Handles user clicks and produces selection masks.
+    A DepthAI node for handling user clicks and generating selection masks.
+
+    This node processes user-provided clicks on a frame and generates a binary mask
+    corresponding to the selected region.
     """
 
     def __init__(self):
@@ -37,13 +39,10 @@ class SelectionMaskNode(BaseHostNode):
         H_full, W_full = frame.shape[:2]
 
         segmentation_fast_sam = segmentation.mask.astype(np.int32)
-        segmentation_full_res = cv2.resize(
-            segmentation_fast_sam, (W_full, H_full), interpolation=cv2.INTER_NEAREST
-        )
 
         if self._pending_click:
             segment_id = self._map_click_to_segment(
-                *self._pending_click, segmentation_full_res
+                *self._pending_click, segmentation_fast_sam
             )
             if segment_id is not None:
                 self._selected_mask_fs = segmentation_fast_sam == segment_id
@@ -63,29 +62,26 @@ class SelectionMaskNode(BaseHostNode):
         y_norm: float,
         segmentation: np.ndarray,
     ) -> int | None:
-        H, W = segmentation.shape
+        H_fs, W_fs = segmentation.shape
 
-        x_px = int(x_norm * W)
-        y_px = int(y_norm * H)
+        x_fs = int(x_norm * W_fs)
+        y_fs = int(y_norm * H_fs)
 
-        x_px = np.clip(x_px, 0, W - 1)
-        y_px = np.clip(y_px, 0, H - 1)
+        x_fs = np.clip(x_fs, 0, W_fs - 1)
+        y_fs = np.clip(y_fs, 0, H_fs - 1)
 
-        RADIUS = 2
-        x0 = max(0, x_px - RADIUS)
-        x1 = min(W, x_px + RADIUS + 1)
-        y0 = max(0, y_px - RADIUS)
-        y1 = min(H, y_px + RADIUS + 1)
+        RADIUS = 1
+        x0 = max(0, x_fs - RADIUS)
+        x1 = min(W_fs, x_fs + RADIUS + 1)
+        y0 = max(0, y_fs - RADIUS)
+        y1 = min(H_fs, y_fs + RADIUS + 1)
 
         patch = segmentation[y0:y1, x0:x1]
-
         if patch.size == 0:
             return None
 
         values, counts = np.unique(patch, return_counts=True)
-        segment_id = int(values[np.argmax(counts)])
-
-        return segment_id
+        return int(values[np.argmax(counts)])
 
     def _send_mask(self, reference_frame: dai.ImgFrame, mask: np.ndarray):
         mask_u8 = mask.astype(np.uint8) * 255

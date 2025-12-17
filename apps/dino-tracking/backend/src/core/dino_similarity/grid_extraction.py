@@ -12,9 +12,12 @@ class DinoGrid(dai.Buffer):
     grid: np.ndarray | None = None
 
 
-class DinoGridExtraction(BaseHostNode):
+class DinoGridExtracorNode(BaseHostNode):
     """
-    Handles Dino Grid Extraction from the dino embeddings.
+    Handles Dino Grid Extraction from the DINO embeddings.
+
+    This node processes the DINO embeddings received as input, extracts the feature grid,
+    normalizes it, and sends it as output for downstream processing.
     """
 
     def build(
