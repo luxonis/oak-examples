@@ -117,13 +117,13 @@ def main():
         threshold_service = ThresholdService(heatmap_det)
         visualizer.registerService(threshold_service.NAME, threshold_service.handle)
 
-        tracker_factory = Tracker(
+        tracker = Tracker(
             pipeline=pipeline,
             detections=heatmap_det.out,
             frame=rgb_sensor,
         )
 
-        tracker = tracker_factory.build()
+        tracker = tracker.build()
 
         outlines_node = pipeline.create(OutlinesOverlayNode).build(
             frame=rgb_sensor,
