@@ -18,7 +18,7 @@ class Tracker:
 
     def build(self) -> dai.node.ObjectTracker:
         tracker = self._pipeline.create(dai.node.ObjectTracker)
-        tracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
+        tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
         tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
         tracker.setDetectionLabelsToTrack([0])
         tracker.setTrackletMaxLifespan(30)
