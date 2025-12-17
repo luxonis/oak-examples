@@ -107,7 +107,7 @@ def main():
         reference_node = pipeline.create(SelectionReferenceExtractorNode).build(
             mask_in=selection_node.out,
             dino_in=dino_grid.out,
-            dino_input_size=dino_nn.input_size,
+            dino_input_size=constants.nn.dino.input_size,
         )
 
         vector_manager = pipeline.create(
