@@ -31,7 +31,7 @@ class NNBuilder:
     def input_size(self) -> tuple[int, int]:
         return self.input_width, self.input_height
 
-    def build(self, rgb_sensor: dai.Buffer) -> dai.Node.Output:
+    def build(self, rgb_sensor: dai.Node.Output) -> dai.Node.Output:
 
         nn_node = self.pipeline.create(self.nn_cls).build(
             rgb_sensor,
