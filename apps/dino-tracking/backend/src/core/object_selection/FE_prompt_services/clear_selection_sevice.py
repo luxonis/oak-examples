@@ -1,5 +1,5 @@
 from core.base_service import BaseService
-from core.object_selection.selection_mask_node import  SelectionMaskNode
+from core.object_selection.selection_mask_node import SelectionMaskNode
 
 
 class ClearSelectionService(BaseService[None]):

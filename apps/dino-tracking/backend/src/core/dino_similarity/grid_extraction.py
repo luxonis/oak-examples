@@ -8,17 +8,18 @@ class DinoGrid(dai.Buffer):
     """
     Host-side message that carries an (H, W, D) float32 grid.
     """
+
     grid: np.ndarray | None = None
 
 
 class DinoGridExtraction(BaseHostNode):
     """
-        Handles Dino Grid Extraction from the dino embeddings.
+    Handles Dino Grid Extraction from the dino embeddings.
     """
 
     def build(
-            self,
-            dino_in: dai.Node.Output,
+        self,
+        dino_in: dai.Node.Output,
     ):
         self.link_args(dino_in)
         return self

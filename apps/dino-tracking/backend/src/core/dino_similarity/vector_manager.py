@@ -10,11 +10,11 @@ class VectorManager:
     """
 
     def __init__(
-            self,
-            learn_thresh: float = 0.85,
-            learn_interval: int = 30,
-            learn_blend: float = 0.3,
-            combine_alpha: float = 0.7,
+        self,
+        learn_thresh: float = 0.85,
+        learn_interval: int = 30,
+        learn_blend: float = 0.3,
+        combine_alpha: float = 0.7,
     ):
         self._reference_init: np.ndarray | None = None
         self._reference_adapt: np.ndarray | None = None
@@ -25,7 +25,7 @@ class VectorManager:
         self.combine_alpha = combine_alpha
 
         self._frame_idx = 0
-        self._last_learn_frame = -(10 ** 9)
+        self._last_learn_frame = -(10**9)
 
     def has_reference(self) -> bool:
         return self._reference_init is not None
@@ -45,13 +45,13 @@ class VectorManager:
         self._reference_init = ref.astype(np.float32)
         self._reference_adapt = ref.astype(np.float32)
         self._frame_idx = 0
-        self._last_learn_frame = -(10 ** 9)
+        self._last_learn_frame = -(10**9)
 
     def reset(self) -> None:
         self._reference_init = None
         self._reference_adapt = None
         self._frame_idx = 0
-        self._last_learn_frame = -(10 ** 9)
+        self._last_learn_frame = -(10**9)
 
     def tick(self) -> None:
         self._frame_idx += 1

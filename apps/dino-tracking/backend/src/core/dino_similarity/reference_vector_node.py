@@ -3,7 +3,6 @@ import depthai as dai
 
 from depthai_nodes.node import BaseHostNode
 
-from core.dino_similarity.grid_extraction import DinoGrid
 from core.dino_similarity.vector_manager import VectorManager
 
 
@@ -25,11 +24,11 @@ class ReferenceVectorNode(BaseHostNode):
         self._sam_size: tuple[int, int] | None = None
 
     def build(
-            self,
-            manager: VectorManager,
-            mask_in: dai.Node.Output,
-            dino_in: dai.Node.Output,
-            dino_input_size: tuple[int, int],
+        self,
+        manager: VectorManager,
+        mask_in: dai.Node.Output,
+        dino_in: dai.Node.Output,
+        dino_input_size: tuple[int, int],
     ):
         self._manager = manager
         self._dino_input_size = dino_input_size
@@ -50,7 +49,6 @@ class ReferenceVectorNode(BaseHostNode):
         self.out.send(dino_grid)
 
     def _extract_vectors(self, mask: np.ndarray, dino_grid: np.ndarray) -> np.ndarray:
-
         H_grid, W_grid, D = dino_grid.shape
         H_mask, W_mask = mask.shape
 

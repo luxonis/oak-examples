@@ -17,9 +17,9 @@ class SelectionMaskNode(BaseHostNode):
         self._selected_mask_fs: np.ndarray | None = None
 
     def build(
-            self,
-            frame_in: dai.Node.Output,
-            segmentations: dai.Node.Output,
+        self,
+        frame_in: dai.Node.Output,
+        segmentations: dai.Node.Output,
     ):
         self.link_args(frame_in, segmentations)
         return self
@@ -32,18 +32,21 @@ class SelectionMaskNode(BaseHostNode):
         self._selected_mask_fs = None
 
     def process(self, frame_msg: dai.ImgFrame, segmentation: dai.Buffer):
-
         assert isinstance(segmentation, SegmentationMask)
         frame = frame_msg.getCvFrame()
         H_full, W_full = frame.shape[:2]
 
         segmentation_fast_sam = segmentation.mask.astype(np.int32)
-        segmentation_full_res = cv2.resize(segmentation_fast_sam, (W_full, H_full), interpolation=cv2.INTER_NEAREST)
+        segmentation_full_res = cv2.resize(
+            segmentation_fast_sam, (W_full, H_full), interpolation=cv2.INTER_NEAREST
+        )
 
         if self._pending_click:
-            segment_id = self._map_click_to_segment(*self._pending_click, segmentation_full_res)
+            segment_id = self._map_click_to_segment(
+                *self._pending_click, segmentation_full_res
+            )
             if segment_id is not None:
-                self._selected_mask_fs = (segmentation_fast_sam == segment_id)
+                self._selected_mask_fs = segmentation_fast_sam == segment_id
             self._pending_click = None
 
         if self._selected_mask_fs is not None:
@@ -55,10 +58,10 @@ class SelectionMaskNode(BaseHostNode):
         self._send_mask(frame_msg, mask_output)
 
     def _map_click_to_segment(
-            self,
-            x_norm: float,
-            y_norm: float,
-            segmentation: np.ndarray,
+        self,
+        x_norm: float,
+        y_norm: float,
+        segmentation: np.ndarray,
     ) -> int | None:
         H, W = segmentation.shape
 

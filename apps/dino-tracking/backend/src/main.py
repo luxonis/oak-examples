@@ -20,7 +20,9 @@ from core.detections_tracking.threshold_service import ThresholdService
 
 from dotenv import load_dotenv
 
-from core.detections_tracking.heatmap_to_bounding_box_node import HeatmapToBoundingBoxNode
+from core.detections_tracking.heatmap_to_bounding_box_node import (
+    HeatmapToBoundingBoxNode,
+)
 from core.detections_tracking.tracker import Tracker
 
 import depthai as dai

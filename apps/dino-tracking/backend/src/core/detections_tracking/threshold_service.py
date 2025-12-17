@@ -1,5 +1,7 @@
 from core.base_service import BaseService
-from core.detections_tracking.heatmap_to_bounding_box_node import HeatmapToBoundingBoxNode
+from core.detections_tracking.heatmap_to_bounding_box_node import (
+    HeatmapToBoundingBoxNode,
+)
 from pydantic import BaseModel, Field, ValidationError
 
 
@@ -14,7 +16,9 @@ class ThresholdService(BaseService[ThresholdUpdatePayload]):
         self._heatmap_det = heatmap_det
 
     def handle(self, payload) -> dict:
-        self._heatmap_det._logger.info(f"Validation error in ThresholdService:{type(payload)}")
+        self._heatmap_det._logger.info(
+            f"Validation error in ThresholdService:{type(payload)}"
+        )
         try:
             payload = ThresholdUpdatePayload.model_validate(payload)
         except ValidationError as e:

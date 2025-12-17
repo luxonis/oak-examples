@@ -21,10 +21,10 @@ class SimilarityHeatmapNode(BaseHostNode):
         self._temporal_alpha = 0.6
 
     def build(
-            self,
-            manager: VectorManager,
-            grid: dai.Node.Output,
-            frame_in: dai.Node.Output,
+        self,
+        manager: VectorManager,
+        grid: dai.Node.Output,
+        frame_in: dai.Node.Output,
     ):
         self._manager = manager
         self.link_args(grid, frame_in)
@@ -55,11 +55,11 @@ class SimilarityHeatmapNode(BaseHostNode):
         self._send_heatmap(frame_msg, heat)
 
     def _compute_similarity(
-            self,
-            grid: np.ndarray,
-            reference_init: np.ndarray,
-            reference_adapt: np.ndarray,
-            alpha: float,
+        self,
+        grid: np.ndarray,
+        reference_init: np.ndarray,
+        reference_adapt: np.ndarray,
+        alpha: float,
     ) -> tuple[np.ndarray, np.ndarray, float]:
         H, W, D = grid.shape
         feats = grid.reshape(-1, D).astype(np.float32)
@@ -76,17 +76,24 @@ class SimilarityHeatmapNode(BaseHostNode):
 
         return cos_grid, best_vector, best_score
 
-    def _produce_heatmap(self, cos_grid: np.ndarray, frame_size: tuple[int, int]) -> np.ndarray:
+    def _produce_heatmap(
+        self, cos_grid: np.ndarray, frame_size: tuple[int, int]
+    ) -> np.ndarray:
         H, W = frame_size
 
-        heat = cv2.resize(cos_grid, (W, H), interpolation=cv2.INTER_LINEAR).astype(np.float32)
+        heat = cv2.resize(cos_grid, (W, H), interpolation=cv2.INTER_LINEAR).astype(
+            np.float32
+        )
         heat = np.clip(heat, 0.0, 1.0)
 
         if np.any(heat > 0.0):
             if self._prev_heat is None or self._prev_heat.shape != heat.shape:
                 blended = heat
             else:
-                blended = self._temporal_alpha * heat + (1 - self._temporal_alpha) * self._prev_heat
+                blended = (
+                    self._temporal_alpha * heat
+                    + (1 - self._temporal_alpha) * self._prev_heat
+                )
         else:
             blended = np.zeros_like(heat)
 

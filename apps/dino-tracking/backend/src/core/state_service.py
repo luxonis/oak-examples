@@ -1,7 +1,9 @@
 from core.base_service import BaseService
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.detections_tracking.heatmap_to_bounding_box_node import HeatmapToBoundingBoxNode
+from core.detections_tracking.heatmap_to_bounding_box_node import (
+    HeatmapToBoundingBoxNode,
+)
 
 
 class StateService(BaseService[None]):
