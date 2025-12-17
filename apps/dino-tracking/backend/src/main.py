@@ -2,8 +2,8 @@ from core.dino_similarity.reference_vectors.adaptive_reference_vector_node impor
     AdaptiveReferenceVectorNode,
 )
 from core.dino_similarity.grid_extraction import DinoGridExtracorNode
-from core.dino_similarity.reference_vectors.selection_reference_extractor_node import (
-    SelectionReferenceExtractorNode,
+from core.dino_similarity.reference_vectors.reference_from_selection_node import (
+    ReferenceFromSelectionNode,
 )
 from pathlib import Path
 from constants.yml_constants_loader import YamlFilesLoader
@@ -104,7 +104,7 @@ def main():
 
         dino_grid = pipeline.create(DinoGridExtracorNode).build(dino_in=dino_out)
 
-        reference_node = pipeline.create(SelectionReferenceExtractorNode).build(
+        reference_node = pipeline.create(ReferenceFromSelectionNode).build(
             mask_in=selection_node.out,
             dino_in=dino_grid.out,
             dino_input_size=constants.nn.dino.input_size,

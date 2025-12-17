@@ -17,7 +17,7 @@ class InitVectors(dai.Buffer):
     vectors: Optional[np.ndarray] = None
 
 
-class SelectionReferenceExtractorNode(BaseHostNode):
+class ReferenceFromSelectionNode(BaseHostNode):
     """
     A DepthAI node that extracts DINO features from regions specified by a mask.
 

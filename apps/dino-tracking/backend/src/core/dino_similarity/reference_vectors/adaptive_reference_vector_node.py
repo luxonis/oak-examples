@@ -4,7 +4,7 @@ from typing import Optional
 
 from box import Box
 
-from core.dino_similarity.reference_vectors.selection_reference_extractor_node import (
+from core.dino_similarity.reference_vectors.reference_from_selection_node import (
     InitVectors,
 )
 
