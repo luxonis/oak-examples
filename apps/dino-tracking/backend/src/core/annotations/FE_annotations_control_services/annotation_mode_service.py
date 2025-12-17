@@ -10,19 +10,17 @@ class AnnotationModePayload(BaseModel):
 
 class AnnotationModeService(BaseService[AnnotationModePayload]):
     NAME = "Annotation Mode Service"
+    PAYLOAD_MODEL = AnnotationModePayload
 
     def __init__(self, annotations_node: DinoAnnotationNode):
         self._annotations_node = annotations_node
 
-    def handle(self, payload) -> dict:
-        try:
-            payload = AnnotationModePayload.model_validate(payload)
-        except ValidationError as e:
-            self._annotations_node._logger.info(
-                f"Validation error in AnnotationModeService:{e}"
-            )
-            return {"ok": False, "error": e.errors()}
+    def on_validation_error(self, e: ValidationError) -> None:
+        self._annotations_node._logger.info(
+            f"Validation error in AnnotationModeService: {e}"
+        )
 
+    def handle_typed(self, payload: AnnotationModePayload) -> dict:
         self._annotations_node.set_mode(payload.mode)
         return {
             "ok": True,

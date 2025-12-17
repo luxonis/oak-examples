@@ -88,8 +88,8 @@ def main():
 
         prompt_service = ClickPromptService(selection_node)
         clear_service = ClearSelectionService(selection_node)
-        visualizer.registerService(prompt_service.NAME, prompt_service.handle)
-        visualizer.registerService(clear_service.NAME, clear_service.handle)
+        visualizer.registerService(prompt_service.NAME, prompt_service)
+        visualizer.registerService(clear_service.NAME, clear_service)
 
         vector_manager = VectorManager(
             learn_thresh=0.85,
@@ -117,7 +117,7 @@ def main():
             heatmap_in=similarity_node.out
         )
         threshold_service = ThresholdService(heatmap_det)
-        visualizer.registerService(threshold_service.NAME, threshold_service.handle)
+        visualizer.registerService(threshold_service.NAME, threshold_service)
 
         tracker = Tracker(
             pipeline=pipeline,
@@ -132,7 +132,7 @@ def main():
             segmentation=seg_out,
         )
         outlines_service = OutlinesTriggerService(outlines_node)
-        visualizer.registerService(outlines_service.NAME, outlines_service.handle)
+        visualizer.registerService(outlines_service.NAME, outlines_service)
 
         annot_node = pipeline.create(DinoAnnotationNode).build(
             frame_msg=outlines_node.out,
@@ -140,14 +140,14 @@ def main():
             tracklets_in=tracker.out,
         )
         annotation_service = AnnotationModeService(annot_node)
-        visualizer.registerService(annotation_service.NAME, annotation_service.handle)
+        visualizer.registerService(annotation_service.NAME, annotation_service)
 
         video_enc = Encoder(pipeline, camera_constants).encode(annot_node.out)
 
         visualizer.addTopic("Video", video_enc, "images")
 
         state_service = StateService(heatmap_det, annot_node, outlines_node)
-        visualizer.registerService(state_service.NAME, state_service.handle)
+        visualizer.registerService(state_service.NAME, state_service)
 
         print("Pipeline created.")
 

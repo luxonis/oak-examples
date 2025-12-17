@@ -11,18 +11,17 @@ class ThresholdUpdatePayload(BaseModel):
 
 class ThresholdService(BaseService[ThresholdUpdatePayload]):
     NAME = "Threshold Update Service"
+    PAYLOAD_MODEL = ThresholdUpdatePayload
 
     def __init__(self, heatmap_det: HeatmapToBoundingBoxNode):
         self._heatmap_det = heatmap_det
 
-    def handle(self, payload) -> dict:
-        self._heatmap_det._logger.info(
-            f"Validation error in ThresholdService:{type(payload)}"
+    def on_validation_error(self, e: ValidationError) -> None:
+        self._heatmap_det._logger.warning(
+            f"Validation error in ThresholdService: {e}"
         )
-        try:
-            payload = ThresholdUpdatePayload.model_validate(payload)
-        except ValidationError as e:
-            return {"ok": False, "error": e.errors()}
+
+    def handle_typed(self, payload: ThresholdUpdatePayload) -> dict:
         self._heatmap_det.set_confidence_threshold(payload.threshold)
         return {
             "ok": True,

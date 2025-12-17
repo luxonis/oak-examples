@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import depthai as dai
 from depthai_nodes.node.base_host_node import BaseHostNode
+from depthai_nodes.message import SegmentationMask
 
 
 class OutlinesOverlayNode(BaseHostNode):
@@ -14,7 +15,7 @@ class OutlinesOverlayNode(BaseHostNode):
         super().__init__()
         self.last_seg: np.ndarray | None = None
         self._is_active: bool = False
-        self.kernel = np.ones((3, 3), np.uint8)
+        self.kernel: np.ndarray = np.ones((3, 3), np.uint8)
 
     def build(self, frame: dai.ImgFrame, segmentation: dai.Node.Output):
         self.link_args(frame, segmentation)
@@ -26,26 +27,28 @@ class OutlinesOverlayNode(BaseHostNode):
     def get_active(self) -> bool:
         return self._is_active
 
-    def process(self, frame_msg: dai.Buffer, segmentation: dai.Buffer):
+    def process(self, frame_msg: dai.ImgFrame, segmentation: dai.Buffer):
         if not self._is_active:
             self.out.send(frame_msg)
             return
 
-        seg = getattr(segmentation, "mask", None)
-        if seg is None:
+        assert isinstance(segmentation, SegmentationMask)
+        mask = getattr(segmentation, "mask", None)
+
+        if mask is None:
             self.out.send(frame_msg)
             return
 
         frame = frame_msg.getCvFrame()
         H, W = frame.shape[:2]
 
-        if seg.shape != (H, W):
-            seg = cv2.resize(seg, (W, H), interpolation=cv2.INTER_NEAREST)
+        if mask.shape != (H, W):
+            mask = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)
 
-        seg = seg.astype(np.uint16)
-        self.last_seg = seg
+        mask = mask.astype(np.uint16)
+        self.last_seg = mask
 
-        edges = cv2.morphologyEx(seg, cv2.MORPH_GRADIENT, self.kernel)
+        edges = cv2.morphologyEx(mask, cv2.MORPH_GRADIENT, self.kernel)
 
         overlay = np.zeros_like(frame)
         overlay[edges != 0] = (15, 255, 80)

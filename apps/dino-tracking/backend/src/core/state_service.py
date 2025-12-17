@@ -8,6 +8,7 @@ from core.detections_tracking.heatmap_to_bounding_box_node import (
 
 class StateService(BaseService[None]):
     NAME = "BE State Service"
+    PAYLOAD_MODEL = None
 
     def __init__(
         self,
@@ -19,7 +20,7 @@ class StateService(BaseService[None]):
         self.annotations_node = annotations_node
         self.outlines_node = outlines_node
 
-    def handle(self, payload=None) -> dict:
+    def handle_typed(self, payload: None) -> dict:
         return {
             "ok": True,
             "confidence": self.heatmap_det.get_confidence_threshold(),

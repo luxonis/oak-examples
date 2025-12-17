@@ -9,18 +9,17 @@ class OutlinesTogglePayload(BaseModel):
 
 class OutlinesTriggerService(BaseService[OutlinesTogglePayload]):
     NAME = "Outlines Trigger Service"
+    PAYLOAD_MODEL = OutlinesTogglePayload
 
     def __init__(self, outlines_node: OutlinesOverlayNode):
         self._outlines_node = outlines_node
 
-    def handle(self, payload) -> dict:
-        try:
-            payload = OutlinesTogglePayload.model_validate(payload)
-        except ValidationError as e:
-            self._outlines_node._logger.info(
-                f"Validation error in OutlinesTriggerService:{e}"
-            )
-            return {"ok": False, "error": e.errors()}
+    def on_validation_error(self, e: ValidationError) -> None:
+        self._outlines_node._logger.info(
+            f"Validation error in OutlinesTriggerService: {e}"
+        )
+
+    def handle_typed(self, payload: OutlinesTogglePayload) -> dict:
         self._outlines_node._logger.info(
             f"Setting outlines active state to {payload.active}"
         )

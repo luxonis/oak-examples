@@ -40,44 +40,46 @@ class DinoAnnotationNode(BaseHostNode):
         heatmap: dai.Buffer,
         tracklets: dai.Buffer,
     ):
-        frame = frame_msg.getCvFrame()
+        assert isinstance(heatmap, dai.ImgFrame)
+        assert isinstance(frame_msg, dai.ImgFrame)
+        image = frame_msg.getCvFrame()
 
         if self.mode == "heatmap":
-            self._draw_heatmap(frame, heatmap, frame_msg)
+            self._draw_heatmap(image, heatmap, frame_msg)
             return
 
         if self.mode == "bbox":
-            self._draw_bboxes(frame, tracklets, frame_msg)
+            self._draw_bboxes(image, tracklets, frame_msg)
             return
 
     def _draw_heatmap(
         self,
-        frame: np.ndarray,
+        image: np.ndarray,
         heatmap: dai.ImgFrame,
         ref_msg: dai.ImgFrame,
     ):
         mask = heatmap.getCvFrame()
         mask_gray = mask[..., 0] if mask.ndim == 3 else mask
 
-        if mask_gray.shape[:2] != frame.shape[:2]:
+        if mask_gray.shape[:2] != image.shape[:2]:
             mask_gray = cv2.resize(
                 mask_gray,
-                (frame.shape[1], frame.shape[0]),
+                (image.shape[1], image.shape[0]),
                 interpolation=cv2.INTER_NEAREST,
             )
 
         heat = mask_gray.astype(np.float32) / 255.0
 
-        heat_color = np.zeros_like(frame, dtype=np.uint8)
+        heat_color = np.zeros_like(image, dtype=np.uint8)
         heat_color[..., 1] = mask_gray
 
         alpha = (heat * 0.6)[..., None]
-        result = (frame * (1 - alpha) + heat_color * alpha).astype(np.uint8)
+        result = (image * (1 - alpha) + heat_color * alpha).astype(np.uint8)
 
         self._send(result, ref_msg)
 
     def _draw_bboxes(
-        self, frame: dai.ImgFrame, tracklets: dai.Tracklets, ref_msg: dai.ImgFrame
+        self, frame: np.ndarray, tracklets: dai.Tracklets, ref_msg: dai.ImgFrame
     ):
         H, W = frame.shape[:2]
 
