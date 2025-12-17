@@ -17,9 +17,7 @@ class ThresholdService(BaseService[ThresholdUpdatePayload]):
         self._heatmap_det = heatmap_det
 
     def on_validation_error(self, e: ValidationError) -> None:
-        self._heatmap_det._logger.warning(
-            f"Validation error in ThresholdService: {e}"
-        )
+        self._heatmap_det._logger.warning(f"Validation error in ThresholdService: {e}")
 
     def handle_typed(self, payload: ThresholdUpdatePayload) -> dict:
         self._heatmap_det.set_confidence_threshold(payload.threshold)

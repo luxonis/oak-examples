@@ -1,7 +1,3 @@
-import os
-
-os.environ.setdefault("DEPTHAI_LEVEL", "INFO")
-
 from core.dino_similarity.grid_extraction import DinoGridExtraction
 from core.dino_similarity.reference_vector_node import ReferenceVectorNode
 from core.dino_similarity.vector_manager import VectorManager
@@ -71,7 +67,12 @@ def main():
             model_name=nn_constants.segmentation.model_name,
             nn_cls=ParsingNeuralNetwork,
         )
-        seg_out = fastsam_nn.build(rgb_sensor)
+        fastsam_rgb = camera.requestOutput(
+            size=fastsam_nn.input_size,
+            type=dai.ImgFrame.Type.BGR888i,
+            fps=camera_constants.fps,
+        )
+        seg_out = fastsam_nn.build(fastsam_rgb)
 
         dino_nn = NNBuilder(
             pipeline=pipeline,
@@ -79,7 +80,12 @@ def main():
             model_name=nn_constants.dino.model_name,
             nn_cls=dai.node.NeuralNetwork,
         )
-        dino_out = dino_nn.build(rgb_sensor)
+        dino_rgb = camera.requestOutput(
+            size=dino_nn.input_size,
+            type=dai.ImgFrame.Type.BGR888i,
+            fps=camera_constants.fps,
+        )
+        dino_out = dino_nn.build(dino_rgb)
 
         selection_node = pipeline.create(SelectionMaskNode).build(
             frame_in=rgb_sensor,

@@ -31,16 +31,10 @@ class NNBuilder:
     def input_size(self) -> tuple[int, int]:
         return self.input_width, self.input_height
 
-    def build(self, video_full: dai.Buffer) -> dai.Node.Output:
-        manip = self.pipeline.create(dai.node.ImageManip)
-        manip.initialConfig.setOutputSize(self.input_width, self.input_height)
-        manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
-        manip.setMaxOutputFrameSize(self.input_width * self.input_height * 3)
-
-        video_full.link(manip.inputImage)
+    def build(self, rgb_sensor: dai.Buffer) -> dai.Node.Output:
 
         nn_node = self.pipeline.create(self.nn_cls).build(
-            manip.out,
+            rgb_sensor,
             self.archive,
         )
 

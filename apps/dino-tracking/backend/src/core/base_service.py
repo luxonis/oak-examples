@@ -25,10 +25,12 @@ class BaseService(ABC, Generic[PayloadT]):
         if cls.__name__ == "BaseService":
             return
 
-        if not hasattr(cls, "NAME") or not isinstance(cls.NAME, str) or not cls.NAME.strip():
-            raise TypeError(
-                f"{cls.__name__} must define NAME as a non-empty string."
-            )
+        if (
+            not hasattr(cls, "NAME")
+            or not isinstance(cls.NAME, str)
+            or not cls.NAME.strip()
+        ):
+            raise TypeError(f"{cls.__name__} must define NAME as a non-empty string.")
 
         if not hasattr(cls, "PAYLOAD_MODEL"):
             raise TypeError(
