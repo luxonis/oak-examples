@@ -1,7 +1,3 @@
-import os
-
-os.environ.setdefault("DEPTHAI_LEVEL", "INFO")
-
 from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import (
     AdaptiveReferenceVectorNode,
 )

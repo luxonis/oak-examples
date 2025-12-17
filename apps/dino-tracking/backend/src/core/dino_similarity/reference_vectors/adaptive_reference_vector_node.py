@@ -4,7 +4,9 @@ from typing import Optional
 
 from box import Box
 
-from core.dino_similarity.reference_vectors.selection_reference_extractor_node import InitVectors
+from core.dino_similarity.reference_vectors.selection_reference_extractor_node import (
+    InitVectors,
+)
 
 
 class References(dai.Buffer):

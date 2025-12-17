@@ -3,7 +3,9 @@ import numpy as np
 import depthai as dai
 from depthai_nodes.node import BaseHostNode
 
-from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import BestVectorMatch
+from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import (
+    BestVectorMatch,
+)
 
 
 class SimilarityHeatmapNode(BaseHostNode):
