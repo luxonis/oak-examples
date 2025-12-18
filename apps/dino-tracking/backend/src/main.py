@@ -110,18 +110,18 @@ def main():
             dino_input_size=constants.nn.dino.input_size,
         )
 
-        vector_manager = pipeline.create(
+        adaptive_reference_node = pipeline.create(
             AdaptiveReferenceVectorNode, constants.reference_adaptation
         )
 
-        reference_node.out.link(vector_manager.init_input)
+        reference_node.out.link(adaptive_reference_node.init_input)
 
         similarity_node = pipeline.create(SimilarityHeatmapNode).build(
-            references_in=vector_manager.out,
+            references_in=adaptive_reference_node.out,
             grid_in=dino_grid.out,
             frame_in=rgb_sensor,
         )
-        similarity_node.vector_out.link(vector_manager.feedback_input)
+        similarity_node.vector_out.link(adaptive_reference_node.feedback_input)
 
         heatmap_det = pipeline.create(HeatmapToDetectionsNode).build(
             heatmap_in=similarity_node.out
