@@ -11,7 +11,7 @@ class DinoGrid(dai.Buffer):
     grid: np.ndarray | None = None
 
 
-class DinoGridExtracorNode(BaseHostNode):
+class DinoGridExtractor(BaseHostNode):
     """
     Handles Dino Grid Extraction from the DINO embeddings.
 
@@ -27,7 +27,7 @@ class DinoGridExtracorNode(BaseHostNode):
         return self
 
     def process(self, dino_msg: dai.NNData):
-        arr = dino_msg.getTensor(
+        arr: np.ndarray = dino_msg.getTensor(
             "embeddings",
             dequantize=True,
             storageOrder=dai.TensorInfo.StorageOrder.NCHW,

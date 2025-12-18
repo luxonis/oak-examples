@@ -1,18 +1,18 @@
 from pydantic import BaseModel, ValidationError
 
-from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.base_service import BaseService
+from annotations.outlines_overlay_node import OutlinesOverlay
+from base_service import BaseService
 
 
 class OutlinesTogglePayload(BaseModel):
     active: bool
 
 
-class OutlinesTriggerService(BaseService[OutlinesTogglePayload]):
+class OutlinesTrigger(BaseService[OutlinesTogglePayload]):
     NAME = "Outlines Trigger Service"
     PAYLOAD_MODEL = OutlinesTogglePayload
 
-    def __init__(self, outlines_node: OutlinesOverlayNode):
+    def __init__(self, outlines_node: OutlinesOverlay):
         self._outlines_node = outlines_node
 
     def on_validation_error(self, e: ValidationError) -> None:

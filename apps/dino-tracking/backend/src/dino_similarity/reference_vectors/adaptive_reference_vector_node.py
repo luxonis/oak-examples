@@ -4,12 +4,12 @@ import depthai as dai
 import numpy as np
 from box import Box
 
-from core.dino_similarity.reference_vectors.reference_from_selection_node import (
+from dino_similarity.reference_vectors.reference_vector_from_selection_node import (
     InitVectors,
 )
 
 
-class References(dai.Buffer):
+class AdaptiveReferenceVectors(dai.Buffer):
     """
     A custom DepthAI buffer to hold reference vectors and blending parameters.
     """
@@ -28,7 +28,7 @@ class BestVectorMatch(dai.Buffer):
     score: float
 
 
-class AdaptiveReferenceVectorNode(dai.node.ThreadedHostNode):
+class AdaptiveReferenceVector(dai.node.ThreadedHostNode):
     """
     A DepthAI node for managing reference vectors with adaptive updates.
 
@@ -60,6 +60,7 @@ class AdaptiveReferenceVectorNode(dai.node.ThreadedHostNode):
             init_msg: InitVectors = self.init_input.get()
 
             if feedback_msg := self.feedback_input.tryGet():
+                assert isinstance(feedback_msg, BestVectorMatch)
                 self._frame_idx += 1
                 if (
                     feedback_msg.vector is not None
@@ -117,7 +118,7 @@ class AdaptiveReferenceVectorNode(dai.node.ThreadedHostNode):
         self._last_learn_frame = self._frame_idx
 
     def _send_references(self, ref_msg: dai.Buffer):
-        out = References()
+        out = AdaptiveReferenceVectors()
         out.reference_init = self._reference_init
         out.reference_adapt = self._reference_adapt
         out.adaptation_strength = self._adaptation_strength

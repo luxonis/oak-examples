@@ -1,3 +1,7 @@
+import os
+os.environ["DEPTHAI_LEVEL"] = "INFO"
+
+
 from pathlib import Path
 
 import depthai as dai
@@ -5,34 +9,34 @@ from depthai_nodes.node import ParsingNeuralNetwork
 from dotenv import load_dotenv
 
 from constants.yml_constants_loader import YamlFilesLoader
-from core.annotations.dino_annotation_node import DinoAnnotationNode
-from core.annotations.FE_annotations_control_services.annotation_mode_service import (
-    AnnotationModeService,
+from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
+from annotations.FE_annotations_control_services.annotation_mode_service import (
+    AnnotationMode,
 )
-from core.annotations.FE_annotations_control_services.outlines_trigger_service import (
-    OutlinesTriggerService,
+from annotations.FE_annotations_control_services.outlines_trigger_service import (
+    OutlinesTrigger,
 )
-from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.detections_tracking.heatmap_to_detections_node import HeatmapToDetectionsNode
-from core.detections_tracking.threshold_service import ThresholdService
-from core.detections_tracking.tracker import Tracker
-from core.dino_similarity.grid_extraction import DinoGridExtracorNode
-from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import (
-    AdaptiveReferenceVectorNode,
+from annotations.outlines_overlay_node import OutlinesOverlay
+from detections_tracking.heatmap_to_detections_node import HeatmapToDetections
+from detections_tracking.threshold_service import ThresholdUpdate
+from detections_tracking.tracker import Tracker
+from dino_similarity.dino_grid_extractor_node import DinoGridExtractor
+from dino_similarity.reference_vectors.adaptive_reference_vector_node import (
+    AdaptiveReferenceVector,
 )
-from core.dino_similarity.reference_vectors.reference_from_selection_node import (
-    ReferenceFromSelectionNode,
+from dino_similarity.reference_vectors.reference_vector_from_selection_node import (
+    ReferenceVectorFromSelection,
 )
-from core.dino_similarity.similarity_heatmap_node import SimilarityHeatmapNode
-from core.encoder import Encoder
-from core.object_selection.FE_prompt_services.clear_selection_sevice import (
-    ClearSelectionService,
+from dino_similarity.similarity_heatmap_node import SimilarityHeatmap
+from encoder import Encoder
+from object_selection.FE_prompt_services.clear_selection_prompt_service import (
+    ClearSelectionPrompt,
 )
-from core.object_selection.FE_prompt_services.click_prompt_service import (
-    ClickPromptService,
+from object_selection.FE_prompt_services.object_selection_prompt_service import (
+    ObjectSelectionPrompt,
 )
-from core.object_selection.selection_mask_node import SelectionMaskNode
-from core.state_service import StateService
+from object_selection.mask_selection_node import MaskSelection
+from FE_state_synchronization_service import FEStateSynchronization
 
 load_dotenv(override=True)
 
@@ -47,7 +51,7 @@ def main():
     platform = device.getPlatformAsString()
     print(f"Platform: {platform}")
 
-    with dai.Pipeline(device) as pipeline:
+    with (dai.Pipeline(device) as pipeline):
         print("Creating pipeline...")
 
         camera = pipeline.create(dai.node.Camera).build()
@@ -70,10 +74,9 @@ def main():
             fps=constants.camera.fps,
         )
 
-        fastsam_nn = pipeline.create(ParsingNeuralNetwork).build(
+        segmentation_nn = pipeline.create(ParsingNeuralNetwork).build(
             input=fastsam_rgb, nn_source=constants.nn.segmentation.model_name
         )
-        segmentation_out = fastsam_nn.out
 
         dino_nn = pipeline.create(dai.node.NeuralNetwork).build(
             input=dino_rgb,
@@ -85,73 +88,71 @@ def main():
                 )
             ),
         )
-        dino_out = dino_nn.out
 
-        selection_node = pipeline.create(SelectionMaskNode).build(
-            frame_in=rgb_sensor,
-            segmentations=segmentation_out,
+        mask_selection = pipeline.create(MaskSelection).build(
+            segmentations=segmentation_nn.out,
         )
 
-        prompt_service = ClickPromptService(selection_node)
-        clear_service = ClearSelectionService(selection_node)
-        visualizer.registerService(prompt_service.NAME, prompt_service)
-        visualizer.registerService(clear_service.NAME, clear_service)
+        object_selection_prompt_service = ObjectSelectionPrompt(mask_selection)
+        clear_selection_prompt_service = ClearSelectionPrompt(mask_selection)
+        visualizer.registerService(object_selection_prompt_service.NAME, object_selection_prompt_service)
+        visualizer.registerService(clear_selection_prompt_service.NAME, clear_selection_prompt_service)
 
-        dino_grid = pipeline.create(DinoGridExtracorNode).build(dino_in=dino_out)
+        dino_grid = pipeline.create(DinoGridExtractor).build(dino_in=dino_nn.out)
 
-        reference_node = pipeline.create(ReferenceFromSelectionNode).build(
-            mask_in=selection_node.out,
+        reference_vector = pipeline.create(ReferenceVectorFromSelection).build(
+            mask_in=mask_selection.out,
             dino_in=dino_grid.out,
             dino_input_size=constants.nn.dino.input_size,
         )
 
-        adaptive_reference_node = pipeline.create(
-            AdaptiveReferenceVectorNode, constants.reference_adaptation
+        adaptive_reference_vector = pipeline.create(
+            AdaptiveReferenceVector, constants.reference_adaptation
         )
 
-        reference_node.out.link(adaptive_reference_node.init_input)
+        reference_vector.out.link(adaptive_reference_vector.init_input)
 
-        similarity_node = pipeline.create(SimilarityHeatmapNode).build(
-            references_in=adaptive_reference_node.out,
+        similarity_heatmap = pipeline.create(SimilarityHeatmap).build(
+            references_in=adaptive_reference_vector.out,
             grid_in=dino_grid.out,
             frame_in=rgb_sensor,
         )
-        similarity_node.vector_out.link(adaptive_reference_node.feedback_input)
+        similarity_heatmap.vector_out.link(adaptive_reference_vector.feedback_input)
 
-        heatmap_det = pipeline.create(HeatmapToDetectionsNode).build(
-            heatmap_in=similarity_node.out
+        heatmap_to_detections = pipeline.create(HeatmapToDetections).build(
+            heatmap_in=similarity_heatmap.out
         )
-        threshold_service = ThresholdService(heatmap_det)
+        threshold_service = ThresholdUpdate(heatmap_to_detections)
         visualizer.registerService(threshold_service.NAME, threshold_service)
 
         tracker = Tracker(
             pipeline=pipeline,
-            detections=heatmap_det.out,
+            detections=heatmap_to_detections.out,
             frame=rgb_sensor,
         )
         tracker = tracker.build()
 
-        outlines_node = pipeline.create(OutlinesOverlayNode).build(
+        outlines_overlay = pipeline.create(OutlinesOverlay).build(
             frame=rgb_sensor,
-            segmentation=segmentation_out,
+            segmentation=segmentation_nn.out,
         )
-        outlines_service = OutlinesTriggerService(outlines_node)
+        outlines_service = OutlinesTrigger(outlines_overlay)
         visualizer.registerService(outlines_service.NAME, outlines_service)
 
-        annot_node = pipeline.create(DinoAnnotationNode).build(
-            frame_msg=outlines_node.out,
-            heatmap_in=similarity_node.out,
+        detections_annotation_overlay = pipeline.create(DetectionsAnnotationOverlay).build(
+            frame_msg=outlines_overlay.out,
+            heatmap_in=similarity_heatmap.out,
             tracklets_in=tracker.out,
         )
-        annotation_service = AnnotationModeService(annot_node)
+        annotation_service = AnnotationMode(detections_annotation_overlay)
         visualizer.registerService(annotation_service.NAME, annotation_service)
 
-        video_enc = Encoder(pipeline, constants.camera).encode(annot_node.out)
+        video_encoded = Encoder(pipeline, constants.camera).encode(detections_annotation_overlay.out)
 
-        visualizer.addTopic("Video", video_enc, "images")
+        visualizer.addTopic("Video", video_encoded, "images")
 
-        state_service = StateService(heatmap_det, annot_node, outlines_node)
-        visualizer.registerService(state_service.NAME, state_service)
+        state_synchronization_service = FEStateSynchronization(heatmap_to_detections, detections_annotation_overlay, outlines_overlay)
+        visualizer.registerService(state_synchronization_service.NAME, state_synchronization_service)
 
         print("Pipeline created.")
 

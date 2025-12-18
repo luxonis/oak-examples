@@ -3,12 +3,13 @@ import depthai as dai
 import numpy as np
 from depthai_nodes.node import BaseHostNode
 
-from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import (
-    BestVectorMatch,
+from dino_similarity.dino_grid_extractor_node import DinoGrid
+from dino_similarity.reference_vectors.adaptive_reference_vector_node import (
+    BestVectorMatch, AdaptiveReferenceVectors,
 )
 
 
-class SimilarityHeatmapNode(BaseHostNode):
+class SimilarityHeatmap(BaseHostNode):
     """
     A DepthAI node that computes a similarity heatmap using reference vectors.
 
@@ -35,6 +36,8 @@ class SimilarityHeatmapNode(BaseHostNode):
     def process(
         self, references_msg: dai.Buffer, dino_msg: dai.Buffer, frame_msg: dai.ImgFrame
     ):
+        assert isinstance(references_msg, AdaptiveReferenceVectors)
+        assert isinstance(dino_msg, DinoGrid)
         H, W = frame_msg.getCvFrame().shape[:2]
 
         if references_msg.reference_init is None:

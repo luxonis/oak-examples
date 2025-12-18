@@ -4,6 +4,8 @@ import depthai as dai
 import numpy as np
 from depthai_nodes.node import BaseHostNode
 
+from dino_similarity.dino_grid_extractor_node import DinoGrid
+
 
 class InitVectors(dai.Buffer):
     """
@@ -18,7 +20,7 @@ class InitVectors(dai.Buffer):
     vectors: Optional[np.ndarray] = None
 
 
-class ReferenceFromSelectionNode(BaseHostNode):
+class ReferenceVectorFromSelection(BaseHostNode):
     """
     A DepthAI node that extracts DINO features from regions specified by a mask.
 
@@ -42,6 +44,8 @@ class ReferenceFromSelectionNode(BaseHostNode):
         return self
 
     def process(self, mask_msg: dai.Buffer, dino_grid: dai.Buffer):
+        assert isinstance(mask_msg, dai.ImgFrame)
+        assert isinstance(dino_grid, DinoGrid)
         mask = mask_msg.getCvFrame() > 0
 
         if self._mask_changed(mask):

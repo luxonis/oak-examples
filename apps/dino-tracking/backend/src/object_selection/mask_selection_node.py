@@ -4,7 +4,7 @@ from depthai_nodes.message import SegmentationMask
 from depthai_nodes.node import BaseHostNode
 
 
-class SelectionMaskNode(BaseHostNode):
+class MaskSelection(BaseHostNode):
     """
     A DepthAI node for handling user clicks and generating selection masks.
 
@@ -19,10 +19,9 @@ class SelectionMaskNode(BaseHostNode):
 
     def build(
         self,
-        frame_in: dai.Node.Output,
         segmentations: dai.Node.Output,
     ):
-        self.link_args(frame_in, segmentations)
+        self.link_args(segmentations)
         return self
 
     def set_click(self, x_norm: float, y_norm: float) -> None:
@@ -32,10 +31,8 @@ class SelectionMaskNode(BaseHostNode):
         self._pending_click = None
         self._selected_mask_fs = None
 
-    def process(self, frame_msg: dai.ImgFrame, segmentation: dai.Buffer):
+    def process(self, segmentation: dai.Buffer):
         assert isinstance(segmentation, SegmentationMask)
-        frame = frame_msg.getCvFrame()
-        H_full, W_full = frame.shape[:2]
 
         segmentation_fast_sam = segmentation.mask.astype(np.int32)
 
@@ -53,7 +50,7 @@ class SelectionMaskNode(BaseHostNode):
             H_fs, W_fs = segmentation_fast_sam.shape
             mask_output = np.zeros((H_fs, W_fs), dtype=bool)
 
-        self._send_mask(frame_msg, mask_output)
+        self._send_mask(segmentation, mask_output)
 
     def _map_click_to_segment(
         self,
@@ -82,13 +79,13 @@ class SelectionMaskNode(BaseHostNode):
         values, counts = np.unique(patch, return_counts=True)
         return int(values[np.argmax(counts)])
 
-    def _send_mask(self, reference_frame: dai.ImgFrame, mask: np.ndarray):
+    def _send_mask(self, segmentation: SegmentationMask, mask: np.ndarray):
         mask_u8 = mask.astype(np.uint8) * 255
 
         out = dai.ImgFrame()
         out.setCvFrame(mask_u8, dai.ImgFrame.Type.GRAY8)
-        out.setSequenceNum(reference_frame.getSequenceNum())
-        out.setTimestamp(reference_frame.getTimestamp())
-        out.setTimestampDevice(reference_frame.getTimestampDevice())
+        out.setSequenceNum(segmentation.getSequenceNum())
+        out.setTimestamp(segmentation.getTimestamp())
+        out.setTimestampDevice(segmentation.getTimestampDevice())
 
         self.out.send(out)

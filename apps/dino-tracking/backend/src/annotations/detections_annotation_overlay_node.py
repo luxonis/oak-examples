@@ -4,7 +4,7 @@ import numpy as np
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
-class DinoAnnotationNode(BaseHostNode):
+class DetectionsAnnotationOverlay(BaseHostNode):
     """
     Draw-only annotation node.
 

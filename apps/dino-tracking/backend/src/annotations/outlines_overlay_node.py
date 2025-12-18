@@ -5,7 +5,7 @@ from depthai_nodes.message import SegmentationMask
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
-class OutlinesOverlayNode(BaseHostNode):
+class OutlinesOverlay(BaseHostNode):
     """
     Takes full-res video + FastSAM segmentation and draws segment outlines if active,
     else passes the video without changes

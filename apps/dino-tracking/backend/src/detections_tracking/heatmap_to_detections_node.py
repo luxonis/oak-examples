@@ -4,7 +4,7 @@ import numpy as np
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
-class HeatmapToDetectionsNode(BaseHostNode):
+class HeatmapToDetections(BaseHostNode):
     """
     Converts heatmap into ImgDetections.
     """
@@ -28,6 +28,7 @@ class HeatmapToDetectionsNode(BaseHostNode):
         return self
 
     def process(self, heatmap_msg: dai.Buffer):
+        assert isinstance(heatmap_msg, dai.ImgFrame)
         mask = heatmap_msg.getCvFrame()
         mask_gray = mask[..., 0] if mask.ndim == 3 else mask
 
@@ -53,7 +54,7 @@ class HeatmapToDetectionsNode(BaseHostNode):
             w = int(stats[lbl, cv2.CC_STAT_WIDTH])
             h = int(stats[lbl, cv2.CC_STAT_HEIGHT])
 
-            conf = float(heat[y : y + h, x : x + w].max())
+            conf = float(heat[y:y + h, x:x + w].max())
 
             det = dai.ImgDetection()
             det.label = 0

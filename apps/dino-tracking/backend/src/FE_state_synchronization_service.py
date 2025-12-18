@@ -1,18 +1,18 @@
-from core.annotations.dino_annotation_node import DinoAnnotationNode
-from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.base_service import BaseService
-from core.detections_tracking.heatmap_to_detections_node import HeatmapToDetectionsNode
+from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
+from annotations.outlines_overlay_node import OutlinesOverlay
+from base_service import BaseService
+from detections_tracking.heatmap_to_detections_node import HeatmapToDetections
 
 
-class StateService(BaseService[None]):
+class FEStateSynchronization(BaseService[None]):
     NAME = "BE State Service"
     PAYLOAD_MODEL = None
 
     def __init__(
         self,
-        heatmap_det: HeatmapToDetectionsNode,
-        annotations_node: DinoAnnotationNode,
-        outlines_node: OutlinesOverlayNode,
+        heatmap_det: HeatmapToDetections,
+        annotations_node: DetectionsAnnotationOverlay,
+        outlines_node: OutlinesOverlay,
     ):
         self._heatmap_det = heatmap_det
         self._annotations_node = annotations_node
