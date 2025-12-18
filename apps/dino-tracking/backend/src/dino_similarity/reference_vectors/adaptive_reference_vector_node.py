@@ -14,8 +14,8 @@ class AdaptiveReferenceVectors(dai.Buffer):
     A custom DepthAI buffer to hold reference vectors and blending parameters.
     """
 
-    reference_init: Optional[np.ndarray] = None
-    reference_adapt: Optional[np.ndarray] = None
+    vector_init: Optional[np.ndarray] = None
+    vector_adapt: Optional[np.ndarray] = None
     adaptation_strength: float = 0.7
 
 
@@ -39,8 +39,8 @@ class AdaptiveReferenceVector(dai.node.ThreadedHostNode):
     def __init__(self, config: Box):
         super().__init__()
 
-        self._reference_init: Optional[np.ndarray] = None
-        self._reference_adapt: Optional[np.ndarray] = None
+        self._vector_init: Optional[np.ndarray] = None
+        self._vector_adapt: Optional[np.ndarray] = None
         self._last_vectors: Optional[np.ndarray] = None
 
         self._learn_thresh = config.learn_thresh
@@ -64,7 +64,7 @@ class AdaptiveReferenceVector(dai.node.ThreadedHostNode):
                 self._frame_idx += 1
                 if (
                     feedback_msg.vector is not None
-                    and self._reference_adapt is not None
+                    and self._vector_adapt is not None
                 ):
                     self._try_update_adaptive(feedback_msg.vector, feedback_msg.score)
 
@@ -77,7 +77,7 @@ class AdaptiveReferenceVector(dai.node.ThreadedHostNode):
                 if init_msg.vectors is not None:
                     self._initialize(init_msg.vectors)
 
-            self._send_references(init_msg)
+            self._send_reference_vectors(init_msg)
 
     def _vectors_changed(self, vectors: Optional[np.ndarray]) -> bool:
         if self._last_vectors is None:
@@ -93,14 +93,14 @@ class AdaptiveReferenceVector(dai.node.ThreadedHostNode):
         ref = vectors.mean(axis=0)
         ref = ref / (np.linalg.norm(ref) + 1e-8)
 
-        self._reference_init = ref.astype(np.float32)
-        self._reference_adapt = ref.astype(np.float32)
+        self._vector_init = ref.astype(np.float32)
+        self._vector_adapt = ref.astype(np.float32)
         self._frame_idx = 0
         self._last_learn_frame = -self._learn_interval
 
     def _reset(self):
-        self._reference_init = None
-        self._reference_adapt = None
+        self._vector_init = None
+        self._vector_adapt = None
         self._frame_idx = 0
         self._last_learn_frame = -self._learn_interval
 
@@ -111,16 +111,16 @@ class AdaptiveReferenceVector(dai.node.ThreadedHostNode):
             return
 
         beta = self._learn_blend
-        updated = (1.0 - beta) * self._reference_adapt + beta * best_vector
+        updated = (1.0 - beta) * self._vector_adapt + beta * best_vector
         updated = updated / (np.linalg.norm(updated) + 1e-8)
 
-        self._reference_adapt = updated.astype(np.float32)
+        self._vector_adapt = updated.astype(np.float32)
         self._last_learn_frame = self._frame_idx
 
-    def _send_references(self, ref_msg: dai.Buffer):
+    def _send_reference_vectors(self, ref_msg: dai.Buffer):
         out = AdaptiveReferenceVectors()
-        out.reference_init = self._reference_init
-        out.reference_adapt = self._reference_adapt
+        out.vector_init = self._vector_init
+        out.vector_adapt = self._vector_adapt
         out.adaptation_strength = self._adaptation_strength
 
         out.setSequenceNum(ref_msg.getSequenceNum())

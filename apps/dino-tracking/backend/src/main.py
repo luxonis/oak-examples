@@ -113,7 +113,7 @@ def main():
         reference_vector.out.link(adaptive_reference_vector.init_input)
 
         similarity_heatmap = pipeline.create(SimilarityHeatmap).build(
-            references_in=adaptive_reference_vector.out,
+            reference_vectors_in=adaptive_reference_vector.out,
             grid_in=dino_grid.out,
             frame_in=rgb_sensor,
         )

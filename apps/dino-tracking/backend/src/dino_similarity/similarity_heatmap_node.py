@@ -26,38 +26,38 @@ class SimilarityHeatmap(BaseHostNode):
 
     def build(
         self,
-        references_in: dai.Node.Output,
+        reference_vectors_in: dai.Node.Output,
         grid_in: dai.Node.Output,
         frame_in: dai.Node.Output,
     ):
-        self.link_args(references_in, grid_in, frame_in)
+        self.link_args(reference_vectors_in, grid_in, frame_in)
         return self
 
     def process(
-        self, references_msg: dai.Buffer, dino_msg: dai.Buffer, frame_msg: dai.ImgFrame
+        self, reference_vectors_msg: dai.Buffer, dino_msg: dai.Buffer, frame_msg: dai.ImgFrame
     ):
-        assert isinstance(references_msg, AdaptiveReferenceVectors)
+        assert isinstance(reference_vectors_msg, AdaptiveReferenceVectors)
         assert isinstance(dino_msg, DinoGrid)
         H, W = frame_msg.getCvFrame().shape[:2]
 
-        if references_msg.reference_init is None:
+        if reference_vectors_msg.vector_init is None:
             heat = np.zeros((H, W), dtype=np.float32)
             self._send_heatmap(frame_msg, heat)
 
             dummy_vector = np.zeros(1, dtype=np.float32)
-            self._send_best_vector(dummy_vector, 0.0, references_msg)
+            self._send_best_vector(dummy_vector, 0.0, reference_vectors_msg)
             return
 
         grid = dino_msg.grid
-        ref_init = references_msg.reference_init
-        ref_adapt = references_msg.reference_adapt
-        adaptation_strength = references_msg.adaptation_strength
+        ref_init = reference_vectors_msg.vector_init
+        ref_adapt = reference_vectors_msg.vector_adapt
+        adaptation_strength = reference_vectors_msg.adaptation_strength
 
         cos_grid, best_vec, best_score = self._compute_similarity(
             grid, ref_init, ref_adapt, adaptation_strength
         )
 
-        self._send_best_vector(best_vec, best_score, references_msg)
+        self._send_best_vector(best_vec, best_score, reference_vectors_msg)
 
         heat = self._produce_heatmap(cos_grid, (H, W))
         self._send_heatmap(frame_msg, heat)
@@ -65,15 +65,15 @@ class SimilarityHeatmap(BaseHostNode):
     def _compute_similarity(
         self,
         grid: np.ndarray,
-        reference_init: np.ndarray,
-        reference_adapt: np.ndarray,
+        reference_vector_init: np.ndarray,
+        reference_vector_adapt: np.ndarray,
         adaptation_strength: float,
     ) -> tuple[np.ndarray, np.ndarray, float]:
         H, W, D = grid.shape
         feats = grid.reshape(-1, D).astype(np.float32)
 
-        cos_init = feats @ reference_init
-        cos_adapt = feats @ reference_adapt
+        cos_init = feats @ reference_vector_init
+        cos_adapt = feats @ reference_vector_adapt
 
         cos_combined = (
             adaptation_strength * cos_adapt + (1 - adaptation_strength) * cos_init
