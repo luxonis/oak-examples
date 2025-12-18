@@ -4,29 +4,34 @@ import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 from dotenv import load_dotenv
 
-from annotations.detections_annotation_overlay_node import \
-    DetectionsAnnotationOverlay
-from annotations.FE_annotations_control_services.annotation_mode_service import \
-    AnnotationMode
-from annotations.FE_annotations_control_services.outlines_trigger_service import \
-    OutlinesTrigger
+from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
+from annotations.FE_annotations_control_services.annotation_mode_service import (
+    AnnotationMode,
+)
+from annotations.FE_annotations_control_services.outlines_trigger_service import (
+    OutlinesTrigger,
+)
 from annotations.outlines_overlay_node import OutlinesOverlay
 from constants.yml_constants_loader import YamlFilesLoader
 from detections_tracking.heatmap_to_detections_node import HeatmapToDetections
 from detections_tracking.threshold_service import ThresholdUpdate
 from detections_tracking.tracker import Tracker
 from dino_similarity.dino_grid_extractor_node import DinoGridExtractor
-from dino_similarity.reference_vectors.adaptive_reference_vector_node import \
-    AdaptiveReferenceVector
-from dino_similarity.reference_vectors.reference_vector_from_selection_node import \
-    ReferenceVectorFromSelection
+from dino_similarity.reference_vectors.adaptive_reference_vector_node import (
+    AdaptiveReferenceVector,
+)
+from dino_similarity.reference_vectors.reference_vector_from_selection_node import (
+    ReferenceVectorFromSelection,
+)
 from dino_similarity.similarity_heatmap_node import SimilarityHeatmap
 from encoder import Encoder
 from FE_state_synchronization_service import FEStateSynchronization
-from object_selection.FE_prompt_services.clear_selection_prompt_service import \
-    ClearSelectionPrompt
-from object_selection.FE_prompt_services.object_selection_prompt_service import \
-    ObjectSelectionPrompt
+from object_selection.FE_prompt_services.clear_selection_prompt_service import (
+    ClearSelectionPrompt,
+)
+from object_selection.FE_prompt_services.object_selection_prompt_service import (
+    ObjectSelectionPrompt,
+)
 from object_selection.mask_selection_node import MaskSelection
 
 load_dotenv(override=True)

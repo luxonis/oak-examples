@@ -5,7 +5,9 @@ from depthai_nodes.node import BaseHostNode
 
 from dino_similarity.dino_grid_extractor_node import DinoGrid
 from dino_similarity.reference_vectors.adaptive_reference_vector_node import (
-    AdaptiveReferenceVectors, BestVectorMatch)
+    AdaptiveReferenceVectors,
+    BestVectorMatch,
+)
 
 
 class SimilarityHeatmap(BaseHostNode):

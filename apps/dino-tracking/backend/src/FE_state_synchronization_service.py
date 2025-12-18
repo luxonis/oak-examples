@@ -1,5 +1,4 @@
-from annotations.detections_annotation_overlay_node import \
-    DetectionsAnnotationOverlay
+from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
 from annotations.outlines_overlay_node import OutlinesOverlay
 from base_service import BaseService
 from detections_tracking.heatmap_to_detections_node import HeatmapToDetections

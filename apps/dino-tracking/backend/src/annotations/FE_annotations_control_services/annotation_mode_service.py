@@ -2,8 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ValidationError
 
-from annotations.detections_annotation_overlay_node import \
-    DetectionsAnnotationOverlay
+from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
 from base_service import BaseService
 
 

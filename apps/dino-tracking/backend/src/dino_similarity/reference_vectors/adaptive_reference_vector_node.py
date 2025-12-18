@@ -4,8 +4,9 @@ import depthai as dai
 import numpy as np
 from box import Box
 
-from dino_similarity.reference_vectors.reference_vector_from_selection_node import \
-    InitVectors
+from dino_similarity.reference_vectors.reference_vector_from_selection_node import (
+    InitVectors,
+)
 
 
 class AdaptiveReferenceVectors(dai.Buffer):
