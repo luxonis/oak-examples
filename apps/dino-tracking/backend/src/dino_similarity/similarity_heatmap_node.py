@@ -5,8 +5,7 @@ from depthai_nodes.node import BaseHostNode
 
 from dino_similarity.dino_grid_extractor_node import DinoGrid
 from dino_similarity.reference_vectors.adaptive_reference_vector_node import (
-    BestVectorMatch, AdaptiveReferenceVectors,
-)
+    AdaptiveReferenceVectors, BestVectorMatch)
 
 
 class SimilarityHeatmap(BaseHostNode):
@@ -34,7 +33,10 @@ class SimilarityHeatmap(BaseHostNode):
         return self
 
     def process(
-        self, reference_vectors_msg: dai.Buffer, dino_msg: dai.Buffer, frame_msg: dai.ImgFrame
+        self,
+        reference_vectors_msg: dai.Buffer,
+        dino_msg: dai.Buffer,
+        frame_msg: dai.ImgFrame,
     ):
         assert isinstance(reference_vectors_msg, AdaptiveReferenceVectors)
         assert isinstance(dino_msg, DinoGrid)

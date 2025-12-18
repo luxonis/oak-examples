@@ -48,7 +48,9 @@ class MaskSelection(BaseHostNode):
             mask_output = self._selected_mask
         else:
             segmentation_height, segmentation_width = segmentation_mask.shape
-            mask_output = np.zeros((segmentation_height, segmentation_width), dtype=bool)
+            mask_output = np.zeros(
+                (segmentation_height, segmentation_width), dtype=bool
+            )
 
         self._send_mask(segmentation, mask_output)
 

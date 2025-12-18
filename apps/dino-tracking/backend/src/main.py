@@ -1,42 +1,33 @@
-import os
-os.environ["DEPTHAI_LEVEL"] = "INFO"
-
-
 from pathlib import Path
 
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 from dotenv import load_dotenv
 
-from constants.yml_constants_loader import YamlFilesLoader
-from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
-from annotations.FE_annotations_control_services.annotation_mode_service import (
-    AnnotationMode,
-)
-from annotations.FE_annotations_control_services.outlines_trigger_service import (
-    OutlinesTrigger,
-)
+from annotations.detections_annotation_overlay_node import \
+    DetectionsAnnotationOverlay
+from annotations.FE_annotations_control_services.annotation_mode_service import \
+    AnnotationMode
+from annotations.FE_annotations_control_services.outlines_trigger_service import \
+    OutlinesTrigger
 from annotations.outlines_overlay_node import OutlinesOverlay
+from constants.yml_constants_loader import YamlFilesLoader
 from detections_tracking.heatmap_to_detections_node import HeatmapToDetections
 from detections_tracking.threshold_service import ThresholdUpdate
 from detections_tracking.tracker import Tracker
 from dino_similarity.dino_grid_extractor_node import DinoGridExtractor
-from dino_similarity.reference_vectors.adaptive_reference_vector_node import (
-    AdaptiveReferenceVector,
-)
-from dino_similarity.reference_vectors.reference_vector_from_selection_node import (
-    ReferenceVectorFromSelection,
-)
+from dino_similarity.reference_vectors.adaptive_reference_vector_node import \
+    AdaptiveReferenceVector
+from dino_similarity.reference_vectors.reference_vector_from_selection_node import \
+    ReferenceVectorFromSelection
 from dino_similarity.similarity_heatmap_node import SimilarityHeatmap
 from encoder import Encoder
-from object_selection.FE_prompt_services.clear_selection_prompt_service import (
-    ClearSelectionPrompt,
-)
-from object_selection.FE_prompt_services.object_selection_prompt_service import (
-    ObjectSelectionPrompt,
-)
-from object_selection.mask_selection_node import MaskSelection
 from FE_state_synchronization_service import FEStateSynchronization
+from object_selection.FE_prompt_services.clear_selection_prompt_service import \
+    ClearSelectionPrompt
+from object_selection.FE_prompt_services.object_selection_prompt_service import \
+    ObjectSelectionPrompt
+from object_selection.mask_selection_node import MaskSelection
 
 load_dotenv(override=True)
 
@@ -51,7 +42,7 @@ def main():
     platform = device.getPlatformAsString()
     print(f"Platform: {platform}")
 
-    with (dai.Pipeline(device) as pipeline):
+    with dai.Pipeline(device) as pipeline:
         print("Creating pipeline...")
 
         camera = pipeline.create(dai.node.Camera).build()
@@ -95,8 +86,12 @@ def main():
 
         object_selection_prompt_service = ObjectSelectionPrompt(mask_selection)
         clear_selection_prompt_service = ClearSelectionPrompt(mask_selection)
-        visualizer.registerService(object_selection_prompt_service.NAME, object_selection_prompt_service)
-        visualizer.registerService(clear_selection_prompt_service.NAME, clear_selection_prompt_service)
+        visualizer.registerService(
+            object_selection_prompt_service.NAME, object_selection_prompt_service
+        )
+        visualizer.registerService(
+            clear_selection_prompt_service.NAME, clear_selection_prompt_service
+        )
 
         dino_grid = pipeline.create(DinoGridExtractor).build(dino_in=dino_nn.out)
 
@@ -139,7 +134,9 @@ def main():
         outlines_service = OutlinesTrigger(outlines_overlay)
         visualizer.registerService(outlines_service.NAME, outlines_service)
 
-        detections_annotation_overlay = pipeline.create(DetectionsAnnotationOverlay).build(
+        detections_annotation_overlay = pipeline.create(
+            DetectionsAnnotationOverlay
+        ).build(
             frame_msg=outlines_overlay.out,
             heatmap_in=similarity_heatmap.out,
             tracklets_in=tracker.out,
@@ -147,12 +144,18 @@ def main():
         annotation_service = AnnotationMode(detections_annotation_overlay)
         visualizer.registerService(annotation_service.NAME, annotation_service)
 
-        video_encoded = Encoder(pipeline, constants.camera).encode(detections_annotation_overlay.out)
+        video_encoded = Encoder(pipeline, constants.camera).encode(
+            detections_annotation_overlay.out
+        )
 
         visualizer.addTopic("Video", video_encoded, "images")
 
-        state_synchronization_service = FEStateSynchronization(heatmap_to_detections, detections_annotation_overlay, outlines_overlay)
-        visualizer.registerService(state_synchronization_service.NAME, state_synchronization_service)
+        state_synchronization_service = FEStateSynchronization(
+            heatmap_to_detections, detections_annotation_overlay, outlines_overlay
+        )
+        visualizer.registerService(
+            state_synchronization_service.NAME, state_synchronization_service
+        )
 
         print("Pipeline created.")
 

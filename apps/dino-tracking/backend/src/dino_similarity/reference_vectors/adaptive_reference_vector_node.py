@@ -4,9 +4,8 @@ import depthai as dai
 import numpy as np
 from box import Box
 
-from dino_similarity.reference_vectors.reference_vector_from_selection_node import (
-    InitVectors,
-)
+from dino_similarity.reference_vectors.reference_vector_from_selection_node import \
+    InitVectors
 
 
 class AdaptiveReferenceVectors(dai.Buffer):
@@ -62,10 +61,7 @@ class AdaptiveReferenceVector(dai.node.ThreadedHostNode):
             if feedback_msg := self.feedback_input.tryGet():
                 assert isinstance(feedback_msg, BestVectorMatch)
                 self._frame_idx += 1
-                if (
-                    feedback_msg.vector is not None
-                    and self._vector_adapt is not None
-                ):
+                if feedback_msg.vector is not None and self._vector_adapt is not None:
                     self._try_update_adaptive(feedback_msg.vector, feedback_msg.score)
 
             if self._vectors_changed(init_msg.vectors):

@@ -54,7 +54,7 @@ class HeatmapToDetections(BaseHostNode):
             w = int(stats[lbl, cv2.CC_STAT_WIDTH])
             h = int(stats[lbl, cv2.CC_STAT_HEIGHT])
 
-            conf = float(heat[y:y + h, x:x + w].max())
+            conf = float(heat[y : y + h, x : x + w].max())
 
             det = dai.ImgDetection()
             det.label = 0
