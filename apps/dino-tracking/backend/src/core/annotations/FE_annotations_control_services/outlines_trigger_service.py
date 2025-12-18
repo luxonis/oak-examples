@@ -1,6 +1,7 @@
-from core.base_service import BaseService
-from core.annotations.outlines_overlay_node import OutlinesOverlayNode
 from pydantic import BaseModel, ValidationError
+
+from core.annotations.outlines_overlay_node import OutlinesOverlayNode
+from core.base_service import BaseService
 
 
 class OutlinesTogglePayload(BaseModel):

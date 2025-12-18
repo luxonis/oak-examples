@@ -1,6 +1,6 @@
 import cv2
-import numpy as np
 import depthai as dai
+import numpy as np
 from depthai_nodes.node import BaseHostNode
 
 from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import (

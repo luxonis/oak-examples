@@ -1,7 +1,7 @@
-import depthai as dai
-import numpy as np
 from typing import Optional
 
+import depthai as dai
+import numpy as np
 from box import Box
 
 from core.dino_similarity.reference_vectors.reference_from_selection_node import (

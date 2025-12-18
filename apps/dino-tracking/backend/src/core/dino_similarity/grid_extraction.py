@@ -1,7 +1,6 @@
-from depthai_nodes.node import BaseHostNode
-
-import numpy as np
 import depthai as dai
+import numpy as np
+from depthai_nodes.node import BaseHostNode
 
 
 class DinoGrid(dai.Buffer):

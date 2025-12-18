@@ -1,5 +1,4 @@
 import depthai as dai
-
 from box import Box
 
 

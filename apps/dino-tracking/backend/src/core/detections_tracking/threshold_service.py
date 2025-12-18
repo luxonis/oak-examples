@@ -1,8 +1,7 @@
-from core.base_service import BaseService
-from core.detections_tracking.heatmap_to_detections_node import (
-    HeatmapToDetectionsNode,
-)
 from pydantic import BaseModel, Field, ValidationError
+
+from core.base_service import BaseService
+from core.detections_tracking.heatmap_to_detections_node import HeatmapToDetectionsNode
 
 
 class ThresholdUpdatePayload(BaseModel):

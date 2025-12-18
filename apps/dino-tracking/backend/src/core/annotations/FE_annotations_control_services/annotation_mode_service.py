@@ -1,7 +1,9 @@
-from core.base_service import BaseService
-from core.annotations.dino_annotation_node import DinoAnnotationNode
-from pydantic import BaseModel, ValidationError
 from typing import Literal
+
+from pydantic import BaseModel, ValidationError
+
+from core.annotations.dino_annotation_node import DinoAnnotationNode
+from core.base_service import BaseService
 
 
 class AnnotationModePayload(BaseModel):

@@ -1,43 +1,38 @@
-from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import (
-    AdaptiveReferenceVectorNode,
-)
-from core.dino_similarity.grid_extraction import DinoGridExtracorNode
-from core.dino_similarity.reference_vectors.reference_from_selection_node import (
-    ReferenceFromSelectionNode,
-)
 from pathlib import Path
+
+import depthai as dai
+from depthai_nodes.node import ParsingNeuralNetwork
+from dotenv import load_dotenv
+
 from constants.yml_constants_loader import YamlFilesLoader
+from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.annotations.FE_annotations_control_services.annotation_mode_service import (
     AnnotationModeService,
-)
-from core.object_selection.FE_prompt_services.clear_selection_sevice import (
-    ClearSelectionService,
 )
 from core.annotations.FE_annotations_control_services.outlines_trigger_service import (
     OutlinesTriggerService,
 )
-from core.detections_tracking.threshold_service import ThresholdService
-
-from dotenv import load_dotenv
-
-from core.detections_tracking.heatmap_to_detections_node import (
-    HeatmapToDetectionsNode,
-)
-from core.detections_tracking.tracker import Tracker
-
-import depthai as dai
-
-from depthai_nodes.node import ParsingNeuralNetwork
-
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
+from core.detections_tracking.heatmap_to_detections_node import HeatmapToDetectionsNode
+from core.detections_tracking.threshold_service import ThresholdService
+from core.detections_tracking.tracker import Tracker
+from core.dino_similarity.grid_extraction import DinoGridExtracorNode
+from core.dino_similarity.reference_vectors.adaptive_reference_vector_node import (
+    AdaptiveReferenceVectorNode,
+)
+from core.dino_similarity.reference_vectors.reference_from_selection_node import (
+    ReferenceFromSelectionNode,
+)
+from core.dino_similarity.similarity_heatmap_node import SimilarityHeatmapNode
+from core.encoder import Encoder
+from core.object_selection.FE_prompt_services.clear_selection_sevice import (
+    ClearSelectionService,
+)
 from core.object_selection.FE_prompt_services.click_prompt_service import (
     ClickPromptService,
 )
-from core.annotations.dino_annotation_node import DinoAnnotationNode
-from core.encoder import Encoder
-from core.state_service import StateService
-from core.dino_similarity.similarity_heatmap_node import SimilarityHeatmapNode
 from core.object_selection.selection_mask_node import SelectionMaskNode
+from core.state_service import StateService
 
 load_dotenv(override=True)
 

@@ -1,6 +1,6 @@
 import cv2
-import numpy as np
 import depthai as dai
+import numpy as np
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 

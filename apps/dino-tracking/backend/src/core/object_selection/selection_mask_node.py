@@ -1,8 +1,7 @@
-import numpy as np
 import depthai as dai
-
-from depthai_nodes.node import BaseHostNode
+import numpy as np
 from depthai_nodes.message import SegmentationMask
+from depthai_nodes.node import BaseHostNode
 
 
 class SelectionMaskNode(BaseHostNode):

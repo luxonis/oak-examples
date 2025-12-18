@@ -1,6 +1,7 @@
 from typing import Optional
-import numpy as np
+
 import depthai as dai
+import numpy as np
 from depthai_nodes.node import BaseHostNode
 
 

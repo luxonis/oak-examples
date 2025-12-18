@@ -1,9 +1,7 @@
-from core.base_service import BaseService
 from core.annotations.dino_annotation_node import DinoAnnotationNode
 from core.annotations.outlines_overlay_node import OutlinesOverlayNode
-from core.detections_tracking.heatmap_to_detections_node import (
-    HeatmapToDetectionsNode,
-)
+from core.base_service import BaseService
+from core.detections_tracking.heatmap_to_detections_node import HeatmapToDetectionsNode
 
 
 class StateService(BaseService[None]):
