@@ -13,6 +13,10 @@ This application demonstrates interactive, similarity-based object tracking usin
 
 ![](media/DinoDemo.gif)
 
+## Pipeline Graph
+
+![](media/DinoGraph.png)
+
 ______________________________________________________________________
 
 ## Features
@@ -36,7 +40,7 @@ ______________________________________________________________________
 - **Visualization modes**
 
   - **Heatmap** – continuous similarity intensity
-  - **Bounding boxes** – thresholded focus regions
+  - **Bounding boxes** – thresholded detection Bounding Boxes
 
 - **Confidence control (BBox mode)**
 
@@ -72,7 +76,7 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-Once the app is built and running you can access the DepthAI Viewer locally by opening https://\<OAK4_IP>:9000/ in your browser (the exact URL will be shown in the terminal output).
+Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
 Remote access
 
