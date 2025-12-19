@@ -1,6 +1,6 @@
 identifier = "com.example.apps.data-collection"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "0.9.1"
+app_version = "0.9.3"
 
 prepare_container = [
     { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
