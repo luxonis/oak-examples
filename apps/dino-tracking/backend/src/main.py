@@ -58,7 +58,7 @@ def main():
             fps=constants.camera.fps,
         )
 
-        fastsam_rgb = camera.requestOutput(
+        segmentation_rgb = camera.requestOutput(
             size=constants.nn.segmentation.input_size,
             type=dai.ImgFrame.Type.BGR888i,
             fps=constants.camera.fps,
@@ -71,7 +71,7 @@ def main():
         )
 
         segmentation_nn = pipeline.create(ParsingNeuralNetwork).build(
-            input=fastsam_rgb, nn_source=constants.nn.segmentation.model_name
+            input=segmentation_rgb, nn_source=constants.nn.segmentation.model_name
         )
 
         dino_nn = pipeline.create(dai.node.NeuralNetwork).build(
