@@ -1,0 +1,59 @@
+name: Publish OAK App
+
+on:
+  workflow_dispatch:
+    inputs:
+      root_dir:
+        description: "Path to the example root containing oakapp.toml."
+        type: string
+        required: true
+      oakctl_hub_token:
+        description: "OAKCTL_HUB_TOKEN for publishing."
+        type: string
+        required: true
+      luxonis_official:
+        description: "Replace com.example with com.luxonis in the identifier."
+        type: boolean
+        default: false
+        required: false
+      new_identifier:
+        description: "Override identifier value in oakapp.toml."
+        type: string
+        required: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Publish app via HIL runner
+        env:
+          ROOT_DIR: ${{ inputs.root_dir }}
+          LUXONIS_OFFICIAL: ${{ inputs.luxonis_official }}
+          NEW_IDENTIFIER: ${{ inputs.new_identifier }}
+          OAKCTL_HUB_TOKEN: ${{ inputs.oakctl_hub_token }}
+        run: |
+          echo "::add-mask::$OAKCTL_HUB_TOKEN"
+          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#publish-oakapp"
+
+          ENV_VARS="\
+            --env ROOT_DIR=$ROOT_DIR \
+            --env LUXONIS_OFFICIAL=$LUXONIS_OFFICIAL \
+            --env NEW_IDENTIFIER=$NEW_IDENTIFIER \
+            --env OAKCTL_HUB_TOKEN=$OAKCTL_HUB_TOKEN"
+
+          exec hil_runner --models "oak4_pro or oak4_d" --reservation-name "$RESERVATION_NAME" --wait --oakctl --sync-workspace \
+            --dockerfile ./.github/ci/publish_oakapp/Dockerfile \
+            --docker-run-args "$ENV_VARS"
