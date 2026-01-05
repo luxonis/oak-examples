@@ -7,10 +7,6 @@ on:
         description: "Path to the example root containing oakapp.toml."
         type: string
         required: true
-      oakctl_hub_token:
-        description: "OAKCTL_HUB_TOKEN for publishing."
-        type: string
-        required: true
       luxonis_official:
         description: "Replace com.example with com.luxonis in the identifier."
         type: boolean
@@ -23,7 +19,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ['self-hosted', 'testbed-runner']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,9 +39,8 @@ jobs:
           ROOT_DIR: ${{ inputs.root_dir }}
           LUXONIS_OFFICIAL: ${{ inputs.luxonis_official }}
           NEW_IDENTIFIER: ${{ inputs.new_identifier }}
-          OAKCTL_HUB_TOKEN: ${{ inputs.oakctl_hub_token }}
+          OAKCTL_HUB_TOKEN: ${{ secrets.OAKCTL_HUB_TOKEN }}
         run: |
-          echo "::add-mask::$OAKCTL_HUB_TOKEN"
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#publish-oakapp"
 
           ENV_VARS="\
