@@ -8,9 +8,13 @@ import App from './App.tsx';
 import {BrowserRouter, Route, Routes} from "react-router";
 import {DepthAIContext} from "@luxonis/depthai-viewer-common";
 
+
+function getBasePath(): string {
+  return window.location.pathname.match(/^\/\d+\.\d+\.\d+\/$/)?.[0] ?? ''
+}
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-            <BrowserRouter>
+            <BrowserRouter basename={getBasePath()}>
                 <DepthAIContext activeServices={
                     // @ts-ignore - We're using an example service here which isn't part of the DAI services enum
                     ['Custom Service']

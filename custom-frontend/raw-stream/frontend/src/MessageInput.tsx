@@ -1,9 +1,9 @@
 import {Flex, Button, Input} from "@luxonis/common-fe-components";
 import {useRef} from "react";
-import {useConnection} from "@luxonis/depthai-viewer-common";
+import {useDaiConnection} from "@luxonis/depthai-viewer-common";
 
 export function MessageInput() {
-    const connection = useConnection();
+    const connection = useDaiConnection();
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleSendMessage = () => {
