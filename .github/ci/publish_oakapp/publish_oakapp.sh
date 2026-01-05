@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-}"
-LUXONIS_OFFICIAL="${LUXONIS_OFFICIAL:-false}"
+LUXONIS_OFFICIAL_IDENTIFIER="${LUXONIS_OFFICIAL_IDENTIFIER:-false}"
 NEW_IDENTIFIER="${NEW_IDENTIFIER:-}"
 OAKCTL_HUB_TOKEN="${OAKCTL_HUB_TOKEN:-}"
 
@@ -54,7 +54,7 @@ if [[ -n "$NEW_IDENTIFIER" ]]; then
     exit 1
   fi
   sed -i -E "s/^identifier\\s*=.*/identifier = \"${NEW_IDENTIFIER}\"/" "$OAKAPP_TOML"
-elif [[ "$LUXONIS_OFFICIAL" == "true" ]]; then
+elif [[ "$LUXONIS_OFFICIAL_IDENTIFIER" == "true" ]]; then
   if ! grep -qE '^identifier\s*=' "$OAKAPP_TOML"; then
     echo "identifier not found in $OAKAPP_TOML" >&2
     exit 1

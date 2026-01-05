@@ -7,13 +7,13 @@ on:
         description: "Path to the example root containing oakapp.toml."
         type: string
         required: true
-      luxonis_official:
+      luxonis_official_identifier:
         description: "Replace com.example with com.luxonis in the identifier."
         type: boolean
-        default: false
+        default: true
         required: false
       new_identifier:
-        description: "Override identifier value in oakapp.toml."
+        description: "Override whole identifier value in oakapp.toml."
         type: string
         required: false
 
