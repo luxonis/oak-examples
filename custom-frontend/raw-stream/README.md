@@ -27,6 +27,7 @@ Here is a list of all available parameters:
 
 ### Installation
 
+#### BackEnd
 You need to first prepare a **Python 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/),
@@ -38,15 +39,32 @@ You can simply install them by running:
 pip install -r requirements.txt
 ```
 
+#### FrontEnd 
+
+You need to have [Node.js](https://nodejs.org/en/download/) installed (version 18 or higher is required).
+
+Then, navigate to the `frontend` folder and install the dependencies by running:
+
+```bash
+npm install
+```
+and build the frontend with:
+
+```bash
+npm run build
+```
+
 Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
 
 ### Examples
 
+To run in peripheral mode, please set environment variable `OAKAPP_STATIC_FRONTEND_PATH` to point the path to build FE files.
+From the root of the example folder, run:
 ```bash
 python3 main.py
 ```
 
-This will run the example, and you’ll be able to access the frontend in your browser at `http://localhost:8080`.
+This will run the example, and you’ll be able to access the frontend in your browser at `http://localhost:8082`.
 
 ## Standalone Mode (RVC4 only)
 
