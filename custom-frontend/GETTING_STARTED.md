@@ -74,15 +74,17 @@ See [panda.config.ts](./raw-stream/frontend/panda.config.ts).
 Your `vite.config.ts` needs the following settings:
 
 #### Relative base path (required for Luxonis Hub)
+
 ```typescript
 base: "",
 ```
+
 This makes asset paths relative instead of absolute, which is required when deploying to [Luxonis Hub](https://docs.luxonis.com/software-v3/oak-apps/).
 
 > ⚠️ **Important:** Avoid using paths starting with `/` anywhere in your code (e.g., `/images/logo.png`). Use relative paths instead (e.g., `./images/logo.png` or `images/logo.png`). Absolute paths will break when deployed to Luxonis Hub and cause cryptic errors or blank pages.
 
-
 #### FoxGlove compatibility
+
 ```
 define: {
     global: {},
@@ -207,8 +209,9 @@ ______________________________________________________________________
 The FE library automatically connects to `ws://localhost:8765`. If unavailable, a connection dialog will prompt for the URL.
 
 ### Peripheral Mode
+
 You need the dependencies installed as described in the [Install-Dependencies](#Install-Dependencies).
-Afterward you need to build the frontend in the frontend root directory: 
+Afterward you need to build the frontend in the frontend root directory:
 
 ```bash
 npm run build
@@ -226,6 +229,7 @@ Running the example in the standalone mode, app runs entirely on the device.
 To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
 The app can then be run with:
+
 ```bash
 oakctl connect <DEVICE_IP>
 oakctl app run .
@@ -233,34 +237,39 @@ oakctl app run .
 
 #### Local Frontend Development
 
-
 When developing the frontend, you can run it locally while the backend runs on the device. This avoids rebuilding and redeploying the entire container for every frontend change, saving significant development time.
 
 1. **Start the backend on the device** (as shown above)
 
-#### In another terminal tab 
+#### In another terminal tab
+
 2. **Find your device IP:**
+
 ```bash
    oakctl list
 ```
 
 3. **Run the frontend locally:**
+
 ```bash
    cd frontend
    npm run build && npm run preview
 ```
-   The terminal will display the local URL (e.g., `http://localhost:4173`).
+
+The terminal will display the local URL (e.g., `http://localhost:4173`).
 
 4. **Connect to the device backend:**
-   
+
    Open the URL shown in terminal and add the WebSocket URL as a parameter:
+
 ```
    http://localhost:4173?ws_url=ws://<DEVICE_IP>:8765
 ```
-   
-   Or just open the URL and enter `ws://<DEVICE_IP>:8765` in the connection dialog.
+
+Or just open the URL and enter `ws://<DEVICE_IP>:8765` in the connection dialog.
 
 ______________________________________________________________________
+
 ## Known issues
 
 ### `vite` running out of memory during build
@@ -268,14 +277,18 @@ ______________________________________________________________________
 On some machines, the vite build process may run out of memory, especially for larger projects. If this happens, you can try one of the following solutions.
 
 #### Option 1: Increase Node.js Memory Limit
+
 Increase the available memory for Node.js by adjusting the build command:
+
 ```
 NODE_OPTIONS=--max-old-space-size=8192 npm run build
 ```
 
 #### Option 2: Limit parallel file operations in Vite
-You can also reduce memory pressure by limiting the number of parallel file operations used by Rollup. 
+
+You can also reduce memory pressure by limiting the number of parallel file operations used by Rollup.
 This can be done by updating your [vite.config.ts](./raw-stream/frontend/vite.config.ts) file with maxParallelFileOps option:
+
 ```typescript
 export default defineConfig({
   build: {
