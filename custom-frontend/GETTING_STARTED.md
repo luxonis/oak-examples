@@ -27,11 +27,16 @@ Your `package.json` needs the following dependencies and scripts:
   "@luxonis/depthai-viewer-common": "^1.6.2",
   "react": "^18.3.1",
   "react-dom": "^18.3.1",
-  "react-router": "^7.5.0"
+  "react-router": "^7.5.0",
+  "react-router-dom": "^7.5.0"
 },
 "devDependencies": {
-  "@pandacss/dev": "^0.53.0",
+  "@biomejs/biome": "1.9.4",
+  "@pandacss/dev": "0.53.0",
+  "@types/react": "^18.3.20",
+  "@types/react-dom": "^18.3.6",
   "@vitejs/plugin-react": "^4.3.4",
+  "globals": "^16.0.0",
   "typescript": "~5.7.2",
   "vite": "^6.3.1"
 }
@@ -52,7 +57,7 @@ Your `package.json` needs the following dependencies and scripts:
 
 See [package.json](./raw-stream/frontend/package.json) for a complete example.
 
-After setting up your `package.json`, run:
+After setting up your `package.json`, in the directory with the package run:
 
 ```bash
 npm install
@@ -66,8 +71,18 @@ See [panda.config.ts](./raw-stream/frontend/panda.config.ts).
 
 ### Configure Vite
 
-Your `vite.config.ts` needs specific settings for [FoxGlove](https://foxglove.dev/) compatibility and ESM workers:
+Your `vite.config.ts` needs the following settings:
 
+#### Relative base path (required for Luxonis Hub)
+```typescript
+base: "",
+```
+This makes asset paths relative instead of absolute, which is required when deploying to [Luxonis Hub](https://docs.luxonis.com/software-v3/oak-apps/).
+
+> ⚠️ **Important:** Avoid using paths starting with `/` anywhere in your code (e.g., `/images/logo.png`). Use relative paths instead (e.g., `./images/logo.png` or `images/logo.png`). Absolute paths will break when deployed to Luxonis Hub and cause cryptic errors or blank pages.
+
+
+#### FoxGlove compatibility
 ```
 define: {
     global: {},
@@ -121,10 +136,6 @@ function getBasePath(): string {
 
 See [main.tsx](./raw-stream/frontend/src/main.tsx) for a complete example.
 
-## Usage
-
-The library automatically connects to `ws://localhost:8765`. If unavailable, a connection dialog will prompt for the URL.
-
 ### Displaying Streams
 
 Use the `Streams` component to display all topics published by your backend:
@@ -174,11 +185,9 @@ function MyComponent() {
     );
   };
 
-  return (
-    
-      Send
-    
-  );
+    return (
+            <Button onClick={handleSendMessage}>Send</Button>
+    );
 }
 ```
 
@@ -193,13 +202,60 @@ well. It's highly recommended to check out [PandaCSS docs](https://panda-css.com
 
 ______________________________________________________________________
 
+## Run the Frontend
+
+The FE library automatically connects to `ws://localhost:8765`. If unavailable, a connection dialog will prompt for the URL.
+
+### Peripheral Mode
+You need the dependencies installed as described in the [Install-Dependencies](#Install-Dependencies).
+Afterward you need to build the frontend in the frontend root directory: 
+
+```bash
+npm run build
+```
+
+Then you can run the backend application with:
+
+```bash
+python main.py
+```
+
+### Standalone Mode (RVC4 only)
+
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+
+The app can then be run with:
+
+```bash
+oakctl connect <DEVICE_IP>
+oakctl app run .
+```
+
 ## Known issues
 
 ### `vite` running out of memory during build
 
-Depending on your machine, you might run into `vite` running out of memory during build. To fix this, try increasing the
-Node.js memory limit by modifying your build command:
+On some machines, the vite build process may run out of memory, especially for larger projects. If this happens, you can try one of the following solutions.
 
+#### Option 1: Increase Node.js Memory Limit
+Increase the available memory for Node.js by adjusting the build command:
 ```
 NODE_OPTIONS=--max-old-space-size=8192 npm run build
+```
+
+#### Option 2: Limit parallel file operations in Vite
+You can also reduce memory pressure by limiting the number of parallel file operations used by Rollup. 
+This can be done by updating your [vite.config.ts](./raw-stream/frontend/vite.config.ts) file with maxParallelFileOps option:
+```typescript
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      maxParallelFileOps: 10,
+      output: {
+        format: "esm",
+      },
+    },
+  },
+});
 ```

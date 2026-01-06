@@ -12,7 +12,7 @@ export function MessageInput() {
 
             console.log('Sending message:', message);
             // @ts-ignore - We're using an example service here which isn't part of the DAI services enum
-            connection.daiConnection?.postToService('Custom Service', message, (response) => {
+            connection.daiConnection?.postToService('Message Service', message, (response) => {
                 console.log('Received response:', response);
             });
 

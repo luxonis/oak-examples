@@ -6,7 +6,7 @@ from utils.arguments import initialize_argparser
 
 _, args = initialize_argparser()
 
-FRONTEND_DIRECTORY = Path(os.environ["OAKAPP_STATIC_FRONTEND_PATH"])
+FRONTEND_DIRECTORY = Path(__file__).parent / "frontend" / "dist"
 IP = args.ip or "localhost"
 PORT = args.port or 8082
 
@@ -26,8 +26,9 @@ with dai.Pipeline(device) as pipeline:
 
     def custom_service(message):
         print("Received message:", message)
+        return {"response": "Message received"}
 
-    visualizer.registerService("Custom Service", custom_service)
+    visualizer.registerService("Message Service", custom_service)
     pipeline.start()
     print("Running pipeline...")
 
