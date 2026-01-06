@@ -16,6 +16,10 @@ ______________________________________________________________________
 
 This package is meant to be used inside a React application. We recommend using [Vite](https://vite.dev/guide/) to scaffold your project with the `react-ts` template.
 
+```bash
+npm create vite@latest frontend -- --template react-ts
+```
+
 ### Install Dependencies
 
 Your `package.json` needs the following dependencies and scripts:
@@ -57,17 +61,66 @@ Your `package.json` needs the following dependencies and scripts:
 
 See [package.json](./raw-stream/frontend/package.json) for a complete example.
 
-After setting up your `package.json`, in the directory with the package run:
+Before installing, disable scripts to avoid PandaCSS running before it is configured:
 
 ```bash
-npm install
+npm install --ignore-scripts
 ```
 
 ### Configure PandaCSS
 
-This library is dependent on our components lib - `@luxonis/common-fe-components`. To use this library you have to
-use [PandaCSS](https://panda-css.com/). You also have to import preset from our components lib.
-See [panda.config.ts](./raw-stream/frontend/panda.config.ts).
+This library is dependent on our components lib - `@luxonis/common-fe-components`. To use this library you have to use [PandaCSS](https://panda-css.com/). 
+
+
+**Initialize PandaCSS** in your project root:
+
+```bash
+npx panda init
+```
+
+**Edit `panda.config.ts`** with the preset from our components lib:
+```typescript
+export default defineConfig({
+  presets: [pandaPreset],
+  preflight: true,
+  include: ["./src/**/*.{ts,tsx}"],
+  exclude: [],
+  jsxFramework: "react",
+  outdir: "styled-system",
+  forceConsistentTypeExtension: true,
+});
+```
+
+See [panda.config.ts](./raw-stream/frontend/panda.config.ts)
+
+**Create `postcss.config.mjs`** (required for PandaCSS styles to compile correctly):
+```javascript
+export default {
+  plugins: {
+    '@pandacss/dev/postcss': {},
+  },
+}
+```
+
+See [postcss.config.mjs](./raw-stream/frontend/postcss.config.mjs)
+
+### Global CSS Setup
+
+Luxonis frontend components rely on PandaCSS layered styles. The default Vite index.css must be replaced.
+
+**Update `index.css`:**
+
+Delete the default Vite content and add the following to `index.css`:
+```css
+@layer reset, base, tokens, recipes, utilities;
+```
+
+### Run installation scripts
+After configuring PandaCSS, run the installation scripts to set up the styles:
+
+```bash
+npm install
+```
 
 ### Configure Vite
 
@@ -107,6 +160,67 @@ define: {
 ```
 
 See [vite.config.ts](./raw-stream/frontend/vite.config.ts) for a complete example.
+
+### Configure TypeScript
+
+The Vite-generated TypeScript config files need to be replaced to work with Luxonis packages.
+
+**Replace `tsconfig.app.json`:**
+```json
+{
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/example.app.tsbuildinfo",
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": [
+      "ESNext",
+      "WebWorker",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [
+    "src"
+  ]
+}
+
+```
+
+See [tsconfig.app.json](./raw-stream/frontend/tsconfig.app.json)
+
+**Replace `tsconfig.node.json`:**
+```json
+{
+	"compilerOptions": {
+		"composite": true,
+		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig-example.node.tsbuildinfo",
+		"skipLibCheck": true,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"allowSyntheticDefaultImports": true,
+		"strict": true,
+		"noEmit": true
+	},
+	"include": ["vite.config.ts"]
+}
+
+```
+
+See [tsconfig.node.json](./raw-stream/frontend/tsconfig.node.json)
 
 ### Import Styles
 
