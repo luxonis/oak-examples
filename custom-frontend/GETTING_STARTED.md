@@ -226,12 +226,41 @@ Running the example in the standalone mode, app runs entirely on the device.
 To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
 The app can then be run with:
-
 ```bash
 oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
+#### Local Frontend Development
+
+
+When developing the frontend, you can run it locally while the backend runs on the device. This avoids rebuilding and redeploying the entire container for every frontend change, saving significant development time.
+
+1. **Start the backend on the device** (as shown above)
+
+#### In another terminal tab 
+2. **Find your device IP:**
+```bash
+   oakctl list
+```
+
+3. **Run the frontend locally:**
+```bash
+   cd frontend
+   npm run build && npm run preview
+```
+   The terminal will display the local URL (e.g., `http://localhost:4173`).
+
+4. **Connect to the device backend:**
+   
+   Open the URL shown in terminal and add the WebSocket URL as a parameter:
+```
+   http://localhost:4173?ws_url=ws://<DEVICE_IP>:8765
+```
+   
+   Or just open the URL and enter `ws://<DEVICE_IP>:8765` in the connection dialog.
+
+______________________________________________________________________
 ## Known issues
 
 ### `vite` running out of memory during build
