@@ -69,8 +69,7 @@ npm install --ignore-scripts
 
 ### Configure PandaCSS
 
-This library is dependent on our components lib - `@luxonis/common-fe-components`. To use this library you have to use [PandaCSS](https://panda-css.com/). 
-
+This library is dependent on our components lib - `@luxonis/common-fe-components`. To use this library you have to use [PandaCSS](https://panda-css.com/).
 
 **Initialize PandaCSS** in your project root:
 
@@ -79,6 +78,7 @@ npx panda init
 ```
 
 **Edit `panda.config.ts`** with the preset from our components lib:
+
 ```typescript
 export default defineConfig({
   presets: [pandaPreset],
@@ -94,6 +94,7 @@ export default defineConfig({
 See [panda.config.ts](./raw-stream/frontend/panda.config.ts)
 
 **Create `postcss.config.mjs`** (required for PandaCSS styles to compile correctly):
+
 ```javascript
 export default {
   plugins: {
@@ -111,11 +112,13 @@ Luxonis frontend components rely on PandaCSS layered styles. The default Vite in
 **Update `index.css`:**
 
 Delete the default Vite content and add the following to `index.css`:
+
 ```css
 @layer reset, base, tokens, recipes, utilities;
 ```
 
 ### Run installation scripts
+
 After configuring PandaCSS, run the installation scripts to set up the styles:
 
 ```bash
@@ -166,6 +169,7 @@ See [vite.config.ts](./raw-stream/frontend/vite.config.ts) for a complete exampl
 The Vite-generated TypeScript config files need to be replaced to work with Luxonis packages.
 
 **Replace `tsconfig.app.json`:**
+
 ```json
 {
   "compilerOptions": {
@@ -203,6 +207,7 @@ The Vite-generated TypeScript config files need to be replaced to work with Luxo
 See [tsconfig.app.json](./raw-stream/frontend/tsconfig.app.json)
 
 **Replace `tsconfig.node.json`:**
+
 ```json
 {
 	"compilerOptions": {
