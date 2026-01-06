@@ -45,7 +45,7 @@ jobs:
 
           ENV_VARS="\
             --env ROOT_DIR=$ROOT_DIR \
-            --env LUXONIS_OFFICIAL=$LUXONIS_OFFICIAL \
+            --env LUXONIS_OFFICIAL_IDENTIFIER=$LUXONIS_OFFICIAL_IDENTIFIER \
             --env NEW_IDENTIFIER=$NEW_IDENTIFIER \
             --env OAKCTL_HUB_TOKEN=$OAKCTL_HUB_TOKEN"
 

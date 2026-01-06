@@ -73,6 +73,10 @@ if ! command -v oakctl >/dev/null 2>&1; then
   exit 1
 fi
 
+echo "----- Using $OAKAPP_TOML -----"
+cat "$OAKAPP_TOML"
+echo "----- end of file -----"
+
 oakctl self-update -c beta # TODO: remove this extra flag when 0.17.3 is mainlined
 oakctl app build .
 
