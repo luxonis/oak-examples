@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-}"
-LUXONIS_OFFICIAL_IDENTIFIER="${LUXONIS_OFFICIAL_IDENTIFIER:-false}"
+LUXONIS_OFFICIAL_IDENTIFIER="${LUXONIS_OFFICIAL_IDENTIFIER:-true}"
 NEW_IDENTIFIER="${NEW_IDENTIFIER:-}"
 OAKCTL_HUB_TOKEN="${OAKCTL_HUB_TOKEN:-}"
 
@@ -75,6 +75,7 @@ fi
 
 echo "----- Using $OAKAPP_TOML -----"
 cat "$OAKAPP_TOML"
+echo
 echo "----- end of file -----"
 
 oakctl self-update -c beta # TODO: remove this extra flag when 0.17.3 is mainlined

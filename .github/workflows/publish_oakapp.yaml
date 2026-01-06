@@ -7,13 +7,8 @@ on:
         description: "Path to the example root containing oakapp.toml."
         type: string
         required: true
-      luxonis_official_identifier:
-        description: "Replace com.example with com.luxonis in the identifier."
-        type: boolean
-        default: true
-        required: false
       new_identifier:
-        description: "Override whole identifier value in oakapp.toml."
+        description: "Override whole identifier value in oakapp.toml. By default only `com.example` will be replaced by `com.luxonis`"
         type: string
         required: false
 
@@ -37,7 +32,6 @@ jobs:
       - name: Publish app via HIL runner
         env:
           ROOT_DIR: ${{ inputs.root_dir }}
-          LUXONIS_OFFICIAL: ${{ inputs.luxonis_official }}
           NEW_IDENTIFIER: ${{ inputs.new_identifier }}
           OAKCTL_HUB_TOKEN: ${{ secrets.OAKCTL_HUB_TOKEN }}
         run: |
@@ -45,7 +39,6 @@ jobs:
 
           ENV_VARS="\
             --env ROOT_DIR=$ROOT_DIR \
-            --env LUXONIS_OFFICIAL_IDENTIFIER=$LUXONIS_OFFICIAL_IDENTIFIER \
             --env NEW_IDENTIFIER=$NEW_IDENTIFIER \
             --env OAKCTL_HUB_TOKEN=$OAKCTL_HUB_TOKEN"
 

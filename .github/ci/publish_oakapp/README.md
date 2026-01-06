@@ -19,7 +19,7 @@ OAKCTL_HUB_TOKEN="your_token_here" \
 Optional environment variables:
 
 - `LUXONIS_OFFICIAL=true` to replace `com.example` with `com.luxonis`
-  on the `identifier` line.
+  on the `identifier` line. Defaults to `true`.
 - `NEW_IDENTIFIER="com.luxonis.myapp"` to override the `identifier`
   line (takes precedence over `LUXONIS_OFFICIAL`).
 
