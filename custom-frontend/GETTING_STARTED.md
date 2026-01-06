@@ -8,7 +8,7 @@ For a quick start you can clone the [raw-stream](./raw-stream) example and edit 
 
 For a more advanced example with AI inference and WebRTC, see [open-vocabulary-object-detection](./open-vocabulary-object-detection).
 
----
+______________________________________________________________________
 
 ## Building Your Own
 
@@ -21,6 +21,7 @@ This package is meant to be used inside a React application. We recommend using 
 Your `package.json` needs the following dependencies and scripts:
 
 **Dependencies:**
+
 ```json
 "dependencies": {
   "@luxonis/depthai-viewer-common": "^1.6.2",
@@ -37,6 +38,7 @@ Your `package.json` needs the following dependencies and scripts:
 ```
 
 **Scripts** (required for PandaCSS codegen):
+
 ```json
 "scripts": {
     "prepare": "panda coden",
@@ -51,6 +53,7 @@ Your `package.json` needs the following dependencies and scripts:
 See [package.json](./raw-stream/frontend/package.json) for a complete example.
 
 After setting up your `package.json`, run:
+
 ```bash
 npm install
 ```
@@ -97,11 +100,13 @@ import '@luxonis/depthai-viewer-common/styles';
 import '@luxonis/common-fe-components/styles';
 import '@luxonis/depthai-pipeline-lib/styles';
 ```
+
 See [main.tsx](./raw-stream/frontend/src/main.tsx) for a complete example.
 
 ### Configure Routing
 
 To access your app via the `luxonis.app` domain, you need to set the `basename` of your `BrowserRouter` to include the base path and app version from the URL.
+
 ```tsx
 function getBasePath(): string {
   return window.location.pathname.match(/^\/\d+\.\d+\.\d+\/$/)?.[0] ?? "";
@@ -177,16 +182,16 @@ function MyComponent() {
 }
 ```
 
-See [MessageInput.tsx](./raw-stream/frontend/src/MessageInput.tsx) for a working FE example.  
+See [MessageInput.tsx](./raw-stream/frontend/src/MessageInput.tsx) for a working FE example.\
 See [main.py](./raw-stream/main.py) custom_service function for a working BE example.
 
 ### Styling
 
 Since `@luxonis/common-fe-components` is dependent on PandaCSS it's a good idea to use this package in your project as
-well. It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started) and use the 
+well. It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started) and use the
 `css()` function imported from `styled-system/css/css.mjs` like it is done in [App.tsx](./raw-stream/frontend/src/App.tsx).
 
----
+______________________________________________________________________
 
 ## Known issues
 
