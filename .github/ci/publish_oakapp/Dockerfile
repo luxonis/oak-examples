@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     findutils \
     grep \
     sed \
+  && mkdir -p /etc/udev/rules.d \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp/oak-examples
