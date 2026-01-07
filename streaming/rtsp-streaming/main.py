@@ -7,6 +7,8 @@ _, args = initialize_argparser()
 
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
+visualizer = dai.RemoteConnection(httpPort=8082)
+
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
     cam = pipeline.create(dai.node.Camera).build()
@@ -26,5 +28,15 @@ with dai.Pipeline(device) as pipeline:
     node.inputs["stream"].setBlocking(True)
     node.inputs["stream"].setMaxSize(args.fps_limit)
 
+    visualizer.addTopic("Video", cam_out)
+
     print("Pipeline created. Watch the stream on rtsp://localhost:8554/preview")
-    pipeline.run()
+    pipeline.start()
+    visualizer.registerPipeline(pipeline)
+
+    while pipeline.isRunning():
+        pipeline.processTasks()
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key from the remote connection!")
+            break
