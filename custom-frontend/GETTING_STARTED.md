@@ -50,7 +50,6 @@ Your `package.json` needs the following dependencies and scripts:
 
 ```json
 "scripts": {
-    "prepare": "panda coden",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "biome check .",
@@ -61,10 +60,12 @@ Your `package.json` needs the following dependencies and scripts:
 
 See [package.json](./raw-stream/frontend/package.json) for a complete example.
 
-Before installing, disable scripts to avoid PandaCSS running before it is configured:
+> ⚠️ **Important:** Before installing, check that    `   "prepare": "panda coden"    ` script is NOT present in your `package.json` to avoid running it too early.
+
+Then install the dependencies:
 
 ```bash
-npm install --ignore-scripts
+npm i
 ```
 
 ### Configure PandaCSS
@@ -74,7 +75,7 @@ This library is dependent on our components lib - `@luxonis/common-fe-components
 **Initialize PandaCSS** in your project root:
 
 ```bash
-npx panda init
+npx panda init --postcss
 ```
 
 **Edit `panda.config.ts`** with the preset from our components lib:
@@ -93,7 +94,7 @@ export default defineConfig({
 
 See [panda.config.ts](./raw-stream/frontend/panda.config.ts)
 
-**Create `postcss.config.mjs`** (required for PandaCSS styles to compile correctly):
+**Retype `postcss.config.cjs` to `postcss.config.mjs` and update its content to following:**
 
 ```javascript
 export default {
@@ -105,25 +106,25 @@ export default {
 
 See [postcss.config.mjs](./raw-stream/frontend/postcss.config.mjs)
 
+After setting up PandaCSS, add coden script to your `package.json`:
+
+```json
+ "coden": "panda coden",
+```
+
 ### Global CSS Setup
 
 Luxonis frontend components rely on PandaCSS layered styles. The default Vite index.css must be replaced.
 
 **Update `index.css`:**
 
-Delete the default Vite content and add the following to `index.css`:
+Add this code to an `src/index.css` file imported in the root component of your project:
 
 ```css
 @layer reset, base, tokens, recipes, utilities;
 ```
 
-### Run installation scripts
-
-After configuring PandaCSS, run the installation scripts to set up the styles:
-
-```bash
-npm install
-```
+> **Note:** Feel free to remove src/App.css file as we don't need it anymore, and make sure to remove the import from the src/App.tsx file.
 
 ### Configure Vite
 
@@ -319,7 +320,7 @@ See [main.py](./raw-stream/main.py) custom_service function for a working BE exa
 
 Since `@luxonis/common-fe-components` is dependent on PandaCSS it's a good idea to use this package in your project as
 well. It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started) and use the
-`css()` function imported from `styled-system/css/css.mjs` like it is done in [App.tsx](./raw-stream/frontend/src/App.tsx).
+`css()` function imported from `styled-system/css` like it is done in [App.tsx](./raw-stream/frontend/src/App.tsx).
 
 ______________________________________________________________________
 
