@@ -49,18 +49,17 @@ Your `package.json` needs the following dependencies and scripts:
 **Scripts** (required for PandaCSS codegen):
 
 ```json
-"scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "preview": "vite preview"
-},
+ "scripts": {
+     "dev": "vite",
+     "build": "npm run styleGen && tsc -b && vite build",
+     "lint": "biome check .",
+     "lint:fix": "biome check --write .",
+     "preview": "vite preview",
+     "styleGen": "panda codegen"
+ }
 ```
 
 See [package.json](./raw-stream/frontend/package.json) for a complete example.
-
-> ⚠️ **Important:** Before installing, check that    `   "prepare": "panda coden"    ` script is NOT present in your `package.json` to avoid running it too early.
 
 Then install the dependencies:
 
@@ -94,24 +93,6 @@ export default defineConfig({
 
 See [panda.config.ts](./raw-stream/frontend/panda.config.ts)
 
-**Retype `postcss.config.cjs` to `postcss.config.mjs` and update its content to following:**
-
-```javascript
-export default {
-  plugins: {
-    '@pandacss/dev/postcss': {},
-  },
-}
-```
-
-See [postcss.config.mjs](./raw-stream/frontend/postcss.config.mjs)
-
-After setting up PandaCSS, add coden script to your `package.json`:
-
-```json
- "coden": "panda coden",
-```
-
 ### Global CSS Setup
 
 Luxonis frontend components rely on PandaCSS layered styles. The default Vite index.css must be replaced.
@@ -136,7 +117,7 @@ Your `vite.config.ts` needs the following settings:
 base: "",
 ```
 
-This makes asset paths relative instead of absolute, which is required when deploying to [Luxonis Hub](https://docs.luxonis.com/software-v3/oak-apps/).
+This makes asset paths relative instead of absolute, which is required when deploying to [Luxonis Hub](https://hub.luxonis.com).
 
 > ⚠️ **Important:** Avoid using paths starting with `/` anywhere in your code (e.g., `/images/logo.png`). Use relative paths instead (e.g., `./images/logo.png` or `images/logo.png`). Absolute paths will break when deployed to Luxonis Hub and cause cryptic errors or blank pages.
 
@@ -167,7 +148,7 @@ See [vite.config.ts](./raw-stream/frontend/vite.config.ts) for a complete exampl
 
 ### Configure TypeScript
 
-The Vite-generated TypeScript config files need to be replaced to work with Luxonis packages.
+> The Vite-generated TypeScript config files may need to be replaced to work with Luxonis packages. In case of build issues, please try replacing them with the following configurations.
 
 **Replace `tsconfig.app.json`:**
 
@@ -242,7 +223,7 @@ See [main.tsx](./raw-stream/frontend/src/main.tsx) for a complete example.
 
 ### Configure Routing
 
-To access your app via the `luxonis.app` domain, you need to set the `basename` of your `BrowserRouter` to include the base path and app version from the URL.
+To be able to host your app on Luxonis Hub, you need to set the `basename` of your `BrowserRouter` to include the base path and app version from the URL.
 
 ```tsx
 function getBasePath(): string {

@@ -4,12 +4,12 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"prepare": "panda coden",
 		"dev": "vite",
-		"build": "tsc -b && vite build",
+		"build": "npm run styleGen && tsc -b && vite build",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"preview": "vite preview"
+		"preview": "vite preview",
+        "styleGen": "panda codegen"
 	},
 	"dependencies": {
 		"@luxonis/depthai-viewer-common": "1.6.2",

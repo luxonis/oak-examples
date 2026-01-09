@@ -1,5 +1,5 @@
 
-import {css} from "../styled-system/css/css.mjs";
+import {css} from "../styled-system/css";
 import {Streams, useDaiConnection} from "@luxonis/depthai-viewer-common";
 import {MessageInput} from "./MessageInput.tsx";
 
