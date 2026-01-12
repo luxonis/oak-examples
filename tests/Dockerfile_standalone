@@ -27,20 +27,15 @@ WORKDIR /tmp/oak-examples
 # Define the entrypoint script
 ENTRYPOINT ["sh", "-c", "\
     set -e && \
-    echo 'Syncing container clock...' && \
-    if command -v ntpdate >/dev/null 2>&1; then \
-        ntpdate -u pool.ntp.org || true; \
-    elif command -v ntpsec-ntpdate >/dev/null 2>&1; then \
-        ntpsec-ntpdate -qu pool.ntp.org || true; \
-    else \
-        echo 'No ntpdate/ntpsec-ntpdate available; skipping.'; \
-    fi && \
+    echo 'Forcing container clock to Unix epoch...' && \
+    date -s '@0' || date -s '1970-01-01 00:00:00' && \
+    date && \
     if [ -z \"$PLATFORM\" ]; then \
         echo 'Error: PLATFORM environment variable is required' && exit 1; \
     fi && \
     echo 'Installing dependencies...' && \
     pip install --no-cache-dir -r tests/requirements.txt && \
-    /root/.local/share/oakctl/oakctl self-update -v $(/root/.local/share/oakctl/oakctl version) &&\
+    /root/.local/share/oakctl/oakctl self-update -v $(/root/.local/share/oakctl/oakctl version) && \
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
         --depthai-version=${DAI_VERSION} \
