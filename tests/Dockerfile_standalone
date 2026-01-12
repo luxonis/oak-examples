@@ -16,6 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     udev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libfaketime \
+    && rm -rf /var/lib/apt/lists/*
     
 # Copy your project files into the container
 # If running inside GH Actions/HIL syncs, files are mounted; otherwise copy.
@@ -24,11 +28,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Setup Test Command
 WORKDIR /tmp/oak-examples
 
-# Define the entrypoint script
 ENTRYPOINT ["sh", "-c", "\
     set -e && \
-    echo 'Forcing container clock to Unix epoch...' && \
-    date -s '@0' || date -s '1970-01-01 00:00:00' && \
+    echo 'Faking time to Unix epoch...' && \
+    export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1 && \
+    export FAKETIME='1970-01-01 00:00:00' && \
     date && \
     if [ -z \"$PLATFORM\" ]; then \
         echo 'Error: PLATFORM environment variable is required' && exit 1; \
