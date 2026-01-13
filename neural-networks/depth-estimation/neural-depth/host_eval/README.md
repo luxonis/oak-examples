@@ -12,11 +12,10 @@ Download the Middlebury 2014 stereo dataset using the provided utility:
 
 ```bash
 cd utils
-python middlebury_download.py
+python middlebury_download.py --calibration {perfect,imperfect} --max_scenes <N> --output <path>
 ```
 
 This creates a `data/` folder with `perfect/` and `imperfect/` subfolders containing scene directories.
-All 23 scenes with ground truth disparity are downloaded and used, if you need only 10 train scenes filtering is needed.
 
 The `StereoDataSample` class in `utils/utils.py` is designed for the Middlebury dataset format (left: `im0.png`, right: `im1.png`, ground truth: `disp0.pfm`). Modify it to support other stereo dataset formats.
 

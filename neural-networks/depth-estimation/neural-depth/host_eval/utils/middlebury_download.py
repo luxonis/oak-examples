@@ -1,11 +1,12 @@
 import os
 import requests
 import zipfile
+import argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 
-def download_and_process_zips(target_url, download_root_folder):
+def download_and_process_zips(target_url, download_root_folder, calibration=None, max_scenes=None):
     try:
         response = requests.get(target_url)
         response.raise_for_status()
@@ -21,7 +22,19 @@ def download_and_process_zips(target_url, download_root_folder):
         print("No zip files found on the page.")
         return
 
-    print(f"Found {len(links)} zip files. Starting process...\n")
+    if calibration:
+        filtered_links = []
+        for link in links:
+            if 'imperfect.zip' in link and 'imperfect' in calibration:
+                filtered_links.append(link)
+            elif 'perfect.zip' in link and 'perfect' in calibration:
+                filtered_links.append(link)
+        links = filtered_links
+
+    if max_scenes:
+        links = links[:max_scenes]
+
+    print(f"Found {len(links)} zip files to download. Starting process...\n")
 
     for link in links:
         filename = os.path.basename(link)
@@ -60,7 +73,12 @@ def download_and_process_zips(target_url, download_root_folder):
 
 
 if __name__ == "__main__":
-    URL = "https://vision.middlebury.edu/stereo/data/scenes2014/zip/"
-    OUTPUT_FOLDER = "../data"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--calibration', nargs='+', choices=['perfect', 'imperfect'], default=['perfect', 'imperfect'])
+    parser.add_argument('--max_scenes', type=int, default=None)
+    parser.add_argument('--output', type=str, default='../data')
+    args = parser.parse_args()
 
-    download_and_process_zips(URL, OUTPUT_FOLDER)
+    URL = "https://vision.middlebury.edu/stereo/data/scenes2014/zip/"
+
+    download_and_process_zips(URL, args.output, calibration=args.calibration, max_scenes=args.max_scenes)
