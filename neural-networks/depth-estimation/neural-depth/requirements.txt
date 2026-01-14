@@ -1,0 +1,2 @@
+depthai==3.2.1
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@1b1dd7953feeaff1ca1a8c2234c532704b167d5f

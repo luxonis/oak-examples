@@ -1,7 +1,5 @@
-depthai==3.1.0.dev0+c4f1d11675fede1a1e58916d39461deea4448ec2
-depthai-nodes==0.3.4
-depthai-pipeline-graph==0.0.5
-depthai-sdk==1.9.4
 beautifulsoup4==4.12.3
-opencv-contrib-python==4.12.0.88
-opencv-python-headless==4.12.0.88
+depthai==3.2.1
+numpy
+opencv-python~=4.10.0
+requests
