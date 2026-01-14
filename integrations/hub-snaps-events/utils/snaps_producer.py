@@ -42,11 +42,12 @@ class SnapsProducer(dai.node.HostNode):
             return
 
         if time.time() - self._last_sent >= self._time_interval:
+            file_group = dai.FileGroup()
+            file_group.addImageDetectionsPair(
+                None, frame, detections)
             snap = SnapData(
                 snap_name="test_snap",
-                file_name=None,
-                frame=frame,
-                detections=detections,
+                file_group=file_group,
                 tags=["test_tag"],
                 extras={"extra_key": "extra_value"},
             )
