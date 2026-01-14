@@ -2,6 +2,8 @@
 
 This example showcases [Luxonis NeuralDepth](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/neural_depth/) model running on RVC4 device.
 
+If you are interested in evaluating the model on existing dataset (e.g. Middlebury Stereo dataset) please refer to the [`host_eval`](host_eval/README.md) code.
+
 > **Note:** RVC4 device only.
 
 ## Demo
