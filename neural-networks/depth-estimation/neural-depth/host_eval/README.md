@@ -9,7 +9,7 @@ Images are resized with preserved aspect ratio and padded to evaluation size 800
 
 ## Prerequisites
 
-First you have to make sure evaluation dataset is downloaded. In this example we use the `Middlebury 2024 stereo dataset` and you can download it by running:
+First you have to make sure evaluation dataset is downloaded. In this example we use the [Middlebury 2024 stereo dataset](https://vision.middlebury.edu/stereo/data/scenes2014/) and you can download it by running:
 
 ```bash
 cd utils
