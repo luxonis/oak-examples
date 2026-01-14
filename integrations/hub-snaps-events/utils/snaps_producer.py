@@ -43,8 +43,7 @@ class SnapsProducer(dai.node.HostNode):
 
         if time.time() - self._last_sent >= self._time_interval:
             file_group = dai.FileGroup()
-            file_group.addImageDetectionsPair(
-                None, frame, detections)
+            file_group.addImageDetectionsPair(None, frame, detections)
             snap = SnapData(
                 snap_name="test_snap",
                 file_group=file_group,

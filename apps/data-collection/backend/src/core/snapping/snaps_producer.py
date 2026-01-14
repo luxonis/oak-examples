@@ -47,8 +47,7 @@ class SnapsProducer(dai.node.HostNode):
                 continue
             file_name = f"{cond.name}_{int(time.time())}"
             file_group = dai.FileGroup()
-            file_group.addImageDetectionsPair(
-                file_name, frame, detections)
+            file_group.addImageDetectionsPair(file_name, frame, detections)
             snap = SnapData(
                 snap_name=cond.name,
                 file_group=file_group,
