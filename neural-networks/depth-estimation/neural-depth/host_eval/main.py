@@ -84,112 +84,114 @@ def visualize_disparity(disp, max_disparity, metrics=None):
     return disp_colored
 
 
-_, args = initialize_argparser()
+if __name__ == "__main__":
 
-eval_size = (800, 1280)  # fixed at sensor max resolution
-model_zoo_id, inference_size = MODEL_VARIANT_MAP[args.model]
-max_disparity = 192.0
-border_erase_pixels = 10  # clean pointcloud border regions
-conf_threshold = 0.55
-edge_threshold = 6.0
+    _, args = initialize_argparser()
 
-output_dir = Path(args.output)
-output_dir.mkdir(parents=True, exist_ok=True)
+    eval_size = (800, 1280)  # fixed at sensor max resolution
+    model_zoo_id, inference_size = MODEL_VARIANT_MAP[args.model]
+    max_disparity = 192.0
+    border_erase_pixels = 10  # clean pointcloud border regions
+    conf_threshold = 0.55
+    edge_threshold = 6.0
 
-scenes = parse_scenes(args.dataset)
-print(f"Found {len(scenes)} scenes")
+    output_dir = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-device = dai.Device(dai.DeviceInfo(args.device_ip))
-all_metrics = []
+    scenes = parse_scenes(args.dataset)
+    print(f"Found {len(scenes)} scenes")
 
-with dai.Pipeline(device) as pipeline:
-    print("Creating pipeline...")
-    neural_depth = pipeline.create(dai.node.NeuralNetwork)
-    neural_depth.setModelFromDeviceZoo(model_zoo_id)
+    device = dai.Device(dai.DeviceInfo(args.device_ip))
+    all_metrics = []
 
-    left_queue = neural_depth.inputs["left"].createInputQueue(maxSize=1)
-    right_queue = neural_depth.inputs["right"].createInputQueue(maxSize=1)
-    out_queue = neural_depth.out.createOutputQueue(maxSize=1)
-    print("Pipeline created.")
+    with dai.Pipeline(device) as pipeline:
+        print("Creating pipeline...")
+        neural_depth = pipeline.create(dai.node.NeuralNetwork)
+        neural_depth.setModelFromDeviceZoo(model_zoo_id)
 
-    pipeline.start()
+        left_queue = neural_depth.inputs["left"].createInputQueue(maxSize=1)
+        right_queue = neural_depth.inputs["right"].createInputQueue(maxSize=1)
+        out_queue = neural_depth.out.createOutputQueue(maxSize=1)
+        print("Pipeline created.")
 
-    for idx, scene in enumerate(scenes):
-        print(f"\n[{idx + 1}/{len(scenes)}] {scene['name']}")
+        pipeline.start()
 
-        sample = StereoDataSample(
-            left_path=scene["left"],
-            right_path=scene["right"],
-            eval_size=eval_size,
-            inference_size=inference_size,
-            gt_path=scene["gt"],
-            to_gray=True,
-            max_disparity=max_disparity,
-            padding_mode="center",
-            border_erase_pixels=border_erase_pixels,
-        )
+        for idx, scene in enumerate(scenes):
+            print(f"\n[{idx + 1}/{len(scenes)}] {scene['name']}")
 
-        left_img, right_img = sample.get_inference_inputs()
-        left_uint8 = left_img.astype(np.uint8).squeeze()
-        right_uint8 = right_img.astype(np.uint8).squeeze()
-
-        left_frame = create_img_frame(left_uint8, sequence_num=idx)
-        right_frame = create_img_frame(right_uint8, sequence_num=idx)
-
-        left_queue.send(left_frame)
-        right_queue.send(right_frame)
-
-        frame = out_queue.get()
-
-        disp = np.array(frame.getTensor("disparity", dequantize=True), dtype=np.float32)
-        disp_bchw = disp.reshape(1, 1, disp.shape[1], disp.shape[2])
-
-        conf = np.array(
-            frame.getTensor("confidence", dequantize=True), dtype=np.float32
-        )
-        conf_bchw = conf.reshape(1, 1, conf.shape[1], conf.shape[2])
-
-        edge = np.array(frame.getTensor("edge", dequantize=True), dtype=np.float32)
-        edge_bchw = edge.reshape(1, 1, edge.shape[1], edge.shape[2])
-
-        sample.set_predictions(
-            disp_bchw, conf_bchw, edge_bchw, conf_threshold, edge_threshold
-        )
-
-        disp_vis, _, _ = sample.get_predictions(target="eval", strip_padding=True)
-
-        metrics = None
-        if scene["gt"]:
-            metrics = sample.compute_metrics(target="eval", strip_padding=True)
-            all_metrics.append(metrics)
-            print(
-                "  EPE={:.3f}, bad2={:.1f}%, bad4={:.1f}%, density={:.2f}".format(
-                    metrics["EPE"],
-                    metrics["bad2"],
-                    metrics["bad4"],
-                    metrics["density"],
-                )
+            sample = StereoDataSample(
+                left_path=scene["left"],
+                right_path=scene["right"],
+                eval_size=eval_size,
+                inference_size=inference_size,
+                gt_path=scene["gt"],
+                to_gray=True,
+                max_disparity=max_disparity,
+                padding_mode="center",
+                border_erase_pixels=border_erase_pixels,
             )
 
-        scene_dir = output_dir / scene["name"]
-        scene_dir.mkdir(exist_ok=True)
+            left_img, right_img = sample.get_inference_inputs()
+            left_uint8 = left_img.astype(np.uint8).squeeze()
+            right_uint8 = right_img.astype(np.uint8).squeeze()
 
-        vis = visualize_disparity(disp_vis, max_disparity, metrics)
-        cv2.imwrite(str(scene_dir / "disparity.png"), vis)
+            left_frame = create_img_frame(left_uint8, sequence_num=idx)
+            right_frame = create_img_frame(right_uint8, sequence_num=idx)
 
-    pipeline.stop()
+            left_queue.send(left_frame)
+            right_queue.send(right_frame)
 
-if all_metrics:
-    print(f"\n{'=' * 60}")
-    print("AVERAGE METRICS")
-    print(f"{'=' * 60}")
-    avg = {k: np.mean([m[k] for m in all_metrics]) for k in all_metrics[0].keys()}
-    print(f"EPE: {avg['EPE']:.3f}")
-    print(f"Bad1: {avg['bad1']:.2f}%")
-    print(f"Bad2: {avg['bad2']:.2f}%")
-    print(f"Bad3: {avg['bad3']:.2f}%")
-    print(f"Bad4: {avg['bad4']:.2f}%")
-    print(f"Density: {avg['density']:.2f}")
-    print(f"{'=' * 60}")
+            frame = out_queue.get()
 
-print(f"\nResults saved to: {output_dir}")
+            disp = np.array(frame.getTensor("disparity", dequantize=True), dtype=np.float32)
+            disp_bchw = disp.reshape(1, 1, disp.shape[1], disp.shape[2])
+
+            conf = np.array(
+                frame.getTensor("confidence", dequantize=True), dtype=np.float32
+            )
+            conf_bchw = conf.reshape(1, 1, conf.shape[1], conf.shape[2])
+
+            edge = np.array(frame.getTensor("edge", dequantize=True), dtype=np.float32)
+            edge_bchw = edge.reshape(1, 1, edge.shape[1], edge.shape[2])
+
+            sample.set_predictions(
+                disp_bchw, conf_bchw, edge_bchw, conf_threshold, edge_threshold
+            )
+
+            disp_vis, _, _ = sample.get_predictions(target="eval", strip_padding=True)
+
+            metrics = None
+            if scene["gt"]:
+                metrics = sample.compute_metrics(target="eval", strip_padding=True)
+                all_metrics.append(metrics)
+                print(
+                    "  EPE={:.3f}, bad2={:.1f}%, bad4={:.1f}%, density={:.2f}".format(
+                        metrics["EPE"],
+                        metrics["bad2"],
+                        metrics["bad4"],
+                        metrics["density"],
+                    )
+                )
+
+            scene_dir = output_dir / scene["name"]
+            scene_dir.mkdir(exist_ok=True)
+
+            vis = visualize_disparity(disp_vis, max_disparity, metrics)
+            cv2.imwrite(str(scene_dir / "disparity.png"), vis)
+
+        pipeline.stop()
+
+    if all_metrics:
+        print(f"\n{'=' * 60}")
+        print("AVERAGE METRICS")
+        print(f"{'=' * 60}")
+        avg = {k: np.mean([m[k] for m in all_metrics]) for k in all_metrics[0].keys()}
+        print(f"EPE: {avg['EPE']:.3f}")
+        print(f"Bad1: {avg['bad1']:.2f}%")
+        print(f"Bad2: {avg['bad2']:.2f}%")
+        print(f"Bad3: {avg['bad3']:.2f}%")
+        print(f"Bad4: {avg['bad4']:.2f}%")
+        print(f"Density: {avg['density']:.2f}")
+        print(f"{'=' * 60}")
+
+    print(f"\nResults saved to: {output_dir}")
