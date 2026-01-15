@@ -35,7 +35,7 @@ with dai.Pipeline(device) as pipeline:
     rightOutput = cameraRight.requestFullResolutionOutput()
 
     neuralDepth = pipeline.create(dai.node.NeuralDepth).build(
-        leftOutput, rightOutput, dai.DeviceModelZoo.NEURAL_DEPTH_LARGE
+        leftOutput, rightOutput, args.model
     )
 
     manual_cam_control = pipeline.create(ManualCameraControl).build(

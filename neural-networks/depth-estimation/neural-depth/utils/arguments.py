@@ -1,4 +1,5 @@
 import argparse
+import depthai as dai
 
 
 def initialize_argparser():
@@ -36,5 +37,11 @@ def initialize_argparser():
     )
 
     args = parser.parse_args()
-
+    MODEL_VARIANT_MAP = {
+        "NANO": dai.DeviceModelZoo.NEURAL_DEPTH_NANO,
+        "SMALL": dai.DeviceModelZoo.NEURAL_DEPTH_SMALL,
+        "MEDIUM": dai.DeviceModelZoo.NEURAL_DEPTH_MEDIUM,
+        "LARGE": dai.DeviceModelZoo.NEURAL_DEPTH_LARGE,
+    }
+    args.model = MODEL_VARIANT_MAP[args.model]
     return parser, args
