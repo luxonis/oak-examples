@@ -119,6 +119,10 @@ KNOWN_FAILING = {
         "reason": "Model only available for RVC4",
         "rules": {"and": [{"platform": ["rvc2"]}]},
     },
+    "neural-networks/depth-estimation/neural-depth/host_eval": {
+        "reason": "Validation script, not an actual example",
+        "rules": {"and": [{"platform": "all"}]},
+    },
     "integrations/hub-snaps-events": {
         "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method",
         "rules": {"and": [{"platform": "all"}]},
