@@ -93,8 +93,7 @@ KNOWN_FAILING = {
     },
     "integrations/roboflow-workflow": {
         "reason": "Can't run without arguments Roboflow arguments",
-        "mode": "all",
-        "platform": "all",
+        "rules": {"and": [{"platform": "all"}]},
     },
     "neural-networks/speech-recognition/whisper-tiny-en": {
         "reason": "Complex example, works only on RVC4",
@@ -115,6 +114,10 @@ KNOWN_FAILING = {
     "neural-networks/depth-estimation/foundation-stereo": {
         "reason": "Requires a lot of host compute to run. No matching distribution found for onnxruntime-gpu>=1.19.0 for MacOS",
         "rules": {"or": [{"mode": ["standalone"]}, {"os": ["mac"]}]},
+    },
+    "neural-networks/depth-estimation/neural-depth": {
+        "reason": "Model only available for RVC4",
+        "rules": {"and": [{"platform": ["rvc4"]}]},
     },
     "integrations/hub-snaps-events": {
         "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method",
