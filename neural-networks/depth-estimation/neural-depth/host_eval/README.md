@@ -78,13 +78,13 @@ For each scene, the pipeline generates:
 
 ### Metrics
 
-| - | EPE | Bad2 | Bad4 |
-|--------|-----|------|------|
-| Middlebury 2014 (train 10 scenes) / perfect / SNPE v2.32.0 | 1.55 | 12.45 | 5.56 |
-| Middlebury 2014 (train 10 scenes) / imperfect / SNPE v2.32.0 | 1.62 | 13.22 | 5.42 |
-| Middlebury 2014 (train + additional 23 scenes) / perfect / SNPE v2.32.0  | 1.374 | 10.36 | 4.29 |
-| Middlebury 2014 (train + additional 23 scenes) / imperfect / SNPE v2.32.0 | 1.44 | 11.03 | 4.48 |
-| Middlebury 2014 (train + additional 23 scenes) / perfect / SNPE v2.33.6 | 1.15 | 8.09 | 2.9 |
+| -                                                                         | EPE   | Bad2  | Bad4 |
+| ------------------------------------------------------------------------- | ----- | ----- | ---- |
+| Middlebury 2014 (train 10 scenes) / perfect / SNPE v2.32.0                | 1.55  | 12.45 | 5.56 |
+| Middlebury 2014 (train 10 scenes) / imperfect / SNPE v2.32.0              | 1.62  | 13.22 | 5.42 |
+| Middlebury 2014 (train + additional 23 scenes) / perfect / SNPE v2.32.0   | 1.374 | 10.36 | 4.29 |
+| Middlebury 2014 (train + additional 23 scenes) / imperfect / SNPE v2.32.0 | 1.44  | 11.03 | 4.48 |
+| Middlebury 2014 (train + additional 23 scenes) / perfect / SNPE v2.33.6   | 1.15  | 8.09  | 2.9  |
 
 ## Comments on choices of post-processing:
 

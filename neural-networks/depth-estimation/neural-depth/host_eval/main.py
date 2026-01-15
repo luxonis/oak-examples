@@ -85,7 +85,6 @@ def visualize_disparity(disp, max_disparity, metrics=None):
 
 
 if __name__ == "__main__":
-
     _, args = initialize_argparser()
 
     eval_size = (800, 1280)  # fixed at sensor max resolution
@@ -143,7 +142,9 @@ if __name__ == "__main__":
 
             frame = out_queue.get()
 
-            disp = np.array(frame.getTensor("disparity", dequantize=True), dtype=np.float32)
+            disp = np.array(
+                frame.getTensor("disparity", dequantize=True), dtype=np.float32
+            )
             disp_bchw = disp.reshape(1, 1, disp.shape[1], disp.shape[2])
 
             conf = np.array(
