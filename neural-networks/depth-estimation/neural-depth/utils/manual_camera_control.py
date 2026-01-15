@@ -6,11 +6,6 @@ class ManualCameraControl(dai.node.HostNode):
         super().__init__()
         self.control_queue = None
         self.current_config = dai.NeuralDepthConfig()
-        # self.out = self.createOutput(
-        #     possibleDatatypes=[
-        #         dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgAnnotations, True)
-        #     ]
-        # )
 
     def build(
         self, frame: dai.Node.Output, control_queue: dai.Node.Input
