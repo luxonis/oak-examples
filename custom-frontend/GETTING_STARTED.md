@@ -1,26 +1,53 @@
 # Building a Custom Frontend for DepthAI
 
-Build your own React UI to visualize camera streams from OAK devices using the `@luxonis/depthai-viewer-common` library.
+This guide walks you through setting up a React frontend that displays live camera streams from OAK devices and communicates with your Python backend. By the end, you'll have a working development environment ready to customize.
 
-## Quick Start
+### Prerequisites
 
-For a quick start you can clone the [raw-stream](./raw-stream) example and edit it to your needs
+- Node.js and npm installed
+- Python with DepthAI SDK installed
+- An OAK device (for testing)
 
-For a more advanced example with AI inference and WebRTC, see [open-vocabulary-object-detection](./open-vocabulary-object-detection).
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Starting From Scratch](#starting-from-scratch)
+  - [Project Setup](#project-setup)
+  - [Build Your Frontend](#build-your-frontend)
+- [Run the Application](#run-the-application)
+  - [Peripheral Mode](#peripheral-mode)
+  - [Standalone Mode (RVC4 only)](#standalone-mode-rvc4-only)
+- [What's Next](#whats-next)
+- [Known Issues](#known-issues)
 
 ______________________________________________________________________
 
-## Building Your Own
+# Quick Start
 
-### Prepare Your Project
+If you want to skip setup and start modifying a working app immediately,
+clone the [`raw-stream`](./raw-stream) example.
 
-This package is meant to be used inside a React application. We recommend using [Vite](https://vite.dev/guide/) to scaffold your project with the `react-ts` template.
+For a more advanced reference featuring AI inference, WebRTC,
+and richer UI patterns, see
+[`open-vocabulary-object-detection`](./open-vocabulary-object-detection).
+
+______________________________________________________________________
+
+# Starting From Scratch
+
+## Project Setup
+
+### Create a React + TypeScript Project
+
+`@luxonis/depthai-viewer-common` library provides React components and hooks to build a custom frontend for DepthAI applications with ease.
+
+We recommend using [Vite](https://vite.dev/guide/) to scaffold your project with the `react-ts` template.
 
 ```bash
 npm create vite@latest frontend -- --template react-ts
 ```
 
-### Install Dependencies
+### Declare and Install Dependencies
 
 Your `package.json` needs the following dependencies and scripts:
 
@@ -67,9 +94,18 @@ Then install the dependencies:
 npm i
 ```
 
+> ⚠️ **React version requirement**
+>
+> `@luxonis/depthai-viewer-common` currently supports **React 18.x only**.
+> Do not upgrade to React 19, as it will cause dependency resolution failures.
+
 ### Configure PandaCSS
 
-This library is dependent on our components lib - `@luxonis/common-fe-components`. To use this library you have to use [PandaCSS](https://panda-css.com/).
+Shared Luxonis UI components are built on
+`@luxonis/common-fe-components`, which depends on PandaCSS for
+tokens, recipes, and layered styles.
+
+To use these components, [PandaCSS](https://panda-css.com/) is required.
 
 **Initialize PandaCSS** in your project root:
 
@@ -77,9 +113,12 @@ This library is dependent on our components lib - `@luxonis/common-fe-components
 npx panda init --postcss
 ```
 
-**Edit `panda.config.ts`** with the preset from our components lib:
+**Edit `panda.config.ts`** with the preset from our style lib:
 
 ```typescript
+import { defineConfig, defineGlobalStyles } from "@pandacss/dev";
+import { pandaPreset } from "@luxonis/common-fe-components";
+
 export default defineConfig({
   presets: [pandaPreset],
   preflight: true,
@@ -89,23 +128,10 @@ export default defineConfig({
   outdir: "styled-system",
   forceConsistentTypeExtension: true,
 });
+
 ```
 
 See [panda.config.ts](./raw-stream/frontend/panda.config.ts)
-
-### Global CSS Setup
-
-Luxonis frontend components rely on PandaCSS layered styles. The default Vite index.css must be replaced.
-
-**Update `index.css`:**
-
-Add this code to an `src/index.css` file imported in the root component of your project:
-
-```css
-@layer reset, base, tokens, recipes, utilities;
-```
-
-> **Note:** Feel free to remove src/App.css file as we don't need it anymore, and make sure to remove the import from the src/App.tsx file.
 
 ### Configure Vite
 
@@ -122,6 +148,9 @@ This makes asset paths relative instead of absolute, which is required when depl
 > ⚠️ **Important:** Avoid using paths starting with `/` anywhere in your code (e.g., `/images/logo.png`). Use relative paths instead (e.g., `./images/logo.png` or `images/logo.png`). Absolute paths will break when deployed to Luxonis Hub and cause cryptic errors or blank pages.
 
 #### FoxGlove compatibility
+
+Some Luxonis tooling assumes a `global` object to exist.
+Vite does not define this by default, so it must be added explicitly.
 
 ```
 define: {
@@ -148,7 +177,7 @@ See [vite.config.ts](./raw-stream/frontend/vite.config.ts) for a complete exampl
 
 ### Configure TypeScript
 
-> The Vite-generated TypeScript config files may need to be replaced to work with Luxonis packages. In case of build issues, please try replacing them with the following configurations.
+Replace Vite-generated TypeScript config files with the following configurations to ensure compatibility with Luxonis packages
 
 **Replace `tsconfig.app.json`:**
 
@@ -209,6 +238,27 @@ See [tsconfig.app.json](./raw-stream/frontend/tsconfig.app.json)
 
 See [tsconfig.node.json](./raw-stream/frontend/tsconfig.node.json)
 
+______________________________________________________________________
+
+## Build Your Frontend
+
+### Global CSS Setup
+
+Luxonis frontend components rely on PandaCSS layered styles. The default Vite index.css must be replaced.
+
+**Update `index.css`:**
+
+Add this code to an `src/index.css` file imported in the root component of your project:
+
+```css
+@layer reset, base, tokens, recipes, utilities;
+```
+
+This enables PandaCSS layered styles and prevents style ordering issues
+in Luxonis UI components.
+
+> **Note:** Feel free to remove src/App.css file as we don't need it anymore, and make sure to remove the import from the src/App.tsx file.
+
 ### Import Styles
 
 In your application entrypoint, import styles in this order:
@@ -224,6 +274,8 @@ See [main.tsx](./raw-stream/frontend/src/main.tsx) for a complete example.
 ### Configure Routing
 
 To be able to host your app on Luxonis Hub, you need to set the `basename` of your `BrowserRouter` to include the base path and app version from the URL.
+
+`DepthAIContext` manages the WebSocket connection to your backend and provides it to child components via React context.
 
 ```tsx
 function getBasePath(): string {
@@ -241,20 +293,31 @@ See [main.tsx](./raw-stream/frontend/src/main.tsx) for a complete example.
 
 ### Displaying Streams
 
-Use the `Streams` component to display all topics published by your backend:
+Video streams are the core of most DepthAI applications. They are registered in your Python backend and can be displayed in the frontend using the `Streams` component.
 
 ```tsx
 import { Streams } from "@luxonis/depthai-viewer-common";
 ```
 
-The component automatically renders all streams added via `visualizer.addTopic()` in your Python backend:
+This component automatically renders all streams added via `visualizer.addTopic()` in your Python backend:
 
 ```python
 # Backend: add a stream topic
 visualizer.addTopic("RGB Camera", rgb_output)
 ```
 
-For more streams customization please check Streams component attributes
+If your backend publishes multiple topics, use `defaultTopics` to set the initial stream and `allowedTopics` to restrict which streams are available. The frontend will display a toolbar for switching between them.
+
+```tsx
+       <Streams
+          defaultTopics={defaultTopics}
+          allowedTopics={allowedTopics}
+        />
+```
+
+> **Note:** Topic names must match exactly between frontend and backend.
+
+See the Streams component API reference for additional customization options.
 
 ### Sending Messages to Backend
 
@@ -289,47 +352,133 @@ function MyComponent() {
   };
 
     return (
-            <Button onClick={handleSendMessage}>Send</Button>
+            <Button onClick={sendMessage}>Send</Button>
     );
 }
 ```
 
-See [MessageInput.tsx](./raw-stream/frontend/src/MessageInput.tsx) for a working FE example.\
-See [main.py](./raw-stream/main.py) custom_service function for a working BE example.
+See [MessageInput.tsx](./raw-stream/frontend/src/MessageInput.tsx) for a working frontend example.\
+See [main.py](./raw-stream/main.py) custom_service function for a working backend example.
 
 ### Styling
 
-Since `@luxonis/common-fe-components` is dependent on PandaCSS it's a good idea to use this package in your project as
-well. It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started) and use the
+Since `@luxonis/common-fe-components` depends on PandaCSS, it is recommended to use PandaCSS directly in your project
+as well. It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started) and use the
 `css()` function imported from `styled-system/css` like it is done in [App.tsx](./raw-stream/frontend/src/App.tsx).
 
 ______________________________________________________________________
 
-## Run the Frontend
+# Run the application
 
-The FE library automatically connects to `ws://localhost:8765`. If unavailable, a connection dialog will prompt for the URL.
+The frontend library automatically connects to `ws://localhost:8765`. If unavailable, a connection dialog will prompt for the URL.
+
+On OAK devices, we can run the application in two modes: Peripheral and Standalone.
 
 ### Peripheral Mode
 
-You need the dependencies installed as described in the [Install-Dependencies](#Install-Dependencies).
-Afterward you need to build the frontend in the frontend root directory:
+In Peripheral mode, the backend application runs on your host machine and connects to the device over the network.
+To run the app in this mode you need the dependencies installed as described in the [Install-Dependencies](#declare-and-install-dependencies).
+
+There are two ways to run in Peripheral mode: using Vite's preview server, or using a custom Python server.
+
+#### Vite Preview Server
+
+To run it with Vite's preview server, first build and start frontend in the preview mode with:
 
 ```bash
-npm run build
+npm run build && npm run preview
 ```
 
-Then you can run the backend application with:
+Then you can run the backend application from another terminal tab with:
 
 ```bash
 python main.py
 ```
 
+This will run the example, and you’ll be able to access the frontend by opening the URL shown in terminal (e.g., `http://localhost:4173`).
+
+#### Python Server
+
+Another way of running the application in peripheral mode is by starting the frontend using a Python server that serves the built files.
+Example of the server that does that can be found in the [raw-stream/frontend_server.py](./raw-stream/frontend_server.py).
+
+This approach is useful when you want the backend to control both
+the device connection and static frontend serving.
+
+In such case you need to first build the frontend with:
+
+```bash
+npm run build
+```
+
+Then you can run the backend and frontend server with:
+
+```bash
+python main.py
+```
+
+This will run the example, and you’ll be able to access the frontend by opening the URL shown in terminal (e.g., `http://localhost:8082`).
+
+> **Note:** Make sure that the frontend is built before running the python server and that path to the built files is correctly passed to the server.
+
 ### Standalone Mode (RVC4 only)
 
-Running the example in the standalone mode, app runs entirely on the device.
-To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+In Standalone Mode, the application runs entirely on the device.
+To run the application in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
-The app can then be run with:
+Standalone mode requires an `oakapp.toml` file, which defines how
+your application is built and executed on the device.
+
+#### Configure oakapp.toml
+
+This file defines app metadata, build steps, and how your frontend is served.
+
+Create an `oakapp.toml` file with the following content:
+
+```toml
+# (Required) App Identifier
+identifier = "com.luxonis.python_demo"
+# (Required) App Entrypoint
+entrypoint = ["bash", "-c", "python3 /app/main.py"]
+
+# (Optional) Prepare container commands
+# Here is the place where you can install all the dependencies that are needed at run-time
+prepare_container = [
+    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
+    { type = "RUN", command = "apt-get update" },
+    { type = "RUN", command = "apt-get install -y python3-pip" },
+    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
+]
+
+# (Optional) Prepare build dependencies
+# Here is the place where you can install all the dependencies that are needed at build-time
+prepare_build_container = [
+    # Example: npm, gcc, ...
+]
+
+# (Optional) Additional commands after all the app files are copied to the container
+build_steps = []
+
+# Static Frontend path
+[static_frontend]
+dist_path = "./frontend/dist"
+
+# Frontend Build Steps
+[static_frontend.build]
+source_path = "./frontend"
+steps = ["bash -c 'cd /app/frontend && npm install && npm run build'"]
+
+```
+
+See the [oakapp.toml configuration reference](https://docs.luxonis.com/software-v3/oak-apps/configuration) for all available options.
+
+> ***Note:*** For DepthAI OAK Apps, we recommend our [Base Image](https://docs.luxonis.com/software-v3/oak-apps/base-image/) that includes most of the dependencies you may need.
+
+Complete example of `oakapp.toml` with the Base Image can be found in [here](./open-vocabulary-object-detection/oakapp.toml).
+
+#### Run the App
+
+After the configuration is done, you can connect to your device and run the app with:
 
 ```bash
 oakctl connect <DEVICE_IP>
@@ -340,17 +489,26 @@ oakctl app run .
 
 When developing the frontend, you can run it locally while the backend runs on the device. This avoids rebuilding and redeploying the entire container for every frontend change, saving significant development time.
 
-1. **Start the backend on the device** (as shown above)
+1. **In oakapp.toml**, comment out all the frontend-related sections to prevent building and serving the frontend from the device.
 
-#### In another terminal tab
+   > This prevents the device from serving its own frontend while you use the local one.
 
-2. **Find your device IP:**
+2. **Start the backend on the device**
+
+```bash
+   oakctl connect <DEVICE_IP>
+   oakctl app run .
+```
+
+**In another terminal:**
+
+3. **Find your device IP:**
 
 ```bash
    oakctl list
 ```
 
-3. **Run the frontend locally:**
+4. **Run the frontend locally:**
 
 ```bash
    cd frontend
@@ -359,7 +517,7 @@ When developing the frontend, you can run it locally while the backend runs on t
 
 The terminal will display the local URL (e.g., `http://localhost:4173`).
 
-4. **Connect to the device backend:**
+5. **Connect to the device backend:**
 
    Open the URL shown in terminal and add the WebSocket URL as a parameter:
 
@@ -371,7 +529,18 @@ Or just open the URL and enter `ws://<DEVICE_IP>:8765` in the connection dialog.
 
 ______________________________________________________________________
 
-## Known issues
+# What's Next
+
+- Explore the Streams component API reference for advanced layouts and controls
+- Review [applications directory](../apps) for more advanced fronted examples
+- Deploy your application to [Luxonis Hub](https://hub.luxonis.com) for remote access and device management
+
+______________________________________________________________________
+
+# Known issues
+
+The following issues are known to occur in some environments and
+have proven workarounds.
 
 ### `vite` running out of memory during build
 
