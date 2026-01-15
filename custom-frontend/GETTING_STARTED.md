@@ -317,7 +317,7 @@ If your backend publishes multiple topics, use `defaultTopics` to set the initia
 
 > **Note:** Topic names must match exactly between frontend and backend.
 
-See the Streams component API reference for additional customization options.
+For additional customization options, explore the `Streams` component props.
 
 ### Sending Messages to Backend
 
@@ -531,7 +531,7 @@ ______________________________________________________________________
 
 # What's Next
 
-- Explore the Streams component API reference for advanced layouts and controls
+- Explore the `Streams` component props for advanced layouts and controls
 - Review [applications directory](../apps) for more advanced fronted examples
 - Deploy your application to [Luxonis Hub](https://hub.luxonis.com) for remote access and device management
 
