@@ -532,7 +532,7 @@ ______________________________________________________________________
 # What's Next
 
 - Explore the `Streams` component props for advanced layouts and controls
-- Review [applications directory](../apps) for more advanced fronted examples
+- Review [applications directory](../apps) for more advanced frontend examples
 - Deploy your application to [Luxonis Hub](https://hub.luxonis.com) for remote access and device management
 
 ______________________________________________________________________
