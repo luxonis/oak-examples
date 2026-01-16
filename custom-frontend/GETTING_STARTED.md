@@ -5,8 +5,8 @@ This guide walks you through setting up a React frontend that displays live came
 ### Prerequisites
 
 - Node.js and npm installed
-- Python with DepthAI SDK installed
-- An OAK device (for testing)
+- Python with DepthAI installed
+- A Luxonis OAK device (required to run the application)
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ ______________________________________________________________________
 # Quick Start
 
 If you want to skip setup and start modifying a working app immediately,
-clone the [`raw-stream`](./raw-stream) example.
+see the [`raw-stream`](./raw-stream) example.
 
 For a more advanced reference featuring AI inference, WebRTC,
 and richer UI patterns, see
@@ -101,7 +101,7 @@ npm i
 
 ### Configure PandaCSS
 
-Shared Luxonis UI components are built on
+Shared Luxonis UI components (`@luxonis/depthai-viewer-common`) are built on
 `@luxonis/common-fe-components`, which depends on PandaCSS for
 tokens, recipes, and layered styles.
 
@@ -319,9 +319,10 @@ If your backend publishes multiple topics, use `defaultTopics` to set the initia
 
 For additional customization options, explore the `Streams` component props.
 
-### Sending Messages to Backend
+### Frontend-Backend Communication
 
-You can communicate with your Python backend by registering services and calling them from the frontend.
+Services allow your frontend and Python backend to exchange messages.
+To set up a service, register it in your backend with a unique name and a handler function.
 
 **Backend** — register a service:
 
@@ -332,6 +333,8 @@ def handle_message(message):
 
 visualizer.registerService("My Service", handle_message)
 ```
+
+Then, call it from the frontend using the `daiConnection.postToService()` method.
 
 **Frontend** — call the service:
 
