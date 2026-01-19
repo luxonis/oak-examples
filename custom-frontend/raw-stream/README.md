@@ -40,9 +40,9 @@ You can simply install them by running:
 pip install -r requirements.txt
 ```
 
-#### FrontEnd
+#### Front End
 
-You need to have [Node.js](https://nodejs.org/en/download/) installed (version 18 or higher is required).
+You need to have [Node.js](https://nodejs.org/en/download/) installed (version 24 or higher is recommended).
 
 Then, navigate to the `frontend` folder and install the dependencies by running:
 

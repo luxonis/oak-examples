@@ -1,10 +1,13 @@
-# Building a Custom Frontend for DepthAI
+# Building a Custom Front End for DepthAI
 
 This guide walks you through setting up a React frontend that displays live camera streams from OAK devices and communicates with your Python backend. By the end, you'll have a working development environment ready to customize.
 
 ### Prerequisites
 
 - Node.js and npm installed
+
+> We recommend using nvm (Node Version Manager) to install and manage Node.js and npm.
+
 - Python with DepthAI installed
 - A Luxonis OAK device (required to run the application)
 
@@ -13,7 +16,7 @@ This guide walks you through setting up a React frontend that displays live came
 - [Quick Start](#quick-start)
 - [Starting From Scratch](#starting-from-scratch)
   - [Project Setup](#project-setup)
-  - [Build Your Frontend](#build-your-frontend)
+  - [Build Your Front End](#build-your-front-end)
 - [Run the Application](#run-the-application)
   - [Peripheral Mode](#peripheral-mode)
   - [Standalone Mode (RVC4 only)](#standalone-mode-rvc4-only)
@@ -62,7 +65,6 @@ Your `package.json` needs the following dependencies and scripts:
   "react-router-dom": "^7.5.0"
 },
 "devDependencies": {
-  "@biomejs/biome": "1.9.4",
   "@pandacss/dev": "0.53.0",
   "@types/react": "^18.3.20",
   "@types/react-dom": "^18.3.6",
@@ -79,8 +81,6 @@ Your `package.json` needs the following dependencies and scripts:
  "scripts": {
      "dev": "vite",
      "build": "npm run styleGen && tsc -b && vite build",
-     "lint": "biome check .",
-     "lint:fix": "biome check --write .",
      "preview": "vite preview",
      "styleGen": "panda codegen"
  }
@@ -97,12 +97,15 @@ npm i
 > ⚠️ **React version requirement**
 >
 > `@luxonis/depthai-viewer-common` currently supports **React 18.x only**.
-> Do not upgrade to React 19, as it will cause dependency resolution failures.
+>
+> An **RC (Release Candidate)** version with **React 19.x** support can be found
+> [here](https://www.npmjs.com/package/@luxonis/depthai-viewer-common?activeTab=versions).
+> This version is not yet an official release and may contain unresolved issues.
 
 ### Configure PandaCSS
 
-Shared Luxonis UI components (`@luxonis/depthai-viewer-common`) are built on
-`@luxonis/common-fe-components`, which depends on PandaCSS for
+Our packages use Luxonis common UI components from
+`@luxonis/common-fe-components` package, which depends on PandaCSS for
 tokens, recipes, and layered styles.
 
 To use these components, [PandaCSS](https://panda-css.com/) is required.
@@ -240,11 +243,11 @@ See [tsconfig.node.json](./raw-stream/frontend/tsconfig.node.json)
 
 ______________________________________________________________________
 
-## Build Your Frontend
+## Build Your Front End
 
 ### Global CSS Setup
 
-Luxonis frontend components rely on PandaCSS layered styles. The default Vite index.css must be replaced.
+Luxonis frontend components rely on PandaCSS layered styles. The generated index.css must be replaced.
 
 **Update `index.css`:**
 
@@ -275,7 +278,10 @@ See [main.tsx](./raw-stream/frontend/src/main.tsx) for a complete example.
 
 To be able to host your app on Luxonis Hub, you need to set the `basename` of your `BrowserRouter` to include the base path and app version from the URL.
 
-`DepthAIContext` manages the WebSocket connection to your backend and provides it to child components via React context.
+> **Note:** This configuration is **only required when hosting the frontend on Luxonis Hub**.\
+> If you are running the frontend locally or hosting it elsewhere, no `basename` configuration is needed.
+
+`DepthAIContext` manages the connection to your backend and provides it to child components via React context.
 
 ```tsx
 function getBasePath(): string {
@@ -303,16 +309,16 @@ This component automatically renders all streams added via `visualizer.addTopic(
 
 ```python
 # Backend: add a stream topic
-visualizer.addTopic("RGB Camera", rgb_output)
+visualizer.addTopic("RGB RAW", rgb_output)
 ```
 
 If your backend publishes multiple topics, use `defaultTopics` to set the initial stream and `allowedTopics` to restrict which streams are available. The frontend will display a toolbar for switching between them.
 
 ```tsx
-       <Streams
-          defaultTopics={defaultTopics}
-          allowedTopics={allowedTopics}
-        />
+    <Streams
+          defaultTopics={['RGB RAW']}
+          allowedTopics={['RGB RAW', 'RGB H.264']}
+    />
 ```
 
 > **Note:** Topic names must match exactly between frontend and backend.
@@ -336,7 +342,7 @@ visualizer.registerService("My Service", handle_message)
 
 Then, call it from the frontend using the `daiConnection.postToService()` method.
 
-**Frontend** — call the service:
+**Front End** — call the service:
 
 ```tsx
 import { useDaiConnection } from "@luxonis/depthai-viewer-common";
@@ -372,8 +378,6 @@ as well. It's highly recommended to check out [PandaCSS docs](https://panda-css.
 ______________________________________________________________________
 
 # Run the application
-
-The frontend library automatically connects to `ws://localhost:8765`. If unavailable, a connection dialog will prompt for the URL.
 
 On OAK devices, we can run the application in two modes: Peripheral and Standalone.
 
@@ -462,7 +466,7 @@ prepare_build_container = [
 # (Optional) Additional commands after all the app files are copied to the container
 build_steps = []
 
-# Static Frontend path
+# Static Front End path
 [static_frontend]
 dist_path = "./frontend/dist"
 
@@ -481,12 +485,13 @@ Complete example of `oakapp.toml` with the Base Image can be found in [here](./o
 
 #### Run the App
 
-After the configuration is done, you can connect to your device and run the app with:
+After the configuration is done, you can connect to your device and run the app by running these commands in the directory with `oakapp.toml`:
 
 ```bash
-oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
+
+> **Note:** If you have multiple devices or the device is on a different network, specify the IP: `oakctl connect <DEVICE_IP>` before running
 
 #### Local Frontend Development
 
@@ -499,9 +504,10 @@ When developing the frontend, you can run it locally while the backend runs on t
 2. **Start the backend on the device**
 
 ```bash
-   oakctl connect <DEVICE_IP>
    oakctl app run .
 ```
+
+> **Note:** If you have multiple devices or the device is on a different network, specify the IP: `oakctl connect <DEVICE_IP>` before running
 
 **In another terminal:**
 
@@ -513,8 +519,9 @@ When developing the frontend, you can run it locally while the backend runs on t
 
 4. **Run the frontend locally:**
 
+> Move to the frontend directory
+
 ```bash
-   cd frontend
    npm run build && npm run preview
 ```
 
