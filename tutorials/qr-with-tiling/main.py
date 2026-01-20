@@ -56,6 +56,9 @@ with dai.Pipeline(device) as pipeline:
     if platform == dai.Platform.RVC4:
         interleaved_manip = pipeline.create(dai.node.ImageManip)
         interleaved_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
+        interleaved_manip.setMaxOutputFrameSize(
+            nn_archive.getInputHeight() * nn_archive.getInputWidth() * 3
+        )
         tile_manager.out.link(interleaved_manip.inputImage)
         nn_input = interleaved_manip.out
 
