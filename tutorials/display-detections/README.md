@@ -18,7 +18,7 @@ A simple solution to low resolution frame is to use higher resolution frames and
 
 ### 3. Stretch or crop the frame before inferencing but keep the high resolution frame
 
-Another solution is to stretch the frame to the correct aspect ratio and size of the NN. For more information, see [Resolution Techniques for NNs](https://docs.luxonis.com/software/depthai/resolution-techniques). This example stretches `1920x1440` frame to `512x288` before inferencing.
+Another solution is to stretch the frame to the correct aspect ratio and size of the NN. For more information, see [Resolution Techniques for NNs](https://docs.luxonis.com/software-v3/depthai/tutorials/resolution-techniques). This example stretches `1920x1440` frame to `512x288` before inferencing.
 
 ![stretch_before_inferencing](media/stretch_before_inferencing_example.png)
 

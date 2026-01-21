@@ -37,8 +37,6 @@ Running this example requires a **Luxonis device** connected to your computer. R
 1. Using pre-recorded audio files with the flag `--audio_file`. This approach sets the color once. We provide some sample audio files in [assets/audio_files](assets/audio_files/). Later color changes can be made with approach two.
 2. Recording audio on host machine. By pressing `r` in the viewer, the example will record audio for 5 seconds and use it as the input to the model.
 
-Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software/) to setup your device if you haven't done it already.
-
 You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
 Here is a list of all available parameters:

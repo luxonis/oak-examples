@@ -44,7 +44,7 @@ Attempting to connect to device: 14442C1011D6C5D600...
 
 ## Usage
 
-Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software/) to setup your device if you haven't done it already.
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
 You can run the example using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 

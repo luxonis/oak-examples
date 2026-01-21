@@ -1,7 +1,7 @@
 # Full FOV NN inferencing
 
 This example demonstrates how to run NN inferencing on full FOV frames. It uses a video stream with a different aspect ratio than the NN input. [YOLOv6](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) is used for object detection.
-See [Resolution Techniques for NNs](https://docs.luxonis.com/software/depthai/resolution-techniques) for more information.
+See [Resolution Techniques for NNs](https://docs.luxonis.com/software-v3/depthai/tutorials/resolution-techniques) for more information.
 
 This example demonstrates how to run NN inferencing on full FOV frames. It uses a video stream with a different aspect ratio than the NN input. [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) is used for object detection.
 

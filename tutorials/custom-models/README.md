@@ -1,6 +1,6 @@
 # Custom models
 
-This example demonstrates, how to create custom models with PyTorch/Kornia, convert them and run them with DepthAI. For more information see [Conversion](https://rvc4.docs.luxonis.com/software/ai-inference/conversion/) section in the documentation and [README.md](generate_model/README.md) file in the `generate_model/` folder.
+This example demonstrates, how to create custom models with PyTorch/Kornia, convert them and run them with DepthAI. For more information see [Conversion](https://docs.luxonis.com/software-v3/ai-inference/conversion/) section in the documentation and [README.md](generate_model/README.md) file in the `generate_model/` folder.
 
 `blur.py`, `concat.py`, `diff.py`, `edge.py` and `main.py` are scripts that run created custom models. `generate_model/` folder contains scripts that create these custom models (frame blurring, frame concatenation, frame difference and edge detection).
 

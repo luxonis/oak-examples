@@ -2,7 +2,7 @@
 
 This example shows how to use DepthAI and OAK camera to detect object with their spatial coordinates in real-time! The example by default uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) object detection model but you can use other models as well by using `-m` or `--model` argument. It should work with any YOLO detection model.
 
-You can read more about spatial detection network in our [documentation](https://docs.luxonis.com/software/depthai-components/nodes/yolo_spatial_detection_network/). It combines the bounding boxes with the depth information into spatial image detections.
+You can read more about spatial detection network in our [documentation](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/spatial_detection_network/). It combines the bounding boxes with the depth information into spatial image detections.
 
 > **Note:** This example requires a device with at least 3 cameras (color, left and right) since it utilizes the `StereoDepth` node.
 

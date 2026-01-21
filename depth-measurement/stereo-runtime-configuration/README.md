@@ -1,6 +1,6 @@
 # Stereo Runtime Configuration
 
-This example showcases, how to reconfigure the [StereoDepth](https://rvc4.docs.luxonis.com/software/depthai-components/nodes/stereo_depth/) node during runtime. It shows a preview of the depth map and allows you to change the stereo depth settings using your keyboard.
+This example showcases, how to reconfigure the [StereoDepth](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/stereo_depth/) node during runtime. It shows a preview of the depth map and allows you to change the stereo depth settings using your keyboard.
 
 ## Demo
 

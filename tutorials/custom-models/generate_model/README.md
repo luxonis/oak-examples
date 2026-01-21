@@ -1,6 +1,6 @@
 # Model generation
 
-This directory contains scripts that generate [NN Archives](https://rvc4.docs.luxonis.com/software/ai-inference/nn-archive/) compatible with **Luxonis devices** for the custom models in this folder. The scripts utilize [ModelConverter](https://rvc4.docs.luxonis.com/software/ai-inference/conversion/rvc-conversion/offline/modelconverter/) for the NN Archive generation and model conversion.
+This directory contains scripts that generate [NN Archives](https://docs.luxonis.com/software-v3/ai-inference/nn-archive/) compatible with **Luxonis devices** for the custom models in this folder. The scripts utilize [ModelConverter](https://docs.luxonis.com/software-v3/ai-inference/conversion/rvc-conversion/offline/modelconverter/) for the NN Archive generation and model conversion.
 
 ## Models
 
