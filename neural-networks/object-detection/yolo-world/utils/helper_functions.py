@@ -1,4 +1,5 @@
 from tokenizers import Tokenizer
+from tqdm import tqdm
 import os
 import requests
 import onnxruntime
@@ -23,9 +24,10 @@ def extract_text_embeddings(class_names, max_num_classes=80):
     text_onnx = np.array([e.ids for e in encodings], dtype=np.int64)
     attention_mask = np.array([e.attention_mask for e in encodings], dtype=np.int64)
 
-    textual_onnx_model_path = download_model(
-        "https://huggingface.co/jmzzomg/clip-vit-base-patch32-text-onnx/resolve/main/model.onnx",
-        "clip_textual_hf.onnx",
+    textual_onnx_model_path = "clip_textual_hf.onnx"
+    download_base_model(
+        model_slug="luxonis/yolo-world-l:clip-textual-hf",
+        local_filename=textual_onnx_model_path,
     )
 
     session_textual = onnxruntime.InferenceSession(
@@ -64,19 +66,44 @@ def download_tokenizer(url, save_path):
     return save_path
 
 
-def download_model(url, save_path):
-    if not os.path.exists(save_path):
-        print(f"Downloading model from {url}...")
-        response = requests.get(url)
-        if response.status_code == 200:
-            with open(save_path, "wb") as f:
-                f.write(response.content)
-            print(f"Model saved to {save_path}.")
-        else:
-            raise Exception(
-                f"Failed to download model. Status code: {response.status_code}"
-            )
-    else:
-        print(f"Model already exists at {save_path}.")
+def download_base_model(model_slug: str, local_filename: str):
+    model_name_slug = model_slug.split("/")[-1].split(":")[0]
+    model_variant_slug = model_slug.split("/")[-1].split(":")[1]
 
-    return save_path
+    model_res = requests.get(
+        "https://easyml.cloud.luxonis.com/models/api/v1/models",
+        params={"slug": model_name_slug, "is_public": True},
+    )
+    model_id = model_res.json()[0]["id"]
+    variant_res = requests.get(
+        "https://easyml.cloud.luxonis.com/models/api/v1/modelVersions",
+        params={
+            "model_id": model_id,
+            "variant_slug": model_variant_slug,
+            "is_public": True,
+        },
+    )
+    model_variant_id = variant_res.json()[0]["id"]
+    download_res = requests.get(
+        f"https://easyml.cloud.luxonis.com/models/api/v1/modelVersions/{model_variant_id}/download",
+    )
+    download_link = download_res.json()[0]["download_link"]
+    download_file(download_link, local_filename)
+
+
+def download_file(download_link: str, local_filename: str):
+    with requests.get(download_link, stream=True) as r:
+        r.raise_for_status()
+
+        total_size = int(r.headers.get("content-length", 0))
+        block_size = 8192  # 8KB chunks
+        progress_bar = tqdm(
+            total=total_size, unit="iB", unit_scale=True, desc=local_filename
+        )
+
+        with open(local_filename, "wb") as f:
+            for chunk in r.iter_content(chunk_size=block_size):
+                if chunk:
+                    f.write(chunk)
+                    progress_bar.update(len(chunk))
+        progress_bar.close()
