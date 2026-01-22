@@ -90,6 +90,8 @@ class KalmanFilterNode(dai.node.HostNode):
 
                 vec_bbox = self._kalman_filters[t.id]["bbox"].x
                 vec_space = self._kalman_filters[t.id]["space"].x
+                vec_bbox = vec_bbox.flatten()
+                vec_space = vec_space.flatten()
 
                 x1_filter = (vec_bbox[0] - vec_bbox[2] / 2) / img_frame.getWidth()
                 x2_filter = (vec_bbox[0] + vec_bbox[2] / 2) / img_frame.getWidth()
