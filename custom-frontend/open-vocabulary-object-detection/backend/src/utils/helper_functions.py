@@ -143,8 +143,8 @@ def extract_image_prompt_embeddings(
         image_array = np.transpose(image_array, (2, 0, 1))
         input_tensor = np.expand_dims(image_array, axis=0).astype(np.float32)
 
-        model_slug = ("luxonis/yoloe-v8-l:yoloe-v8l-seg-visual-encoder",)
-        onnx_model_path = ("yoloe-v8l-seg_visual_encoder.onnx",)
+        model_slug = "luxonis/yoloe-v8-l:yoloe-v8l-seg-visual-encoder"
+        onnx_model_path = "yoloe-v8l-seg_visual_encoder.onnx"
     else:
         input_tensor = preprocess_image(image)
 
