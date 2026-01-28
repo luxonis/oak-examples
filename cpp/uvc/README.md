@@ -12,7 +12,6 @@ The application uses a modified UVC library from https://gitlab.freedesktop.org/
 
 Running the example in standalone mode builds and deploys it as an OAK app so that it runs completely on the device.
 
-
 1. Make sure git submodules are up to date:
 
    ```bash
