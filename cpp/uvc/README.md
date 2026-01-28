@@ -12,15 +12,22 @@ The application uses a modified UVC library from https://gitlab.freedesktop.org/
 
 Running the example in standalone mode builds and deploys it as an OAK app so that it runs completely on the device.
 
-1. Install `oakctl` by following the instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
-2. Connect to your device:
+1. Make sure git submodules are up to date:
+
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+2. Install `oakctl` by following the instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+
+3. Connect to your device:
 
    ```bash
    oakctl connect <DEVICE_IP>
    ```
 
-3. From the `cpp/uvc` directory, run the packaged app:
+4. From the `cpp/uvc` directory, run the packaged app:
 
    ```bash
    oakctl app run .
