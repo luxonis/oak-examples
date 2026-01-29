@@ -13,6 +13,7 @@ from prompting import VisualPromptEncoder
 @dataclass
 class NNState:
     current_classes: list[str] = field(default_factory=list)
+    image_prompt_labels: list[str] = field(default_factory=list)
     confidence_threshold: float = 0.0
 
 
@@ -67,6 +68,7 @@ class NNDetectionController:
         """
         Update detection classes using textual prompt embeddings.
         Uses text_encoder.offset internally.
+        Clears any existing image prompt labels.
         """
         text_embeddings = self._text_encoder.extract_embeddings(class_names)
         dummy_image = self._visual_encoder.make_dummy()
@@ -77,6 +79,7 @@ class NNDetectionController:
             class_names=class_names,
             label_offset=self._text_encoder.offset,
         )
+        self._state.image_prompt_labels = []
 
     def update_visual_prompt(
         self,
@@ -87,6 +90,7 @@ class NNDetectionController:
         """
         Update visual prompt from an image.
         If a mask is provided, it is used to extract embeddings from the masked region.
+        Tracks the class_names as image_prompt_labels.
         """
         image_embeddings = self._visual_encoder.extract_embeddings(image_bgr, mask)
         dummy_text = self._text_encoder.make_dummy()
@@ -97,6 +101,7 @@ class NNDetectionController:
             class_names=class_names,
             label_offset=self._visual_encoder.offset,
         )
+        self._state.image_prompt_labels = list(class_names)
 
     def set_confidence_threshold(self, threshold: float) -> None:
         t = float(max(0.0, min(1.0, threshold)))
@@ -106,6 +111,7 @@ class NNDetectionController:
     def get_nn_state(self) -> NNState:
         return NNState(
             current_classes=list(self._state.current_classes),
+            image_prompt_labels=list(self._state.image_prompt_labels),
             confidence_threshold=float(self._state.confidence_threshold),
         )
 

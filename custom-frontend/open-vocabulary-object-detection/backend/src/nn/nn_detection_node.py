@@ -60,8 +60,8 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         @param cfg: Neural network configuration.
         """
         # Image manip
-        self._img_manip.setMaxOutputFrameSize(cfg.model.w * cfg.model.h * 3)
-        self._img_manip.initialConfig.setOutputSize(cfg.model.w, cfg.model.h)
+        self._img_manip.setMaxOutputFrameSize(cfg.model.width * cfg.model.height * 3)
+        self._img_manip.initialConfig.setOutputSize(cfg.model.w, cfg.model.height)
         self._img_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
         input_frame.link(self._img_manip.inputImage)
 

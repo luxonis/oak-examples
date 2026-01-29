@@ -4,7 +4,6 @@ from .config_data_classes import (
     ModelInfo,
     VideoConfig,
     NeuralNetworkConfig,
-    TrackingConfig,
 )
 
 __all__ = [
@@ -13,5 +12,4 @@ __all__ = [
     "ModelInfo",
     "VideoConfig",
     "NeuralNetworkConfig",
-    "TrackingConfig",
 ]

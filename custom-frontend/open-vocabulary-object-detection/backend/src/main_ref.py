@@ -3,7 +3,7 @@ import logging as log
 import depthai as dai
 
 from config import parse_args, build_configuration
-from app_config_service import GetAppConfigService
+from app_config_service import GetCurrentParamsService
 from camera import CameraSourceNode
 from nn import NNDetectionNode
 from prompting import FrameCacheNode, PromptingFEServices
@@ -49,7 +49,7 @@ def main():
             get_last_frame=frame_cache_node.get_last_frame,
         )
 
-        get_config_service = GetAppConfigService(
+        get_params_service = GetCurrentParamsService(
             get_nn_state=nn_node.get_state,
         )
 
@@ -70,7 +70,7 @@ def main():
         visualizer.registerService(
             "BBox Prompt Service", prompting_services.fe_bbox_prompt
         )
-        visualizer.registerService("Get App Config Service", get_config_service.handle)
+        visualizer.registerService("Get Current Params Service", get_params_service.handle)
         logger.info("FE services registered!")
 
         logger.info("Pipeline created. Starting...")
