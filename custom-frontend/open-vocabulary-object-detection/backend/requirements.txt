@@ -6,3 +6,4 @@ tokenizers~=0.21.0
 onnxruntime
 # onnxruntime-gpu # if you want to use CUDAExecutionProvider
 requests
+python-box

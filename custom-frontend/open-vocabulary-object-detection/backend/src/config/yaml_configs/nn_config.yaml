@@ -1,0 +1,8 @@
+nn_backend:
+  type: "snpe"
+  runtime: "dsp"
+  performance_profile: "default"
+  inference_threads: 1
+  precision: "fp16"
+
+confidence_thr: 0.1
