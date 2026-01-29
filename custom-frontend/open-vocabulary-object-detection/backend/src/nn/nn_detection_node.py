@@ -61,7 +61,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         """
         # Image manip
         self._img_manip.setMaxOutputFrameSize(cfg.model.width * cfg.model.height * 3)
-        self._img_manip.initialConfig.setOutputSize(cfg.model.w, cfg.model.height)
+        self._img_manip.initialConfig.setOutputSize(cfg.model.width, cfg.model.height)
         self._img_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
         input_frame.link(self._img_manip.inputImage)
 

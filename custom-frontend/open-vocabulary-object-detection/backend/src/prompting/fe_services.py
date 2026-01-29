@@ -1,16 +1,11 @@
 import base64
+import logging
 from typing import Callable, Optional
 
 import cv2
 import numpy as np
-from pydantic import ValidationError
 
-from .payloads import (
-    ClassUpdatePayload,
-    ThresholdUpdatePayload,
-    ImageUploadPayload,
-    BBoxPromptPayload,
-)
+log = logging.getLogger(__name__)
 
 
 class PromptingFEServices:
@@ -30,79 +25,73 @@ class PromptingFEServices:
         self._set_threshold = set_confidence_threshold
         self._get_last_frame = get_last_frame
 
-    def fe_class_update(self, payload: dict) -> dict:
-        try:
-            validated = ClassUpdatePayload.model_validate(payload)
-        except ValidationError as e:
-            return {"ok": False, "error": e.errors()}
+    def fe_class_update(self, new_classes: list[str]) -> None:
+        """Changes classes to detect based on user input."""
+        if not new_classes or len(new_classes) == 0:
+            log.info("List of new classes empty, skipping.")
+            return
+        self._update_classes(new_classes)
+        log.info(f"Classes set to: {new_classes}")
 
-        self._update_classes(validated.classes)
-        return {"ok": True, "classes": validated.classes}
+    def fe_threshold_update(self, new_threshold: float) -> None:
+        """Changes confidence threshold based on user input."""
+        threshold = max(0.01, min(0.99, float(new_threshold)))
+        self._set_threshold(threshold)
+        log.info(f"Confidence threshold set to: {threshold}")
 
-    def fe_threshold_update(self, payload: dict) -> dict:
-        try:
-            validated = ThresholdUpdatePayload.model_validate(payload)
-        except ValidationError as e:
-            return {"ok": False, "error": e.errors()}
-
-        self._set_threshold(validated.threshold)
-        return {"ok": True, "threshold": float(validated.threshold)}
-
-    def fe_image_upload(self, payload: dict) -> dict:
-        try:
-            validated = ImageUploadPayload.model_validate(payload)
-        except ValidationError as e:
-            return {"ok": False, "error": e.errors()}
-
-        class_name = validated.filename.rsplit(".", 1)[0]
-        image = self._decode_image(validated.data)
+    def fe_image_upload(self, image_data: dict) -> None:
+        """Handles image upload for visual prompting."""
+        image = self._decode_image(image_data.get("data"))
         if image is None:
-            return {"ok": False, "error": "Invalid image data"}
+            log.info("Failed to decode uploaded image")
+            return
 
-        self._update_visual_prompt(image, [class_name], None)
-        return {"ok": True, "classes": class_name}
+        label = image_data.get("label") or image_data.get("filename", "object").split(".")[0]
+        self._update_visual_prompt(image, [label], None)
+        log.info(f"Image prompt set with label: {label}")
 
     def fe_bbox_prompt(self, payload: dict) -> dict:
-        try:
-            validated = BBoxPromptPayload.model_validate(payload)
-        except ValidationError as e:
-            return {"ok": False, "error": e.errors()}
-
-        image = self._get_last_frame()
+        """Handles bounding box region selection for visual prompting."""
+        # Try FE-provided image first, else fall back to cached live frame
+        image = self._decode_image(payload.get("data")) if payload.get("data") else None
         if image is None:
-            return {"ok": False, "error": "No frame available"}
+            image = self._get_last_frame()
+            if image is None:
+                log.info("[BBox] No image data and no cached frame available")
+                return {"ok": False, "reason": "no_image"}
 
-        mask = self._make_bbox_mask(image, validated)
-        if mask is None:
-            return {"ok": False, "error": "Invalid bbox"}
+        bbox = payload.get("bbox", {})
+        bx = float(bbox.get("x", 0.0))
+        by = float(bbox.get("y", 0.0))
+        bw = float(bbox.get("width", 0.0))
+        bh = float(bbox.get("height", 0.0))
 
-        self._update_visual_prompt(image, ["Selected Region"], mask)
-        return {"ok": True, "classes": ["Selected Region"]}
-
-    @staticmethod
-    def _make_bbox_mask(
-        image: np.ndarray, bbox: BBoxPromptPayload
-    ) -> np.ndarray | None:
         H, W = image.shape[:2]
-        x0 = int(bbox.x * W)
-        y0 = int(bbox.y * H)
-        x1 = int((bbox.x + bbox.width) * W)
-        y1 = int((bbox.y + bbox.height) * H)
+        x0 = int(round(bx * W))
+        y0 = int(round(by * H))
+        x1 = int(round((bx + bw) * W))
+        y1 = int(round((by + bh) * H))
 
-        x0 = max(0, min(W, x0))
-        x1 = max(0, min(W, x1))
-        y0 = max(0, min(H, y0))
-        y1 = max(0, min(H, y1))
+        x0, x1 = sorted((x0, x1))
+        y0, y1 = sorted((y0, y1))
 
         if x1 <= x0 or y1 <= y0:
-            return None
+            log.info("Invalid bbox, ignoring bbox prompt request.")
+            return {"ok": False, "reason": "invalid_bbox"}
 
+        # Build mask for the bbox region
         mask = np.zeros((H, W), dtype=np.float32)
         mask[y0:y1, x0:x1] = 1.0
-        return mask
+
+        label = payload.get("label", "object")
+        self._update_visual_prompt(image, [label], mask)
+        log.info(f"BBox prompt set with label: {label}")
+        return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
 
     @staticmethod
-    def _decode_image(data_uri: str) -> np.ndarray | None:
+    def _decode_image(data_uri: str) -> Optional[np.ndarray]:
+        if not data_uri:
+            return None
         try:
             base64_data = data_uri.split(",", 1)[1] if "," in data_uri else data_uri
             np_arr = np.frombuffer(base64.b64decode(base64_data), np.uint8)
