@@ -1,4 +1,5 @@
 depthai==3.2.1
-depthai-nodes==0.3.7
+#depthai-nodes==0.3.7
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@feat/dai_dev_req
 python-dotenv
 
