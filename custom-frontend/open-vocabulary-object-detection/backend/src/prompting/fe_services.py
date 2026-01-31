@@ -9,84 +9,173 @@ log = logging.getLogger(__name__)
 
 
 class PromptingFEServices:
-    """Groups all FE handlers related to prompting."""
+    """
+    Groups all frontend service handlers for prompt-based detection.
+
+    Services:
+        - fe_class_update: Update text-based detection classes
+        - fe_threshold_update: Update confidence threshold
+        - fe_image_upload: Upload image for visual prompting
+        - fe_bbox_prompt: Select region via bounding box for visual prompting
+        - fe_rename_image_prompt: Rename an existing image prompt
+        - fe_delete_image_prompt: Delete an existing image prompt
+    """
 
     def __init__(
         self,
         update_classes: Callable[[list[str]], None],
-        update_visual_prompt: Callable[
-            [np.ndarray, list[str], Optional[np.ndarray]], None
-        ],
+        add_image_prompt: Callable[[np.ndarray, str, Optional[np.ndarray]], None],
+        rename_image_prompt: Callable[[Optional[int], Optional[str], Optional[str]], bool],
+        delete_image_prompt: Callable[[Optional[int], Optional[str]], bool],
         set_confidence_threshold: Callable[[float], None],
         get_last_frame: Callable[[], Optional[np.ndarray]],
+        max_num_classes: int = 80,
     ):
         self._update_classes = update_classes
-        self._update_visual_prompt = update_visual_prompt
+        self._add_image_prompt = add_image_prompt
+        self._rename_image_prompt = rename_image_prompt
+        self._delete_image_prompt = delete_image_prompt
         self._set_threshold = set_confidence_threshold
         self._get_last_frame = get_last_frame
+        self._max_num_classes = max_num_classes
 
     def fe_class_update(self, new_classes: list[str]) -> None:
-        """Changes classes to detect based on user input."""
-        if not new_classes or len(new_classes) == 0:
-            log.info("List of new classes empty, skipping.")
+        """Update detection classes based on user input."""
+        if not new_classes:
+            log.warning("Class update called with empty list, skipping.")
             return
+
+        if len(new_classes) > self._max_num_classes:
+            log.warning(
+                f"Too many classes ({len(new_classes)} > {self._max_num_classes}); "
+                f"using only the first {self._max_num_classes}."
+            )
+            new_classes = new_classes[:self._max_num_classes]
+
         self._update_classes(new_classes)
-        log.info(f"Classes set to: {new_classes}")
+        log.info(f"Classes updated: {new_classes}")
 
     def fe_threshold_update(self, new_threshold: float) -> None:
-        """Changes confidence threshold based on user input."""
+        """Update confidence threshold based on user input."""
         threshold = max(0.01, min(0.99, float(new_threshold)))
         self._set_threshold(threshold)
-        log.info(f"Confidence threshold set to: {threshold}")
+        log.info(f"Confidence threshold updated: {threshold:.2f}")
 
-    def fe_image_upload(self, image_data: dict) -> None:
-        """Handles image upload for visual prompting."""
-        image = self._decode_image(image_data.get("data"))
-        if image is None:
-            log.info("Failed to decode uploaded image")
+    def fe_image_upload(self, payload: dict) -> None:
+        """
+        Handle image upload for visual prompting.
+
+        Args:
+            payload: Dict with 'data' (base64), 'filename', and optional 'label'.
+        """
+        data = payload.get("data")
+        if not data:
+            log.error("Image upload missing 'data' field")
             return
 
-        label = image_data.get("label") or image_data.get("filename", "object").split(".")[0]
-        self._update_visual_prompt(image, [label], None)
-        log.info(f"Image prompt set with label: {label}")
+        image = self._decode_image(data)
+        if image is None:
+            log.error("Failed to decode uploaded image")
+            return
+
+        filename = payload.get("filename", "image.png")
+        label = payload.get("label") or filename.rsplit(".", 1)[0]
+        self._add_image_prompt(image, label, None)
+        log.info(f"Image prompt added with label: {label}")
 
     def fe_bbox_prompt(self, payload: dict) -> dict:
-        """Handles bounding box region selection for visual prompting."""
-        # Try FE-provided image first, else fall back to cached live frame
-        image = self._decode_image(payload.get("data")) if payload.get("data") else None
+        """
+        Handle bounding box region selection for visual prompting.
+
+        Args:
+            payload: Dict with 'bbox' (x, y, width, height), optional 'data', and 'label'.
+        """
+        bbox = payload.get("bbox", {})
+        if not bbox:
+            log.error("BBox prompt missing 'bbox' field")
+            return {"ok": False, "reason": "missing_bbox"}
+
+        image = None
+        if payload.get("data"):
+            image = self._decode_image(payload["data"])
         if image is None:
             image = self._get_last_frame()
-            if image is None:
-                log.info("[BBox] No image data and no cached frame available")
-                return {"ok": False, "reason": "no_image"}
+        if image is None:
+            log.warning("No image available for bbox prompt")
+            return {"ok": False, "reason": "no_image"}
 
-        bbox = payload.get("bbox", {})
+        # Convert normalized bbox to pixel coordinates
+        H, W = image.shape[:2]
         bx = float(bbox.get("x", 0.0))
         by = float(bbox.get("y", 0.0))
         bw = float(bbox.get("width", 0.0))
         bh = float(bbox.get("height", 0.0))
 
-        H, W = image.shape[:2]
         x0 = int(round(bx * W))
         y0 = int(round(by * H))
         x1 = int(round((bx + bw) * W))
         y1 = int(round((by + bh) * H))
 
-        x0, x1 = sorted((x0, x1))
-        y0, y1 = sorted((y0, y1))
+        x0, x1 = sorted((max(0, x0), min(W, x1)))
+        y0, y1 = sorted((max(0, y0), min(H, y1)))
 
         if x1 <= x0 or y1 <= y0:
-            log.info("Invalid bbox, ignoring bbox prompt request.")
+            log.warning(f"Invalid bbox dimensions: ({x0}, {y0}) to ({x1}, {y1})")
             return {"ok": False, "reason": "invalid_bbox"}
 
-        # Build mask for the bbox region
         mask = np.zeros((H, W), dtype=np.float32)
         mask[y0:y1, x0:x1] = 1.0
 
         label = payload.get("label", "object")
-        self._update_visual_prompt(image, [label], mask)
-        log.info(f"BBox prompt set with label: {label}")
+        self._add_image_prompt(image, label, mask)
+        log.info(f"BBox prompt added: label='{label}', region=({x0},{y0})-({x1},{y1})")
+
         return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
+
+    def fe_rename_image_prompt(self, payload: dict) -> dict:
+        """
+        Rename an existing image prompt.
+
+        Args:
+            payload: Dict with 'index' or 'old_label', and 'new_label'.
+        """
+        index = payload.get("index")
+        old_label = payload.get("old_label")
+        new_label = payload.get("new_label")
+
+        if not new_label:
+            log.warning("Rename image prompt: new_label is required")
+            return {"ok": False, "reason": "new_label_required"}
+
+        success = self._rename_image_prompt(index, old_label, new_label)
+        if success:
+            log.info(f"Image prompt renamed to '{new_label}'")
+            return {"ok": True}
+        else:
+            log.warning("Rename image prompt: index/old_label not found")
+            return {"ok": False, "reason": "not_found"}
+
+    def fe_delete_image_prompt(self, payload: dict) -> dict:
+        """
+        Delete an existing image prompt.
+
+        Args:
+            payload: Dict with 'index' or 'label'.
+        """
+        index = payload.get("index")
+        label = payload.get("label")
+
+        if index is None and label is None:
+            log.warning("Delete image prompt: index or label is required")
+            return {"ok": False, "reason": "index_or_label_required"}
+
+        success = self._delete_image_prompt(index, label)
+        if success:
+            log.info(f"Image prompt deleted (index={index}, label={label})")
+            return {"ok": True}
+        else:
+            log.warning("Delete image prompt: index/label not found")
+            return {"ok": False, "reason": "not_found"}
 
     @staticmethod
     def _decode_image(data_uri: str) -> Optional[np.ndarray]:
@@ -94,7 +183,9 @@ class PromptingFEServices:
             return None
         try:
             base64_data = data_uri.split(",", 1)[1] if "," in data_uri else data_uri
-            np_arr = np.frombuffer(base64.b64decode(base64_data), np.uint8)
+            image_bytes = base64.b64decode(base64_data)
+            np_arr = np.frombuffer(image_bytes, dtype=np.uint8)
             return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        except Exception:
+        except Exception as e:
+            log.debug(f"Image decode failed: {e}")
             return None

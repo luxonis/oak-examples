@@ -44,9 +44,12 @@ def main():
 
         prompting_services = PromptingFEServices(
             update_classes=nn_node.update_classes,
-            update_visual_prompt=nn_node.update_visual_prompt,
+            add_image_prompt=nn_node.add_image_prompt,
+            rename_image_prompt=nn_node.rename_image_prompt,
+            delete_image_prompt=nn_node.delete_image_prompt,
             set_confidence_threshold=nn_node.set_confidence_threshold,
             get_last_frame=frame_cache_node.get_last_frame,
+            max_num_classes=config.nn.prompts.max_num_classes,
         )
 
         get_params_service = GetCurrentParamsService(
@@ -69,6 +72,12 @@ def main():
         )
         visualizer.registerService(
             "BBox Prompt Service", prompting_services.fe_bbox_prompt
+        )
+        visualizer.registerService(
+            "Rename Image Prompt Service", prompting_services.fe_rename_image_prompt
+        )
+        visualizer.registerService(
+            "Delete Image Prompt Service", prompting_services.fe_delete_image_prompt
         )
         visualizer.registerService("Get Current Params Service", get_params_service.handle)
         logger.info("FE services registered!")

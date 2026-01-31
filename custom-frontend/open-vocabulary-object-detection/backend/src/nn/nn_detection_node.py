@@ -94,6 +94,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
             det_filter=self._det_filter,
             det_label_mapper=self._det_label_mapper,
             precision=cfg.model.precision,
+            max_image_prompts=cfg.prompts.max_image_prompts,
         )
         self._controller.send_initial_prompts(
             class_names=cfg.prompts.class_names,
@@ -107,15 +108,35 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         pass
 
     def set_confidence_threshold(self, threshold: float) -> None:
+        """Set the confidence threshold for detection."""
         self._controller.set_confidence_threshold(threshold)
 
     def update_classes(self, class_names: list[str]) -> None:
+        """Update detection classes using text prompts."""
         self._controller.update_classes(class_names)
 
-    def update_visual_prompt(
-        self, image: np.ndarray, class_names: list[str], mask: Optional[np.ndarray]
+    def add_image_prompt(
+        self,
+        image: np.ndarray,
+        label: str,
+        mask: Optional[np.ndarray] = None
     ) -> None:
-        self._controller.update_visual_prompt(image, class_names, mask)
+        """Add an image prompt to the accumulated list."""
+        self._controller.add_image_prompt(image, label, mask)
+
+    def rename_image_prompt(
+        self,
+        index: int = None,
+        old_label: str = None,
+        new_label: str = None
+    ) -> bool:
+        """Rename an image prompt by index or old label."""
+        return self._controller.rename_image_prompt(index, old_label, new_label)
+
+    def delete_image_prompt(self, index: int = None, label: str = None) -> bool:
+        """Delete an image prompt by index or label."""
+        return self._controller.delete_image_prompt(index, label)
 
     def get_state(self):
+        """Get current NN state."""
         return self._controller.get_nn_state()
