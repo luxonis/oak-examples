@@ -16,7 +16,7 @@ class CameraSourceNode(dai.node.ThreadedHostNode):
           -> NV12 stream -> VideoEncoder -> H.264
 
     Handles both live camera and file replay sources, exposing:
-      - bgr: BGR888istream.
+      - bgr: BGR888i stream.
       - encoded: H.264 encoded stream.
 
     """

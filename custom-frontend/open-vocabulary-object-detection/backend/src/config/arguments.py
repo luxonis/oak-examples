@@ -41,5 +41,11 @@ def parse_args() -> Namespace:
         type=str,
     )
 
+    parser.add_argument(
+        "--semantic_seg",
+        help="Display output as semantic segmentation otherwise use instance segmentation (only applicable for YOLOE).",
+        action="store_true",
+    )
+
     args = parser.parse_args()
     return args

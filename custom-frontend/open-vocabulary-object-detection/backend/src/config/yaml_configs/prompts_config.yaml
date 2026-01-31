@@ -5,6 +5,7 @@ detection_threshold: 0.1
 text_offset: 0
 visual_offset: 80
 max_num_classes: 80
+max_image_prompts: 5
 
 
 quant_values:

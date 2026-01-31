@@ -137,11 +137,11 @@ class PromptingFEServices:
         Rename an existing image prompt.
 
         Args:
-            payload: Dict with 'index' or 'old_label', and 'new_label'.
+            payload: Dict with 'index' or 'oldLabel', and 'newLabel'.
         """
         index = payload.get("index")
-        old_label = payload.get("old_label")
-        new_label = payload.get("new_label")
+        old_label = payload.get("oldLabel")
+        new_label = payload.get("newLabel")
 
         if not new_label:
             log.warning("Rename image prompt: new_label is required")
