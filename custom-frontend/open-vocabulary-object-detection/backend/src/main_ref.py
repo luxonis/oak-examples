@@ -43,8 +43,8 @@ def main():
         )
         logger.info("FrameCacheNode created")
 
-        ### Can be one high-level visualization node?
-        if config.nn.model.name == 'yoloe'
+        # Can be one high-level visualization node?
+        if config.nn.model.name == 'yoloe':
             if args.semantic_seg:
                 instance_to_semantic_node = pipeline.create(InstanceToSemanticMask).build(nn_node.detections)
                 apply_colormap_node = pipeline.create(ApplyColormap).build(instance_to_semantic_node.out)
@@ -74,6 +74,7 @@ def main():
         prompting_services = PromptingFEServices(
             update_classes=nn_node.update_classes,
             add_image_prompt=nn_node.add_image_prompt,
+            add_bbox_prompt=nn_node.add_bbox_prompt,
             rename_image_prompt=nn_node.rename_image_prompt,
             delete_image_prompt=nn_node.delete_image_prompt,
             set_confidence_threshold=nn_node.set_confidence_threshold,

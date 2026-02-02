@@ -129,6 +129,18 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         """Add an image prompt to the accumulated list."""
         self._controller.add_image_prompt(image, label, mask)
 
+    def add_bbox_prompt(
+        self,
+        image: np.ndarray,
+        label: str,
+        x0: int,
+        y0: int,
+        x1: int,
+        y1: int,
+    ) -> None:
+        """Add an image prompt from bbox."""
+        self._controller.add_bbox_prompt(image, label, x0, y0, x1, y1)
+
     def rename_image_prompt(
         self,
         index: int = None,

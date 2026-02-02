@@ -142,6 +142,24 @@ class NNDetectionController:
 
         log.info(f"Added image prompt '{label}' (total: {len(self._image_prompt_labels)})")
 
+    def add_bbox_prompt(
+        self,
+        image_bgr: np.ndarray,
+        label: str,
+        x0: int,
+        y0: int,
+        x1: int,
+        y1: int,
+    ) -> None:
+        if self._model_name == "yolo-world":
+            crop = image_bgr[y0:y1, x0:x1]
+            self.add_image_prompt(crop, label, mask=None)
+        else:
+            H, W = image_bgr.shape[:2]
+            mask = np.zeros((H, W), dtype=np.float32)
+            mask[y0:y1, x0:x1] = 1.0
+            self.add_image_prompt(image_bgr, label, mask=mask)
+
     def rename_image_prompt(
             self,
             index: int = None,

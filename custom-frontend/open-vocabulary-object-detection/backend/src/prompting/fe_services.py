@@ -25,6 +25,7 @@ class PromptingFEServices:
         self,
         update_classes: Callable[[list[str]], None],
         add_image_prompt: Callable[[np.ndarray, str, Optional[np.ndarray]], None],
+        add_bbox_prompt: Callable[[np.ndarray, str, int, int, int, int], None],
         rename_image_prompt: Callable[[Optional[int], Optional[str], Optional[str]], bool],
         delete_image_prompt: Callable[[Optional[int], Optional[str]], bool],
         set_confidence_threshold: Callable[[float], None],
@@ -33,6 +34,7 @@ class PromptingFEServices:
     ):
         self._update_classes = update_classes
         self._add_image_prompt = add_image_prompt
+        self._add_bbox_prompt = add_bbox_prompt
         self._rename_image_prompt = rename_image_prompt
         self._delete_image_prompt = delete_image_prompt
         self._set_threshold = set_confidence_threshold
@@ -80,7 +82,8 @@ class PromptingFEServices:
 
         filename = payload.get("filename", "image.png")
         label = payload.get("label") or filename.rsplit(".", 1)[0]
-        self._add_image_prompt(image, label, None)
+        self._add_image_prompt(image=image, label=label, mask=None)
+
         log.info(f"Image prompt added with label: {label}")
 
     def fe_bbox_prompt(self, payload: dict) -> dict:
@@ -123,11 +126,9 @@ class PromptingFEServices:
             log.warning(f"Invalid bbox dimensions: ({x0}, {y0}) to ({x1}, {y1})")
             return {"ok": False, "reason": "invalid_bbox"}
 
-        mask = np.zeros((H, W), dtype=np.float32)
-        mask[y0:y1, x0:x1] = 1.0
-
         label = payload.get("label", "object")
-        self._add_image_prompt(image, label, mask)
+        self._add_bbox_prompt(image, label, x0, y0, x1, y1)
+
         log.info(f"BBox prompt added: label='{label}', region=({x0},{y0})-({x1},{y1})")
 
         return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
