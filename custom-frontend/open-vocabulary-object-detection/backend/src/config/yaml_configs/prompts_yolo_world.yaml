@@ -1,0 +1,25 @@
+class_names: ["person", "chair", "TV"]
+
+text_offset: 0
+visual_offset: 0
+
+max_num_classes: 80
+max_image_prompts: 5
+
+quant_values:
+  yolo-world:
+    quant_zero_point: 90.0
+    quant_scale: 0.003925696481
+
+paths:
+  tokenizer:
+    url: "https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/tokenizer.json"
+    path: "tokenizer.json"
+
+  text_encoder:
+    slug: "luxonis/yolo-world-l:clip-textual-hf"
+    path: "clip_textual_hf.onnx"
+
+  visual_encoder:
+    slug: "luxonis/yolo-world-l:clip-visual-with-projector"
+    path: "clip_visual_with_projector.onnx"

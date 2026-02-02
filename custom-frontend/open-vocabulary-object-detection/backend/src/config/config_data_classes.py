@@ -9,12 +9,13 @@ import depthai as dai
 class ModelInfo:
     """Model metadata from DepthAI zoo."""
 
+    name: str
+    precision: str
     yaml_path: Path
     width: int
     height: int
     description: dai.NNModelDescription
     archive: dai.NNArchive
-    precision: str
 
 
 @dataclass

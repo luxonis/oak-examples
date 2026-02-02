@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Literal
 import logging
 
 import numpy as np
@@ -11,6 +11,8 @@ from prompting import TextualPromptEncoder
 from prompting import VisualPromptEncoder
 
 log = logging.getLogger(__name__)
+
+PromptType = Literal["text", "image"]
 
 
 @dataclass
@@ -42,6 +44,7 @@ class NNDetectionController:
         visual_encoder: VisualPromptEncoder,
         det_filter: ImgDetectionsFilter,
         det_label_mapper: DetectionsLabelMapper,
+        model_name: str,
         precision: str,
         max_image_prompts: int = 5,
     ):
@@ -50,7 +53,8 @@ class NNDetectionController:
         self._visual_encoder = visual_encoder
         self._det_filter = det_filter
         self._det_label_mapper = det_label_mapper
-        self._precision = precision
+        self._model_name = model_name.lower()
+        self._precision = precision.lower()
         self._max_image_prompts = max_image_prompts
 
         # State
@@ -63,20 +67,24 @@ class NNDetectionController:
 
         # NN input queues
         self._text_q = self._nn.inputs["texts"].createInputQueue()
-        self._img_q = self._nn.inputs["image_prompts"].createInputQueue()
         self._nn.inputs["texts"].setReusePreviousMessage(True)
-        self._nn.inputs["image_prompts"].setReusePreviousMessage(True)
+
+        # YOLOE has separate image_prompts input; YOLO-World uses only texts
+        self._img_q = None
+        if self._model_name == "yoloe":
+            self._img_q = self._nn.inputs["image_prompts"].createInputQueue()
+            self._nn.inputs["image_prompts"].setReusePreviousMessage(True)
 
         self._parser = self._nn.getParser(0)
 
     def send_initial_prompts(
         self,
         class_names: list[str],
-        detection_threshold: float,
+        confidence_threshold: float,
     ) -> None:
         """Send initial prompts at startup."""
         self.update_classes(class_names)
-        self.set_confidence_threshold(detection_threshold)
+        self.set_confidence_threshold(confidence_threshold)
 
     def update_classes(self, class_names: list[str]) -> None:
         """
@@ -93,6 +101,7 @@ class NNDetectionController:
             text_prompt=text_embeddings,
             class_names=class_names,
             label_offset=self._text_encoder.offset,
+            prompt_type="text",
         )
 
         # Clear accumulated image prompts
@@ -230,6 +239,7 @@ class NNDetectionController:
             text_prompt=dummy_text,
             class_names=self._image_prompt_labels,
             label_offset=self._visual_encoder.offset,
+            prompt_type="image",
         )
 
         self._state.image_prompt_labels = list(self._image_prompt_labels)
@@ -247,6 +257,7 @@ class NNDetectionController:
             text_prompt=text_embeddings,
             class_names=self._last_text_classes,
             label_offset=self._text_encoder.offset,
+            prompt_type="text",
         )
 
         self._state.image_prompt_labels = []
@@ -256,7 +267,7 @@ class NNDetectionController:
         """Get tensor data type based on model precision."""
         if self._precision == "fp16":
             return dai.TensorInfo.DataType.FP16
-        return dai.TensorInfo.DataType.U8
+        return dai.TensorInfo.DataType.U8F
 
     @staticmethod
     def _make_nn_data(
@@ -288,12 +299,28 @@ class NNDetectionController:
         text_prompt: np.ndarray,
         class_names: list[str],
         label_offset: int = 0,
+        prompt_type: PromptType = "text",
     ) -> None:
-        """Send embedded prompts to the NN and update labels."""
+        """Send embedded prompts to the NN and update labels.
+
+        @param image_prompt: Image prompt embeddings tensor.
+        @param text_prompt: Text prompt embeddings tensor.
+        @param class_names: List of class names for labels.
+        @param label_offset: Label index offset.
+        @param prompt_type: "text" or "image" - which prompt is active.
+        """
         dtype = self._tensor_dtype()
 
-        self._text_q.send(self._make_nn_data("texts", text_prompt, dtype))
-        self._img_q.send(self._make_nn_data("image_prompts", image_prompt, dtype))
+        if self._model_name == "yolo-world":
+            # YOLO-World: single texts input, send whichever prompt is active
+            if prompt_type == "text":
+                self._text_q.send(self._make_nn_data("texts", text_prompt, dtype))
+            else:
+                self._text_q.send(self._make_nn_data("texts", image_prompt, dtype))
+        else:
+            # YOLOE: separate texts and image_prompts inputs
+            self._text_q.send(self._make_nn_data("texts", text_prompt, dtype))
+            self._img_q.send(self._make_nn_data("image_prompts", image_prompt, dtype))
 
         self._update_labels(class_names, label_offset=label_offset)
         self._state.current_classes = list(class_names)

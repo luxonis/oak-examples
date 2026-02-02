@@ -1,0 +1,20 @@
+model:
+  name: "yoloe"            # "yoloe" | "yolo-world"
+  precision: "fp16"        # "fp16" | "int8"
+
+  prompts_files:
+    yoloe: "prompts_yoloe.yaml"
+    yolo-world: "prompts_yolo_world.yaml"
+
+nn:
+  backend:
+    type: "snpe"
+    runtime: "dsp"
+    performance_profile: "default"
+    inference_threads: 1
+  confidence_thr: 0.1
+
+video:
+  width: 1280
+  height: 960
+  fps: 10

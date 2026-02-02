@@ -1,0 +1,1609 @@
+================================================================================
+OPEN-VOCABULARY OBJECT DETECTION - REFACTORED IMPLEMENTATION
+================================================================================
+All source files for main_ref.py implementation (YOLOE support)
+================================================================================
+
+
+================================================================================
+FILE: main_ref.py
+================================================================================
+import logging as log
+
+import depthai as dai
+from depthai_nodes.node import ApplyColormap, InstanceToSemanticMask, ImgFrameOverlay
+
+from config import parse_args, build_configuration
+from app_config_service import GetCurrentParamsService
+from camera import CameraSourceNode
+from nn import NNDetectionNode
+from prompting import FrameCacheNode, PromptingFEServices
+
+log.basicConfig(level=log.INFO)
+logger = log.getLogger(__name__)
+
+
+def main():
+    device = dai.Device()
+    visualizer = dai.RemoteConnection(serveFrontend=False)
+
+    platform = device.getPlatformAsString()
+    logger.info(f"Platform: {platform}")
+
+    if platform != "RVC4":
+        raise ValueError("This example is supported only on RVC4 platform")
+
+    args = parse_args()
+    config = build_configuration(platform, args)
+
+    with dai.Pipeline(device) as pipeline:
+        logger.info("Creating pipeline...")
+
+        camera_source = pipeline.create(CameraSourceNode).build(cfg=config.video)
+        logger.info("CameraSourceNode created")
+
+        nn_node = pipeline.create(NNDetectionNode).build(
+            input_frame=camera_source.bgr,
+            cfg=config.nn,
+        )
+        logger.info("NNDetectionNode created")
+
+        frame_cache_node = pipeline.create(FrameCacheNode).build(
+            input_frame=camera_source.bgr,
+        )
+        logger.info("FrameCacheNode created")
+
+        # Can be one high-level visualization node?
+        if args.semantic_seg:
+            instance_to_semantic_node = pipeline.create(InstanceToSemanticMask).build(nn_node.detections)
+            apply_colormap_node = pipeline.create(ApplyColormap).build(instance_to_semantic_node.out)
+        else:
+            apply_colormap_node = pipeline.create(ApplyColormap).build(nn_node.detections)
+
+        overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
+            frame1=camera_source.bgr,
+            frame2=apply_colormap_node.out,
+            preserve_background=True,
+        )
+
+        overlay_to_nv12 = pipeline.create(dai.node.ImageManip)
+        overlay_to_nv12.setMaxOutputFrameSize(1280 * 960 * 3)
+        overlay_to_nv12.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+        overlay_frames_node.out.link(overlay_to_nv12.inputImage)
+
+        overlay_enc = pipeline.create(dai.node.VideoEncoder)
+        overlay_enc.setDefaultProfilePreset(fps=config.video.fps, profile=dai.VideoEncoderProperties.Profile.H264_MAIN)
+        overlay_to_nv12.out.link(overlay_enc.input)
+
+        prompting_services = PromptingFEServices(
+            update_classes=nn_node.update_classes,
+            add_image_prompt=nn_node.add_image_prompt,
+            rename_image_prompt=nn_node.rename_image_prompt,
+            delete_image_prompt=nn_node.delete_image_prompt,
+            set_confidence_threshold=nn_node.set_confidence_threshold,
+            get_last_frame=frame_cache_node.get_last_frame,
+            max_num_classes=config.nn.prompts.max_num_classes,
+        )
+
+        get_params_service = GetCurrentParamsService(
+            get_nn_state=nn_node.get_state,
+        )
+
+        # Visualizer topics
+        # visualizer.addTopic("Video", camera_source.encoded)
+        visualizer.addTopic("Video", overlay_enc.out)
+        visualizer.addTopic("Detections", nn_node.detections)
+
+        # Register FE services
+        visualizer.registerService(
+            "Class Update Service", prompting_services.fe_class_update
+        )
+        visualizer.registerService(
+            "Threshold Update Service", prompting_services.fe_threshold_update
+        )
+        visualizer.registerService(
+            "Image Upload Service", prompting_services.fe_image_upload
+        )
+        visualizer.registerService(
+            "BBox Prompt Service", prompting_services.fe_bbox_prompt
+        )
+        visualizer.registerService(
+            "Rename Image Prompt Service", prompting_services.fe_rename_image_prompt
+        )
+        visualizer.registerService(
+            "Delete Image Prompt Service", prompting_services.fe_delete_image_prompt
+        )
+        visualizer.registerService("Get Current Params Service", get_params_service.handle)
+        logger.info("FE services registered!")
+
+        logger.info("Pipeline created. Starting...")
+        pipeline.start()
+        visualizer.registerPipeline(pipeline)
+        logger.info("Pipeline running!")
+
+        while pipeline.isRunning():
+            key = visualizer.waitKey(1)
+            pipeline.processTasks()
+            if key == ord("q"):
+                logger.info("Got 'q' key. Exiting...")
+                break
+
+
+if __name__ == "__main__":
+    main()
+
+
+================================================================================
+FILE: app_config_service.py
+================================================================================
+from typing import Callable
+
+from nn import NNState
+
+
+class GetCurrentParamsService:
+    """
+    Service that returns current parameters for the frontend.
+    Matches the expected format: class_names, image_prompt_labels, confidence_threshold.
+    """
+
+    def __init__(
+        self,
+        get_nn_state: Callable[[], NNState],
+    ):
+        self._get_nn_state = get_nn_state
+
+    def handle(self, _req=None) -> dict:
+        nn_state = self._get_nn_state()
+        return {
+            "class_names": nn_state.current_classes,
+            "image_prompt_labels": nn_state.image_prompt_labels,
+            "confidence_threshold": nn_state.confidence_threshold,
+        }
+
+
+================================================================================
+FILE: config/__init__.py
+================================================================================
+from .arguments import parse_args
+from .system_configuration import build_configuration
+from .config_data_classes import (
+    ModelInfo,
+    VideoConfig,
+    NeuralNetworkConfig,
+)
+
+__all__ = [
+    "parse_args",
+    "build_configuration",
+    "ModelInfo",
+    "VideoConfig",
+    "NeuralNetworkConfig",
+]
+
+
+================================================================================
+FILE: config/arguments.py
+================================================================================
+from __future__ import annotations
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace
+
+
+def parse_args() -> Namespace:
+    """
+    Define and parse CLI arguments for the application.
+    """
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument(
+        "-fps",
+        "--fps_limit",
+        help="FPS limit for the pipeline runtime.",
+        required=False,
+        default=None,
+        type=int,
+    )
+
+    parser.add_argument(
+        "-api",
+        "--api_key",
+        help=(
+            "HubAI API key to access private model. "
+            "Alternatively, set 'DEPTHAI_HUB_API_KEY' env var."
+        ),
+        required=False,
+        default="",
+        type=str,
+    )
+
+    parser.add_argument(
+        "-media",
+        "--media_path",
+        help=(
+            "Path to the media file to run the model on. "
+            "If not set, the model runs on the live camera input."
+        ),
+        required=False,
+        default=None,
+        type=str,
+    )
+
+    parser.add_argument(
+        "--semantic_seg",
+        help="Display output as semantic segmentation otherwise use instance segmentation (only applicable for YOLOE).",
+        action="store_true",
+    )
+
+    args = parser.parse_args()
+    return args
+
+
+================================================================================
+FILE: config/config_data_classes.py
+================================================================================
+from pathlib import Path
+from dataclasses import dataclass
+
+from box import Box
+import depthai as dai
+
+
+@dataclass
+class ModelInfo:
+    """Model metadata from DepthAI zoo."""
+
+    yaml_path: Path
+    width: int
+    height: int
+    description: dai.NNModelDescription
+    archive: dai.NNArchive
+    precision: str
+
+
+@dataclass
+class VideoConfig:
+    """Config for CameraSourceNode."""
+
+    fps: int
+    media_path: str
+    width: int
+    height: int
+
+
+@dataclass
+class NeuralNetworkConfig:
+    """Config for NNDetectionNode."""
+
+    model: ModelInfo
+    backend_type: str
+    runtime: str
+    performance_profile: str
+    num_inference_threads: int
+    confidence_thr: float
+    prompts: Box
+
+
+================================================================================
+FILE: config/system_configuration.py
+================================================================================
+from dataclasses import dataclass
+from pathlib import Path
+from argparse import Namespace
+
+from box import Box
+import depthai as dai
+
+from .config_data_classes import (
+    ModelInfo,
+    VideoConfig,
+    NeuralNetworkConfig,
+)
+
+
+@dataclass
+class SystemConfig:
+    """All configuration for the pipeline."""
+
+    video: VideoConfig
+    nn: NeuralNetworkConfig
+
+
+def build_configuration(platform: str, args: Namespace) -> SystemConfig:
+    """Build all configuration from CLI args and YAML files."""
+    yaml = _load_yamls(Path(__file__).parent / "yaml_configs")
+    model = _load_model(platform, yaml.prompts.precision)
+
+    # Video config
+    fps = args.fps_limit or yaml.video.default_fps
+    video = VideoConfig(
+        fps=fps,
+        media_path=args.media_path,
+        width=yaml.video.width,
+        height=yaml.video.height,
+    )
+
+    # NN config
+    b = yaml.nn.nn_backend
+    nn = NeuralNetworkConfig(
+        model=model,
+        backend_type=b.type,
+        runtime=b.runtime,
+        performance_profile=b.performance_profile,
+        num_inference_threads=b.inference_threads,
+        confidence_thr=yaml.nn.confidence_thr,
+        prompts=yaml.prompts,
+    )
+
+    return SystemConfig(
+        video=video,
+        nn=nn,
+    )
+
+
+def _load_yamls(base: Path) -> Box:
+    def safe_load(file: str) -> Box:
+        path = base / file
+        if not path.exists():
+            raise FileNotFoundError(f"Missing YAML: {path}")
+        return Box.from_yaml(filename=path)
+
+    return Box(
+        {
+            "nn": safe_load("nn_config.yaml"),
+            "video": safe_load("visual_constants.yaml"),
+            "conditions": safe_load("conditions.yaml"),
+            "prompts": safe_load("prompts_config.yaml"),
+        }
+    )
+
+
+def _load_model(platform: str, precision: str) -> ModelInfo:
+    models_dir = Path(__file__).parent.parent / "depthai_models"
+    yaml_path = models_dir / f"yoloe_v8_l_fp16.{platform}.yaml"
+
+    if not yaml_path.exists():
+        raise SystemExit(f"Model YAML not found: {yaml_path}")
+
+    desc = dai.NNModelDescription.fromYamlFile(str(yaml_path))
+    desc.platform = platform
+    archive = dai.NNArchive(dai.getModelFromZoo(desc))
+    w, h = archive.getInputSize()
+
+    return ModelInfo(yaml_path, w, h, desc, archive, precision)
+
+
+================================================================================
+FILE: config/yaml_configs/nn_config.yaml
+================================================================================
+nn_backend:
+  type: "snpe"
+  runtime: "dsp"
+  performance_profile: "default"
+  inference_threads: 1
+  precision: "fp16"
+
+confidence_thr: 0.1
+
+
+================================================================================
+FILE: config/yaml_configs/visual_constants.yaml
+================================================================================
+width: 1280
+height: 960
+default_fps: 10
+
+
+================================================================================
+FILE: config/yaml_configs/conditions.yaml
+================================================================================
+cooldown: 300
+conditions:
+  - key: timed
+    enabled: false
+    name: Timed Snap
+    tags: ["timed"]
+
+  - key: lowConfidence
+    enabled: false
+    name: Low Confidence
+    tags: ["confidence"]
+
+  - key: noDetections
+    enabled: false
+    name: No Detections
+    tags: ["no detections"]
+
+  - key: lostMid
+    enabled: false
+    name: Lost in Middle
+    tags: ["lost"]
+
+
+================================================================================
+FILE: config/yaml_configs/prompts_config.yaml
+================================================================================
+name: "yoloe"
+precision: "fp16"
+class_names: ["person", "chair", "TV"]
+detection_threshold: 0.1
+text_offset: 0
+visual_offset: 80
+max_num_classes: 80
+max_image_prompts: 5
+
+
+quant_values:
+  yoloe:
+    quant_zero_point: 174.0
+    quant_scale: 0.003328413470
+  yoloe-image:
+    quant_zero_point: 137.0
+    quant_scale: 0.002327915514
+
+paths:
+  tokenizer:
+    url: "https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/tokenizer.json"
+    path: "tokenizer.json"
+
+  text_encoder:
+    slug: "luxonis/yoloe-v8-l:mobileclip-textual-hf"
+    path: "mobileclip_textual_hf.onnx"
+
+  visual_encoder:
+    slug: "luxonis/yoloe-v8-l:yoloe-v8l-seg-visual-encoder"
+    path: "yoloe-v8l-seg_visual_encoder.onnx"
+
+
+================================================================================
+FILE: camera/__init__.py
+================================================================================
+from .camera_source_node import CameraSourceNode
+
+__all__ = ["CameraSourceNode"]
+
+
+================================================================================
+FILE: camera/camera_source_node.py
+================================================================================
+from pathlib import Path
+from typing import Optional
+
+import depthai as dai
+
+from config.config_data_classes import VideoConfig
+
+
+class CameraSourceNode(dai.node.ThreadedHostNode):
+    """
+    High-level node for the camera part of the pipeline.
+
+    Internal block:
+        Camera
+          -> BGR output
+          -> NV12 stream -> VideoEncoder -> H.264
+
+    Handles both live camera and file replay sources, exposing:
+      - bgr: BGR888i stream.
+      - encoded: H.264 encoded stream.
+
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._encoder: dai.node.VideoEncoder = self.createSubnode(dai.node.VideoEncoder)
+
+        self._camera: Optional[dai.node.Camera] = None
+        self._replay: Optional[dai.node.ReplayVideo] = None
+        self._manip: Optional[dai.node.ImageManip] = None
+
+        self._nv12_out: Optional[dai.Node.Output] = None
+        self.bgr: Optional[dai.Node.Output] = None
+        self.encoded: Optional[dai.Node.Output] = None
+
+    def build(self, cfg: VideoConfig) -> "CameraSourceNode":
+        """
+        @param cfg: Video configuration with resolution, fps, and optional media_path.
+        """
+        if cfg.media_path:
+            self._setup_replay(cfg)
+        else:
+            self._setup_camera(cfg)
+
+        self._setup_encoder(cfg)
+        return self
+
+    def _setup_camera(self, cfg: VideoConfig) -> None:
+        """Configure live camera source."""
+        self._camera = self.createSubnode(dai.node.Camera)
+        self._camera.build()
+
+        self.bgr = self._camera.requestOutput(
+            size=(cfg.width, cfg.height),
+            type=dai.ImgFrame.Type.BGR888i,
+            fps=cfg.fps,
+        )
+
+        self._nv12_out = self._camera.requestOutput(
+            size=(cfg.width, cfg.height),
+            type=dai.ImgFrame.Type.NV12,
+            fps=cfg.fps,
+        )
+
+    def _setup_replay(self, cfg: VideoConfig) -> None:
+        """Configure file replay source."""
+        self._replay = self.createSubnode(dai.node.ReplayVideo)
+        self._replay.setReplayVideoFile(Path(cfg.media_path))
+        self._replay.setOutFrameType(dai.ImgFrame.Type.NV12)
+        self._replay.setLoop(True)
+        self._replay.setFps(cfg.fps)
+        self._replay.setSize((cfg.width, cfg.height))
+
+        # ImageManip to convert NV12 to BGR
+        self._manip = self.createSubnode(dai.node.ImageManip)
+        self._manip.setMaxOutputFrameSize(cfg.width * cfg.height * 3)
+        self._manip.initialConfig.setOutputSize(cfg.width, cfg.height)
+        self._manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
+        self._replay.out.link(self._manip.inputImage)
+
+        self.bgr = self._manip.out
+        self._nv12_out = self._replay.out
+
+    def _setup_encoder(self, cfg: VideoConfig) -> None:
+        """Configure H.264 encoder for visualization."""
+        self._encoder.setDefaultProfilePreset(
+            fps=cfg.fps,
+            profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+        )
+        self._nv12_out.link(self._encoder.input)
+        self.encoded = self._encoder.out
+
+    def run(self) -> None:
+        # High-level node: subnodes handle all processing.
+        pass
+
+
+================================================================================
+FILE: nn/__init__.py
+================================================================================
+from .nn_detection_node import NNDetectionNode
+from .nn_detection_controller import NNDetectionController, NNState
+from .label_mapper_node import DetectionsLabelMapper
+
+__all__ = [
+    "NNDetectionNode",
+    "NNDetectionController",
+    "NNState",
+    "DetectionsLabelMapper",
+]
+
+
+================================================================================
+FILE: nn/nn_detection_node.py
+================================================================================
+from typing import Optional
+
+import depthai as dai
+import numpy as np
+
+from depthai_nodes.node import (
+    ParsingNeuralNetwork,
+    ImgDetectionsFilter,
+)
+from config import NeuralNetworkConfig
+from .nn_detection_controller import NNDetectionController
+from .label_mapper_node import DetectionsLabelMapper
+from prompting import TextualPromptEncoder
+from prompting import VisualPromptEncoder
+
+
+class NNDetectionNode(dai.node.ThreadedHostNode):
+    """
+    High-level node grouping the neural-network detection block.
+    Handles object detection + filtering + annotation, and exposes a PromptController to
+    update detection classes and confidence threshold at runtime.
+
+    Internal pipeline:
+        input_frame
+          -> ParsingNeuralNetwork
+          -> ImgDetectionsFilter (filter by enabled label IDs)
+          -> LabelMapperNode (add label names for visualization)
+
+    Exposes:
+      - detections_extended: ImgDetectionsExtended with label names (for visualizer)
+      - detections: dai.ImgDetections with label names (for snapping)
+      - controller: PromptController for dynamic prompt updates (classes, confidence threshold)
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._img_manip: dai.node.ImageManip = self.createSubnode(dai.node.ImageManip)
+        self._nn: ParsingNeuralNetwork = self.createSubnode(ParsingNeuralNetwork)
+        self._det_filter: ImgDetectionsFilter = self.createSubnode(ImgDetectionsFilter)
+        self._det_label_mapper: DetectionsLabelMapper = self.createSubnode(DetectionsLabelMapper)
+
+        # Internal controller
+        self._controller: Optional[NNDetectionController] = None
+
+        # Prompt encoders
+        self._text_encoder: Optional[TextualPromptEncoder] = None
+        self._visual_encoder: Optional[VisualPromptEncoder] = None
+
+        # Outputs
+        self.detections: Optional[dai.Node.Output] = None
+
+    def build(
+        self,
+        input_frame: dai.Node.Output,
+        cfg: NeuralNetworkConfig,
+    ) -> "NNDetectionNode":
+        """
+        @param input_frame: BGR image frames from camera.
+        @param cfg: Neural network configuration.
+        """
+        # Image manip
+        self._img_manip.setMaxOutputFrameSize(cfg.model.width * cfg.model.height * 3)
+        self._img_manip.initialConfig.setOutputSize(cfg.model.width, cfg.model.height)
+        self._img_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
+        input_frame.link(self._img_manip.inputImage)
+
+        # NN config
+        self._nn.setNNArchive(cfg.model.archive)
+        self._nn.setBackend(cfg.backend_type)
+        self._nn.setBackendProperties(
+            {"runtime": cfg.runtime, "performance_profile": cfg.performance_profile}
+        )
+        self._nn.setNumInferenceThreads(cfg.num_inference_threads)
+        self._nn.getParser(0).setConfidenceThreshold(cfg.confidence_thr)
+        self._img_manip.out.link(self._nn.inputs["images"])
+
+        # Detection filter
+        self._det_filter.build(self._nn.out)
+
+        # Add label for visualization (ImgDetectionsExtended)
+        self._det_label_mapper.build(self._det_filter.out)
+        self.detections = self._det_label_mapper.out
+
+        # Prompt encoders
+        self._text_encoder = TextualPromptEncoder(cfg.prompts)
+        self._visual_encoder = VisualPromptEncoder(cfg.prompts)
+
+        # Controller
+        self._controller = NNDetectionController(
+            nn=self._nn,
+            text_encoder=self._text_encoder,
+            visual_encoder=self._visual_encoder,
+            det_filter=self._det_filter,
+            det_label_mapper=self._det_label_mapper,
+            precision=cfg.model.precision,
+            max_image_prompts=cfg.prompts.max_image_prompts,
+        )
+        self._controller.send_initial_prompts(
+            class_names=cfg.prompts.class_names,
+            detection_threshold=cfg.prompts.detection_threshold,
+        )
+
+        return self
+
+    def run(self) -> None:
+        # High-level node: no host-side processing here. Processing happens in the composed subnodes.
+        pass
+
+    def set_confidence_threshold(self, threshold: float) -> None:
+        """Set the confidence threshold for detection."""
+        self._controller.set_confidence_threshold(threshold)
+
+    def update_classes(self, class_names: list[str]) -> None:
+        """Update detection classes using text prompts."""
+        self._controller.update_classes(class_names)
+
+    def add_image_prompt(
+        self,
+        image: np.ndarray,
+        label: str,
+        mask: Optional[np.ndarray] = None
+    ) -> None:
+        """Add an image prompt to the accumulated list."""
+        self._controller.add_image_prompt(image, label, mask)
+
+    def rename_image_prompt(
+        self,
+        index: int = None,
+        old_label: str = None,
+        new_label: str = None
+    ) -> bool:
+        """Rename an image prompt by index or old label."""
+        return self._controller.rename_image_prompt(index, old_label, new_label)
+
+    def delete_image_prompt(self, index: int = None, label: str = None) -> bool:
+        """Delete an image prompt by index or label."""
+        return self._controller.delete_image_prompt(index, label)
+
+    def get_state(self):
+        """Get current NN state."""
+        return self._controller.get_nn_state()
+
+
+================================================================================
+FILE: nn/nn_detection_controller.py
+================================================================================
+from dataclasses import dataclass, field
+from typing import Optional
+import logging
+
+import numpy as np
+import depthai as dai
+
+from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
+from .label_mapper_node import DetectionsLabelMapper
+from prompting import TextualPromptEncoder
+from prompting import VisualPromptEncoder
+
+log = logging.getLogger(__name__)
+
+
+@dataclass
+class NNState:
+    current_classes: list[str] = field(default_factory=list)
+    image_prompt_labels: list[str] = field(default_factory=list)
+    confidence_threshold: float = 0.0
+
+
+class NNDetectionController:
+    """
+    Controls prompt-driven detection configuration at runtime.
+
+    Supports accumulation of multiple image prompts (up to max_image_prompts),
+    with rename and delete functionality.
+
+    Responsibilities:
+      - Produce and send prompt tensors (text/visual) to NN
+      - Accumulate multiple image prompts with labels
+      - Update label filtering and encoding
+      - Update parser confidence threshold
+      - Track model state for FE/UI
+    """
+
+    def __init__(
+        self,
+        nn: ParsingNeuralNetwork,
+        text_encoder: TextualPromptEncoder,
+        visual_encoder: VisualPromptEncoder,
+        det_filter: ImgDetectionsFilter,
+        det_label_mapper: DetectionsLabelMapper,
+        precision: str,
+        max_image_prompts: int = 5,
+    ):
+        self._nn = nn
+        self._text_encoder = text_encoder
+        self._visual_encoder = visual_encoder
+        self._det_filter = det_filter
+        self._det_label_mapper = det_label_mapper
+        self._precision = precision
+        self._max_image_prompts = max_image_prompts
+
+        # State
+        self._state = NNState()
+        self._last_text_classes: list[str] = []
+
+        # Accumulated image prompts
+        self._image_prompt_vectors: list[np.ndarray] = []
+        self._image_prompt_labels: list[str] = []
+
+        # NN input queues
+        self._text_q = self._nn.inputs["texts"].createInputQueue()
+        self._img_q = self._nn.inputs["image_prompts"].createInputQueue()
+        self._nn.inputs["texts"].setReusePreviousMessage(True)
+        self._nn.inputs["image_prompts"].setReusePreviousMessage(True)
+
+        self._parser = self._nn.getParser(0)
+
+    def send_initial_prompts(
+        self,
+        class_names: list[str],
+        detection_threshold: float,
+    ) -> None:
+        """Send initial prompts at startup."""
+        self.update_classes(class_names)
+        self.set_confidence_threshold(detection_threshold)
+
+    def update_classes(self, class_names: list[str]) -> None:
+        """
+        Update detection classes using text prompts.
+        Clears any accumulated image prompts and switches to text-based detection.
+        """
+        self._last_text_classes = list(class_names)
+
+        text_embeddings = self._text_encoder.extract_embeddings(class_names)
+        dummy_image = self._visual_encoder.make_dummy()
+
+        self._apply_embedded_prompts(
+            image_prompt=dummy_image,
+            text_prompt=text_embeddings,
+            class_names=class_names,
+            label_offset=self._text_encoder.offset,
+        )
+
+        # Clear accumulated image prompts
+        self._image_prompt_vectors = []
+        self._image_prompt_labels = []
+        self._state.image_prompt_labels = []
+
+        log.info(f"Text classes updated: {class_names}")
+
+    def add_image_prompt(
+        self,
+        image_bgr: np.ndarray,
+        label: str,
+        mask: Optional[np.ndarray] = None,
+    ) -> None:
+        """
+        Add an image prompt to the accumulated list.
+        Extracts visual embeddings and adds to the list. If at max capacity,
+        removes the oldest prompt.
+
+        @param image_bgr: BGR image to extract embeddings from.
+        @param label: Label for this prompt.
+        @param mask: Optional mask for region-based extraction.
+        """
+        embeddings = self._visual_encoder.extract_embeddings(image_bgr, mask)
+        embeddings_vector = embeddings[0, :, 0].copy()
+
+        self._image_prompt_vectors.append(embeddings_vector)
+        self._image_prompt_labels.append(label)
+
+        if len(self._image_prompt_vectors) > self._max_image_prompts:
+            removed = self._image_prompt_labels[0]
+            self._image_prompt_vectors = self._image_prompt_vectors[-self._max_image_prompts:]
+            self._image_prompt_labels = self._image_prompt_labels[-self._max_image_prompts:]
+            log.info(f"Max prompts reached, removed oldest: '{removed}'")
+
+        self._send_accumulated_image_prompts()
+
+        log.info(f"Added image prompt '{label}' (total: {len(self._image_prompt_labels)})")
+
+    def rename_image_prompt(
+            self,
+            index: int = None,
+            old_label: str = None,
+            new_label: str = None
+    ) -> bool:
+        """
+        Rename an image prompt by index or old label.
+
+        @param index: Index of the prompt to rename.
+        @param old_label: Current label.
+        @param new_label: New label to assign.
+        """
+        if not new_label:
+            log.warning("rename_image_prompt: new_label is required")
+            return False
+
+        idx = None
+        if isinstance(index, int) and 0 <= index < len(self._image_prompt_labels):
+            idx = index
+        elif old_label and old_label in self._image_prompt_labels:
+            idx = self._image_prompt_labels.index(old_label)
+
+        if idx is None:
+            log.warning("rename_image_prompt: index/old_label not found")
+            return False
+
+        old = self._image_prompt_labels[idx]
+        self._image_prompt_labels[idx] = new_label
+        self._state.image_prompt_labels = list(self._image_prompt_labels)
+
+        self._update_labels(
+            self._image_prompt_labels,
+            label_offset=self._visual_encoder.offset,
+        )
+
+        log.info(f"Renamed image prompt '{old}' -> '{new_label}'")
+        return True
+
+    def delete_image_prompt(self, index: int = None, label: str = None) -> bool:
+        """
+        Delete an image prompt by index or label.
+        If all image prompts are deleted, reverts to last text classes.
+
+        @param index: Index of the prompt to delete.
+        @param label: Current label.
+        """
+        idx = None
+        if isinstance(index, int) and 0 <= index < len(self._image_prompt_vectors):
+            idx = index
+        elif label and label in self._image_prompt_labels:
+            idx = self._image_prompt_labels.index(label)
+
+        if idx is None:
+            log.warning("delete_image_prompt: index/label not found")
+            return False
+
+        removed_label = self._image_prompt_labels[idx]
+        del self._image_prompt_vectors[idx]
+        del self._image_prompt_labels[idx]
+
+        if len(self._image_prompt_vectors) > 0:
+            self._send_accumulated_image_prompts()
+            log.info(f"Deleted image prompt '{removed_label}' (remaining: {len(self._image_prompt_labels)})")
+        else:
+            self._revert_to_text_classes()
+            log.info(f"Deleted last image prompt '{removed_label}', reverted to text classes")
+
+        return True
+
+    def set_confidence_threshold(self, threshold: float) -> None:
+        """Set the confidence threshold for detection."""
+        t = float(max(0.0, min(1.0, threshold)))
+        self._parser.setConfidenceThreshold(t)
+        self._state.confidence_threshold = t
+        log.info(f"Confidence threshold set to {t:.2f}")
+
+    def get_nn_state(self) -> NNState:
+        """Get current NN state for frontend synchronization."""
+        return NNState(
+            current_classes=list(self._state.current_classes),
+            image_prompt_labels=list(self._state.image_prompt_labels),
+            confidence_threshold=float(self._state.confidence_threshold),
+        )
+
+    def _send_accumulated_image_prompts(self) -> None:
+        """Build combined tensor from accumulated vectors and send to NN."""
+        combined = self._visual_encoder.make_dummy()
+        for i, vec in enumerate(self._image_prompt_vectors):
+            combined[0, :, i] = vec
+        dummy_text = self._text_encoder.make_dummy()
+
+        self._apply_embedded_prompts(
+            image_prompt=combined,
+            text_prompt=dummy_text,
+            class_names=self._image_prompt_labels,
+            label_offset=self._visual_encoder.offset,
+        )
+
+        self._state.image_prompt_labels = list(self._image_prompt_labels)
+
+    def _revert_to_text_classes(self) -> None:
+        """Revert to last text classes when all image prompts are deleted."""
+        if not self._last_text_classes:
+            self._last_text_classes = ["object"]
+
+        text_embeddings = self._text_encoder.extract_embeddings(self._last_text_classes)
+        dummy_image = self._visual_encoder.make_dummy()
+
+        self._apply_embedded_prompts(
+            image_prompt=dummy_image,
+            text_prompt=text_embeddings,
+            class_names=self._last_text_classes,
+            label_offset=self._text_encoder.offset,
+        )
+
+        self._state.image_prompt_labels = []
+        log.info(f"Reverted to text classes: {self._last_text_classes}")
+
+    def _tensor_dtype(self) -> dai.TensorInfo.DataType:
+        """Get tensor data type based on model precision."""
+        if self._precision == "fp16":
+            return dai.TensorInfo.DataType.FP16
+        return dai.TensorInfo.DataType.U8
+
+    @staticmethod
+    def _make_nn_data(
+        tensor_name: str, data: np.ndarray, dtype: dai.TensorInfo.DataType
+    ) -> dai.NNData:
+        msg = dai.NNData()
+        msg.addTensor(tensor_name, data, dataType=dtype)
+        return msg
+
+    def _update_labels(self, label_names: list[str], label_offset: int = 0) -> None:
+        """Update label filtering and annotator encodings.
+        @param label_names: List of class names to keep.
+        @param label_offset: Label index offset (default: 0).
+        """
+        if label_offset < 0:
+            raise ValueError("label_offset must be >= 0")
+
+        self._det_filter.setLabels(
+            labels=list(range(label_offset, label_offset + len(label_names))),
+            keep=True,
+        )
+
+        encoding = {label_offset + k: v for k, v in enumerate(label_names)}
+        self._det_label_mapper.set_label_encoding(encoding)
+
+    def _apply_embedded_prompts(
+        self,
+        image_prompt: np.ndarray,
+        text_prompt: np.ndarray,
+        class_names: list[str],
+        label_offset: int = 0,
+    ) -> None:
+        """Send embedded prompts to the NN and update labels."""
+        dtype = self._tensor_dtype()
+
+        self._text_q.send(self._make_nn_data("texts", text_prompt, dtype))
+        self._img_q.send(self._make_nn_data("image_prompts", image_prompt, dtype))
+
+        self._update_labels(class_names, label_offset=label_offset)
+        self._state.current_classes = list(class_names)
+
+
+================================================================================
+FILE: nn/label_mapper_node.py
+================================================================================
+import logging
+from typing import Dict, Optional
+
+import depthai as dai
+
+from depthai_nodes import ImgDetectionsExtended
+
+logger = logging.getLogger(__name__)
+
+
+class DetectionsLabelMapper(dai.node.HostNode):
+    """
+    Maps numeric class IDs to human-readable names.
+
+    Input:
+      - dai.ImgDetections OR ImgDetectionsExtended
+    Output:
+      - Same message instance, with label name fields populated.
+    """
+
+    def __init__(self, label_encoding: Optional[Dict[int, str]] = None) -> None:
+        super().__init__()
+        self._label_encoding = label_encoding if label_encoding is not None else {}
+
+    def set_label_encoding(self, label_encoding: Dict[int, str]) -> None:
+        """Sets the label encoding.
+
+        @param label_encoding: The label encoding with labels as keys and label names as
+            values.
+        @type label_encoding: Dict[int, str]
+        """
+        if not isinstance(label_encoding, dict):
+            raise ValueError("label_encoding must be a dictionary.")
+        self._label_encoding = label_encoding
+
+    def build(
+        self,
+        detections: dai.Node.Output,
+        label_encoding: Optional[Dict[int, str]] = None,
+    ) -> "DetectionsLabelMapper":
+        if label_encoding is not None:
+            self.set_label_encoding(label_encoding)
+
+        self.link_args(detections)
+        return self
+
+    def process(self, detections_message: dai.Buffer) -> None:
+        if isinstance(detections_message, ImgDetectionsExtended):
+            for detection in detections_message.detections:
+                detection.label_name = self._label_encoding.get(
+                    detection.label, "unknown"
+                )
+        elif isinstance(detections_message, dai.ImgDetections):
+            for detection in detections_message.detections:
+                detection.labelName = self._label_encoding.get(
+                    detection.label, "unknown"
+                )
+        self.out.send(detections_message)
+
+
+================================================================================
+FILE: prompting/__init__.py
+================================================================================
+# prompting/__init__.py
+from .frame_cache_node import FrameCacheNode
+from .fe_services import PromptingFEServices
+from .encoders.textual_prompt_encoder import TextualPromptEncoder
+from .encoders.visual_prompt_encoder import VisualPromptEncoder
+
+__all__ = [
+    "FrameCacheNode",
+    "PromptingFEServices",
+    "TextualPromptEncoder",
+    "VisualPromptEncoder",
+]
+
+
+================================================================================
+FILE: prompting/fe_services.py
+================================================================================
+import base64
+import logging
+from typing import Callable, Optional
+
+import cv2
+import numpy as np
+
+log = logging.getLogger(__name__)
+
+
+class PromptingFEServices:
+    """
+    Groups all frontend service handlers for prompt-based detection.
+
+    Services:
+        - fe_class_update: Update text-based detection classes
+        - fe_threshold_update: Update confidence threshold
+        - fe_image_upload: Upload image for visual prompting
+        - fe_bbox_prompt: Select region via bounding box for visual prompting
+        - fe_rename_image_prompt: Rename an existing image prompt
+        - fe_delete_image_prompt: Delete an existing image prompt
+    """
+
+    def __init__(
+        self,
+        update_classes: Callable[[list[str]], None],
+        add_image_prompt: Callable[[np.ndarray, str, Optional[np.ndarray]], None],
+        rename_image_prompt: Callable[[Optional[int], Optional[str], Optional[str]], bool],
+        delete_image_prompt: Callable[[Optional[int], Optional[str]], bool],
+        set_confidence_threshold: Callable[[float], None],
+        get_last_frame: Callable[[], Optional[np.ndarray]],
+        max_num_classes: int = 80,
+    ):
+        self._update_classes = update_classes
+        self._add_image_prompt = add_image_prompt
+        self._rename_image_prompt = rename_image_prompt
+        self._delete_image_prompt = delete_image_prompt
+        self._set_threshold = set_confidence_threshold
+        self._get_last_frame = get_last_frame
+        self._max_num_classes = max_num_classes
+
+    def fe_class_update(self, new_classes: list[str]) -> None:
+        """Update detection classes based on user input."""
+        if not new_classes:
+            log.warning("Class update called with empty list, skipping.")
+            return
+
+        if len(new_classes) > self._max_num_classes:
+            log.warning(
+                f"Too many classes ({len(new_classes)} > {self._max_num_classes}); "
+                f"using only the first {self._max_num_classes}."
+            )
+            new_classes = new_classes[:self._max_num_classes]
+
+        self._update_classes(new_classes)
+        log.info(f"Classes updated: {new_classes}")
+
+    def fe_threshold_update(self, new_threshold: float) -> None:
+        """Update confidence threshold based on user input."""
+        threshold = max(0.01, min(0.99, float(new_threshold)))
+        self._set_threshold(threshold)
+        log.info(f"Confidence threshold updated: {threshold:.2f}")
+
+    def fe_image_upload(self, payload: dict) -> None:
+        """
+        Handle image upload for visual prompting.
+
+        Args:
+            payload: Dict with 'data' (base64), 'filename', and optional 'label'.
+        """
+        data = payload.get("data")
+        if not data:
+            log.error("Image upload missing 'data' field")
+            return
+
+        image = self._decode_image(data)
+        if image is None:
+            log.error("Failed to decode uploaded image")
+            return
+
+        filename = payload.get("filename", "image.png")
+        label = payload.get("label") or filename.rsplit(".", 1)[0]
+        self._add_image_prompt(image, label, None)
+        log.info(f"Image prompt added with label: {label}")
+
+    def fe_bbox_prompt(self, payload: dict) -> dict:
+        """
+        Handle bounding box region selection for visual prompting.
+
+        Args:
+            payload: Dict with 'bbox' (x, y, width, height), optional 'data', and 'label'.
+        """
+        bbox = payload.get("bbox", {})
+        if not bbox:
+            log.error("BBox prompt missing 'bbox' field")
+            return {"ok": False, "reason": "missing_bbox"}
+
+        image = None
+        if payload.get("data"):
+            image = self._decode_image(payload["data"])
+        if image is None:
+            image = self._get_last_frame()
+        if image is None:
+            log.warning("No image available for bbox prompt")
+            return {"ok": False, "reason": "no_image"}
+
+        # Convert normalized bbox to pixel coordinates
+        H, W = image.shape[:2]
+        bx = float(bbox.get("x", 0.0))
+        by = float(bbox.get("y", 0.0))
+        bw = float(bbox.get("width", 0.0))
+        bh = float(bbox.get("height", 0.0))
+
+        x0 = int(round(bx * W))
+        y0 = int(round(by * H))
+        x1 = int(round((bx + bw) * W))
+        y1 = int(round((by + bh) * H))
+
+        x0, x1 = sorted((max(0, x0), min(W, x1)))
+        y0, y1 = sorted((max(0, y0), min(H, y1)))
+
+        if x1 <= x0 or y1 <= y0:
+            log.warning(f"Invalid bbox dimensions: ({x0}, {y0}) to ({x1}, {y1})")
+            return {"ok": False, "reason": "invalid_bbox"}
+
+        mask = np.zeros((H, W), dtype=np.float32)
+        mask[y0:y1, x0:x1] = 1.0
+
+        label = payload.get("label", "object")
+        self._add_image_prompt(image, label, mask)
+        log.info(f"BBox prompt added: label='{label}', region=({x0},{y0})-({x1},{y1})")
+
+        return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
+
+    def fe_rename_image_prompt(self, payload: dict) -> dict:
+        """
+        Rename an existing image prompt.
+
+        Args:
+            payload: Dict with 'index' or 'oldLabel', and 'newLabel'.
+        """
+        index = payload.get("index")
+        old_label = payload.get("oldLabel")
+        new_label = payload.get("newLabel")
+
+        if not new_label:
+            log.warning("Rename image prompt: new_label is required")
+            return {"ok": False, "reason": "new_label_required"}
+
+        success = self._rename_image_prompt(index, old_label, new_label)
+        if success:
+            log.info(f"Image prompt renamed to '{new_label}'")
+            return {"ok": True}
+        else:
+            log.warning("Rename image prompt: index/old_label not found")
+            return {"ok": False, "reason": "not_found"}
+
+    def fe_delete_image_prompt(self, payload: dict) -> dict:
+        """
+        Delete an existing image prompt.
+
+        Args:
+            payload: Dict with 'index' or 'label'.
+        """
+        index = payload.get("index")
+        label = payload.get("label")
+
+        if index is None and label is None:
+            log.warning("Delete image prompt: index or label is required")
+            return {"ok": False, "reason": "index_or_label_required"}
+
+        success = self._delete_image_prompt(index, label)
+        if success:
+            log.info(f"Image prompt deleted (index={index}, label={label})")
+            return {"ok": True}
+        else:
+            log.warning("Delete image prompt: index/label not found")
+            return {"ok": False, "reason": "not_found"}
+
+    @staticmethod
+    def _decode_image(data_uri: str) -> Optional[np.ndarray]:
+        if not data_uri:
+            return None
+        try:
+            base64_data = data_uri.split(",", 1)[1] if "," in data_uri else data_uri
+            image_bytes = base64.b64decode(base64_data)
+            np_arr = np.frombuffer(image_bytes, dtype=np.uint8)
+            return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        except Exception as e:
+            log.debug(f"Image decode failed: {e}")
+            return None
+
+
+================================================================================
+FILE: prompting/frame_cache_node.py
+================================================================================
+import depthai as dai
+import numpy as np
+
+
+class FrameCacheNode(dai.node.HostNode):
+    """
+    Host node that caches the latest ImgFrame as a NumPy BGR image for prompt services.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._last_frame: np.ndarray | None = None
+
+    def build(self, input_frame: dai.Node.Output) -> "FrameCacheNode":
+        self.link_args(input_frame)
+        return self
+
+    def process(self, input_frame: dai.ImgFrame) -> dai.ImgFrame:
+        self._last_frame = input_frame.getCvFrame()
+        return input_frame
+
+    def get_last_frame(self) -> np.ndarray | None:
+        return self._last_frame
+
+
+================================================================================
+FILE: prompting/encoders/__init__.py
+================================================================================
+# (empty or minimal)
+
+
+================================================================================
+FILE: prompting/encoders/base_prompt_encoder.py
+================================================================================
+import os
+from abc import ABC, abstractmethod
+from pathlib import Path
+
+from box import Box
+from onnxruntime import InferenceSession
+from tqdm import tqdm
+import numpy as np
+import requests
+
+
+HUBAI_API_BASE = "https://easyml.cloud.luxonis.com/models/api/v1"
+
+
+class BasePromptEncoder(ABC):
+    """
+    Abstract base class for all embedding encoders (visual, text, etc.).
+    """
+
+    def __init__(
+        self,
+        config: Box,
+        encoder_model_slug: str,
+        encoder_model_path: str,
+    ):
+        self._config: Box = config
+        self._encoder_model_slug: str = encoder_model_slug
+        self._encoder_model_path: str = encoder_model_path
+        self._session: InferenceSession = None
+        self._offset: int = None
+
+    def _load_model(self) -> None:
+        """Download from HubAI and initialize the ONNX model."""
+        path = self._download_from_hubai(
+            self._encoder_model_slug, self._encoder_model_path
+        )
+        self._session = InferenceSession(path)
+
+    @abstractmethod
+    def extract_embeddings(self, *args, **kwargs) -> np.ndarray:
+        """Subclasses must implement modality-specific preprocessing and inference."""
+        pass
+
+    def _pad_and_quantize_features(self, features) -> np.ndarray:
+        """
+        Pad features to (1, 512, max_num_classes) and quantize if precision is int8.
+        For FP16, return padded float16 features (no quantization).
+        """
+        num_padding = self._config.max_num_classes - features.shape[0]
+        padded = np.pad(features, ((0, num_padding), (0, 0)), "constant").T.reshape(
+            1, 512, self._config.max_num_classes
+        )
+
+        if self._config.precision == "fp16":
+            return padded.astype(np.float16)
+
+        quant = self._config.quant_values[self._config.name]
+        out = (padded / quant["quant_scale"]) + quant["quant_zero_point"]
+        return out.astype(np.uint8)
+
+    def make_dummy(self) -> np.ndarray:
+        """
+        Create a dummy tensor of shape (1, 512, max_num_classes) for model input.
+        For FP16, return zeros; for INT8, fill with the model's quantization zero point.
+        """
+        if self._config.precision == "fp16":
+            return np.zeros((1, 512, self._config.max_num_classes), dtype=np.float16)
+        qzp = int(
+            round(
+                self._config.quant_values.get(self._config.model_name, {}).get(
+                    "quant_zero_point", 0
+                )
+            )
+        )
+        return np.full((1, 512, self._config.max_num_classes), qzp, dtype=np.uint8)
+
+    def _download_from_hubai(self, model_slug: str, local_filename: str) -> Path:
+        """
+        Download an ONNX model from HubAI.
+        """
+        if os.path.exists(local_filename):
+            return Path(local_filename)
+
+        model_name_slug = model_slug.split("/")[-1].split(":")[0]
+        model_variant_slug = model_slug.split("/")[-1].split(":")[1]
+
+        model_res = requests.get(
+            f"{HUBAI_API_BASE}/models",
+            params={"slug": model_name_slug, "is_public": True},
+        )
+        model_id = model_res.json()[0]["id"]
+
+        variant_res = requests.get(
+            f"{HUBAI_API_BASE}/modelVersions",
+            params={
+                "model_id": model_id,
+                "variant_slug": model_variant_slug,
+                "is_public": True,
+            },
+        )
+        model_variant_id = variant_res.json()[0]["id"]
+
+        download_res = requests.get(
+            f"{HUBAI_API_BASE}/modelVersions/{model_variant_id}/download",
+        )
+        download_link = download_res.json()[0]["download_link"]
+
+        self._download_file(download_link, local_filename)
+
+        return Path(local_filename)
+
+    def _download_file(self, url: str, local_filename: str) -> Path:
+        """Download a file from a URL."""
+        if os.path.exists(local_filename):
+            return Path(local_filename)
+
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+
+            total_size = int(r.headers.get("content-length", 0))
+            block_size = 8192  # 8KB chunks
+            progress_bar = tqdm(
+                total=total_size, unit="iB", unit_scale=True, desc=local_filename
+            )
+
+            with open(local_filename, "wb") as f:
+                for chunk in r.iter_content(chunk_size=block_size):
+                    if chunk:
+                        f.write(chunk)
+                        progress_bar.update(len(chunk))
+            progress_bar.close()
+
+        return Path(local_filename)
+
+    @property
+    def offset(self) -> int:
+        """Return class offset or encoder index limit."""
+        return self._offset
+
+
+================================================================================
+FILE: prompting/encoders/textual_prompt_encoder.py
+================================================================================
+from box import Box
+from tokenizers import Tokenizer
+import numpy as np
+
+from .base_prompt_encoder import BasePromptEncoder
+
+
+class TextualPromptEncoder(BasePromptEncoder):
+    """
+    Handles text tokenization and embedding extraction (CLIP-compatible).
+    """
+
+    def __init__(self, config: Box):
+        super().__init__(
+            config,
+            config.paths.text_encoder.slug,
+            config.paths.text_encoder.path,
+        )
+        self._offset: int = config.text_offset
+        self.tokenizer_url: str = config.paths.tokenizer.url
+        self.tokenizer_path: str = config.paths.tokenizer.path
+        self.tokenizer: Tokenizer = None
+
+    def _load_tokenizer(self):
+        path = self._download_file(self.tokenizer_url, self.tokenizer_path)
+        self.tokenizer = Tokenizer.from_file(str(path))
+
+    def extract_embeddings(self, class_names: list[str]) -> np.ndarray:
+        self._load_tokenizer()
+        self._load_model()
+
+        self.tokenizer.enable_padding(
+            pad_id=self.tokenizer.token_to_id("<|endoftext|>"),
+            pad_token="<|endoftext|>",
+        )
+
+        encodings = self.tokenizer.encode_batch(class_names)
+        text_ids = np.array([e.ids for e in encodings], dtype=np.int64)
+        if text_ids.shape[1] < 77:
+            text_ids = np.pad(
+                text_ids, ((0, 0), (0, 77 - text_ids.shape[1])), mode="constant"
+            )
+
+        outputs = self._session.run(
+            None, {self._session.get_inputs()[0].name: text_ids}
+        )
+        embeddings = outputs[0]
+        embeddings /= np.linalg.norm(embeddings, ord=2, axis=-1, keepdims=True)
+
+        quantized = self._pad_and_quantize_features(embeddings)
+
+        del self._session
+
+        return quantized
+
+
+================================================================================
+FILE: prompting/encoders/visual_prompt_encoder.py
+================================================================================
+from box import Box
+import cv2
+import numpy as np
+
+from .base_prompt_encoder import BasePromptEncoder
+
+
+class VisualPromptEncoder(BasePromptEncoder):
+    """
+    Handles visual embedding extraction using a visual encoder.
+
+    Loads an ONNX visual encoder, preprocesses an image input, performs
+    forward inference, and returns quantized visual feature tensors
+    compatible with downstream models.
+    """
+
+    def __init__(
+        self,
+        config: Box,
+    ):
+        super().__init__(
+            config,
+            config.paths.visual_encoder.slug,
+            config.paths.visual_encoder.path,
+        )
+        self._offset: int = config.visual_offset
+
+    def extract_embeddings(self, image: np.ndarray, mask_prompt=None) -> np.ndarray:
+        self._load_model()
+        if mask_prompt is None:
+            prompts = np.zeros((1, 1, 80, 80), dtype=np.float32)
+            prompts[0, 0, 5:75, 5:75] = 1.0
+        else:
+            prompts = np.asarray(mask_prompt, dtype=np.float32)
+            if prompts.ndim == 2:
+                if prompts.shape != (80, 80):
+                    prompts = cv2.resize(
+                        prompts, (80, 80), interpolation=cv2.INTER_NEAREST
+                    )
+                prompts = prompts[None, None, :, :]
+            elif prompts.shape == (1, 1, 80, 80):
+                pass
+            else:
+                raise ValueError("mask_prompt must have shape (80,80) or (1,1,80,80)")
+
+        image_resized = cv2.resize(image, (640, 640))
+        image_array = image_resized.astype(np.float32) / 255.0
+        image_array = np.transpose(image_array, (2, 0, 1))
+        input_tensor = np.expand_dims(image_array, axis=0).astype(np.float32)
+
+        outputs = self._session.run(None, {"images": input_tensor, "prompts": prompts})
+
+        image_embeddings = outputs[0].squeeze(0).reshape(1, -1)
+        image_features = self._pad_and_quantize_features(image_embeddings)
+
+        del self._session
+
+        return image_features
+
+
+================================================================================
+END OF CODE EXTRACTION
+================================================================================

@@ -43,27 +43,33 @@ def main():
         )
         logger.info("FrameCacheNode created")
 
-        # Can be one high-level visualization node?
-        if args.semantic_seg:
-            instance_to_semantic_node = pipeline.create(InstanceToSemanticMask).build(nn_node.detections)
-            apply_colormap_node = pipeline.create(ApplyColormap).build(instance_to_semantic_node.out)
+        ### Can be one high-level visualization node?
+        if config.nn.model.name == 'yoloe'
+            if args.semantic_seg:
+                instance_to_semantic_node = pipeline.create(InstanceToSemanticMask).build(nn_node.detections)
+                apply_colormap_node = pipeline.create(ApplyColormap).build(instance_to_semantic_node.out)
+            else:
+                apply_colormap_node = pipeline.create(ApplyColormap).build(nn_node.detections)
+
+            overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
+                frame1=camera_source.bgr,
+                frame2=apply_colormap_node.out,
+                preserve_background=True,
+            )
+
+            overlay_to_nv12 = pipeline.create(dai.node.ImageManip)
+            overlay_to_nv12.setMaxOutputFrameSize(1280 * 960 * 3)
+            overlay_to_nv12.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+            overlay_frames_node.out.link(overlay_to_nv12.inputImage)
+
+            overlay_enc = pipeline.create(dai.node.VideoEncoder)
+            overlay_enc.setDefaultProfilePreset(fps=config.video.fps, profile=dai.VideoEncoderProperties.Profile.H264_MAIN)
+            overlay_to_nv12.out.link(overlay_enc.input)
+            visualizer.addTopic("Video", overlay_enc.out)
         else:
-            apply_colormap_node = pipeline.create(ApplyColormap).build(nn_node.detections)
+            visualizer.addTopic("Video", camera_source.encoded)
 
-        overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
-            frame1=camera_source.bgr,
-            frame2=apply_colormap_node.out,
-            preserve_background=True,
-        )
-
-        overlay_to_nv12 = pipeline.create(dai.node.ImageManip)
-        overlay_to_nv12.setMaxOutputFrameSize(1280 * 960 * 3)
-        overlay_to_nv12.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
-        overlay_frames_node.out.link(overlay_to_nv12.inputImage)
-
-        overlay_enc = pipeline.create(dai.node.VideoEncoder)
-        overlay_enc.setDefaultProfilePreset(fps=config.video.fps, profile=dai.VideoEncoderProperties.Profile.H264_MAIN)
-        overlay_to_nv12.out.link(overlay_enc.input)
+        ###
 
         prompting_services = PromptingFEServices(
             update_classes=nn_node.update_classes,
@@ -80,8 +86,6 @@ def main():
         )
 
         # Visualizer topics
-        # visualizer.addTopic("Video", camera_source.encoded)
-        visualizer.addTopic("Video", overlay_enc.out)
         visualizer.addTopic("Detections", nn_node.detections)
 
         # Register FE services

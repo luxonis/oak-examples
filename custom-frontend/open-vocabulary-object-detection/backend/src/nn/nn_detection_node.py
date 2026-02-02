@@ -83,8 +83,12 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self.detections = self._det_label_mapper.out
 
         # Prompt encoders
-        self._text_encoder = TextualPromptEncoder(cfg.prompts)
-        self._visual_encoder = VisualPromptEncoder(cfg.prompts)
+        self._text_encoder = TextualPromptEncoder(
+            cfg.prompts, cfg.model.name, cfg.model.precision
+        )
+        self._visual_encoder = VisualPromptEncoder(
+            cfg.prompts, cfg.model.name, cfg.model.precision
+        )
 
         # Controller
         self._controller = NNDetectionController(
@@ -93,12 +97,13 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
             visual_encoder=self._visual_encoder,
             det_filter=self._det_filter,
             det_label_mapper=self._det_label_mapper,
+            model_name=cfg.model.name,
             precision=cfg.model.precision,
             max_image_prompts=cfg.prompts.max_image_prompts,
         )
         self._controller.send_initial_prompts(
             class_names=cfg.prompts.class_names,
-            detection_threshold=cfg.prompts.detection_threshold,
+            confidence_threshold=cfg.confidence_thr,
         )
 
         return self

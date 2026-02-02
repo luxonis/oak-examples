@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional
 
 from box import Box
 from onnxruntime import InferenceSession
@@ -22,10 +23,16 @@ class BasePromptEncoder(ABC):
         config: Box,
         encoder_model_slug: str,
         encoder_model_path: str,
+        model_name: str,
+        precision: str,
+        quant_key: Optional[str] = None,
     ):
         self._config: Box = config
         self._encoder_model_slug: str = encoder_model_slug
         self._encoder_model_path: str = encoder_model_path
+        self._model_name: str = model_name
+        self._precision: str = precision
+        self._quant_key = quant_key or model_name
         self._session: InferenceSession = None
         self._offset: int = None
 
@@ -34,7 +41,7 @@ class BasePromptEncoder(ABC):
         path = self._download_from_hubai(
             self._encoder_model_slug, self._encoder_model_path
         )
-        self._session = InferenceSession(path)
+        self._session = InferenceSession(str(path))
 
     @abstractmethod
     def extract_embeddings(self, *args, **kwargs) -> np.ndarray:
@@ -51,10 +58,10 @@ class BasePromptEncoder(ABC):
             1, 512, self._config.max_num_classes
         )
 
-        if self._config.precision == "fp16":
+        if self._precision == "fp16":
             return padded.astype(np.float16)
 
-        quant = self._config.quant_values[self._config.name]
+        quant = self._config.quant_values[self._quant_key]
         out = (padded / quant["quant_scale"]) + quant["quant_zero_point"]
         return out.astype(np.uint8)
 
@@ -63,11 +70,11 @@ class BasePromptEncoder(ABC):
         Create a dummy tensor of shape (1, 512, max_num_classes) for model input.
         For FP16, return zeros; for INT8, fill with the model's quantization zero point.
         """
-        if self._config.precision == "fp16":
+        if self._precision == "fp16":
             return np.zeros((1, 512, self._config.max_num_classes), dtype=np.float16)
         qzp = int(
             round(
-                self._config.quant_values.get(self._config.model_name, {}).get(
+                self._config.quant_values.get(self._quant_key, {}).get(
                     "quant_zero_point", 0
                 )
             )

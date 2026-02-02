@@ -18,18 +18,6 @@ def parse_args() -> Namespace:
     )
 
     parser.add_argument(
-        "-api",
-        "--api_key",
-        help=(
-            "HubAI API key to access private model. "
-            "Alternatively, set 'DEPTHAI_HUB_API_KEY' env var."
-        ),
-        required=False,
-        default="",
-        type=str,
-    )
-
-    parser.add_argument(
         "-media",
         "--media_path",
         help=(
@@ -38,6 +26,14 @@ def parse_args() -> Namespace:
         ),
         required=False,
         default=None,
+        type=str,
+    )
+
+    parser.add_argument(
+        "-m", "--model",
+        help="Model to use: 'yoloe' or 'yolo-world'",
+        choices=["yoloe", "yolo-world"],
+        default="yoloe",
         type=str,
     )
 
