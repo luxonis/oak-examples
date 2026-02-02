@@ -1,13 +1,13 @@
 import logging as log
 
 import depthai as dai
-from depthai_nodes.node import ApplyColormap, InstanceToSemanticMask, ImgFrameOverlay
 
 from config import parse_args, build_configuration
 from app_config_service import GetCurrentParamsService
 from camera import CameraSourceNode
 from nn import NNDetectionNode
 from prompting import FrameCacheNode, PromptingFEServices
+from visualization import SegmentationOverlayNode
 
 log.basicConfig(level=log.INFO)
 logger = log.getLogger(__name__)
@@ -43,34 +43,6 @@ def main():
         )
         logger.info("FrameCacheNode created")
 
-        # Can be one high-level visualization node?
-        if config.nn.model.name == 'yoloe':
-            if args.semantic_seg:
-                instance_to_semantic_node = pipeline.create(InstanceToSemanticMask).build(nn_node.detections)
-                apply_colormap_node = pipeline.create(ApplyColormap).build(instance_to_semantic_node.out)
-            else:
-                apply_colormap_node = pipeline.create(ApplyColormap).build(nn_node.detections)
-
-            overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
-                frame1=camera_source.bgr,
-                frame2=apply_colormap_node.out,
-                preserve_background=True,
-            )
-
-            overlay_to_nv12 = pipeline.create(dai.node.ImageManip)
-            overlay_to_nv12.setMaxOutputFrameSize(1280 * 960 * 3)
-            overlay_to_nv12.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
-            overlay_frames_node.out.link(overlay_to_nv12.inputImage)
-
-            overlay_enc = pipeline.create(dai.node.VideoEncoder)
-            overlay_enc.setDefaultProfilePreset(fps=config.video.fps, profile=dai.VideoEncoderProperties.Profile.H264_MAIN)
-            overlay_to_nv12.out.link(overlay_enc.input)
-            visualizer.addTopic("Video", overlay_enc.out)
-        else:
-            visualizer.addTopic("Video", camera_source.encoded)
-
-        ###
-
         prompting_services = PromptingFEServices(
             update_classes=nn_node.update_classes,
             add_image_prompt=nn_node.add_image_prompt,
@@ -87,6 +59,16 @@ def main():
         )
 
         # Visualizer topics
+        if config.nn.model.name == 'yoloe':
+            segmentation_viz_node = pipeline.create(SegmentationOverlayNode).build(
+                input_detections=nn_node.detections,
+                input_frame=camera_source.bgr,
+                semantic=args.semantic_seg,
+                cfg=config.video,
+            )
+            visualizer.addTopic("Video", segmentation_viz_node.encoded)
+        else:
+            visualizer.addTopic("Video", camera_source.encoded)
         visualizer.addTopic("Detections", nn_node.detections)
 
         # Register FE services

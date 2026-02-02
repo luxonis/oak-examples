@@ -1,9 +1,6 @@
 ================================================================================
-OPEN-VOCABULARY OBJECT DETECTION - REFACTORED IMPLEMENTATION
+REFACTORED OPEN-VOCABULARY OBJECT DETECTION CODE
 ================================================================================
-All source files for main_ref.py implementation (YOLOE support)
-================================================================================
-
 
 ================================================================================
 FILE: main_ref.py
@@ -11,13 +8,13 @@ FILE: main_ref.py
 import logging as log
 
 import depthai as dai
-from depthai_nodes.node import ApplyColormap, InstanceToSemanticMask, ImgFrameOverlay
 
 from config import parse_args, build_configuration
 from app_config_service import GetCurrentParamsService
 from camera import CameraSourceNode
 from nn import NNDetectionNode
 from prompting import FrameCacheNode, PromptingFEServices
+from visualization import SegmentationOverlayNode
 
 log.basicConfig(level=log.INFO)
 logger = log.getLogger(__name__)
@@ -53,31 +50,10 @@ def main():
         )
         logger.info("FrameCacheNode created")
 
-        # Can be one high-level visualization node?
-        if args.semantic_seg:
-            instance_to_semantic_node = pipeline.create(InstanceToSemanticMask).build(nn_node.detections)
-            apply_colormap_node = pipeline.create(ApplyColormap).build(instance_to_semantic_node.out)
-        else:
-            apply_colormap_node = pipeline.create(ApplyColormap).build(nn_node.detections)
-
-        overlay_frames_node = pipeline.create(ImgFrameOverlay).build(
-            frame1=camera_source.bgr,
-            frame2=apply_colormap_node.out,
-            preserve_background=True,
-        )
-
-        overlay_to_nv12 = pipeline.create(dai.node.ImageManip)
-        overlay_to_nv12.setMaxOutputFrameSize(1280 * 960 * 3)
-        overlay_to_nv12.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
-        overlay_frames_node.out.link(overlay_to_nv12.inputImage)
-
-        overlay_enc = pipeline.create(dai.node.VideoEncoder)
-        overlay_enc.setDefaultProfilePreset(fps=config.video.fps, profile=dai.VideoEncoderProperties.Profile.H264_MAIN)
-        overlay_to_nv12.out.link(overlay_enc.input)
-
         prompting_services = PromptingFEServices(
             update_classes=nn_node.update_classes,
             add_image_prompt=nn_node.add_image_prompt,
+            add_bbox_prompt=nn_node.add_bbox_prompt,
             rename_image_prompt=nn_node.rename_image_prompt,
             delete_image_prompt=nn_node.delete_image_prompt,
             set_confidence_threshold=nn_node.set_confidence_threshold,
@@ -90,8 +66,16 @@ def main():
         )
 
         # Visualizer topics
-        # visualizer.addTopic("Video", camera_source.encoded)
-        visualizer.addTopic("Video", overlay_enc.out)
+        if config.nn.model.name == 'yoloe':
+            segmentation_viz_node = pipeline.create(SegmentationOverlayNode).build(
+                input_detections=nn_node.detections,
+                input_frame=camera_source.bgr,
+                semantic=args.semantic_seg,
+                cfg=config.video,
+            )
+            visualizer.addTopic("Video", segmentation_viz_node.encoded)
+        else:
+            visualizer.addTopic("Video", camera_source.encoded)
         visualizer.addTopic("Detections", nn_node.detections)
 
         # Register FE services
@@ -205,18 +189,6 @@ def parse_args() -> Namespace:
     )
 
     parser.add_argument(
-        "-api",
-        "--api_key",
-        help=(
-            "HubAI API key to access private model. "
-            "Alternatively, set 'DEPTHAI_HUB_API_KEY' env var."
-        ),
-        required=False,
-        default="",
-        type=str,
-    )
-
-    parser.add_argument(
         "-media",
         "--media_path",
         help=(
@@ -224,6 +196,22 @@ def parse_args() -> Namespace:
             "If not set, the model runs on the live camera input."
         ),
         required=False,
+        default=None,
+        type=str,
+    )
+
+    parser.add_argument(
+        "-m", "--model",
+        help="Model to use: 'yoloe' or 'yolo-world'",
+        choices=["yoloe", "yolo-world"],
+        default="yoloe",
+        type=str,
+    )
+
+    parser.add_argument(
+        "-p", "--precision",
+        help="Model precision: 'fp16' or 'int8'",
+        choices=["fp16", "int8"],
         default=None,
         type=str,
     )
@@ -252,12 +240,13 @@ import depthai as dai
 class ModelInfo:
     """Model metadata from DepthAI zoo."""
 
+    name: str
+    precision: str
     yaml_path: Path
     width: int
     height: int
     description: dai.NNModelDescription
     archive: dai.NNArchive
-    precision: str
 
 
 @dataclass
@@ -289,148 +278,150 @@ FILE: config/system_configuration.py
 from dataclasses import dataclass
 from pathlib import Path
 from argparse import Namespace
+import logging
 
 from box import Box
 import depthai as dai
 
-from .config_data_classes import (
-    ModelInfo,
-    VideoConfig,
-    NeuralNetworkConfig,
-)
+from .config_data_classes import ModelInfo, VideoConfig, NeuralNetworkConfig
+
+log = logging.getLogger(__name__)
+
+DETECTOR_YAMLS = {
+    "yolo-world": {"fp16": "yolo_world_l_fp16", "int8": "yolo_world_l"},
+    "yoloe": {"fp16": "yoloe_v8_l_fp16"},
+}
 
 
 @dataclass
 class SystemConfig:
-    """All configuration for the pipeline."""
-
     video: VideoConfig
     nn: NeuralNetworkConfig
 
 
 def build_configuration(platform: str, args: Namespace) -> SystemConfig:
-    """Build all configuration from CLI args and YAML files."""
-    yaml = _load_yamls(Path(__file__).parent / "yaml_configs")
-    model = _load_model(platform, yaml.prompts.precision)
+    """From CLI args if provided, if not use config.yaml defaults."""
+    configs_dir = Path(__file__).parent
+    yamls_dir = configs_dir / "yaml_configs"
+
+    yaml_config = _load_yaml_config(yamls_dir / "config.yaml")
+
+    model_name = (getattr(args, "model", None) or yaml_config.model.name).lower()
+    precision = (getattr(args, "precision", None) or yaml_config.model.precision).lower()
+
+    prompts_file = yaml_config.model.prompts_files.get(model_name)
+    if not prompts_file:
+        raise ValueError(
+            f"No prompts config registered for model '{model_name}'."
+        )
+
+    prompts_path = yamls_dir / prompts_file
+    if not prompts_path.exists():
+        raise FileNotFoundError(f"Prompts config not found: {prompts_path}")
+    prompts = Box.from_yaml(filename=prompts_path)
+
+    model_info = _load_model(platform, precision, model_name)
 
     # Video config
-    fps = args.fps_limit or yaml.video.default_fps
+    fps = getattr(args, "fps_limit", None) or yaml_config.video.fps
     video = VideoConfig(
         fps=fps,
-        media_path=args.media_path,
-        width=yaml.video.width,
-        height=yaml.video.height,
+        media_path=getattr(args, "media_path", None),
+        width=int(yaml_config.video.width),
+        height=int(yaml_config.video.height),
     )
 
     # NN config
-    b = yaml.nn.nn_backend
+    b = yaml_config.nn.backend
     nn = NeuralNetworkConfig(
-        model=model,
-        backend_type=b.type,
-        runtime=b.runtime,
-        performance_profile=b.performance_profile,
-        num_inference_threads=b.inference_threads,
-        confidence_thr=yaml.nn.confidence_thr,
-        prompts=yaml.prompts,
+        model=model_info,
+        backend_type=str(b.type),
+        runtime=str(b.runtime),
+        performance_profile=str(b.performance_profile),
+        num_inference_threads=int(b.inference_threads),
+        confidence_thr=float(yaml_config.nn.confidence_thr),
+        prompts=prompts,
     )
 
-    return SystemConfig(
-        video=video,
-        nn=nn,
-    )
+    return SystemConfig(video=video, nn=nn)
 
 
-def _load_yamls(base: Path) -> Box:
-    def safe_load(file: str) -> Box:
-        path = base / file
-        if not path.exists():
-            raise FileNotFoundError(f"Missing YAML: {path}")
-        return Box.from_yaml(filename=path)
-
-    return Box(
-        {
-            "nn": safe_load("nn_config.yaml"),
-            "video": safe_load("visual_constants.yaml"),
-            "conditions": safe_load("conditions.yaml"),
-            "prompts": safe_load("prompts_config.yaml"),
-        }
-    )
+def _load_yaml_config(path: Path) -> Box:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing root config: {path}")
+    return Box.from_yaml(filename=path)
 
 
-def _load_model(platform: str, precision: str) -> ModelInfo:
+def _load_model(platform: str, precision: str, model_name: str) -> ModelInfo:
     models_dir = Path(__file__).parent.parent / "depthai_models"
-    yaml_path = models_dir / f"yoloe_v8_l_fp16.{platform}.yaml"
 
+    if model_name not in DETECTOR_YAMLS:
+        raise ValueError(f"Unknown model: {model_name}. Choose from: {list(DETECTOR_YAMLS)}")
+
+    yaml_base = DETECTOR_YAMLS[model_name].get(precision)
+    if not yaml_base:
+        supported = list(DETECTOR_YAMLS[model_name].keys())
+        raise ValueError(
+            f"Model '{model_name}' does not support precision '{precision}'. "
+            f"Supported: {supported}."
+        )
+
+    yaml_path = models_dir / f"{yaml_base}.{platform}.yaml"
     if not yaml_path.exists():
-        raise SystemExit(f"Model YAML not found: {yaml_path}")
+        raise FileNotFoundError(f"Model YAML not found: {yaml_path}")
 
     desc = dai.NNModelDescription.fromYamlFile(str(yaml_path))
     desc.platform = platform
     archive = dai.NNArchive(dai.getModelFromZoo(desc))
     w, h = archive.getInputSize()
+    log.info(f"Loaded model '{model_name}' ({precision}) from {yaml_path.name}")
 
-    return ModelInfo(yaml_path, w, h, desc, archive, precision)
-
-
-================================================================================
-FILE: config/yaml_configs/nn_config.yaml
-================================================================================
-nn_backend:
-  type: "snpe"
-  runtime: "dsp"
-  performance_profile: "default"
-  inference_threads: 1
-  precision: "fp16"
-
-confidence_thr: 0.1
+    return ModelInfo(
+        name=model_name,
+        precision=precision,
+        yaml_path=yaml_path,
+        width=w,
+        height=h,
+        description=desc,
+        archive=archive,
+    )
 
 
 ================================================================================
-FILE: config/yaml_configs/visual_constants.yaml
+FILE: config/yaml_configs/config.yaml
 ================================================================================
-width: 1280
-height: 960
-default_fps: 10
+model:
+  name: "yoloe"            # "yoloe" | "yolo-world"
+  precision: "fp16"        # "fp16" | "int8"
 
+  prompts_files:
+    yoloe: "prompts_yoloe.yaml"
+    yolo-world: "prompts_yolo_world.yaml"
 
-================================================================================
-FILE: config/yaml_configs/conditions.yaml
-================================================================================
-cooldown: 300
-conditions:
-  - key: timed
-    enabled: false
-    name: Timed Snap
-    tags: ["timed"]
+nn:
+  backend:
+    type: "snpe"
+    runtime: "dsp"
+    performance_profile: "default"
+    inference_threads: 1
+  confidence_thr: 0.1
 
-  - key: lowConfidence
-    enabled: false
-    name: Low Confidence
-    tags: ["confidence"]
-
-  - key: noDetections
-    enabled: false
-    name: No Detections
-    tags: ["no detections"]
-
-  - key: lostMid
-    enabled: false
-    name: Lost in Middle
-    tags: ["lost"]
+video:
+  width: 1280
+  height: 960
+  fps: 10
 
 
 ================================================================================
-FILE: config/yaml_configs/prompts_config.yaml
+FILE: config/yaml_configs/prompts_yoloe.yaml
 ================================================================================
-name: "yoloe"
-precision: "fp16"
 class_names: ["person", "chair", "TV"]
-detection_threshold: 0.1
+
 text_offset: 0
 visual_offset: 80
+
 max_num_classes: 80
 max_image_prompts: 5
-
 
 quant_values:
   yoloe:
@@ -452,6 +443,36 @@ paths:
   visual_encoder:
     slug: "luxonis/yoloe-v8-l:yoloe-v8l-seg-visual-encoder"
     path: "yoloe-v8l-seg_visual_encoder.onnx"
+
+
+================================================================================
+FILE: config/yaml_configs/prompts_yolo_world.yaml
+================================================================================
+class_names: ["person", "chair", "TV"]
+
+text_offset: 0
+visual_offset: 0
+
+max_num_classes: 80
+max_image_prompts: 5
+
+quant_values:
+  yolo-world:
+    quant_zero_point: 90.0
+    quant_scale: 0.003925696481
+
+paths:
+  tokenizer:
+    url: "https://huggingface.co/openai/clip-vit-base-patch32/resolve/main/tokenizer.json"
+    path: "tokenizer.json"
+
+  text_encoder:
+    slug: "luxonis/yolo-world-l:clip-textual-hf"
+    path: "clip_textual_hf.onnx"
+
+  visual_encoder:
+    slug: "luxonis/yolo-world-l:clip-visual-with-projector"
+    path: "clip_visual_with_projector.onnx"
 
 
 ================================================================================
@@ -666,8 +687,12 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self.detections = self._det_label_mapper.out
 
         # Prompt encoders
-        self._text_encoder = TextualPromptEncoder(cfg.prompts)
-        self._visual_encoder = VisualPromptEncoder(cfg.prompts)
+        self._text_encoder = TextualPromptEncoder(
+            cfg.prompts, cfg.model.name, cfg.model.precision
+        )
+        self._visual_encoder = VisualPromptEncoder(
+            cfg.prompts, cfg.model.name, cfg.model.precision
+        )
 
         # Controller
         self._controller = NNDetectionController(
@@ -676,12 +701,13 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
             visual_encoder=self._visual_encoder,
             det_filter=self._det_filter,
             det_label_mapper=self._det_label_mapper,
+            model_name=cfg.model.name,
             precision=cfg.model.precision,
             max_image_prompts=cfg.prompts.max_image_prompts,
         )
         self._controller.send_initial_prompts(
             class_names=cfg.prompts.class_names,
-            detection_threshold=cfg.prompts.detection_threshold,
+            confidence_threshold=cfg.confidence_thr,
         )
 
         return self
@@ -707,6 +733,18 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         """Add an image prompt to the accumulated list."""
         self._controller.add_image_prompt(image, label, mask)
 
+    def add_bbox_prompt(
+        self,
+        image: np.ndarray,
+        label: str,
+        x0: int,
+        y0: int,
+        x1: int,
+        y1: int,
+    ) -> None:
+        """Add an image prompt from bbox."""
+        self._controller.add_bbox_prompt(image, label, x0, y0, x1, y1)
+
     def rename_image_prompt(
         self,
         index: int = None,
@@ -729,7 +767,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
 FILE: nn/nn_detection_controller.py
 ================================================================================
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Literal
 import logging
 
 import numpy as np
@@ -741,6 +779,8 @@ from prompting import TextualPromptEncoder
 from prompting import VisualPromptEncoder
 
 log = logging.getLogger(__name__)
+
+PromptType = Literal["text", "image"]
 
 
 @dataclass
@@ -772,6 +812,7 @@ class NNDetectionController:
         visual_encoder: VisualPromptEncoder,
         det_filter: ImgDetectionsFilter,
         det_label_mapper: DetectionsLabelMapper,
+        model_name: str,
         precision: str,
         max_image_prompts: int = 5,
     ):
@@ -780,7 +821,8 @@ class NNDetectionController:
         self._visual_encoder = visual_encoder
         self._det_filter = det_filter
         self._det_label_mapper = det_label_mapper
-        self._precision = precision
+        self._model_name = model_name.lower()
+        self._precision = precision.lower()
         self._max_image_prompts = max_image_prompts
 
         # State
@@ -793,20 +835,24 @@ class NNDetectionController:
 
         # NN input queues
         self._text_q = self._nn.inputs["texts"].createInputQueue()
-        self._img_q = self._nn.inputs["image_prompts"].createInputQueue()
         self._nn.inputs["texts"].setReusePreviousMessage(True)
-        self._nn.inputs["image_prompts"].setReusePreviousMessage(True)
+
+        # YOLOE has separate image_prompts input; YOLO-World uses only texts
+        self._img_q = None
+        if self._model_name == "yoloe":
+            self._img_q = self._nn.inputs["image_prompts"].createInputQueue()
+            self._nn.inputs["image_prompts"].setReusePreviousMessage(True)
 
         self._parser = self._nn.getParser(0)
 
     def send_initial_prompts(
         self,
         class_names: list[str],
-        detection_threshold: float,
+        confidence_threshold: float,
     ) -> None:
         """Send initial prompts at startup."""
         self.update_classes(class_names)
-        self.set_confidence_threshold(detection_threshold)
+        self.set_confidence_threshold(confidence_threshold)
 
     def update_classes(self, class_names: list[str]) -> None:
         """
@@ -823,6 +869,7 @@ class NNDetectionController:
             text_prompt=text_embeddings,
             class_names=class_names,
             label_offset=self._text_encoder.offset,
+            prompt_type="text",
         )
 
         # Clear accumulated image prompts
@@ -862,6 +909,24 @@ class NNDetectionController:
         self._send_accumulated_image_prompts()
 
         log.info(f"Added image prompt '{label}' (total: {len(self._image_prompt_labels)})")
+
+    def add_bbox_prompt(
+        self,
+        image_bgr: np.ndarray,
+        label: str,
+        x0: int,
+        y0: int,
+        x1: int,
+        y1: int,
+    ) -> None:
+        if self._model_name == "yolo-world":
+            crop = image_bgr[y0:y1, x0:x1]
+            self.add_image_prompt(crop, label, mask=None)
+        else:
+            H, W = image_bgr.shape[:2]
+            mask = np.zeros((H, W), dtype=np.float32)
+            mask[y0:y1, x0:x1] = 1.0
+            self.add_image_prompt(image_bgr, label, mask=mask)
 
     def rename_image_prompt(
             self,
@@ -960,6 +1025,7 @@ class NNDetectionController:
             text_prompt=dummy_text,
             class_names=self._image_prompt_labels,
             label_offset=self._visual_encoder.offset,
+            prompt_type="image",
         )
 
         self._state.image_prompt_labels = list(self._image_prompt_labels)
@@ -977,6 +1043,7 @@ class NNDetectionController:
             text_prompt=text_embeddings,
             class_names=self._last_text_classes,
             label_offset=self._text_encoder.offset,
+            prompt_type="text",
         )
 
         self._state.image_prompt_labels = []
@@ -986,7 +1053,7 @@ class NNDetectionController:
         """Get tensor data type based on model precision."""
         if self._precision == "fp16":
             return dai.TensorInfo.DataType.FP16
-        return dai.TensorInfo.DataType.U8
+        return dai.TensorInfo.DataType.U8F
 
     @staticmethod
     def _make_nn_data(
@@ -1018,12 +1085,28 @@ class NNDetectionController:
         text_prompt: np.ndarray,
         class_names: list[str],
         label_offset: int = 0,
+        prompt_type: PromptType = "text",
     ) -> None:
-        """Send embedded prompts to the NN and update labels."""
+        """Send embedded prompts to the NN and update labels.
+
+        @param image_prompt: Image prompt embeddings tensor.
+        @param text_prompt: Text prompt embeddings tensor.
+        @param class_names: List of class names for labels.
+        @param label_offset: Label index offset.
+        @param prompt_type: "text" or "image" - which prompt is active.
+        """
         dtype = self._tensor_dtype()
 
-        self._text_q.send(self._make_nn_data("texts", text_prompt, dtype))
-        self._img_q.send(self._make_nn_data("image_prompts", image_prompt, dtype))
+        if self._model_name == "yolo-world":
+            # YOLO-World: single texts input, send whichever prompt is active
+            if prompt_type == "text":
+                self._text_q.send(self._make_nn_data("texts", text_prompt, dtype))
+            else:
+                self._text_q.send(self._make_nn_data("texts", image_prompt, dtype))
+        else:
+            # YOLOE: separate texts and image_prompts inputs
+            self._text_q.send(self._make_nn_data("texts", text_prompt, dtype))
+            self._img_q.send(self._make_nn_data("image_prompts", image_prompt, dtype))
 
         self._update_labels(class_names, label_offset=label_offset)
         self._state.current_classes = list(class_names)
@@ -1110,6 +1193,34 @@ __all__ = [
 
 
 ================================================================================
+FILE: prompting/frame_cache_node.py
+================================================================================
+import depthai as dai
+import numpy as np
+
+
+class FrameCacheNode(dai.node.HostNode):
+    """
+    Host node that caches the latest ImgFrame as a NumPy BGR image for prompt services.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._last_frame: np.ndarray | None = None
+
+    def build(self, input_frame: dai.Node.Output) -> "FrameCacheNode":
+        self.link_args(input_frame)
+        return self
+
+    def process(self, input_frame: dai.ImgFrame) -> dai.ImgFrame:
+        self._last_frame = input_frame.getCvFrame()
+        return input_frame
+
+    def get_last_frame(self) -> np.ndarray | None:
+        return self._last_frame
+
+
+================================================================================
 FILE: prompting/fe_services.py
 ================================================================================
 import base64
@@ -1139,6 +1250,7 @@ class PromptingFEServices:
         self,
         update_classes: Callable[[list[str]], None],
         add_image_prompt: Callable[[np.ndarray, str, Optional[np.ndarray]], None],
+        add_bbox_prompt: Callable[[np.ndarray, str, int, int, int, int], None],
         rename_image_prompt: Callable[[Optional[int], Optional[str], Optional[str]], bool],
         delete_image_prompt: Callable[[Optional[int], Optional[str]], bool],
         set_confidence_threshold: Callable[[float], None],
@@ -1147,6 +1259,7 @@ class PromptingFEServices:
     ):
         self._update_classes = update_classes
         self._add_image_prompt = add_image_prompt
+        self._add_bbox_prompt = add_bbox_prompt
         self._rename_image_prompt = rename_image_prompt
         self._delete_image_prompt = delete_image_prompt
         self._set_threshold = set_confidence_threshold
@@ -1195,6 +1308,7 @@ class PromptingFEServices:
         filename = payload.get("filename", "image.png")
         label = payload.get("label") or filename.rsplit(".", 1)[0]
         self._add_image_prompt(image, label, None)
+
         log.info(f"Image prompt added with label: {label}")
 
     def fe_bbox_prompt(self, payload: dict) -> dict:
@@ -1237,11 +1351,9 @@ class PromptingFEServices:
             log.warning(f"Invalid bbox dimensions: ({x0}, {y0}) to ({x1}, {y1})")
             return {"ok": False, "reason": "invalid_bbox"}
 
-        mask = np.zeros((H, W), dtype=np.float32)
-        mask[y0:y1, x0:x1] = 1.0
-
         label = payload.get("label", "object")
-        self._add_image_prompt(image, label, mask)
+        self._add_bbox_prompt(image, label, x0, y0, x1, y1)
+
         log.info(f"BBox prompt added: label='{label}', region=({x0},{y0})-({x1},{y1})")
 
         return {"ok": True, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}}
@@ -1306,45 +1418,12 @@ class PromptingFEServices:
 
 
 ================================================================================
-FILE: prompting/frame_cache_node.py
-================================================================================
-import depthai as dai
-import numpy as np
-
-
-class FrameCacheNode(dai.node.HostNode):
-    """
-    Host node that caches the latest ImgFrame as a NumPy BGR image for prompt services.
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._last_frame: np.ndarray | None = None
-
-    def build(self, input_frame: dai.Node.Output) -> "FrameCacheNode":
-        self.link_args(input_frame)
-        return self
-
-    def process(self, input_frame: dai.ImgFrame) -> dai.ImgFrame:
-        self._last_frame = input_frame.getCvFrame()
-        return input_frame
-
-    def get_last_frame(self) -> np.ndarray | None:
-        return self._last_frame
-
-
-================================================================================
-FILE: prompting/encoders/__init__.py
-================================================================================
-# (empty or minimal)
-
-
-================================================================================
 FILE: prompting/encoders/base_prompt_encoder.py
 ================================================================================
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional
 
 from box import Box
 from onnxruntime import InferenceSession
@@ -1366,10 +1445,16 @@ class BasePromptEncoder(ABC):
         config: Box,
         encoder_model_slug: str,
         encoder_model_path: str,
+        model_name: str,
+        precision: str,
+        quant_key: Optional[str] = None,
     ):
         self._config: Box = config
         self._encoder_model_slug: str = encoder_model_slug
         self._encoder_model_path: str = encoder_model_path
+        self._model_name: str = model_name
+        self._precision: str = precision
+        self._quant_key = quant_key or model_name
         self._session: InferenceSession = None
         self._offset: int = None
 
@@ -1378,7 +1463,7 @@ class BasePromptEncoder(ABC):
         path = self._download_from_hubai(
             self._encoder_model_slug, self._encoder_model_path
         )
-        self._session = InferenceSession(path)
+        self._session = InferenceSession(str(path))
 
     @abstractmethod
     def extract_embeddings(self, *args, **kwargs) -> np.ndarray:
@@ -1395,10 +1480,10 @@ class BasePromptEncoder(ABC):
             1, 512, self._config.max_num_classes
         )
 
-        if self._config.precision == "fp16":
+        if self._precision == "fp16":
             return padded.astype(np.float16)
 
-        quant = self._config.quant_values[self._config.name]
+        quant = self._config.quant_values[self._quant_key]
         out = (padded / quant["quant_scale"]) + quant["quant_zero_point"]
         return out.astype(np.uint8)
 
@@ -1407,11 +1492,11 @@ class BasePromptEncoder(ABC):
         Create a dummy tensor of shape (1, 512, max_num_classes) for model input.
         For FP16, return zeros; for INT8, fill with the model's quantization zero point.
         """
-        if self._config.precision == "fp16":
+        if self._precision == "fp16":
             return np.zeros((1, 512, self._config.max_num_classes), dtype=np.float16)
         qzp = int(
             round(
-                self._config.quant_values.get(self._config.model_name, {}).get(
+                self._config.quant_values.get(self._quant_key, {}).get(
                     "quant_zero_point", 0
                 )
             )
@@ -1495,13 +1580,17 @@ from .base_prompt_encoder import BasePromptEncoder
 class TextualPromptEncoder(BasePromptEncoder):
     """
     Handles text tokenization and embedding extraction (CLIP-compatible).
+    Supports both YOLOE and YOLO-World text encoders.
     """
 
-    def __init__(self, config: Box):
+    def __init__(self, config: Box, model_name: str, precision: str):
         super().__init__(
             config,
             config.paths.text_encoder.slug,
             config.paths.text_encoder.path,
+            model_name,
+            precision,
+            quant_key=model_name,
         )
         self._offset: int = config.text_offset
         self.tokenizer_url: str = config.paths.tokenizer.url
@@ -1511,16 +1600,27 @@ class TextualPromptEncoder(BasePromptEncoder):
     def _load_tokenizer(self):
         path = self._download_file(self.tokenizer_url, self.tokenizer_path)
         self.tokenizer = Tokenizer.from_file(str(path))
-
-    def extract_embeddings(self, class_names: list[str]) -> np.ndarray:
-        self._load_tokenizer()
-        self._load_model()
-
         self.tokenizer.enable_padding(
             pad_id=self.tokenizer.token_to_id("<|endoftext|>"),
             pad_token="<|endoftext|>",
         )
 
+    def extract_embeddings(self, class_names: list[str]) -> np.ndarray:
+        """Extract text embeddings for the given class names."""
+        self._load_tokenizer()
+        self._load_model()
+
+        if self._model_name == "yolo-world":
+            embeddings = self._extract_yolo_world(class_names)
+        else:
+            embeddings = self._extract_yoloe(class_names)
+
+        quantized = self._pad_and_quantize_features(embeddings)
+        del self._session
+        return quantized
+
+    def _extract_yoloe(self, class_names: list[str]) -> np.ndarray:
+        """YOLOE text encoding: MobileCLIP encoder."""
         encodings = self.tokenizer.encode_batch(class_names)
         text_ids = np.array([e.ids for e in encodings], dtype=np.int64)
         if text_ids.shape[1] < 77:
@@ -1534,16 +1634,35 @@ class TextualPromptEncoder(BasePromptEncoder):
         embeddings = outputs[0]
         embeddings /= np.linalg.norm(embeddings, ord=2, axis=-1, keepdims=True)
 
-        quantized = self._pad_and_quantize_features(embeddings)
+        return embeddings
 
-        del self._session
+    def _extract_yolo_world(self, class_names: list[str]) -> np.ndarray:
+        """YOLO-World text encoding: CLIP encoder."""
+        encodings = self.tokenizer.encode_batch(class_names)
+        text_ids = np.array([e.ids for e in encodings], dtype=np.int64)
+        attention_mask = np.array([e.attention_mask for e in encodings], dtype=np.int64)
 
-        return quantized
+        if text_ids.shape[1] < 77:
+            pad = 77 - text_ids.shape[1]
+            text_ids = np.pad(text_ids, ((0, 0), (0, pad)), mode="constant")
+            attention_mask = np.pad(attention_mask, ((0, 0), (0, pad)), mode="constant")
+
+        outputs = self._session.run(
+            None,
+            {
+                self._session.get_inputs()[0].name: text_ids,
+                "attention_mask": attention_mask,
+            },
+        )
+        embeddings = outputs[0]
+        return embeddings
 
 
 ================================================================================
 FILE: prompting/encoders/visual_prompt_encoder.py
 ================================================================================
+from typing import Optional
+
 from box import Box
 import cv2
 import numpy as np
@@ -1554,40 +1673,42 @@ from .base_prompt_encoder import BasePromptEncoder
 class VisualPromptEncoder(BasePromptEncoder):
     """
     Handles visual embedding extraction using a visual encoder.
-
-    Loads an ONNX visual encoder, preprocesses an image input, performs
-    forward inference, and returns quantized visual feature tensors
-    compatible with downstream models.
+    Supports both YOLOE and YOLO-World visual encoders.
     """
 
     def __init__(
         self,
         config: Box,
+        model_name: str,
+        precision: str,
     ):
+        quant_key = "yoloe-image" if model_name == "yoloe" else "yolo-world"
         super().__init__(
             config,
             config.paths.visual_encoder.slug,
             config.paths.visual_encoder.path,
+            model_name,
+            precision,
+            quant_key=quant_key,
         )
         self._offset: int = config.visual_offset
 
-    def extract_embeddings(self, image: np.ndarray, mask_prompt=None) -> np.ndarray:
+    def extract_embeddings(self, image: np.ndarray, mask_prompt: Optional[np.ndarray] = None) -> np.ndarray:
+        """Extract visual embeddings from an image."""
         self._load_model()
-        if mask_prompt is None:
-            prompts = np.zeros((1, 1, 80, 80), dtype=np.float32)
-            prompts[0, 0, 5:75, 5:75] = 1.0
+
+        if self._model_name == "yolo-world":
+            embeddings = self._extract_yolo_world(image)
         else:
-            prompts = np.asarray(mask_prompt, dtype=np.float32)
-            if prompts.ndim == 2:
-                if prompts.shape != (80, 80):
-                    prompts = cv2.resize(
-                        prompts, (80, 80), interpolation=cv2.INTER_NEAREST
-                    )
-                prompts = prompts[None, None, :, :]
-            elif prompts.shape == (1, 1, 80, 80):
-                pass
-            else:
-                raise ValueError("mask_prompt must have shape (80,80) or (1,1,80,80)")
+            embeddings = self._extract_yoloe(image, mask_prompt)
+
+        image_features = self._pad_and_quantize_features(embeddings)
+        del self._session
+        return image_features
+
+    def _extract_yoloe(self, image: np.ndarray, mask_prompt: Optional[np.ndarray]) -> np.ndarray:
+        """YOLOE visual encoding."""
+        prompts = self._build_mask_prompt(mask_prompt)
 
         image_resized = cv2.resize(image, (640, 640))
         image_array = image_resized.astype(np.float32) / 255.0
@@ -1595,15 +1716,131 @@ class VisualPromptEncoder(BasePromptEncoder):
         input_tensor = np.expand_dims(image_array, axis=0).astype(np.float32)
 
         outputs = self._session.run(None, {"images": input_tensor, "prompts": prompts})
+        return outputs[0].squeeze(0).reshape(1, -1)
 
-        image_embeddings = outputs[0].squeeze(0).reshape(1, -1)
-        image_features = self._pad_and_quantize_features(image_embeddings)
+    def _extract_yolo_world(self, image: np.ndarray) -> np.ndarray:
+        """YOLO-World visual encoding."""
+        image_resized = cv2.resize(image, (224, 224))
+        image_array = image_resized.astype(np.float32) / 255.0
 
-        del self._session
+        mean = np.array([0.48145466, 0.4578275, 0.40821073], dtype=np.float32)
+        std = np.array([0.26862954, 0.26130258, 0.27577711], dtype=np.float32)
+        image_array = (image_array - mean) / std
 
-        return image_features
+        image_array = np.transpose(image_array, (2, 0, 1))
+        input_tensor = np.expand_dims(image_array, axis=0).astype(np.float32)
+
+        input_name = self._session.get_inputs()[0].name
+        outputs = self._session.run(None, {input_name: input_tensor})
+        return outputs[0].squeeze(0).reshape(1, -1)
+
+    def _build_mask_prompt(self, mask_prompt: Optional[np.ndarray]) -> np.ndarray:
+        """Build the 80x80 mask prompt for YOLOE visual encoder."""
+        if mask_prompt is None:
+            # Default - center region mask
+            prompts = np.zeros((1, 1, 80, 80), dtype=np.float32)
+            prompts[0, 0, 5:75, 5:75] = 1.0
+            return prompts
+
+        prompts = np.asarray(mask_prompt, dtype=np.float32)
+        if prompts.ndim == 2:
+            if prompts.shape != (80, 80):
+                prompts = cv2.resize(prompts, (80, 80), interpolation=cv2.INTER_NEAREST)
+            prompts = prompts[None, None, :, :]
+        elif prompts.shape == (1, 1, 80, 80):
+            pass
+        else:
+            raise ValueError("mask_prompt must have shape (80,80) or (1,1,80,80)")
+
+        return prompts
 
 
 ================================================================================
-END OF CODE EXTRACTION
+FILE: visualization/__init__.py
 ================================================================================
+from .segmentation_overlay_node import SegmentationOverlayNode
+
+__all__ = ["SegmentationOverlayNode"]
+
+
+================================================================================
+FILE: visualization/segmentation_overlay_node.py
+================================================================================
+import depthai as dai
+
+from depthai_nodes.node import ApplyColormap, InstanceToSemanticMask, ImgFrameOverlay
+
+from config.config_data_classes import VideoConfig
+
+
+class SegmentationOverlayNode(dai.node.ThreadedHostNode):
+    """
+    High-level node for YOLOE segmentation visualization.
+
+    Internal block:
+        detections (NN output)
+          -> InstanceToSemanticMask (optional if semantic = True) - converts instance to semantic mask
+          -> ApplyColormap
+          -> ImgFrameOverlay
+          -> ImageManip (to NV12)
+          -> VideoEncoder -> H.264 stream
+
+    Inputs:
+        - input_detections: dai.Node.Output (parsed NN output)
+        - input_frame: dai.Node.Output BGR source frames used as the background
+        - semantic: bool (True = instance -> semantic mask conversion before colormap)
+
+    Exposes:
+        - encoded: dai.Node.Output (H.264 encoded overlay video stream)
+    """
+    def __init__(self) -> None:
+        super().__init__()
+
+        self._instance_to_semantic = self.createSubnode(InstanceToSemanticMask)
+        self._apply_colormap = self.createSubnode(ApplyColormap)
+        self._img_overlay = self.createSubnode(ImgFrameOverlay)
+        self._img_manip = self.createSubnode(dai.node.ImageManip)
+        self._encoder = self.createSubnode(dai.node.VideoEncoder)
+
+        self.encoded: dai.Node.Output = None
+
+    def build(
+        self,
+        input_frame: dai.Node.Output,
+        input_detections: dai.Node.Output,
+        semantic: bool,
+        cfg: VideoConfig,
+
+    ) -> "SegmentationOverlayNode":
+        w, h = cfg.width, cfg.height
+
+        if semantic:
+            self._instance_to_semantic.build(input_detections)
+            mask_src = self._instance_to_semantic.out
+        else:
+            mask_src = input_detections
+
+        self._apply_colormap.build(mask_src)
+
+        self._img_overlay.build(
+            frame1=input_frame,
+            frame2=self._apply_colormap.out,
+            preserve_background=True,
+        )
+
+        self._img_manip.setMaxOutputFrameSize(w * h * 3)
+        self._img_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+        self._img_overlay.out.link(self._img_manip.inputImage)
+
+        self._encoder.setDefaultProfilePreset(
+            fps=cfg.fps,
+            profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+        )
+        self._img_manip.out.link(self._encoder.input)
+
+        self.encoded = self._encoder.out
+        return self
+
+    def run(self) -> None:
+        # High-level node: subnodes handle all processing.
+        pass
