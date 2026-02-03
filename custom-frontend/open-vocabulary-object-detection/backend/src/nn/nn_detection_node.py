@@ -38,7 +38,9 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._img_manip: dai.node.ImageManip = self.createSubnode(dai.node.ImageManip)
         self._nn: ParsingNeuralNetwork = self.createSubnode(ParsingNeuralNetwork)
         self._det_filter: ImgDetectionsFilter = self.createSubnode(ImgDetectionsFilter)
-        self._det_label_mapper: DetectionsLabelMapper = self.createSubnode(DetectionsLabelMapper)
+        self._det_label_mapper: DetectionsLabelMapper = self.createSubnode(
+            DetectionsLabelMapper
+        )
 
         # Internal controller
         self._controller: Optional[NNDetectionController] = None
@@ -79,7 +81,9 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._det_filter.build(self._nn.out)
 
         # Add label for visualization (ImgDetectionsExtended)
-        self._det_label_mapper.build(self._det_filter.out)
+        self._det_label_mapper.build(
+            input_detections=self._det_filter.out, input_frame=input_frame
+        )
         self.detections = self._det_label_mapper.out
 
         # Prompt encoders
@@ -121,10 +125,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._controller.update_classes(class_names)
 
     def add_image_prompt(
-        self,
-        image: np.ndarray,
-        label: str,
-        mask: Optional[np.ndarray] = None
+        self, image: np.ndarray, label: str, mask: Optional[np.ndarray] = None
     ) -> None:
         """Add an image prompt to the accumulated list."""
         self._controller.add_image_prompt(image, label, mask)
@@ -142,10 +143,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._controller.add_bbox_prompt(image, label, x0, y0, x1, y1)
 
     def rename_image_prompt(
-        self,
-        index: int = None,
-        old_label: str = None,
-        new_label: str = None
+        self, index: int = None, old_label: str = None, new_label: str = None
     ) -> bool:
         """Rename an image prompt by index or old label."""
         return self._controller.rename_image_prompt(index, old_label, new_label)

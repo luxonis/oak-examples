@@ -30,13 +30,13 @@ def build_configuration(platform: str, args: Namespace) -> SystemConfig:
     yaml_config = _load_yaml_config(yamls_dir / "config.yaml")
 
     model_name = (getattr(args, "model", None) or yaml_config.model.name).lower()
-    precision = (getattr(args, "precision", None) or yaml_config.model.precision).lower()
+    precision = (
+        getattr(args, "precision", None) or yaml_config.model.precision
+    ).lower()
 
     prompts_file = yaml_config.model.prompts_files.get(model_name)
     if not prompts_file:
-        raise ValueError(
-            f"No prompts config registered for model '{model_name}'."
-        )
+        raise ValueError(f"No prompts config registered for model '{model_name}'.")
 
     prompts_path = yamls_dir / prompts_file
     if not prompts_path.exists():
@@ -79,7 +79,9 @@ def _load_model(platform: str, precision: str, model_name: str) -> ModelInfo:
     models_dir = Path(__file__).parent.parent / "depthai_models"
 
     if model_name not in DETECTOR_YAMLS:
-        raise ValueError(f"Unknown model: {model_name}. Choose from: {list(DETECTOR_YAMLS)}")
+        raise ValueError(
+            f"Unknown model: {model_name}. Choose from: {list(DETECTOR_YAMLS)}"
+        )
 
     yaml_base = DETECTOR_YAMLS[model_name].get(precision)
     if not yaml_base:

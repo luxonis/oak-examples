@@ -134,13 +134,19 @@ class NNDetectionController:
 
         if len(self._image_prompt_vectors) > self._max_image_prompts:
             removed = self._image_prompt_labels[0]
-            self._image_prompt_vectors = self._image_prompt_vectors[-self._max_image_prompts:]
-            self._image_prompt_labels = self._image_prompt_labels[-self._max_image_prompts:]
+            self._image_prompt_vectors = self._image_prompt_vectors[
+                -self._max_image_prompts :
+            ]
+            self._image_prompt_labels = self._image_prompt_labels[
+                -self._max_image_prompts :
+            ]
             log.info(f"Max prompts reached, removed oldest: '{removed}'")
 
         self._send_accumulated_image_prompts()
 
-        log.info(f"Added image prompt '{label}' (total: {len(self._image_prompt_labels)})")
+        log.info(
+            f"Added image prompt '{label}' (total: {len(self._image_prompt_labels)})"
+        )
 
     def add_bbox_prompt(
         self,
@@ -161,10 +167,7 @@ class NNDetectionController:
             self.add_image_prompt(image_bgr, label, mask=mask)
 
     def rename_image_prompt(
-            self,
-            index: int = None,
-            old_label: str = None,
-            new_label: str = None
+        self, index: int = None, old_label: str = None, new_label: str = None
     ) -> bool:
         """
         Rename an image prompt by index or old label.
@@ -223,10 +226,14 @@ class NNDetectionController:
 
         if len(self._image_prompt_vectors) > 0:
             self._send_accumulated_image_prompts()
-            log.info(f"Deleted image prompt '{removed_label}' (remaining: {len(self._image_prompt_labels)})")
+            log.info(
+                f"Deleted image prompt '{removed_label}' (remaining: {len(self._image_prompt_labels)})"
+            )
         else:
             self._revert_to_text_classes()
-            log.info(f"Deleted last image prompt '{removed_label}', reverted to text classes")
+            log.info(
+                f"Deleted last image prompt '{removed_label}', reverted to text classes"
+            )
 
         return True
 

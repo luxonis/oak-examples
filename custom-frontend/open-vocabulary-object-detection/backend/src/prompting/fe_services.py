@@ -26,7 +26,9 @@ class PromptingFEServices:
         update_classes: Callable[[list[str]], None],
         add_image_prompt: Callable[[np.ndarray, str, Optional[np.ndarray]], None],
         add_bbox_prompt: Callable[[np.ndarray, str, int, int, int, int], None],
-        rename_image_prompt: Callable[[Optional[int], Optional[str], Optional[str]], bool],
+        rename_image_prompt: Callable[
+            [Optional[int], Optional[str], Optional[str]], bool
+        ],
         delete_image_prompt: Callable[[Optional[int], Optional[str]], bool],
         set_confidence_threshold: Callable[[float], None],
         get_last_frame: Callable[[], Optional[np.ndarray]],
@@ -52,7 +54,7 @@ class PromptingFEServices:
                 f"Too many classes ({len(new_classes)} > {self._max_num_classes}); "
                 f"using only the first {self._max_num_classes}."
             )
-            new_classes = new_classes[:self._max_num_classes]
+            new_classes = new_classes[: self._max_num_classes]
 
         self._update_classes(new_classes)
         log.info(f"Classes updated: {new_classes}")

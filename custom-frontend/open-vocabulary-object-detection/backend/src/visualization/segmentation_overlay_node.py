@@ -1,5 +1,6 @@
-import depthai as dai
+from typing import Optional
 
+import depthai as dai
 from depthai_nodes.node import ApplyColormap, InstanceToSemanticMask, ImgFrameOverlay
 
 from config.config_data_classes import VideoConfig
@@ -25,10 +26,11 @@ class SegmentationOverlayNode(dai.node.ThreadedHostNode):
     Exposes:
         - encoded: dai.Node.Output (H.264 encoded overlay video stream)
     """
+
     def __init__(self) -> None:
         super().__init__()
 
-        self._instance_to_semantic = self.createSubnode(InstanceToSemanticMask)
+        self._instance_to_semantic: Optional[InstanceToSemanticMask] = None
         self._apply_colormap = self.createSubnode(ApplyColormap)
         self._img_overlay = self.createSubnode(ImgFrameOverlay)
         self._img_manip = self.createSubnode(dai.node.ImageManip)
@@ -42,11 +44,11 @@ class SegmentationOverlayNode(dai.node.ThreadedHostNode):
         input_detections: dai.Node.Output,
         semantic: bool,
         cfg: VideoConfig,
-
     ) -> "SegmentationOverlayNode":
         w, h = cfg.width, cfg.height
 
         if semantic:
+            self._instance_to_semantic = self.createSubnode(InstanceToSemanticMask)
             self._instance_to_semantic.build(input_detections)
             mask_src = self._instance_to_semantic.out
         else:

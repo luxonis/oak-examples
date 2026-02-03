@@ -30,7 +30,8 @@ def parse_args() -> Namespace:
     )
 
     parser.add_argument(
-        "-m", "--model",
+        "-m",
+        "--model",
         help="Model to use: 'yoloe' or 'yolo-world'",
         choices=["yoloe", "yolo-world"],
         default="yoloe",

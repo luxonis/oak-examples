@@ -10,10 +10,12 @@ logger = logging.getLogger(__name__)
 
 class DetectionsLabelMapper(dai.node.HostNode):
     """
-    Maps numeric class IDs to human-readable names.
+    Adds label names to detections and aligns detections to a reference frame.
 
-    Input:
-      - dai.ImgDetections OR ImgDetectionsExtended
+    Inputs:
+      - input_detections: dai.ImgDetections or ImgDetectionsExtended
+      - input_frame: dai.ImgFrame (reference coordinate space)
+
     Output:
       - Same message instance, with label name fields populated.
     """
@@ -35,22 +37,28 @@ class DetectionsLabelMapper(dai.node.HostNode):
 
     def build(
         self,
-        detections: dai.Node.Output,
+        input_detections: dai.Node.Output,
+        input_frame: dai.Node.Output,
         label_encoding: Optional[Dict[int, str]] = None,
     ) -> "DetectionsLabelMapper":
         if label_encoding is not None:
             self.set_label_encoding(label_encoding)
 
-        self.link_args(detections)
+        self.link_args(input_detections, input_frame)
         return self
 
-    def process(self, detections_message: dai.Buffer) -> None:
+    def process(
+        self, detections_message: dai.Buffer, frame_message: dai.ImgFrame
+    ) -> None:
         if isinstance(detections_message, ImgDetectionsExtended):
+            # Align detections to frame coordinate space
+            detections_message.setTransformation(frame_message.getTransformation())
             for detection in detections_message.detections:
                 detection.label_name = self._label_encoding.get(
                     detection.label, "unknown"
                 )
         elif isinstance(detections_message, dai.ImgDetections):
+            detections_message.setTransformation(frame_message.getTransformation())
             for detection in detections_message.detections:
                 detection.labelName = self._label_encoding.get(
                     detection.label, "unknown"

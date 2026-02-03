@@ -30,7 +30,9 @@ class VisualPromptEncoder(BasePromptEncoder):
         )
         self._offset: int = config.visual_offset
 
-    def extract_embeddings(self, image: np.ndarray, mask_prompt: Optional[np.ndarray] = None) -> np.ndarray:
+    def extract_embeddings(
+        self, image: np.ndarray, mask_prompt: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         """Extract visual embeddings from an image."""
         self._load_model()
 
@@ -43,7 +45,9 @@ class VisualPromptEncoder(BasePromptEncoder):
         del self._session
         return image_features
 
-    def _extract_yoloe(self, image: np.ndarray, mask_prompt: Optional[np.ndarray]) -> np.ndarray:
+    def _extract_yoloe(
+        self, image: np.ndarray, mask_prompt: Optional[np.ndarray]
+    ) -> np.ndarray:
         """YOLOE visual encoding."""
         prompts = self._build_mask_prompt(mask_prompt)
 
