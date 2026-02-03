@@ -1,6 +1,5 @@
 depthai==3.2.1
-#depthai-nodes==0.3.6
-depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@f40211e5665473b5db48457640bed18fd1f2cc8d
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@f40211e5665473b5db48457640bed18fd1f2cc8d  #InstanceToSemanticMask
 opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0

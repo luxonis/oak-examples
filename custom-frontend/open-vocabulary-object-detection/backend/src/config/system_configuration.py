@@ -30,9 +30,7 @@ def build_configuration(platform: str, args: Namespace) -> SystemConfig:
     yaml_config = _load_yaml_config(yamls_dir / "config.yaml")
 
     model_name = (getattr(args, "model", None) or yaml_config.model.name).lower()
-    precision = (
-        getattr(args, "precision", None) or yaml_config.model.precision
-    ).lower()
+    precision = yaml_config.model.precision
 
     prompts_file = yaml_config.model.prompts_files.get(model_name)
     if not prompts_file:
