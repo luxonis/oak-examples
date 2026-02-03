@@ -91,6 +91,11 @@ class NNDetectionController:
         Update detection classes using text prompts.
         Clears any accumulated image prompts and switches to text-based detection.
         """
+        max_n = self._text_encoder.max_num_classes
+        if len(class_names) > max_n:
+            log.warning(f"Too many classes ({len(class_names)} > {max_n}); truncating.")
+            class_names = class_names[:max_n]
+
         self._last_text_classes = list(class_names)
 
         text_embeddings = self._text_encoder.extract_embeddings(class_names)
@@ -134,12 +139,8 @@ class NNDetectionController:
 
         if len(self._image_prompt_vectors) > self._max_image_prompts:
             removed = self._image_prompt_labels[0]
-            self._image_prompt_vectors = self._image_prompt_vectors[
-                -self._max_image_prompts :
-            ]
-            self._image_prompt_labels = self._image_prompt_labels[
-                -self._max_image_prompts :
-            ]
+            self._image_prompt_vectors = self._image_prompt_vectors[-self._max_image_prompts:]
+            self._image_prompt_labels = self._image_prompt_labels[-self._max_image_prompts:]
             log.info(f"Max prompts reached, removed oldest: '{removed}'")
 
         self._send_accumulated_image_prompts()

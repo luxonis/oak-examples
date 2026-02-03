@@ -51,7 +51,6 @@ def main():
             delete_image_prompt=nn_node.delete_image_prompt,
             set_confidence_threshold=nn_node.set_confidence_threshold,
             get_last_frame=frame_cache_node.get_last_frame,
-            max_num_classes=config.nn.prompts.max_num_classes,
         )
 
         get_params_service = GetCurrentParamsService(

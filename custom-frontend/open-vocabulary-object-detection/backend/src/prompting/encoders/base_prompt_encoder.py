@@ -143,3 +143,7 @@ class BasePromptEncoder(ABC):
     def offset(self) -> int:
         """Return class offset or encoder index limit."""
         return self._offset
+
+    @property
+    def max_num_classes(self) -> int:
+        return int(self._config.max_num_classes)

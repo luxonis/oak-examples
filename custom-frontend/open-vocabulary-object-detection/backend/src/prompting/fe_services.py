@@ -41,26 +41,18 @@ class PromptingFEServices:
         self._delete_image_prompt = delete_image_prompt
         self._set_threshold = set_confidence_threshold
         self._get_last_frame = get_last_frame
-        self._max_num_classes = max_num_classes
 
     def fe_class_update(self, new_classes: list[str]) -> None:
-        """Update detection classes based on user input."""
+        """Update detection classes."""
         if not new_classes:
             log.warning("Class update called with empty list, skipping.")
             return
-
-        if len(new_classes) > self._max_num_classes:
-            log.warning(
-                f"Too many classes ({len(new_classes)} > {self._max_num_classes}); "
-                f"using only the first {self._max_num_classes}."
-            )
-            new_classes = new_classes[: self._max_num_classes]
 
         self._update_classes(new_classes)
         log.info(f"Classes updated: {new_classes}")
 
     def fe_threshold_update(self, new_threshold: float) -> None:
-        """Update confidence threshold based on user input."""
+        """Update detection confidence threshold."""
         threshold = max(0.01, min(0.99, float(new_threshold)))
         self._set_threshold(threshold)
         log.info(f"Confidence threshold updated: {threshold:.2f}")
@@ -109,7 +101,6 @@ class PromptingFEServices:
             log.warning("No image available for bbox prompt")
             return {"ok": False, "reason": "no_image"}
 
-        # Convert normalized bbox to pixel coordinates
         H, W = image.shape[:2]
         bx = float(bbox.get("x", 0.0))
         by = float(bbox.get("y", 0.0))
@@ -137,7 +128,7 @@ class PromptingFEServices:
 
     def fe_rename_image_prompt(self, payload: dict) -> dict:
         """
-        Rename an existing image prompt.
+        Rename an existing stored image prompt.
 
         Args:
             payload: Dict with 'index' or 'oldLabel', and 'newLabel'.
