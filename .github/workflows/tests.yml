@@ -391,7 +391,7 @@ jobs:
             ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
           fi
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl \
+          exec hil_runner --no-shell --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl \
               --commands "cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
   test_standalone_mac:
