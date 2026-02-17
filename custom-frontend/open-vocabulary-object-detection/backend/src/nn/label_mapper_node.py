@@ -3,7 +3,6 @@ from typing import Dict, Optional
 
 import depthai as dai
 
-from depthai_nodes import ImgDetectionsExtended
 
 logger = logging.getLogger(__name__)
 
@@ -50,17 +49,10 @@ class DetectionsLabelMapper(dai.node.HostNode):
     def process(
         self, detections_message: dai.Buffer, frame_message: dai.ImgFrame
     ) -> None:
-        if isinstance(detections_message, ImgDetectionsExtended):
-            # Align detections to frame coordinate space
-            detections_message.setTransformation(frame_message.getTransformation())
-            for detection in detections_message.detections:
-                detection.label_name = self._label_encoding.get(
-                    detection.label, "unknown"
-                )
-        elif isinstance(detections_message, dai.ImgDetections):
-            detections_message.setTransformation(frame_message.getTransformation())
-            for detection in detections_message.detections:
-                detection.labelName = self._label_encoding.get(
-                    detection.label, "unknown"
-                )
+        assert isinstance(detections_message, dai.ImgDetections)
+        detections_message.setTransformation(frame_message.getTransformation())
+        for detection in detections_message.detections:
+            detection.labelName = self._label_encoding.get(
+                detection.label, "unknown"
+            )
         self.out.send(detections_message)

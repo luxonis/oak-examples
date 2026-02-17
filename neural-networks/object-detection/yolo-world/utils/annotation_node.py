@@ -1,5 +1,4 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended
 from typing import Dict
 
 
@@ -32,7 +31,7 @@ class AnnotationNode(dai.node.HostNode):
         self,
         detections_message: dai.Buffer,
     ) -> None:
-        assert isinstance(detections_message, ImgDetectionsExtended)
+        assert isinstance(detections_message, dai.ImgDetections)
         for detection in detections_message.detections:
-            detection.label_name = self._label_encoding.get(detection.label, "unknown")
+            detection.labelName = self._label_encoding.get(detection.label, "unknown")
         return detections_message
