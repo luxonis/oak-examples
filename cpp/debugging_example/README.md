@@ -7,6 +7,7 @@ This example shows the steps to add VS Code remote debugging to any C++ OAK app.
 Copy the `.vscode/launch.json` from this project into your app's `.vscode/` folder. No changes needed — it uses `${workspaceFolder}` throughout so it works in any project location.
 
 On launch it will prompt for:
+
 - **GDB path** — your local GDB binary (dropdown with common OS paths)
 - **Board IP** — IP address of your OAK device
 
