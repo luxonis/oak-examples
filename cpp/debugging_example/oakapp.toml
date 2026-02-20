@@ -7,8 +7,8 @@ build_steps = [
     "mkdir -p /etc/service/backend",
     "cp /app/backend-run.sh /etc/service/backend/run",
     "chmod +x /etc/service/backend/run",
-    "cmake -S /app -B /app/build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-    "cmake --build /app/build -- -j",
+    "cmake -S /app -B /app/build -DCMAKE_BUILD_TYPE=Debug",
+    "cmake --build /app/build --parallel",
 ]
 
 assign_frontend_port = true
