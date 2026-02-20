@@ -1,0 +1,73 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to OAK (gdbserver)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/main_device",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${input:gdbPath}",
+      "targetArchitecture": "arm64",
+      "miDebuggerArgs": "-ex \"shell mkdir -p ${workspaceFolder}/build && touch -a ${workspaceFolder}/build/main_device\"",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "sourceFileMap": {
+        "/app": "${workspaceFolder}"
+      },
+      "customLaunchSetupCommands": [
+        {
+          "description": "Connect to gdbserver",
+          "text": "target remote ${input:boardIP}:5678",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Pull binary from device",
+          "text": "remote get /app/build/main ${workspaceFolder}/build/main_device",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Reload symbols from fresh binary",
+          "text": "exec-file ${workspaceFolder}/build/main_device",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Enable pretty printing",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Map container sources to workspace",
+          "text": "set substitute-path /app ${workspaceFolder}",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Disable pagination",
+          "text": "set pagination off",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "boardIP",
+      "type": "promptString",
+      "description": "Enter OAK board IP address",
+      "default": "192.168.1.198"
+    },
+    {
+      "id": "gdbPath",
+      "type": "pickString",
+      "description": "Select GDB path (or type a custom one)",
+      "options": [
+        "/opt/homebrew/bin/gdb",
+        "/usr/local/bin/gdb",
+        "/usr/bin/gdb",
+        "C:\\msys64\\mingw64\\bin\\gdb.exe"
+      ],
+      "default": "/opt/homebrew/bin/gdb"
+    }
+  ]
+}
