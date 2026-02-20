@@ -1,8 +1,6 @@
 import numpy as np
 import depthai as dai
 
-from depthai_nodes import ImgDetectionsExtended
-
 
 class IdentificationNode(dai.node.HostNode):
     """A host node that re-identifies objects based on their embeddings similarity to a database of embeddings.
@@ -52,15 +50,15 @@ class IdentificationNode(dai.node.HostNode):
         return self
 
     def process(self, gather_data_msg) -> None:
-        dets_msg: ImgDetectionsExtended = gather_data_msg.reference_data
-        assert isinstance(dets_msg, ImgDetectionsExtended)
+        dets_msg: dai.ImgDetections = gather_data_msg.reference_data
+        assert isinstance(dets_msg, dai.ImgDetections)
 
         rec_msg_list = gather_data_msg.gathered
         assert isinstance(rec_msg_list, list)
         assert all(isinstance(msg, dai.NNData) for msg in rec_msg_list)
 
         for detection, rec in zip(dets_msg.detections, rec_msg_list):
-            detection.label_name = self._get_label_name(rec, self._label_basename)
+            detection.labelName = self._get_label_name(rec, self._label_basename)
 
         self.out.send(dets_msg)
 

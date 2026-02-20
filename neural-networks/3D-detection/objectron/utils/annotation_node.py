@@ -1,6 +1,5 @@
 import depthai as dai
 from depthai_nodes import (
-    ImgDetectionsExtended,
     Keypoints,
     GatheredData,
     PRIMARY_COLOR,
@@ -36,7 +35,7 @@ class AnnotationNode(dai.node.HostNode):
     def process(self, gathered_data: dai.Buffer) -> None:
         assert isinstance(gathered_data, GatheredData)
 
-        detections_message: ImgDetectionsExtended = gathered_data.reference_data
+        detections_message: dai.ImgDetections = gathered_data.reference_data
         detections_list: List[dai.ImgDetection] = detections_message.detections
 
         annotation_helper = AnnotationHelper()

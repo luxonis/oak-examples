@@ -1,7 +1,6 @@
 from typing import List
 import depthai as dai
 
-from depthai_nodes import ImgDetectionsExtended
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -14,9 +13,9 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, gather_data_msg) -> None:
-        detections_msg: ImgDetectionsExtended = gather_data_msg.reference_data
-        assert isinstance(detections_msg, ImgDetectionsExtended)
-        src_w, src_h = detections_msg.transformation.getSize()
+        detections_msg: dai.ImgDetections = gather_data_msg.reference_data
+        assert isinstance(detections_msg, dai.ImgDetections)
+        src_w, src_h = detections_msg.getTransformation().getSize()
 
         gaze_msg_list: List[dai.NNData] = gather_data_msg.gathered
         assert isinstance(gaze_msg_list, list)
@@ -26,8 +25,8 @@ class AnnotationNode(dai.node.HostNode):
         annotations = AnnotationHelper()
 
         for detection, gaze in zip(detections_msg.detections, gaze_msg_list):
-            face_bbox = detection.rotated_rect.getPoints()
-            keypoints = detection.keypoints
+            face_bbox = detection.getBoundingBox().getPoints()
+            keypoints = detection.getKeypoints2f()
 
             # Draw bbox
             annotations.draw_rectangle(

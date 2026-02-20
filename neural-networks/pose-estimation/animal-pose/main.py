@@ -3,11 +3,10 @@ from pathlib import Path
 import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
-    ImgDetectionsBridge,
     ImgDetectionsFilter,
     GatherData,
+    FrameCropper,
 )
-from depthai_nodes.node.utils import generate_script_content
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -67,36 +66,25 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # detection processing
-    script = pipeline.create(dai.node.Script)
-    detections_filter.out.link(script.inputs["det_in"])
-    detection_nn.passthrough.link(script.inputs["preview"])
-    script_content = generate_script_content(
-        resize_width=pose_model_w,
-        resize_height=pose_model_h,
+    pose_manip = pipeline.create(FrameCropper).fromImgDetections(
+        inputImgDetections=detections_filter.out,
         padding=PADDING,
-        resize_mode="STRETCH",
+    ).build(
+        inputImage=detection_nn.passthrough,
+        outputSize=(pose_model_w, pose_model_h),
+        resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
     )
-    script.setScript(script_content)
-
-    pose_manip = pipeline.create(dai.node.ImageManip)
-    pose_manip.initialConfig.setOutputSize(pose_model_w, pose_model_h)
-    pose_manip.inputConfig.setWaitForMessage(True)
-
-    script.outputs["manip_cfg"].link(pose_manip.inputConfig)
-    script.outputs["manip_img"].link(pose_manip.inputImage)
 
     pose_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         pose_manip.out, pose_nn_archive
     )
 
-    detections_bridge = pipeline.create(ImgDetectionsBridge).build(
-        detections_filter.out
-    )
-
     # detections and pose estimations sync
-    gather_data = pipeline.create(GatherData).build(args.fps_limit)
-    detections_bridge.out.link(gather_data.input_reference)
-    pose_nn.out.link(gather_data.input_data)
+    gather_data = pipeline.create(GatherData).build(
+        camera_fps=args.fps_limit,
+        input_data=pose_nn.out,
+        input_reference=detections_filter.out,
+    )
 
     # annotation
     connection_pairs = (

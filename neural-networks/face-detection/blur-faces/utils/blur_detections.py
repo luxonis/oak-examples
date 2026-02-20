@@ -21,7 +21,7 @@ class BlurBboxes(dai.node.ThreadedHostNode):
 
             h, w = frame_copy.shape[:2]
             for detection in detections:
-                rect: dai.RotatedRect = detection.rotated_rect
+                rect: dai.RotatedRect = detection.getBoundingBox()
                 rect = rect.denormalize(w, h)
                 detection = rect.getOuterRect()
                 bbox = [int(d) for d in detection]
@@ -30,7 +30,7 @@ class BlurBboxes(dai.node.ThreadedHostNode):
                 bbox[2] = np.clip(bbox[2], 0, w)
                 bbox[3] = np.clip(bbox[3], 0, h)
 
-                roi = frame_copy[bbox[1] : bbox[3], bbox[0] : bbox[2]]
+                roi = frame_copy[bbox[1]: bbox[3], bbox[0]: bbox[2]]
 
                 roi_width = bbox[2] - bbox[0]
                 roi_height = bbox[3] - bbox[1]
@@ -56,7 +56,7 @@ class BlurBboxes(dai.node.ThreadedHostNode):
                 original_background = cv2.bitwise_and(roi, roi, mask=inverse_mask)
                 combined = cv2.add(blurred_ellipse, original_background)
 
-                frame_copy[bbox[1] : bbox[3], bbox[0] : bbox[2]] = combined
+                frame_copy[bbox[1]: bbox[3], bbox[0]: bbox[2]] = combined
 
             ts = frame.getTimestamp()
             frame_type = frame.getType()

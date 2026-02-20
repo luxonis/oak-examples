@@ -1,7 +1,5 @@
 import depthai as dai
 from depthai_nodes import (
-    ImgDetectionsExtended,
-    ImgDetectionExtended,
     Keypoints,
     Predictions,
     GatheredData,
@@ -43,11 +41,11 @@ class AnnotationNode(dai.node.HostNode):
     def process(self, gathered_data: dai.Buffer, video_message: dai.ImgFrame) -> None:
         assert isinstance(gathered_data, GatheredData)
 
-        detections_message: ImgDetectionsExtended = gathered_data.reference_data
-        detections_list: List[ImgDetectionExtended] = detections_message.detections
+        detections_message: dai.ImgDetections = gathered_data.reference_data
+        detections_list: List[dai.ImgDetection] = detections_message.detections
 
-        new_dets = ImgDetectionsExtended()
-        new_dets.transformation = video_message.getTransformation()
+        new_dets = dai.ImgDetections()
+        new_dets.setTransformation(video_message.getTransformation())
 
         annotation_helper = AnnotationHelper()
 
@@ -62,29 +60,28 @@ class AnnotationNode(dai.node.HostNode):
             if hand_confidence < self.confidence_threshold:
                 continue
 
-            width = detection.rotated_rect.size.width
-            height = detection.rotated_rect.size.height
+            width = detection.getBoundingBox().size.width
+            height = detection.getBoundingBox().size.height
 
-            xmin = detection.rotated_rect.center.x - width / 2
-            xmax = detection.rotated_rect.center.x + width / 2
-            ymin = detection.rotated_rect.center.y - height / 2
-            ymax = detection.rotated_rect.center.y + height / 2
+            xmin = detection.getBoundingBox().center.x - width / 2
+            xmax = detection.getBoundingBox().center.x + width / 2
+            ymin = detection.getBoundingBox().center.y - height / 2
+            ymax = detection.getBoundingBox().center.y + height / 2
 
             padding = self.padding_factor
 
             slope_x = (xmax + padding) - (xmin - padding)
             slope_y = (ymax + padding) - (ymin - padding)
 
-            new_det = ImgDetectionExtended()
-            new_det.rotated_rect = (
-                detection.rotated_rect.center.x,
-                detection.rotated_rect.center.y,
-                detection.rotated_rect.size.width + 2 * padding,
-                detection.rotated_rect.size.height + 2 * padding,
-                detection.rotated_rect.angle,
-            )
+            new_det = dai.ImgDetection()
+            rotated_rect = detection.getBoundingBox()
+            new_det.setBoundingBox(dai.RotatedRect(
+                rotated_rect.center,
+                dai.Size2f(rotated_rect.size.width + 2 * padding, rotated_rect.size.height + 2 * padding),
+                rotated_rect.angle,
+            ))
             new_det.label = 0
-            new_det.label_name = "Hand"
+            new_det.labelName = "Hand"
             new_det.confidence = detection.confidence
             new_dets.detections.append(new_det)
 
@@ -111,8 +108,8 @@ class AnnotationNode(dai.node.HostNode):
             text = "Left" if handness < 0.5 else "Right"
             text += f" {gesture}"
 
-            text_x = detection.rotated_rect.center.x - 0.05
-            text_y = detection.rotated_rect.center.y - height / 2 - 0.10
+            text_x = detection.getBoundingBox().center.x - 0.05
+            text_y = detection.getBoundingBox().center.y - height / 2 - 0.10
 
             annotation_helper.draw_text(
                 text=text,

@@ -96,9 +96,11 @@ with dai.Pipeline(device) as pipeline:
     ocr_nn.input.setMaxSize(30)
 
     # detections and recognitions sync
-    gather_data_node = pipeline.create(GatherData).build(args.fps_limit)
-    detection_process_node.detections_output.link(gather_data_node.input_reference)
-    ocr_nn.out.link(gather_data_node.input_data)
+    gather_data_node = pipeline.create(GatherData).build(
+        camera_fps=args.fps_limit,
+        input_data=ocr_nn.out,
+        input_reference=detection_process_node.detections_output,
+    )
 
     # annotation
     annotation_node = pipeline.create(OCRAnnotationNode)

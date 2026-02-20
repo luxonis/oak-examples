@@ -137,9 +137,11 @@ with dai.Pipeline(device) as pipeline:
     gaze_estimation_node.inputs["head_pose_angles_yaw_pitch_roll"].setMaxSize(5)
 
     # detections and gaze estimations sync
-    gather_data_node = pipeline.create(GatherData).build(args.fps_limit)
-    gaze_estimation_node.out.link(gather_data_node.input_data)
-    det_nn.out.link(gather_data_node.input_reference)
+    gather_data_node = pipeline.create(GatherData).build(
+        camera_fps=args.fps_limit,
+        input_data=gaze_estimation_node.out,
+        input_reference=det_nn.out,
+    )
 
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(gather_data_node.out)

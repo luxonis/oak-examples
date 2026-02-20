@@ -106,9 +106,11 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # detections and pose estimations sync
-    gather_data = pipeline.create(GatherData).build(camera_fps=args.fps_limit)
-    detection_nn.out.link(gather_data.input_reference)
-    pose_nn.outputs.link(gather_data.input_data)
+    gather_data = pipeline.create(GatherData).build(
+        camera_fps=args.fps_limit,
+        input_data=pose_nn.outputs,
+        input_reference=detection_nn.out,
+    )
 
     # annotation
     connection_pairs = (

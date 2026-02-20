@@ -1,5 +1,4 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended, ImgDetectionExtended
 from typing import Tuple
 
 
@@ -44,7 +43,7 @@ class ProcessDetections(dai.node.HostNode):
         return self
 
     def process(self, img_detections: dai.Buffer) -> None:
-        assert isinstance(img_detections, ImgDetectionsExtended)
+        assert isinstance(img_detections, dai.ImgDetections)
         detections = img_detections.detections
 
         num_detections = len(detections)
@@ -56,8 +55,8 @@ class ProcessDetections(dai.node.HostNode):
 
         for i, detection in enumerate(detections):
             cfg = dai.ImageManipConfig()
-            detection: ImgDetectionExtended = detection
-            rect = detection.rotated_rect
+            detection: dai.ImgDetection = detection
+            rect = detection.getBoundingBox()
 
             new_rect = dai.RotatedRect()
             new_rect.center.x = rect.center.x

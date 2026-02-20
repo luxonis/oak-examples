@@ -4,7 +4,6 @@ from depthai_nodes.node import (
     MPPalmDetectionParser,
     DepthMerger,
     ImgDetectionsFilter,
-    ImgDetectionsBridge,
 )
 
 from utils.arguments import initialize_argparser
@@ -113,10 +112,6 @@ with dai.Pipeline(device) as pipeline:
     parser: MPPalmDetectionParser = palm_det_nn.getParser(0)
     parser.setConfidenceThreshold(0.7)
 
-    adapter = pipeline.create(ImgDetectionsBridge).build(
-        palm_det_nn.out, ignore_angle=True
-    )
-
     detection_depth_merger = pipeline.create(DepthMerger).build(
         output_2d=obj_det_nn.out,
         output_depth=stereo.depth,
@@ -125,7 +120,7 @@ with dai.Pipeline(device) as pipeline:
         shrinking_factor=0.1,
     )
     palm_depth_merger = pipeline.create(DepthMerger).build(
-        output_2d=adapter.out,
+        output_2d=palm_det_nn.out,
         output_depth=stereo.depth,
         calib_data=device.readCalibration2(),
         depth_alignment_socket=dai.CameraBoardSocket.CAM_A,

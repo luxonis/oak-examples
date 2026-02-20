@@ -1,5 +1,4 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionExtended, ImgDetectionsExtended
 
 
 class LandmarksProcessing(dai.node.ThreadedHostNode):
@@ -27,9 +26,9 @@ class LandmarksProcessing(dai.node.ThreadedHostNode):
             right_configs_message = dai.MessageGroup()
             face_configs_message = dai.MessageGroup()
             for i, detection in enumerate(detections):
-                detection: ImgDetectionExtended = detection
-                keypoints = detection.keypoints
-                face_size = detection.rotated_rect.size
+                detection: dai.ImgDetection = detection
+                keypoints = detection.getKeypoints2f()
+                face_size = detection.getBoundingBox().size
                 face_w, face_h = face_size.width * self.w, face_size.height * self.h
 
                 right_eye = self.crop_rectangle(
@@ -46,7 +45,7 @@ class LandmarksProcessing(dai.node.ThreadedHostNode):
                     left_eye, img_detections
                 )
 
-                face_rect = detection.rotated_rect
+                face_rect = detection.getBoundingBox()
                 face_rect = face_rect.denormalize(self.w, self.h)
                 face_configs_message[str(i + 100)] = self.create_crop_cfg(
                     face_rect, img_detections
@@ -77,7 +76,7 @@ class LandmarksProcessing(dai.node.ThreadedHostNode):
         return croped_rectangle.denormalize(self.w, self.h)
 
     def create_crop_cfg(
-        self, rectangle: dai.RotatedRect, img_detections: ImgDetectionsExtended
+        self, rectangle: dai.RotatedRect, img_detections: dai.ImgDetections
     ):
         cfg = dai.ImageManipConfig()
         cfg.addCropRotatedRect(rectangle, normalizedCoords=False)

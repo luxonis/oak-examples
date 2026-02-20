@@ -1,10 +1,6 @@
 import depthai as dai
 import numpy as np
 import cv2
-from depthai_nodes.message.img_detections import (
-    ImgDetectionExtended,
-    ImgDetectionsExtended,
-)
 from .helper_functions import reverse_resize_and_pad
 import time
 
@@ -146,11 +142,11 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
         corners3d = np.asarray(outline.points)
         self._draw_cuboid_outline(corners3d)
 
-    def _draw_box_and_label(self, det: ImgDetectionExtended) -> None:
+    def _draw_box_and_label(self, det: dai.ImgDetection) -> None:
         """Draws rotated rect and label"""
 
         # All annotation coordinates are normalized to the NN input size (512×320)
-        rr = det._rotated_rect
+        rr = det.getBoundingBox()
         cx, cy = rr.center.x, rr.center.y
         w, h = rr.size.width, rr.size.height
         angle = rr.angle
@@ -173,18 +169,18 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
         if self.fit:
             label = (
-                f"Box ({det._confidence:.2f}) "
+                f"Box ({det.confidence:.2f}) "
                 f"{self.dimensions[0]:.1f} x {self.dimensions[1]:.1f} x {self.dimensions[2]:.1f} cm"
             )
         elif self.dimensions_cache is not None and (
             time.time() - self.last_successful_fit < self.cache_duration
         ):
             label = (
-                f"Box ({det._confidence:.2f}) "
+                f"Box ({det.confidence:.2f}) "
                 f"{self.dimensions_cache[0]:.1f} x {self.dimensions_cache[1]:.1f} x {self.dimensions_cache[2]:.1f} cm"
             )
         else:
-            label = f"{'Box'} {det._confidence:.2f}"
+            label = f"{'Box'} {det.confidence:.2f}"
 
         self.helper_det.draw_text(
             label,
@@ -195,7 +191,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
         )
 
     def _annotate_detection(
-        self, det: ImgDetectionExtended, idx: int, mask: np.ndarray, pcl, pcl_colors
+        self, det: dai.ImgDetection, idx: int, mask: np.ndarray, pcl, pcl_colors
     ):
         """Draw all annotations (mask, 3D box fit, bounding box + label) for a single detection."""
         self._draw_mask(mask, idx)
@@ -217,10 +213,10 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
             assert isinstance(pcl_msg, dai.PointCloudData)
             assert isinstance(rgb_msg, dai.ImgFrame)
-            assert isinstance(det_msg, ImgDetectionsExtended)
+            assert isinstance(det_msg, dai.ImgDetections)
             inPointCloud: dai.PointCloudData = pcl_msg
             inRGB: dai.ImgFrame = rgb_msg
-            parser_output: ImgDetectionsExtended = det_msg
+            parser_output: dai.ImgDetections = det_msg
 
             try:
                 points, colors = inPointCloud.getPointsRGB()
@@ -230,7 +226,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
                 rgba_img = colors.reshape(IMG_HEIGHT, IMG_WIDTH, 4)
                 bgr_img = cv2.cvtColor(rgba_img, cv2.COLOR_BGRA2BGR)
-                mask = parser_output._masks._mask
+                mask = parser_output.getCvSegmentationMask()
                 detections = parser_output.detections
                 mask_full = reverse_resize_and_pad(
                     mask, (IMG_WIDTH, IMG_HEIGHT), INPUT_SHAPE

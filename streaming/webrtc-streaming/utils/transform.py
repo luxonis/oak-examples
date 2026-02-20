@@ -4,7 +4,6 @@ import numpy as np
 from aiortc import VideoStreamTrack
 from av import VideoFrame
 from depthai_nodes.node import ParsingNeuralNetwork
-from depthai_nodes import ImgDetectionExtended
 
 
 class VideoTransform(VideoStreamTrack):
@@ -44,9 +43,7 @@ class VideoTransform(VideoStreamTrack):
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         for detection in dets:
-            if isinstance(detection, ImgDetectionExtended):
-                bbox = frameNorm(frame, detection.rotated_rect.getOuterRect())
-            elif isinstance(detection, dai.ImgDetection):
+            if isinstance(detection, dai.ImgDetection):
                 bbox = frameNorm(
                     frame,
                     (

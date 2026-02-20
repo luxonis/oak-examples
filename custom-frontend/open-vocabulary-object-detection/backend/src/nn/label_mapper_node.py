@@ -12,7 +12,7 @@ class DetectionsLabelMapper(dai.node.HostNode):
     Adds label names to detections and aligns detections to a reference frame.
 
     Inputs:
-      - input_detections: dai.ImgDetections or ImgDetectionsExtended
+      - input_detections: dai.ImgDetections
       - input_frame: dai.ImgFrame (reference coordinate space)
 
     Output:

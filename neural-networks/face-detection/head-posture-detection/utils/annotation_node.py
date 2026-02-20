@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import depthai as dai
 
-from depthai_nodes import ImgDetectionsExtended, Predictions
+from depthai_nodes import Predictions
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -19,21 +19,21 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, gather_data_msg: dai.Buffer) -> None:
-        img_detections_extended_msg: ImgDetectionsExtended = (
+        img_detections_msg: dai.ImgDetections = (
             gather_data_msg.reference_data
         )
-        assert isinstance(img_detections_extended_msg, ImgDetectionsExtended)
+        assert isinstance(img_detections_msg, dai.ImgDetections)
 
         pose_msg_group_list: List[dai.MessageGroup] = gather_data_msg.gathered
         assert isinstance(pose_msg_group_list, list)
         assert all(isinstance(msg, dai.MessageGroup) for msg in pose_msg_group_list)
 
-        assert len(img_detections_extended_msg.detections) == len(pose_msg_group_list)
+        assert len(img_detections_msg.detections) == len(pose_msg_group_list)
 
         annotations = AnnotationHelper()
 
-        for img_detection_extended_msg, pose_msg_group in zip(
-            img_detections_extended_msg.detections, pose_msg_group_list
+        for img_detection_msg, pose_msg_group in zip(
+            img_detections_msg.detections, pose_msg_group_list
         ):
             yaw_msg: Predictions = pose_msg_group["0"]
             assert isinstance(yaw_msg, Predictions)
@@ -49,15 +49,15 @@ class AnnotationNode(dai.node.HostNode):
 
             pose_information = f"Pitch: {pitch:.0f} \nYaw: {yaw:.0f} \nRoll: {roll:.0f}"
 
-            outer_points = img_detection_extended_msg.rotated_rect.getOuterRect()
+            outer_points = img_detection_msg.getBoundingBox().getOuterRect()
             x_min, y_min, x_max, _ = [np.round(x, 2) for x in outer_points]
 
             annotations.draw_text(pose_information, (x_max, y_min + 0.1), size=16)
             annotations.draw_text(pose_text, (x_min, y_min), size=28)
 
         annotations_msg = annotations.build(
-            timestamp=img_detections_extended_msg.getTimestamp(),
-            sequence_num=img_detections_extended_msg.getSequenceNum(),
+            timestamp=img_detections_msg.getTimestamp(),
+            sequence_num=img_detections_msg.getSequenceNum(),
         )
 
         self.out.send(annotations_msg)

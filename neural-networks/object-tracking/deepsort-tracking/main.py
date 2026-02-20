@@ -1,8 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData
-from depthai_nodes.node.utils import generate_script_content
+from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.arguments import initialize_argparser
 from utils.deepsort_tracking import DeepsortTracking
@@ -79,30 +78,23 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # detection processing
-    script = pipeline.create(dai.node.Script)
-    det_nn.out.link(script.inputs["det_in"])
-    det_nn.passthrough.link(script.inputs["preview"])
-    script_content = generate_script_content(
-        resize_width=embeddings_model_w,
-        resize_height=embeddings_model_h,
-        padding=0,
+    crop_node = pipeline.create(FrameCropper).fromImgDetections(
+        inputImgDetections=det_nn.out,
+    ).build(
+        inputImage=det_nn.passthrough,
+        outputSize=(embeddings_model_w, embeddings_model_h),
     )
-    script.setScript(script_content)
-
-    crop_node = pipeline.create(dai.node.ImageManip)
-    crop_node.initialConfig.setOutputSize(embeddings_model_w, embeddings_model_h)
-
-    script.outputs["manip_cfg"].link(crop_node.inputConfig)
-    script.outputs["manip_img"].link(crop_node.inputImage)
 
     embeddings_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         crop_node.out, embeddings_model_nn_archive
     )
 
     # detections and embeddings sync
-    gather_data = pipeline.create(GatherData).build(camera_fps=args.fps_limit)
-    det_nn.out.link(gather_data.input_reference)
-    embeddings_nn.out.link(gather_data.input_data)
+    gather_data = pipeline.create(GatherData).build(
+        camera_fps=args.fps_limit,
+        input_data=embeddings_nn.out,
+        input_reference=det_nn.out,
+    )
 
     # tracking
     deepsort_tracking = pipeline.create(DeepsortTracking).build(

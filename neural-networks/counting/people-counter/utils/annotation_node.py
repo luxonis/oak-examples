@@ -1,5 +1,4 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -15,7 +14,7 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, det_msg: dai.Buffer) -> None:
-        assert isinstance(det_msg, (dai.ImgDetections, ImgDetectionsExtended))
+        assert isinstance(det_msg, (dai.ImgDetections))
 
         count = len(det_msg.detections)
 

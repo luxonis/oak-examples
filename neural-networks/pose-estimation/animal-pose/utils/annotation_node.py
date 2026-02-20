@@ -1,7 +1,5 @@
 import depthai as dai
 from depthai_nodes import (
-    ImgDetectionsExtended,
-    ImgDetectionExtended,
     Keypoints,
     GatheredData,
     PRIMARY_COLOR,
@@ -38,21 +36,21 @@ class AnnotationNode(dai.node.HostNode):
     def process(self, gathered_data: dai.Buffer) -> None:
         assert isinstance(gathered_data, GatheredData)
 
-        detections_message: ImgDetectionsExtended = gathered_data.reference_data
+        detections_message: dai.ImgDetections = gathered_data.reference_data
 
-        detections_list: List[ImgDetectionExtended] = detections_message.detections
+        detections_list: List[dai.ImgDetection] = detections_message.detections
 
         annotation_helper = AnnotationHelper()
 
         padding = self.padding
 
         for ix, detection in enumerate(detections_list):
-            detection.label_name = (
-                "Animal"  # Because dai.ImgDetection does not have label_name
+            detection.labelName = (
+                "Animal"
             )
 
             keypoints_message: Keypoints = gathered_data.gathered[ix]
-            xmin, ymin, xmax, ymax = detection.rotated_rect.getOuterRect()
+            xmin, ymin, xmax, ymax = detection.getBoundingBox().getOuterRect()
 
             slope_x = (xmax + padding) - (xmin - padding)
             slope_y = (ymax + padding) - (ymin - padding)

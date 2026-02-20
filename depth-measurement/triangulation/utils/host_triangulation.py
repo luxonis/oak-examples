@@ -2,9 +2,6 @@ import cv2
 import numpy as np
 import depthai as dai
 from typing import Tuple
-from depthai_nodes import (
-    ImgDetectionsExtended,
-)
 from depthai_nodes.utils import AnnotationHelper
 
 from .stereo_inference import StereoInference
@@ -73,15 +70,15 @@ class Triangulation(dai.node.HostNode):
         nn_face_left: dai.Buffer,
         nn_face_right: dai.Buffer,
     ) -> None:
-        assert isinstance(nn_face_left, ImgDetectionsExtended)
-        assert isinstance(nn_face_right, ImgDetectionsExtended)
+        assert isinstance(nn_face_left, dai.ImgDetections)
+        assert isinstance(nn_face_right, dai.ImgDetections)
 
         left_frame = face_left.getCvFrame()
         right_frame = face_right.getCvFrame()
 
         bbox_annot_left = AnnotationHelper()
         for detection in nn_face_left.detections:
-            rect = detection.rotated_rect
+            rect = detection.getBoundingBox()
             x = rect.center.x
             y = rect.center.y
             w = rect.size.width
@@ -103,7 +100,7 @@ class Triangulation(dai.node.HostNode):
 
         bbox_annot_right = AnnotationHelper()
         for detection in nn_face_right.detections:
-            rect = detection.rotated_rect
+            rect = detection.getBoundingBox()
             x = rect.center.x
             y = rect.center.y
             w = rect.size.width
@@ -137,8 +134,8 @@ class Triangulation(dai.node.HostNode):
         if nn_face_left.detections and nn_face_right.detections:
             spatials = []
             keypoints = zip(
-                nn_face_left.detections[0].keypoints,
-                nn_face_right.detections[0].keypoints,
+                nn_face_left.detections[0].getKeypoints2f(),
+                nn_face_right.detections[0].getKeypoints2f(),
             )
 
             for i, (keypoint_left, keypoint_right) in enumerate(keypoints):

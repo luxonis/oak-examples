@@ -6,8 +6,8 @@ from depthai_nodes.node import (
     HRNetParser,
     GatherData,
     ImgDetectionsFilter,
+    FrameCropper,
 )
-from depthai_nodes.node.utils import generate_script_content
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -72,24 +72,13 @@ with dai.Pipeline(device) as pipeline:
         det_nn.out, labels_to_keep=valid_labels
     )  # we only want to work with person detections
 
-    script_node = pipeline.create(dai.node.Script)
-    det_nn.out.link(script_node.inputs["det_in"])
-    det_nn.passthrough.link(script_node.inputs["preview"])
-    script_content = generate_script_content(
-        resize_width=rec_model_nn_archive.getInputWidth(),
-        resize_height=rec_model_nn_archive.getInputHeight(),
+    crop_node = pipeline.create(FrameCropper).fromImgDetections(
+        inputImgDetections=det_nn.out,
         padding=PADDING,
+    ).build(
+        inputImage=det_nn.passthrough,
+        outputSize=(rec_model_nn_archive.getInputWidth(), rec_model_nn_archive.getInputHeight()),
     )
-    script_node.setScript(script_content)
-
-    crop_node = pipeline.create(dai.node.ImageManip)
-    crop_node.initialConfig.setOutputSize(
-        rec_model_nn_archive.getInputWidth(), rec_model_nn_archive.getInputHeight()
-    )
-    crop_node.inputConfig.setWaitForMessage(True)
-
-    script_node.outputs["manip_cfg"].link(crop_node.inputConfig)
-    script_node.outputs["manip_img"].link(crop_node.inputImage)
 
     rec_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         crop_node.out, rec_model_nn_archive
@@ -102,9 +91,11 @@ with dai.Pipeline(device) as pipeline:
     )  # to get all keypoints so we can draw skeleton. We will filter them later.
 
     # detections and recognitions sync
-    gather_data_node = pipeline.create(GatherData).build(args.fps_limit)
-    rec_nn.out.link(gather_data_node.input_data)
-    detections_filter.out.link(gather_data_node.input_reference)
+    gather_data_node = pipeline.create(GatherData).build(
+        camera_fps=args.fps_limit,
+        input_data=rec_nn.out,
+        input_reference=detections_filter.out,
+    )
 
     # annotation
     skeleton_edges = (
