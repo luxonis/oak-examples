@@ -8,7 +8,6 @@ Copy the `.vscode/launch.json` from this project into your app's `.vscode/` fold
 
 On launch it will prompt for:
 
-- **GDB path** — your local GDB binary (dropdown with common OS paths)
 - **Board IP** — IP address of your OAK device
 
 ## 2. Update `backend-run.sh`
@@ -29,7 +28,7 @@ build_steps = [
     # Install gdbserver
     "apt-get install -y --no-install-recommends gdb gdbserver",
 
-    # Register backend-run.sh as a runit service so gdbserver starts automatically
+    # Create and enable backend service startup.
     "mkdir -p /etc/service/backend",
     "cp /app/backend-run.sh /etc/service/backend/run",
     "chmod +x /etc/service/backend/run",

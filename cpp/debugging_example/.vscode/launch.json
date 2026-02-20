@@ -8,7 +8,6 @@
       "program": "${workspaceFolder}/build/main_device",
       "cwd": "${workspaceFolder}",
       "MIMode": "gdb",
-      "miDebuggerPath": "${input:gdbPath}",
       "targetArchitecture": "arm64",
       "miDebuggerArgs": "-ex \"shell mkdir -p ${workspaceFolder}/build && touch -a ${workspaceFolder}/build/main_device\"",
       "stopAtEntry": false,
@@ -56,18 +55,6 @@
       "type": "promptString",
       "description": "Enter OAK board IP address",
       "default": "192.168.1.198"
-    },
-    {
-      "id": "gdbPath",
-      "type": "pickString",
-      "description": "Select GDB path (or type a custom one)",
-      "options": [
-        "/opt/homebrew/bin/gdb",
-        "/usr/local/bin/gdb",
-        "/usr/bin/gdb",
-        "C:\\msys64\\mingw64\\bin\\gdb.exe"
-      ],
-      "default": "/opt/homebrew/bin/gdb"
     }
   ]
 }
