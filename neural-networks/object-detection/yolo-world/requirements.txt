@@ -1,6 +1,5 @@
 depthai==3.3.0
-depthai-nodes==0.4.0
-opencv-python-headless~=4.10.0
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@changes_for_oak_examples_updateopencv-python-headless~=4.10.0
 numpy>=1.22
 onnxruntime
 # onnxruntime-gpu # if you want to use CUDAExecutionProvider

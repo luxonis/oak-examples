@@ -28,10 +28,12 @@ class AnnotationNode(dai.node.HostNode):
     ):
         assert isinstance(detections_msg, dai.SpatialImgDetections)
         img_detections = dai.ImgDetections()
+        det_list = []
         for detection in detections_msg.detections:
             detection: dai.SpatialImgDetection = detection
             img_detection = dai.ImgDetection()
             img_detection.label = detection.label
+            img_detection.labelName = detection.labelName
             img_detection.setBoundingBox(dai.RotatedRect(
                 dai.Point2f(
                     (detection.xmax + detection.xmin) / 2,
@@ -44,7 +46,8 @@ class AnnotationNode(dai.node.HostNode):
                 0,
             ))
             img_detection.confidence = detection.confidence
-            img_detections.detections.append(img_detection)
+            det_list.append(img_detection)
+        img_detections.detections = det_list
 
         depth_map = depth_msg.getFrame()
         colorred_depth_map = cv2.applyColorMap(
