@@ -82,9 +82,8 @@ with dai.Pipeline(device) as pipeline:
 
     # filter and rename detection labels
     det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.setLabels(
-        labels=[i for i in range(len(args.class_names))], keep=True
-    )
+    det_process_filter.keepLabels([i for i in range(len(args.class_names))])
+
     annotation_node = pipeline.create(AnnotationNode).build(
         det_process_filter.out,
         label_encoding={k: v for k, v in enumerate(args.class_names)},

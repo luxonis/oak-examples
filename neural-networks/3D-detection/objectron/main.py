@@ -55,10 +55,8 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_model_description, args.fps_limit
     )
 
-    first_stage_filter = pipeline.create(ImgDetectionsFilter).build(
-        det_nn.out,
-        labels_to_keep=VALID_LABELS,
-    )
+    first_stage_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
+    first_stage_filter.keepLabels(VALID_LABELS)
 
     # detection processing
     crop_node = pipeline.create(FrameCropper).fromImgDetections(
@@ -74,10 +72,8 @@ with dai.Pipeline(device) as pipeline:
         crop_node.out, pos_nn_archive
     )
 
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(
-        det_nn.out,
-        labels_to_keep=VALID_LABELS,
-    )
+    detections_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
+    detections_filter.keepLabels(VALID_LABELS)
 
     # detections and position estimations sync
     gather_data = pipeline.create(GatherData).build(

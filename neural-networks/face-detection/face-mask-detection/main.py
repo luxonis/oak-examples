@@ -56,7 +56,7 @@ with dai.Pipeline(device) as pipeline:
 
     # filter and rename detection labels
     det_process_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
-    det_process_filter.setLabels(list(LABEL_ENCODING.keys()), keep=True)
+    det_process_filter.keepLabels(list(LABEL_ENCODING.keys()))
 
     # visualization
     visualizer.addTopic("Video", det_nn.passthrough, "images")

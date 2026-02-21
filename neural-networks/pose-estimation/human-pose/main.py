@@ -68,9 +68,8 @@ with dai.Pipeline(device) as pipeline:
     valid_labels = [
         det_model_nn_archive.getConfig().model.heads[0].metadata.classes.index("person")
     ]
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(
-        det_nn.out, labels_to_keep=valid_labels
-    )  # we only want to work with person detections
+    detections_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
+    detections_filter.keepLabels(valid_labels)  # we only want to work with person detections
 
     crop_node = pipeline.create(FrameCropper).fromImgDetections(
         inputImgDetections=det_nn.out,

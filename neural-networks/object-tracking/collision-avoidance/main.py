@@ -66,9 +66,8 @@ with dai.Pipeline(device) as pipeline:
             nn_archive, numShaves=6
         )  # TODO: change to numShaves=4 if running on OAK-D Lite
 
-    img_detections_filter = pipeline.create(ImgDetectionsFilter).build(
-        nn.out, labels_to_keep=[person_label]
-    )
+    img_detections_filter = pipeline.create(ImgDetectionsFilter).build(nn.out)
+    img_detections_filter.keepLabels([person_label])
 
     # tracking
     tracker = pipeline.create(dai.node.ObjectTracker)

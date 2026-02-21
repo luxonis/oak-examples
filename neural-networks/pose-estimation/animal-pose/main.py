@@ -61,9 +61,8 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_nn_archive, fps=args.fps_limit
     )
 
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(
-        detection_nn.out, labels_to_keep=VALID_LABELS
-    )
+    detections_filter = pipeline.create(ImgDetectionsFilter).build(detection_nn.out)
+    detections_filter.keepLabels(VALID_LABELS)
 
     # detection processing
     pose_manip = pipeline.create(FrameCropper).fromImgDetections(
