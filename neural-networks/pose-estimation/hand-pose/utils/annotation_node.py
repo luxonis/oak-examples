@@ -48,6 +48,7 @@ class AnnotationNode(dai.node.HostNode):
         new_dets.setTransformation(video_message.getTransformation())
 
         annotation_helper = AnnotationHelper()
+        det_list = []
 
         for ix, detection in enumerate(detections_list):
             keypoints_msg: Keypoints = gathered_data.gathered[ix]["0"]
@@ -83,7 +84,7 @@ class AnnotationNode(dai.node.HostNode):
             new_det.label = 0
             new_det.labelName = "Hand"
             new_det.confidence = detection.confidence
-            new_dets.detections.append(new_det)
+            det_list.append(new_det)
 
             xs = []
             ys = []
@@ -122,6 +123,7 @@ class AnnotationNode(dai.node.HostNode):
                 points=keypoints, color=SECONDARY_COLOR, thickness=2
             )
 
+        new_dets.detections = det_list
         new_dets.setTimestamp(detections_message.getTimestamp())
         new_dets.setSequenceNum(detections_message.getSequenceNum())
         self.out_detections.send(new_dets)
