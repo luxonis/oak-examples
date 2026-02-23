@@ -1,27 +1,68 @@
 # Remote Debugging Setup for OAK C++ Apps
 
-This example shows the steps to add VS Code remote debugging to any C++ OAK app.
+This example demonstrates a clean and reproducible VS Code remote debugging workflow for C++ OAK applications.
 
-## 1. Copy `.vscode/launch.json`
+> ⚠️ **Important:** Open this `debugging_example` folder itself as the root workspace in VS Code.  
+> Do NOT open the parent `oak-examples` directory. The debug configuration relies on `${workspaceFolder}` resolving to this example directory.
 
-Copy the `.vscode/launch.json` from this project into your app's `.vscode/` folder. No changes needed — it uses `${workspaceFolder}` throughout so it works in any project location.
+---
 
-On launch it will prompt for:
+## Quick Start
 
-- **Board IP** — IP address of your OAK device
+1. Open the `debugging_example` directory directly in VS Code.
+2. Press **F5** (Run → Start Debugging).
+3. Enter the **Device IP address** when prompted.
+4. Enter the **Device password** if required.
 
-## 2. Update `backend-run.sh`
+That’s it — the example handles the rest automatically.
 
-Your `backend-run.sh` should start `gdbserver` wrapping your binary instead of running it directly:
+---
+
+## What Happens Under the Hood
+
+When you start debugging:
+
+- A local placeholder binary is created at:
+  ```
+  build/main_device
+  ```
+  (required by VS Code's C++ debugger validation step).
+
+- Your device IP is written to:
+  ```
+  .vscode/oak.env
+  ```
+  This ensures the IP is stored locally and reused consistently across tasks.
+
+- A `.vscode/oak.gdb` file is generated dynamically.  
+  This file instructs GDB to:
+  - Connect to `gdbserver` on the device
+  - Pull the binary directly from the container
+  - Reload symbols
+  - Configure source path mapping
+
+- `oakctl` connects to the device and starts the application.
+
+- VS Code attaches GDB to `gdbserver` on port `5678`.
+
+All of this is automated through `tasks.json` and `launch.json`.
+
+---
+
+## Required Runtime Configuration
+
+Your container must start the backend via `gdbserver`. Update `backend-run.sh`:
 
 ```sh
 #!/bin/sh
 gdbserver 0.0.0.0:5678 /app/build/main
 ```
 
-## 3. Update `oakapp.toml`
+---
 
-Add the following to your `build_steps`:
+## oakapp.toml Configuration
+
+Ensure your `build_steps` include debug symbols and install `gdbserver`:
 
 ```toml
 build_steps = [
@@ -33,16 +74,19 @@ build_steps = [
     "cp /app/backend-run.sh /etc/service/backend/run",
     "chmod +x /etc/service/backend/run",
 
-    # Build in Debug mode so the binary has symbols
-    "cmake -S /app -B /app/build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-    "cmake --build /app/build -- -j",
+    # Build in Debug mode so symbols are available
+    "cmake -S /app -B /app/build -DCMAKE_BUILD_TYPE=Debug",
+    "cmake --build /app/build --parallel",
 ]
 ```
 
-## 4. Deploy and Debug
+---
 
-```bash
-oakctl app run .
-```
+## Notes
 
-Then set breakpoints and press **F5** in VS Code. GDB connects to `gdbserver` on port 5678, pulls the binary directly from the container, reloads symbols, and starts the debug session.
+- The device IP is stored locally in `.vscode/oak.env` for consistency.
+- `.vscode/oak.gdb` is regenerated automatically when debugging starts.
+- No manual GDB commands are required.
+- No hardcoded paths are used — the setup relies entirely on `${workspaceFolder}`.
+
+This approach keeps the configuration minimal, reproducible, and portable across different OAK C++ projects.

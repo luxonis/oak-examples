@@ -5,56 +5,18 @@
       "name": "Attach to OAK (gdbserver)",
       "type": "cppdbg",
       "request": "launch",
+      "preLaunchTask": "oakctl: start",
+      "postDebugTask": "oakctl: app stop",
       "program": "${workspaceFolder}/build/main_device",
       "cwd": "${workspaceFolder}",
       "MIMode": "gdb",
       "targetArchitecture": "arm64",
-      "miDebuggerArgs": "-ex \"shell mkdir -p ${workspaceFolder}/build && touch -a ${workspaceFolder}/build/main_device\"",
+      "miDebuggerArgs": "-x ${workspaceFolder}/.vscode/oak.gdb",
       "stopAtEntry": false,
       "externalConsole": false,
       "sourceFileMap": {
         "/app": "${workspaceFolder}"
-      },
-      "customLaunchSetupCommands": [
-        {
-          "description": "Connect to gdbserver",
-          "text": "target remote ${input:boardIP}:5678",
-          "ignoreFailures": false
-        },
-        {
-          "description": "Pull binary from device",
-          "text": "remote get /app/build/main ${workspaceFolder}/build/main_device",
-          "ignoreFailures": false
-        },
-        {
-          "description": "Reload symbols from fresh binary",
-          "text": "exec-file ${workspaceFolder}/build/main_device",
-          "ignoreFailures": false
-        },
-        {
-          "description": "Enable pretty printing",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        },
-        {
-          "description": "Map container sources to workspace",
-          "text": "set substitute-path /app ${workspaceFolder}",
-          "ignoreFailures": true
-        },
-        {
-          "description": "Disable pagination",
-          "text": "set pagination off",
-          "ignoreFailures": true
-        }
-      ]
-    }
-  ],
-  "inputs": [
-    {
-      "id": "boardIP",
-      "type": "promptString",
-      "description": "Enter OAK board IP address",
-      "default": "192.168.1.198"
+      }
     }
   ]
 }
