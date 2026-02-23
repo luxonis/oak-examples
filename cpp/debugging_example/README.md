@@ -2,10 +2,10 @@
 
 This example demonstrates a clean and reproducible VS Code remote debugging workflow for C++ OAK applications.
 
-> ⚠️ **Important:** Open this `debugging_example` folder itself as the root workspace in VS Code.  
+> ⚠️ **Important:** Open this `debugging_example` folder itself as the root workspace in VS Code.\
 > Do NOT open the parent `oak-examples` directory. The debug configuration relies on `${workspaceFolder}` resolving to this example directory.
 
----
+______________________________________________________________________
 
 ## Quick Start
 
@@ -16,26 +16,31 @@ This example demonstrates a clean and reproducible VS Code remote debugging work
 
 That’s it — the example handles the rest automatically.
 
----
+______________________________________________________________________
 
 ## What Happens Under the Hood
 
 When you start debugging:
 
 - A local placeholder binary is created at:
+
   ```
   build/main_device
   ```
+
   (required by VS Code's C++ debugger validation step).
 
 - Your device IP is written to:
+
   ```
   .vscode/oak.env
   ```
+
   This ensures the IP is stored locally and reused consistently across tasks.
 
-- A `.vscode/oak.gdb` file is generated dynamically.  
+- A `.vscode/oak.gdb` file is generated dynamically.\
   This file instructs GDB to:
+
   - Connect to `gdbserver` on the device
   - Pull the binary directly from the container
   - Reload symbols
@@ -47,7 +52,7 @@ When you start debugging:
 
 All of this is automated through `tasks.json` and `launch.json`.
 
----
+______________________________________________________________________
 
 ## Required Runtime Configuration
 
@@ -58,7 +63,7 @@ Your container must start the backend via `gdbserver`. Update `backend-run.sh`:
 gdbserver 0.0.0.0:5678 /app/build/main
 ```
 
----
+______________________________________________________________________
 
 ## oakapp.toml Configuration
 
@@ -80,7 +85,7 @@ build_steps = [
 ]
 ```
 
----
+______________________________________________________________________
 
 ## Notes
 
