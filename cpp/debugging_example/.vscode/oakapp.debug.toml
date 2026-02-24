@@ -11,7 +11,7 @@ build_steps = [
     "cmake --build /app/build --parallel",
 ]
 
-assign_frontend_port = true
+assign_frontend_port = false
 
 [base_image]
 api_url = "https://registry-1.docker.io"

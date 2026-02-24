@@ -87,6 +87,51 @@ build_steps = [
 
 ______________________________________________________________________
 
+## Requirements
+
+### GDB 17.1 (Required)
+
+This project requires **GDB version 17.1**. Other versions may cause debugging issues.
+
+#### Check your installed version
+
+```bash
+gdb --version
+```
+
+Expected output:
+
+```
+GNU gdb (GDB) 17.1
+```
+
+______________________________________________________________________
+
+### Installation
+
+#### Ubuntu
+
+```bash
+sudo apt update
+sudo apt install gdb
+```
+
+If your Ubuntu repository does not provide 17.1, you may need to install a newer toolchain or build GDB 17.1 from source.
+
+#### macOS (Homebrew)
+
+```bash
+brew install gdb
+```
+
+After installation, verify:
+
+```bash
+gdb --version
+```
+
+______________________________________________________________________
+
 ## Notes
 
 - The device IP is stored locally in `.vscode/oak.env` for consistency.

@@ -15,8 +15,27 @@
       "problemMatcher": []
     },
     {
-      "label": "oakctl: start",
-      "dependsOn": ["oakctl: ensure placeholder", "oakctl: prep", "oakctl: connect", "oakctl: app run", "oakctl: wait"],
+      "label": "App run",
+      "dependsOn": [
+        "oakctl: ensure placeholder",
+        "oakctl: prep",
+        "oakctl: connect",
+        "oakctl: select config (run)",
+        "oakctl: app run (fg)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "App debug (start)",
+      "dependsOn": [
+        "oakctl: ensure placeholder",
+        "oakctl: prep",
+        "oakctl: connect",
+        "oakctl: select config (debug)",
+        "oakctl: app debug",
+        "oakctl: wait"
+      ],
       "dependsOrder": "sequence",
       "problemMatcher": []
     },
@@ -26,7 +45,7 @@
       "command": "bash",
       "args": [
         "-lc",
-        "cd ${workspaceFolder} && mkdir -p .vscode build && printf \"BOARD_IP=%s\\n\" \"${input:boardIP}\" > .vscode/oak.env && cat > .vscode/oak.gdb <<EOF\ntarget remote ${input:boardIP}:5678\nremote get /app/build/main ${workspaceFolder}/build/main_device\nexec-file ${workspaceFolder}/build/main_device\n-enable-pretty-printing\nset substitute-path /app ${workspaceFolder}\nset pagination off\nEOF && touch build/main_device"
+        "cd ${workspaceFolder} && mkdir -p .vscode build && BOARD_IP_INPUT=\"${input:boardIP}\" && if [ -n \"$BOARD_IP_INPUT\" ]; then BOARD_IP=\"$BOARD_IP_INPUT\"; else echo \"No IP provided; running oakctl list...\"; oakctl list | tee .vscode/oak_list.txt; grep -Eo \"([0-9]{1,3}\\\\.){3}[0-9]{1,3}\" .vscode/oak_list.txt | sort -u > .vscode/oak_ips.txt || true; COUNT=$(wc -l < .vscode/oak_ips.txt | tr -d \" \" ); if [ \"$COUNT\" = \"0\" ]; then echo \"No OAK devices found via oakctl list and no IP provided.\" 1>&2; exit 1; fi; if [ \"$COUNT\" = \"1\" ]; then BOARD_IP=$(head -n 1 .vscode/oak_ips.txt); echo \"Auto-selected BOARD_IP=$BOARD_IP\"; else echo \"Multiple devices found. Select IP by number:\"; nl -w2 -s\": \" .vscode/oak_ips.txt; printf \"#? \"; read -r SEL; BOARD_IP=$(sed -n \"${SEL}p\" .vscode/oak_ips.txt); if [ -z \"$BOARD_IP\" ]; then echo \"Invalid selection.\" 1>&2; exit 1; fi; fi; fi && printf \"BOARD_IP=%s\\n\" \"$BOARD_IP\" > .vscode/oak.env && printf \"target remote %s:5678\\nremote get /app/build/main %s/build/main_device\\nexec-file %s/build/main_device\\n-enable-pretty-printing\\nset substitute-path /app %s\\nset pagination off\\n\" \"$BOARD_IP\" \"${workspaceFolder}\" \"${workspaceFolder}\" \"${workspaceFolder}\" > .vscode/oak.gdb && touch build/main_device && echo \"Using BOARD_IP=$BOARD_IP\""
       ],
       "problemMatcher": []
     },
@@ -36,12 +55,52 @@
       "command": "bash",
       "args": [
         "-lc",
-        "cd ${workspaceFolder} && source .vscode/oak.env && oakctl -p ${input:oakPassword} connect $BOARD_IP"
+        "cd ${workspaceFolder} && source .vscode/oak.env && echo \"Trying oakctl connect without password (will prompt only if needed)...\" && if oakctl connect $BOARD_IP; then echo \"Connected to $BOARD_IP (cached auth or no auth needed).\"; else echo \"Connect failed; prompting for password...\"; printf \"OAK password: \"; stty -echo; read -r OAK_PASS; stty echo; echo; oakctl -p \"$OAK_PASS\" connect $BOARD_IP; fi"
       ],
       "problemMatcher": []
     },
     {
-      "label": "oakctl: app run",
+      "label": "oakctl: select config (run)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd ${workspaceFolder} && if [ -f .vscode/oakapp.run.toml ]; then cp -f .vscode/oakapp.run.toml oakapp.toml; echo \"Selected .vscode/oakapp.run.toml -> oakapp.toml\"; else echo \".vscode/oakapp.run.toml not found; using existing oakapp.toml\"; fi && printf \"#!/bin/sh\\necho \\\"Starting Backend\\\"\\n/app/build/main\\n\" > backend-run.sh && chmod +x backend-run.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: select config (debug)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd ${workspaceFolder} && if [ -f .vscode/oakapp.debug.toml ]; then cp -f .vscode/oakapp.debug.toml oakapp.toml; echo \"Selected .vscode/oakapp.debug.toml -> oakapp.toml\"; else echo \".vscode/oakapp.debug.toml not found; using existing oakapp.toml\"; fi && printf \"#!/bin/sh\\necho \\\"Starting Backend\\\"\\ngdbserver 0.0.0.0:5678 /app/build/main\\n\" > backend-run.sh && chmod +x backend-run.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: app run (fg)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd ${workspaceFolder} && source .vscode/oak.env && oakctl app run . -d $BOARD_IP"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: app debug",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd ${workspaceFolder} && source .vscode/oak.env && oakctl app run . -d $BOARD_IP -b"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: app run (bg)",
       "type": "shell",
       "command": "bash",
       "args": [
@@ -56,7 +115,7 @@
       "command": "bash",
       "args": [
         "-lc",
-        "sleep 10"
+        "cd ${workspaceFolder} && source .vscode/oak.env && echo \"Waiting for gdbserver on ${BOARD_IP}:5678...\" && for i in $(seq 1 90); do (echo > /dev/tcp/${BOARD_IP}/5678) >/dev/null 2>&1 && echo \"gdbserver is up.\" && exit 0; sleep 1; done; echo \"Timeout waiting for gdbserver.\"; exit 1"
       ],
       "problemMatcher": []
     },
@@ -75,13 +134,8 @@
     {
       "id": "boardIP",
       "type": "promptString",
-      "description": "Enter OAK board IP address",
-      "default": "10.12.0.27"
-    },
-    {
-      "id": "oakPassword",
-      "type": "promptString",
-      "description": "Enter OAK password"
+      "description": "Enter OAK board IP address (or leave empty to auto-detect via oakctl list)",
+      "default": "192.168.1.198"
     }
   ]
 }

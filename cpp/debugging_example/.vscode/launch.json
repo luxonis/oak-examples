@@ -5,7 +5,7 @@
       "name": "Attach to OAK (gdbserver)",
       "type": "cppdbg",
       "request": "launch",
-      "preLaunchTask": "oakctl: start",
+      "preLaunchTask": "App debug (start)",
       "postDebugTask": "oakctl: app stop",
       "program": "${workspaceFolder}/build/main_device",
       "cwd": "${workspaceFolder}",
@@ -17,6 +17,16 @@
       "sourceFileMap": {
         "/app": "${workspaceFolder}"
       }
+    },
+    {
+      "name": "Run on OAK (no debug)",
+      "type": "cppdbg",
+      "request": "launch",
+      "noDebug": true,
+      "preLaunchTask": "App run",
+      "postDebugTask": "oakctl: app stop",
+      "program": "${workspaceFolder}/build/main_device",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
