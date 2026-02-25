@@ -97,7 +97,9 @@ class RP2040_u2if:
         self._hid.write(b"\0" + report + b"\0" * (64 - len(report)))
         if response:
             # return is 64 byte response report
-            ret = self._hid.read(64, timeout_ms=1000) # Sometimes this can hang, but if we time out the call, it will work on the next call
+            ret = self._hid.read(
+                64, timeout_ms=1000
+            )  # Sometimes this can hang, but if we time out the call, it will work on the next call
             assert len(ret) == 64, "HID Timeout occurred."
             return ret
         return None
@@ -119,7 +121,7 @@ class RP2040_u2if:
     # ----------------------------------------------------------------
     # MISC
     # ----------------------------------------------------------------
-    def open(self, vid = 0xcafe, pid = 0x4005, serial = None):
+    def open(self, vid=0xCAFE, pid=0x4005, serial=None):
         """Open HID interface for given USB VID and PID."""
 
         if self._opened:
@@ -468,7 +470,9 @@ class RP2040_u2if:
     # PWM
     # ----------------------------------------------------------------
     # pylint: disable=unused-argument
-    def pwm_configure(self, pin_id: int, frequency=500, duty_cycle=0, variable_frequency=False):
+    def pwm_configure(
+        self, pin_id: int, frequency=500, duty_cycle=0, variable_frequency=False
+    ):
         """Configure PWM."""
         self.pwm_deinit(pin_id)
         resp = self._hid_xfer(bytes([self.PWM_INIT_PIN, pin_id]), True)
@@ -523,4 +527,3 @@ class RP2040_u2if:
         )
         if resp[1] != self.RESP_OK:
             raise RuntimeError("PWM set duty cycle error.")
-

@@ -1,6 +1,6 @@
 # Minimal M8 Controller Box Container Example
 
-This is a minimal example demonstrating how to build and run a container specifically for the **M8 Controller Box** itself.  
+This is a minimal example demonstrating how to build and run a container specifically for the **M8 Controller Box** itself.
 
 ## Functionality
 

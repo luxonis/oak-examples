@@ -18,6 +18,7 @@ CAN_DATA = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88]
 
 bus = can.interface.Bus(channel=CAN_IFACE, interface="socketcan")
 
+
 def send_can_frame():
     msg = can.Message(
         arbitration_id=CAN_ID,
@@ -26,6 +27,7 @@ def send_can_frame():
     )
     bus.send(msg)
     print(f"Sent CAN: {CAN_IFACE} id=0x{CAN_ID:X} data={CAN_DATA}")
+
 
 # --- Button edge detection (send once per press) ---
 last_button_state = rp2040.gpio_get_pin(BUTTON_PIN)

@@ -11,6 +11,7 @@ It demonstrates hand detection and hand landmark estimation using DepthAI.
 In addition to the original example, this version integrates an **M8 Controller Box**.
 
 When a hand is detected:
+
 - The LED connected to **pin 17** on the M8 controller will turn on.
 
 This allows simple hardware feedback triggered directly from hand detection events.

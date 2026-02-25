@@ -7,7 +7,7 @@ from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 from utils.process import ProcessDetections
 
-#M8 Controller Box
+# M8 Controller Box
 from utils.rp2040_u2if import RP2040_u2if
 
 rp2040 = RP2040_u2if()

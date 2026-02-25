@@ -16,7 +16,6 @@ last_blink_time = time.monotonic()
 led_state = 0
 
 while True:
-
     current_time = time.monotonic()
 
     # Non-blocking blink

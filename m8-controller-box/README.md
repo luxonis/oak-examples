@@ -115,11 +115,29 @@ Setup differs between **OAK-4 S** and **OAK-4 D**.
 
 ## Example Application
 
-An example application showcasing currently supported functionality will be available in:
+The repository includes the following example applications:
 
-`oak-examples/m8-controller-box`
+### simple-example
 
-(TODO – coming soon)
+A minimal container example running directly on the M8 Controller Box.
+
+- LED on **pin 18** blinks continuously
+- Button on **pin 19** turns on LED on **pin 17**
+
+### depthai-example
+
+Based on the official Luxonis hand pose example.
+
+- Performs hand detection and landmark estimation
+- Turns on LED on **pin 17** when a hand is detected
+
+### can-example
+
+Demonstrates CAN transmission triggered by a physical button.
+
+- Monitors button on **pin 19**
+- Sends a CAN frame over `can0` when pressed
+- Uses `python-can` with Linux SocketCAN
 
 ## Support
 
