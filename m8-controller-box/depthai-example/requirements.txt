@@ -1,0 +1,3 @@
+depthai==3.0.0
+depthai-nodes==0.3.4
+hidapi

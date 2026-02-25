@@ -1,0 +1,2 @@
+hidapi
+python-can
