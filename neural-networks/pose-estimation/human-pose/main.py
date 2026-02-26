@@ -69,14 +69,23 @@ with dai.Pipeline(device) as pipeline:
         det_model_nn_archive.getConfig().model.heads[0].metadata.classes.index("person")
     ]
     detections_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
-    detections_filter.keepLabels(valid_labels)  # we only want to work with person detections
+    detections_filter.keepLabels(
+        valid_labels
+    )  # we only want to work with person detections
 
-    crop_node = pipeline.create(FrameCropper).fromImgDetections(
-        inputImgDetections=det_nn.out,
-        padding=PADDING,
-    ).build(
-        inputImage=det_nn.passthrough,
-        outputSize=(rec_model_nn_archive.getInputWidth(), rec_model_nn_archive.getInputHeight()),
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_nn.out,
+            padding=PADDING,
+        )
+        .build(
+            inputImage=det_nn.passthrough,
+            outputSize=(
+                rec_model_nn_archive.getInputWidth(),
+                rec_model_nn_archive.getInputHeight(),
+            ),
+        )
     )
 
     rec_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(

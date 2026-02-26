@@ -72,11 +72,18 @@ with dai.Pipeline(device) as pipeline:
     )
     det_nn.getParser(0).conf_threshold = 0.9  # for more stable detections
 
-    crop_node = pipeline.create(FrameCropper).fromImgDetections(
-        inputImgDetections=det_nn.out,
-    ).build(
-        inputImage=input_node_out,
-        outputSize=(rec_model_nn_archive.getInputWidth(), rec_model_nn_archive.getInputHeight()),
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_nn.out,
+        )
+        .build(
+            inputImage=input_node_out,
+            outputSize=(
+                rec_model_nn_archive.getInputWidth(),
+                rec_model_nn_archive.getInputHeight(),
+            ),
+        )
     )
 
     rec_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(

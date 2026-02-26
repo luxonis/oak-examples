@@ -1,7 +1,6 @@
 import logging
 import depthai as dai
 from enum import Enum
-from depthai_nodes import ImgDetectionsExtended, ImgDetectionExtended
 
 
 class OutputType(Enum):
@@ -20,7 +19,7 @@ class AnnotationNode(dai.node.HostNode):
         self.frames = {}  # key -> ImgFrame
         self.output_frames = {"passthrough": self.createOutput()}
 
-        self.detections = {}  # key -> ImgDetectionsExtended
+        self.detections = {}  # key -> dai.ImgDetections
         self.output_detections = {}
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -80,13 +79,13 @@ class AnnotationNode(dai.node.HostNode):
                 self.frames[key] = vis_frame
 
             elif output_type == OutputType.DETECTION:
-                dets = ImgDetectionsExtended()
+                dets = dai.ImgDetections()
                 try:
                     for det in value:
                         # Roboflow prediction output: xyxy, mask, conf, class_id, tracker, extra
                         xyxy, _, conf, class_id, _, extra = det
 
-                        new_det = ImgDetectionExtended()
+                        new_det = dai.ImgDetection()
 
                         h, w = extra["image_dimensions"]
                         class_label = extra["class_name"]
@@ -98,22 +97,19 @@ class AnnotationNode(dai.node.HostNode):
                         y0 /= h
                         y1 /= h
 
-                        new_det.rotated_rect = (
-                            float((x0 + x1) / 2),
-                            float((y0 + y1) / 2),
-                            float(x1 - x0),
-                            float(y1 - y0),
-                            0,
-                        )
+                        new_det.xmin = float(x0)
+                        new_det.ymin = float(y0)
+                        new_det.xmax = float(x1)
+                        new_det.ymax = float(y1)
 
                         new_det.confidence = float(conf)
                         new_det.label = int(class_id)
-                        new_det.label_name = str(class_label)
+                        new_det.labelName = str(class_label)
 
                         dets.detections.append(new_det)
                 except Exception:
                     self._logger.info(
-                        f"Failed to parse output `{key}` as ImgDetectionExtended. "
+                        f"Failed to parse output `{key}` as ImgDetection. "
                         "Verify that this output contains a valid Roboflow Detection. "
                         "If it does not, consider renaming the output in your Workflow so that "
                         "'predictions' is not a substring of the output name."

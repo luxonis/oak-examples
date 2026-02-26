@@ -19,9 +19,7 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, gather_data_msg: dai.Buffer) -> None:
-        img_detections_msg: dai.ImgDetections = (
-            gather_data_msg.reference_data
-        )
+        img_detections_msg: dai.ImgDetections = gather_data_msg.reference_data
         assert isinstance(img_detections_msg, dai.ImgDetections)
 
         pose_msg_group_list: List[dai.MessageGroup] = gather_data_msg.gathered

@@ -13,9 +13,7 @@ class ProcessDetections(dai.node.HostNode):
     detections_input : dai.Input
         The input message for the detections.
     config_output : dai.Output
-        The output message for the ImageManipConfig objects.
-    num_configs_output : dai.Output
-        The output message for the number of configs.
+        The output message for the ImageManipConfig objects packed in a MessageGroup.
     padding: float
         The padding factor to enlarge the bounding box a little bit.
 
@@ -25,7 +23,6 @@ class ProcessDetections(dai.node.HostNode):
         super().__init__()
         self.detections_input = self.createInput()
         self.config_output = self.createOutput()
-        self.num_configs_output = self.createOutput()
         self.padding = 0.1
         self._target_h = None
         self._target_w = None
@@ -46,13 +43,7 @@ class ProcessDetections(dai.node.HostNode):
         assert isinstance(img_detections, dai.ImgDetections)
         detections = img_detections.detections
 
-        num_detections = len(detections)
-        num_cfgs_message = dai.Buffer(num_detections)
-
-        num_cfgs_message.setTimestamp(img_detections.getTimestamp())
-        num_cfgs_message.setSequenceNum(img_detections.getSequenceNum())
-        self.num_configs_output.send(num_cfgs_message)
-
+        configs_group = dai.MessageGroup()
         for i, detection in enumerate(detections):
             cfg = dai.ImageManipConfig()
             detection: dai.ImgDetection = detection
@@ -61,8 +52,8 @@ class ProcessDetections(dai.node.HostNode):
             new_rect = dai.RotatedRect()
             new_rect.center.x = rect.center.x
             new_rect.center.y = rect.center.y
-            new_rect.size.width = rect.size.width + 0.1 * 2
-            new_rect.size.height = rect.size.height + 0.1 * 2
+            new_rect.size.width = rect.size.width + self.padding * 2
+            new_rect.size.height = rect.size.height + self.padding * 2
             new_rect.angle = 0
 
             cfg.addCropRotatedRect(new_rect, normalizedCoords=True)
@@ -74,4 +65,8 @@ class ProcessDetections(dai.node.HostNode):
             cfg.setReusePreviousImage(False)
             cfg.setTimestamp(img_detections.getTimestamp())
             cfg.setSequenceNum(img_detections.getSequenceNum())
-            self.config_output.send(cfg)
+            configs_group[f"cfg_{i}"] = cfg
+
+        configs_group.setTimestamp(img_detections.getTimestamp())
+        configs_group.setSequenceNum(img_detections.getSequenceNum())
+        self.config_output.send(configs_group)

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData
+from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -79,30 +79,19 @@ with dai.Pipeline(device) as pipeline:
         target_size=(pose_nn_archive.getInputWidth(), pose_nn_archive.getInputHeight()),
     )
 
-    script = pipeline.create(dai.node.Script)
-    script.setScriptPath(str(Path(__file__).parent / "utils/script.py"))
-    script.inputs["frame_input"].setMaxSize(30)
-    script.inputs["config_input"].setMaxSize(30)
-    script.inputs["num_configs_input"].setMaxSize(30)
-
-    detection_nn.passthrough.link(script.inputs["frame_input"])
-    detections_processor.config_output.link(script.inputs["config_input"])
-    detections_processor.num_configs_output.link(script.inputs["num_configs_input"])
-
-    pose_manip = pipeline.create(dai.node.ImageManip)
-    pose_manip.initialConfig.setOutputSize(
-        pose_nn_archive.getInputWidth(), pose_nn_archive.getInputHeight()
+    # hand crop + pose estimation
+    crop_output_size = (
+        pose_nn_archive.getInputWidth(),
+        pose_nn_archive.getInputHeight(),
     )
-    pose_manip.inputConfig.setMaxSize(30)
-    pose_manip.inputImage.setMaxSize(30)
-    pose_manip.setNumFramesPool(30)
-    pose_manip.inputConfig.setWaitForMessage(True)
-
-    script.outputs["output_config"].link(pose_manip.inputConfig)
-    script.outputs["output_frame"].link(pose_manip.inputImage)
+    hand_crop_node = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(detections_processor.config_output)
+        .build(detection_nn.passthrough, crop_output_size)
+    )
 
     pose_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        pose_manip.out, pose_nn_archive
+        hand_crop_node.out, pose_nn_archive
     )
 
     # detections and pose estimations sync

@@ -45,9 +45,7 @@ class AnnotationNode(dai.node.HostNode):
         padding = self.padding
 
         for ix, detection in enumerate(detections_list):
-            detection.labelName = (
-                "Animal"
-            )
+            detection.labelName = "Animal"
 
             keypoints_message: Keypoints = gathered_data.gathered[ix]
             xmin, ymin, xmax, ymax = detection.getBoundingBox().getOuterRect()

@@ -34,17 +34,19 @@ class AnnotationNode(dai.node.HostNode):
             img_detection = dai.ImgDetection()
             img_detection.label = detection.label
             img_detection.labelName = detection.labelName
-            img_detection.setBoundingBox(dai.RotatedRect(
-                dai.Point2f(
-                    (detection.xmax + detection.xmin) / 2,
-                    (detection.ymax + detection.ymin) / 2,
-                ),
-                dai.Size2f(
-                    detection.xmax - detection.xmin,
-                    detection.ymax - detection.ymin,
-                ),
-                0,
-            ))
+            img_detection.setBoundingBox(
+                dai.RotatedRect(
+                    dai.Point2f(
+                        (detection.xmax + detection.xmin) / 2,
+                        (detection.ymax + detection.ymin) / 2,
+                    ),
+                    dai.Size2f(
+                        detection.xmax - detection.xmin,
+                        detection.ymax - detection.ymin,
+                    ),
+                    0,
+                )
+            )
             img_detection.confidence = detection.confidence
             det_list.append(img_detection)
         img_detections.detections = det_list

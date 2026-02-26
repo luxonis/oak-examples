@@ -137,7 +137,9 @@ with dai.Pipeline(device) as pipeline:
     merged_labels = classes + ["palm"]
     filter_labels = [merged_labels.index(i) for i in DANGEROUS_OBJECTS]
     filter_labels.append(merged_labels.index("palm"))
-    detection_filter = pipeline.create(ImgDetectionsFilter).build(merge_detections.output)
+    detection_filter = pipeline.create(ImgDetectionsFilter).build(
+        merge_detections.output
+    )
     detection_filter.keepLabels(filter_labels)
 
     # annotation

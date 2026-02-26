@@ -1,7 +1,12 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter, GatherData, FrameCropper
+from depthai_nodes.node import (
+    ParsingNeuralNetwork,
+    ImgDetectionsFilter,
+    GatherData,
+    FrameCropper,
+)
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -59,13 +64,17 @@ with dai.Pipeline(device) as pipeline:
     first_stage_filter.keepLabels(VALID_LABELS)
 
     # detection processing
-    crop_node = pipeline.create(FrameCropper).fromImgDetections(
-        inputImgDetections=first_stage_filter.out,
-        padding=PADDING,
-    ).build(
-        inputImage=det_nn.passthrough,
-        outputSize=(pos_model_w, pos_model_h),
-        resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=first_stage_filter.out,
+            padding=PADDING,
+        )
+        .build(
+            inputImage=det_nn.passthrough,
+            outputSize=(pos_model_w, pos_model_h),
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+        )
     )
 
     pos_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(

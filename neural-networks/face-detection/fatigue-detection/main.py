@@ -72,11 +72,15 @@ with dai.Pipeline(device) as pipeline:
         resize_node.out, det_model_nn_archive
     )
 
-    crop_node = pipeline.create(FrameCropper).fromImgDetections(
-        inputImgDetections=det_nn.out,
-    ).build(
-        inputImage=input_node_out,
-        outputSize=(rec_model_w, rec_model_h),
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_nn.out,
+        )
+        .build(
+            inputImage=input_node_out,
+            outputSize=(rec_model_w, rec_model_h),
+        )
     )
 
     landmark_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(

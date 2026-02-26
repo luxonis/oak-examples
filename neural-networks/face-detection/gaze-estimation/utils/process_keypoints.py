@@ -34,20 +34,20 @@ class LandmarksProcessing(dai.node.ThreadedHostNode):
                 right_eye = self.crop_rectangle(
                     keypoints[0], face_w * 0.25, face_h * 0.25
                 )
-                right_configs_message[str(i + 100)] = self.create_crop_cfg(
+                right_configs_message[f"cfg_{i}"] = self.create_crop_cfg(
                     right_eye, img_detections
                 )
 
                 left_eye = self.crop_rectangle(
                     keypoints[1], face_w * 0.25, face_h * 0.25
                 )
-                left_configs_message[str(i + 100)] = self.create_crop_cfg(
+                left_configs_message[f"cfg_{i}"] = self.create_crop_cfg(
                     left_eye, img_detections
                 )
 
                 face_rect = detection.getBoundingBox()
                 face_rect = face_rect.denormalize(self.w, self.h)
-                face_configs_message[str(i + 100)] = self.create_crop_cfg(
+                face_configs_message[f"cfg_{i}"] = self.create_crop_cfg(
                     face_rect, img_detections
                 )
 

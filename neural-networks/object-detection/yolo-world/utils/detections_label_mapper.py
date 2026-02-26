@@ -2,11 +2,10 @@ import depthai as dai
 from typing import Dict
 
 
-class AnnotationNode(dai.node.HostNode):
+class DetectionsLabelMapper(dai.node.HostNode):
     def __init__(self, label_encoding: Dict[int, str] = {}) -> None:
         super().__init__()
         self._label_encoding = label_encoding
-        self.out_detections = self.createOutput()
 
     def setLabelEncoding(self, label_encoding: Dict[int, str]) -> None:
         """Sets the label encoding.
@@ -21,7 +20,7 @@ class AnnotationNode(dai.node.HostNode):
 
     def build(
         self, detections: dai.Node.Output, label_encoding: Dict[int, str] = None
-    ) -> "AnnotationNode":
+    ) -> "DetectionsLabelMapper":
         if label_encoding is not None:
             self.setLabelEncoding(label_encoding)
         self.link_args(detections)
@@ -34,4 +33,4 @@ class AnnotationNode(dai.node.HostNode):
         assert isinstance(detections_message, dai.ImgDetections)
         for detection in detections_message.detections:
             detection.labelName = self._label_encoding.get(detection.label, "unknown")
-        return detections_message
+        self.out.send(detections_message)

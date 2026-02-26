@@ -76,11 +76,16 @@ class AnnotationNode(dai.node.HostNode):
 
             new_det = dai.ImgDetection()
             rotated_rect = detection.getBoundingBox()
-            new_det.setBoundingBox(dai.RotatedRect(
-                rotated_rect.center,
-                dai.Size2f(rotated_rect.size.width + 2 * padding, rotated_rect.size.height + 2 * padding),
-                rotated_rect.angle,
-            ))
+            new_det.setBoundingBox(
+                dai.RotatedRect(
+                    rotated_rect.center,
+                    dai.Size2f(
+                        rotated_rect.size.width + 2 * padding,
+                        rotated_rect.size.height + 2 * padding,
+                    ),
+                    rotated_rect.angle,
+                )
+            )
             new_det.label = 0
             new_det.labelName = "Hand"
             new_det.confidence = detection.confidence

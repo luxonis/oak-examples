@@ -90,11 +90,18 @@ with dai.Pipeline(device) as pipeline:
         resize_node.out, det_model_nn_archive
     )
 
-    crop_node = pipeline.create(FrameCropper).fromImgDetections(
-        inputImgDetections=det_nn.out,
-    ).build(
-        inputImage=input_node_out,
-        outputSize=(rec_nn_archive.getInputWidth(), rec_nn_archive.getInputHeight()),
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_nn.out,
+        )
+        .build(
+            inputImage=input_node_out,
+            outputSize=(
+                rec_nn_archive.getInputWidth(),
+                rec_nn_archive.getInputHeight(),
+            ),
+        )
     )
 
     rec_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(

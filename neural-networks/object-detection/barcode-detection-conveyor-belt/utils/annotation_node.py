@@ -1,7 +1,7 @@
 from typing import List
 import depthai as dai
 
-from depthai_nodes import ImgDetectionsExtended, SECONDARY_COLOR
+from depthai_nodes import SECONDARY_COLOR
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -26,7 +26,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         while self.isRunning():
             gather_data_msg: dai.Buffer = self.input.get()
 
-            img_detections_extended_msg: ImgDetectionsExtended = (
+            img_detections_extended_msg: dai.ImgDetections = (
                 gather_data_msg.reference_data
             )
 
@@ -37,17 +37,10 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             for img_detection_extended_msg, msg_group in zip(
                 img_detections_extended_msg.detections, msg_group_list
             ):
-                xmin, ymin, xmax, ymax = (
-                    img_detection_extended_msg.rotated_rect.getOuterRect()
-                )
-
-                try:
-                    xmin = float(xmin)
-                    ymin = float(ymin)
-                    xmax = float(xmax)
-                    ymax = float(ymax)
-                except Exception:
-                    pass
+                xmin = img_detection_extended_msg.xmin
+                ymin = img_detection_extended_msg.ymin
+                xmax = img_detection_extended_msg.xmax
+                ymax = img_detection_extended_msg.ymax
 
                 xmin = max(0.0, min(1.0, xmin))
                 ymin = max(0.0, min(1.0, ymin))

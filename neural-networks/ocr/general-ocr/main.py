@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData
+from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.annotation_node import OCRAnnotationNode
 from utils.arguments import initialize_argparser
@@ -72,22 +72,17 @@ with dai.Pipeline(device) as pipeline:
     )
     det_nn.setNumPoolFrames(30)
 
-    # detection processing
-    detection_process_node = pipeline.create(CropConfigsCreator)
-    detection_process_node.build(
+    # detection processing and crops config creation
+    crop_configs_creator = pipeline.create(CropConfigsCreator)
+    crop_configs_creator.build(
         det_nn.out, (REQ_WIDTH, REQ_HEIGHT), (rec_model_w, rec_model_h)
     )
 
-    crop_node = pipeline.create(dai.node.ImageManip)
-    crop_node.initialConfig.setReusePreviousImage(False)
-    crop_node.inputConfig.setReusePreviousMessage(False)
-    crop_node.inputImage.setReusePreviousMessage(True)
-    crop_node.inputConfig.setMaxSize(30)
-    crop_node.inputImage.setMaxSize(30)
-    crop_node.setNumFramesPool(30)
-
-    detection_process_node.config_output.link(crop_node.inputConfig)
-    input_node_out.link(crop_node.inputImage)
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(crop_configs_creator.config_output)
+        .build(input_node_out, (rec_model_w, rec_model_h))
+    )
 
     ocr_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         crop_node.out, rec_model_nn_archive
@@ -99,7 +94,7 @@ with dai.Pipeline(device) as pipeline:
     gather_data_node = pipeline.create(GatherData).build(
         camera_fps=args.fps_limit,
         input_data=ocr_nn.out,
-        input_reference=detection_process_node.detections_output,
+        input_reference=crop_configs_creator.detections_output,
     )
 
     # annotation

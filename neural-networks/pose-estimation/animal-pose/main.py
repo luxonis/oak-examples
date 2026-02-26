@@ -65,13 +65,17 @@ with dai.Pipeline(device) as pipeline:
     detections_filter.keepLabels(VALID_LABELS)
 
     # detection processing
-    pose_manip = pipeline.create(FrameCropper).fromImgDetections(
-        inputImgDetections=detections_filter.out,
-        padding=PADDING,
-    ).build(
-        inputImage=detection_nn.passthrough,
-        outputSize=(pose_model_w, pose_model_h),
-        resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+    pose_manip = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=detections_filter.out,
+            padding=PADDING,
+        )
+        .build(
+            inputImage=detection_nn.passthrough,
+            outputSize=(pose_model_w, pose_model_h),
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+        )
     )
 
     pose_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(

@@ -52,7 +52,5 @@ class DetectionsLabelMapper(dai.node.HostNode):
         assert isinstance(detections_message, dai.ImgDetections)
         detections_message.setTransformation(frame_message.getTransformation())
         for detection in detections_message.detections:
-            detection.labelName = self._label_encoding.get(
-                detection.label, "unknown"
-            )
+            detection.labelName = self._label_encoding.get(detection.label, "unknown")
         self.out.send(detections_message)

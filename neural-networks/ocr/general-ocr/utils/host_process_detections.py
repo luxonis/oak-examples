@@ -30,11 +30,7 @@ class CropConfigsCreator(dai.node.HostNode):
     def __init__(self) -> None:
         """Initializes the node."""
         super().__init__()
-        self.config_output = self.createOutput(
-            possibleDatatypes=[
-                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImageManipConfig, True)
-            ]
-        )
+        self.config_output = self.createOutput()
         self.detections_output = self.createOutput(
             possibleDatatypes=[
                 dai.Node.DatatypeHierarchy(dai.DatatypeEnum.Buffer, True)
@@ -133,14 +129,7 @@ class CropConfigsCreator(dai.node.HostNode):
 
         detections = detections_input.detections
 
-        # Skip the current frame / load new frame
-        cfg = dai.ImageManipConfig()
-        cfg.setSkipCurrentImage(True)
-        cfg.setTimestamp(timestamp)
-        cfg.setSequenceNum(sequence_num)
-        send_status = False
-        while not send_status:
-            send_status = self.config_output.trySend(cfg)
+        configs_group = dai.MessageGroup()
         valid_detections = []
         for detection in detections:
             if detection.confidence > 0.8:
@@ -164,13 +153,13 @@ class CropConfigsCreator(dai.node.HostNode):
                 if self.target_w is not None and self.target_h is not None:
                     cfg.setOutputSize(self.target_w, self.target_h, self.resize_mode)
 
-                cfg.setReusePreviousImage(True)
                 cfg.setTimestamp(timestamp)
                 cfg.setSequenceNum(sequence_num)
+                configs_group[f"cfg_{len(valid_detections) - 1}"] = cfg
 
-                send_status = False
-                while not send_status:
-                    send_status = self.config_output.trySend(cfg)
+        configs_group.setTimestamp(timestamp)
+        configs_group.setSequenceNum(sequence_num)
+        self.config_output.send(configs_group)
 
         valid_msg = dai.ImgDetections()
         valid_msg.setSequenceNum(sequence_num)
@@ -179,6 +168,10 @@ class CropConfigsCreator(dai.node.HostNode):
         valid_msg.setTransformation(detections_input.getTransformation())
 
         self.detections_output.send(valid_msg)
+
+    def _validate_positive_integer(self, value: int) -> None:
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError(f"Expected a positive integer, got {value!r}")
 
     def _expand_rect(self, rect: dai.RotatedRect) -> dai.RotatedRect:
         s = rect.size

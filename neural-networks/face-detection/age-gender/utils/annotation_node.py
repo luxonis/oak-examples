@@ -21,9 +21,7 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, gather_data_msg: dai.Buffer) -> None:
-        img_detections_msg: dai.ImgDetections = (
-            gather_data_msg.reference_data
-        )
+        img_detections_msg: dai.ImgDetections = gather_data_msg.reference_data
         assert isinstance(img_detections_msg, dai.ImgDetections)
 
         age_gender_msg_group_list: List[dai.MessageGroup] = gather_data_msg.gathered
@@ -32,9 +30,7 @@ class AnnotationNode(dai.node.HostNode):
             isinstance(msg, dai.MessageGroup) for msg in age_gender_msg_group_list
         )
 
-        assert len(img_detections_msg.detections) == len(
-            age_gender_msg_group_list
-        )
+        assert len(img_detections_msg.detections) == len(age_gender_msg_group_list)
 
         annotations = AnnotationHelper()
 
@@ -46,9 +42,7 @@ class AnnotationNode(dai.node.HostNode):
             gender_msg: Classifications = age_gender_msg_group["1"]
             assert isinstance(gender_msg, Classifications)
 
-            xmin, ymin, xmax, ymax = (
-                img_detection_msg.getBoundingBox().getOuterRect()
-            )
+            xmin, ymin, xmax, ymax = img_detection_msg.getBoundingBox().getOuterRect()
 
             annotations.draw_rectangle(
                 (xmin, ymin),

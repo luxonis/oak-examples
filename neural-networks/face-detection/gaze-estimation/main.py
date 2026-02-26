@@ -1,11 +1,10 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData
+from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.arguments import initialize_argparser
 from utils.process_keypoints import LandmarksProcessing
-from utils.node_creators import create_crop_node
 from utils.annotation_node import AnnotationNode
 from utils.host_concatenate_head_pose import ConcatenateHeadPose
 
@@ -101,14 +100,24 @@ with dai.Pipeline(device) as pipeline:
     )
     det_nn.out.link(detection_process_node.detections_input)
 
-    left_eye_crop_node = create_crop_node(
-        pipeline, input_node_out, detection_process_node.left_config_output
+    crop_output_size = (
+        head_pose_model_nn_archive.getInputWidth(),
+        head_pose_model_nn_archive.getInputHeight(),
     )
-    right_eye_crop_node = create_crop_node(
-        pipeline, input_node_out, detection_process_node.right_config_output
+    left_eye_crop_node = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(detection_process_node.left_config_output)
+        .build(input_node_out, crop_output_size)
     )
-    face_crop_node = create_crop_node(
-        pipeline, input_node_out, detection_process_node.face_config_output
+    right_eye_crop_node = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(detection_process_node.right_config_output)
+        .build(input_node_out, crop_output_size)
+    )
+    face_crop_node = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(detection_process_node.face_config_output)
+        .build(input_node_out, crop_output_size)
     )
 
     # head pose estimation

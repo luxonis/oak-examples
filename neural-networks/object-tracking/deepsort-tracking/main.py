@@ -78,11 +78,15 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # detection processing
-    crop_node = pipeline.create(FrameCropper).fromImgDetections(
-        inputImgDetections=det_nn.out,
-    ).build(
-        inputImage=det_nn.passthrough,
-        outputSize=(embeddings_model_w, embeddings_model_h),
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_nn.out,
+        )
+        .build(
+            inputImage=det_nn.passthrough,
+            outputSize=(embeddings_model_w, embeddings_model_h),
+        )
     )
 
     embeddings_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
