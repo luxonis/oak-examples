@@ -8,13 +8,11 @@
 #include <atomic>
 #include <csignal>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 
 #include "depthai/depthai.hpp"
 #include "depthai/pipeline/MessageQueue.hpp"
 #include "depthai/pipeline/datatype/ImgFrame.hpp"
-#include "depthai/pipeline/datatype/MessageGroup.hpp"
 #include "uvc_example.hpp"
 
 extern "C" {
@@ -47,39 +45,6 @@ void signalHandler(int signum) {
 	/* Stop the main loop when the user presses CTRL-C */
 	events_stop(sigint_events);
 }
-
-// Custom host node for saving video data
-class VideoSaver : public dai::node::CustomNode<VideoSaver> {
-   public:
-    VideoSaver() : fileHandle("video.encoded", std::ios::binary) {
-        if(!fileHandle.is_open()) {
-            throw std::runtime_error("Could not open video.encoded for writing");
-        }
-    }
-
-    ~VideoSaver() {
-        if(fileHandle.is_open()) {
-            fileHandle.close();
-        }
-    }
-
-    std::shared_ptr<dai::Buffer> processGroup(std::shared_ptr<dai::MessageGroup> message) override {
-        if(!fileHandle.is_open()) return nullptr;
-
-        // Get raw data and write to file
-        auto frame = message->get<dai::EncodedFrame>("data");
-        unsigned char* frameData = frame->getData().data();
-        size_t frameSize = frame->getData().size();
-        std::cout << "Storing frame of size: " << frameSize << std::endl;
-        fileHandle.write(reinterpret_cast<const char*>(frameData), frameSize);
-
-        // Don't send anything back
-        return nullptr;
-    }
-
-   private:
-    std::ofstream fileHandle;
-};
 
 extern "C" void depthai_uvc_get_buffer(struct video_source *s, struct video_buffer *buf) {
 	unsigned int frame_size, size;
