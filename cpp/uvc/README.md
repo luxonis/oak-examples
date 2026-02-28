@@ -33,3 +33,10 @@ Running the example in standalone mode builds and deploys it as an OAK app so th
    ```
 
 `oakctl` uses the provided `oakapp.toml` to build the C++ project inside the Luxonis base container and deploy it to the device. Configuration tweaks such as changing the camera resolution or registering more topics should be done in `src/uvc_example.cpp`, then re-run `oakctl app run ./cpp/uvc`.
+
+### Video format selection
+
+The example supports two UVC stream formats controlled by `UVC_FORMAT` environment variable:
+
+- `nv12` / `uncompressed` (default): Uses DepthAI `NV12` output and exposes UVC uncompressed NV12 format.
+- `mjpeg`: Uses `VideoEncoder` and exposes UVC MJPEG format.

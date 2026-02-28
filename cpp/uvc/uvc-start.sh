@@ -25,11 +25,14 @@ fi
 MANUF="Luxonis"
 PRODUCT="Luxonis UVC Camera"
 UDC=$(ls /sys/class/udc | head -n1) # will identify the 'first' UDC
+: "${UVC_FORMAT:=uncompressed}"
+UVC_FORMAT=$(echo "$UVC_FORMAT" | tr '[:upper:]' '[:lower:]')
 
 log "=== Detecting platform:"
 log "    product : $PRODUCT"
 log "    udc     : $UDC"
 log "    serial  : $SERIAL"
+log "    format  : $UVC_FORMAT"
 
 remove_uvc_gadget() {
     if [ ! -d /sys/kernel/config/usb_gadget/g1/functions/uvc.0 ]; then
@@ -101,6 +104,20 @@ create_frame() {
 EOF
 }
 
+configure_uncompressed_nv12_descriptor() {
+    FUNCTION=$1
+    NAME=$2
+
+    FRAME_DIR="functions/$FUNCTION/streaming/uncompressed/$NAME/1080p"
+    FORMAT_DIR="functions/$FUNCTION/streaming/uncompressed/$NAME"
+
+    # NV12 is 12bpp (4:2:0), frame size is width * height * 3 / 2.
+    echo 12 > "$FORMAT_DIR/bBitsPerPixel"
+    echo $(( 1920 * 1080 * 3 / 2 )) > "$FRAME_DIR/dwMaxVideoFrameBufferSize"
+    # UVC GUID for NV12: 4e 56 31 32 00 00 10 00 80 00 00 aa 00 38 9b 71
+    echo -ne '\x4e\x56\x31\x32\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71' > "$FORMAT_DIR/guidFormat"
+}
+
 create_uvc() {
     # Example usage:
     #   create_uvc <target config> <function name>
@@ -113,17 +130,20 @@ create_uvc() {
     pushd "$GADGET/g1" >/dev/null
     mkdir "functions/$FUNCTION"
 
-    # create_frame "$FUNCTION" 640 360 uncompressed u
-    # create_frame "$FUNCTION" 1280 720 uncompressed u
-    # create_frame "$FUNCTION" 320 180 uncompressed u
-    create_frame "$FUNCTION" 1920 1080 mjpeg m
-    # create_frame "$FUNCTION" 640 480 mjpeg m
-    # create_frame "$FUNCTION" 640 360 mjpeg m
+    if [ "$UVC_FORMAT" = "mjpeg" ]; then
+        create_frame "$FUNCTION" 1920 1080 mjpeg m
+    else
+        create_frame "$FUNCTION" 1920 1080 uncompressed u
+        configure_uncompressed_nv12_descriptor "$FUNCTION" "u"
+    fi
 
     mkdir "functions/$FUNCTION/streaming/header/h"
     cd "functions/$FUNCTION/streaming/header/h"
-    # ln -s ../../uncompressed/u
-    ln -s ../../mjpeg/m
+    if [ "$UVC_FORMAT" = "mjpeg" ]; then
+        ln -s ../../mjpeg/m
+    else
+        ln -s ../../uncompressed/u
+    fi
     cd ../../class/fs
     ln -s ../../header/h
     cd ../../class/hs
