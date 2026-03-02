@@ -89,6 +89,22 @@ ______________________________________________________________________
 
 ## Requirements
 
+### VS Code C/C++ Extension (Required)
+
+You must install the official Microsoft **C/C++ extension** for VS Code:
+
+https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools
+
+Or install directly from VS Code:
+
+1. Open **Extensions** (Ctrl+Shift+X)
+2. Search for **C/C++**
+3. Install **C/C++ (Microsoft)**
+
+This extension provides the C++ debugger (`cppdbg`) used by this example.
+
+______________________________________________________________________
+
 ### GDB 17.1 (Required)
 
 This project requires **GDB version 17.1**. Other versions may cause debugging issues.
@@ -101,7 +117,7 @@ gdb --version
 
 Expected output:
 
-```
+```bash
 GNU gdb (GDB) 17.1
 ```
 
@@ -117,6 +133,32 @@ sudo apt install gdb
 ```
 
 If your Ubuntu repository does not provide 17.1, you may need to install a newer toolchain or build GDB 17.1 from source.
+
+##### Build GDB 17.1 from source (Ubuntu)
+
+```bash
+# Install build dependencies
+sudo apt update
+sudo apt install -y build-essential texinfo libgmp-dev libmpfr-dev libmpc-dev flex bison
+
+# Download GDB 17.1 source
+wget https://ftp.gnu.org/gnu/gdb/gdb-17.1.tar.xz
+tar -xf gdb-17.1.tar.xz
+cd gdb-17.1
+
+# Configure and build
+./configure --with-expat --with-python
+make -j$(nproc)
+
+# Install
+sudo make install
+```
+
+After installation, verify:
+
+```bash
+gdb --version
+```
 
 #### macOS (Homebrew)
 
