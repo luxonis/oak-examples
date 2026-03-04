@@ -10,12 +10,13 @@
       "program": "${workspaceFolder}/build/main_device",
       "cwd": "${workspaceFolder}",
       "MIMode": "gdb",
+      "miDebuggerPath": "gdb-multiarch",
       "targetArchitecture": "arm64",
       "miDebuggerArgs": "-x ${workspaceFolder}/.vscode/oak.gdb",
       "stopAtEntry": false,
       "externalConsole": false,
       "sourceFileMap": {
-        "/app": "${workspaceFolder}"
+        "/app": "${workspaceFolder}/cpp/debugging_example"
       }
     },
     {
