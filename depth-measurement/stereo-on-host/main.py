@@ -3,7 +3,7 @@ import depthai as dai
 from utils.arguments import initialize_argparser
 from utils.host_stereo_sgbm import StereoSGBM
 from utils.host_ssim import SSIM
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 import cv2
 
 RESOLUTION_SIZE = (640, 400)
@@ -51,8 +51,7 @@ with dai.Pipeline(device) as pipeline:
     stereo.setExtendedDisparity(False)
     stereo.setSubpixel(True)
 
-    depth_parser = pipeline.create(ApplyColormap).build(stereo.disparity)
-    depth_parser.setMaxValue(int(stereo.initialConfig.getMaxDisparity()))
+    depth_parser = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
     depth_parser.setColormap(cv2.COLORMAP_JET)
 
     ssim = pipeline.create(SSIM).build(

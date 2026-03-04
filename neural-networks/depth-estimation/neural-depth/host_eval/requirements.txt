@@ -1,5 +1,5 @@
 beautifulsoup4==4.12.3
-depthai==3.2.1
+depthai==3.3.0
 numpy
 opencv-python~=4.10.0
 requests

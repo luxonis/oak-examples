@@ -1,5 +1,5 @@
 import depthai as dai
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -73,7 +73,7 @@ with dai.Pipeline(device) as pipeline:
         input_detections=nn.out, depth=stereo.depth, labels=classes
     )
 
-    apply_colormap = pipeline.create(ApplyColormap).build(stereo.depth)
+    apply_colormap = pipeline.create(ApplyDepthColormap).build(stereo.depth)
 
     # video encoding
     cam_nv12 = cam.requestOutput(
