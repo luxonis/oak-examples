@@ -15,18 +15,10 @@
 #include "depthai/depthai.hpp"
 #include "depthai/pipeline/datatype/ImgFrame.hpp"
 #include "hsb_emulator.hpp"
+#include "linux_data_plane.hpp"
 #include "net.hpp"
 
 using namespace hololink::emulation;
-
-// Hololink register constants used by the emulator transport metadata setup.
-// These values match hololink/core/data_channel.hpp.
-constexpr uint32_t kDpPacketSize = 0x04;
-constexpr uint32_t kDpPacketUdpPort = 0x08;
-constexpr uint32_t kDpQp = 0x00;
-constexpr uint32_t kDpRkey = 0x04;
-constexpr uint32_t kDpAddress0 = 0x08;
-constexpr uint32_t kDpBufferMask = 0x1C;
 
 int main() {
   IPAddress emulatorIp = IPAddress_from_string("10.12.101.183");
@@ -54,6 +46,9 @@ int main() {
 
   auto qRgb = cameraOut->createOutputQueue();
 
+  auto startTime = std::chrono::steady_clock::now();
+  int counter = 0;
+
   HSBEmulator hsb;
   constexpr uint32_t kHifAddressBase = 0x02000300;
   constexpr uint32_t kHifAddressStep = 0x00010000;
@@ -65,6 +60,7 @@ int main() {
 
   uint8_t data_plane_id = 0;
   uint8_t sensor_id = 0;
+  LinuxDataPlane linux_data_plane(hsb, emulatorIp, data_plane_id, sensor_id);
   const auto hifAddress = kHifAddressBase + kHifAddressStep * data_plane_id;
   const auto sif0Index =
       static_cast<uint8_t>(sensor_id * HSB_EMULATOR_CONFIG.sifs_per_sensor);
@@ -73,18 +69,16 @@ int main() {
   // Program default transport metadata. Destination IP/port is typically set by
   // host-side configuration after enumeration; these defaults ensure payload
   // metadata is valid.
-  hsb.write(hifAddress + kDpPacketSize, kDefaultPacketPages);
-  hsb.write(hifAddress + kDpPacketUdpPort, hololink::DATA_SOURCE_UDP_PORT);
-  hsb.write(vpAddress + kDpQp, kDefaultQp);
-  hsb.write(vpAddress + kDpRkey, kDefaultRkey);
-  hsb.write(vpAddress + kDpBufferMask, 0x1u);
-  hsb.write(vpAddress + kDpAddress0, 0u);
+  hsb.write(hifAddress + hololink::DP_PACKET_SIZE, kDefaultPacketPages);
+  hsb.write(hifAddress + hololink::DP_PACKET_UDP_PORT,
+            hololink::DATA_SOURCE_UDP_PORT);
+  hsb.write(vpAddress + hololink::DP_QP, kDefaultQp);
+  hsb.write(vpAddress + hololink::DP_RKEY, kDefaultRkey);
+  hsb.write(vpAddress + hololink::DP_BUFFER_MASK, 0x1u);
+  hsb.write(vpAddress + hololink::DP_ADDRESS_0, 0u);
 
   pipeline.start();
   hsb.start();
-
-  std::cout << "Running basic emulator mode (no RoCE/CUDA transport)."
-            << std::endl;
 
   while (pipeline.isRunning()) {
     auto inRgb = qRgb->get<dai::ImgFrame>();
@@ -143,6 +137,28 @@ int main() {
                    "Skipping frame."
                 << std::endl;
       continue;
+    }
+
+    // Update frame length metadata expected by LinuxDataPlane.
+    hsb.write(vpAddress + hololink::DP_BUFFER_LENGTH,
+              static_cast<uint32_t>(bayerSize));
+
+    int64_t shape[1] = {static_cast<int64_t>(bayerSize)};
+    DLTensor tensor{};
+    tensor.data = rgbFrame.data;
+    tensor.device = {kDLCPU, 0};
+    tensor.ndim = 1;
+    tensor.dtype = {1, 8, 1}; // uint8
+    tensor.shape = shape;
+    tensor.strides = nullptr;
+    tensor.byte_offset = 0;
+
+    const int64_t sentBytes = linux_data_plane.send(tensor);
+    if (sentBytes <= 0) {
+      std::cerr << "Frame not sent yet (waiting for destination configuration)."
+                << std::endl;
+    } else {
+      std::cout << "Sent frame of size " << sentBytes << " bytes." << std::endl;
     }
   }
 

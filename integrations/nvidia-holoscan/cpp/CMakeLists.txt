@@ -89,14 +89,34 @@ target_include_directories(hololink_emulation
 target_link_libraries(hololink_emulation PUBLIC pthread)
 
 if(HSB_BUILD_RGB_STREAM)
+    find_package(ZLIB REQUIRED)
+    find_package(CUDAToolkit REQUIRED)
     find_package(depthai REQUIRED)
     find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc)
+
+    add_library(hololink_emulation_roce STATIC
+        "${_hsb_emulation_dir}/linux_data_plane.cpp"
+        "${_hsb_emulation_dir}/linux_transmitter.cpp"
+    )
+    target_include_directories(hololink_emulation_roce
+        PUBLIC
+            "${_hsb_root}/src"
+            "${_hsb_emulation_dir}"
+            "${DLPACK_INCLUDE_DIR}"
+    )
+    target_link_libraries(hololink_emulation_roce
+        PUBLIC
+            hololink_emulation
+            ZLIB::ZLIB
+            CUDA::cudart
+    )
 
     add_executable(rgb_stream rgb_stream.cpp)
     target_link_libraries(rgb_stream
         PRIVATE
             depthai::core
             hololink_emulation
+            hololink_emulation_roce
             ${OpenCV_LIBS}
     )
     target_compile_options(rgb_stream PRIVATE -Wno-psabi)
