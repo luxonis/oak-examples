@@ -24,11 +24,17 @@ def _svc(name: str, fn, err: str):
     def _inner(_: object | None = None):
         path = fn()
         return {"ok": True, "path": str(path)} if path else {"ok": False, "error": err}
+
     _inner.__name__ = name
     return _inner
 
-start_recording_service = _svc("start_recording_service", recorder.start, "Failed to start recording")
-stop_recording_service = _svc("stop_recording_service", recorder.stop, "No recording in progress")
+
+start_recording_service = _svc(
+    "start_recording_service", recorder.start, "Failed to start recording"
+)
+stop_recording_service = _svc(
+    "stop_recording_service", recorder.stop, "No recording in progress"
+)
 
 
 visualizer.registerService("Start Recording", start_recording_service)

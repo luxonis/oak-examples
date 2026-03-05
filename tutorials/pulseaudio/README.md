@@ -1,9 +1,9 @@
 # Audio Recorder (PulseAudio)
 
-This example demonstrates how to record audio directly on a Luxonis device using **PulseAudio (`parec`)** while streaming video from the device cameras.  
+This example demonstrates how to record audio directly on a Luxonis device using **PulseAudio (`parec`)** while streaming video from the device cameras.\
 The recording is stored on the device and can be downloaded through the web interface.
 
----
+______________________________________________________________________
 
 ## Demo
 
@@ -13,18 +13,18 @@ When running, the frontend shows:
 - controls to start/stop recording
 - ability to download the last recorded audio file
 
----
+______________________________________________________________________
 
 ## Usage
 
-Running this example requires a **Luxonis device connected to your network**.  
+Running this example requires a **Luxonis device connected to your network**.\
 Refer to the official documentation if you haven’t set up your device yet:
 
 https://docs.luxonis.com/software-v3/
 
 This example runs entirely on the device in **Standalone mode**.
 
----
+______________________________________________________________________
 
 ## Available Parameters
 
@@ -39,11 +39,11 @@ This example runs entirely on the device in **Standalone mode**.
                     Optional PulseAudio source name (e.g. regular0, regular1, regular2).
 ```
 
----
+______________________________________________________________________
 
 ## Standalone Mode (RVC4 only)
 
-In standalone mode the application runs fully on the device.  
+In standalone mode the application runs fully on the device.\
 The frontend and backend services are served from the device itself.
 
 To run this example you need the **oakctl** tool installed.
@@ -52,7 +52,7 @@ Installation instructions:
 
 https://docs.luxonis.com/software-v3/oak-apps/oakctl
 
----
+______________________________________________________________________
 
 ## Running the Example
 
@@ -70,7 +70,7 @@ oakctl app run .
 
 This will build and deploy the application to the device.
 
----
+______________________________________________________________________
 
 ## Audio Recording
 
@@ -88,7 +88,7 @@ Each recording is saved as a WAV file:
 recording_<timestamp>.wav
 ```
 
----
+______________________________________________________________________
 
 ## Audio Sources
 
@@ -104,29 +104,29 @@ regular2   - low latency stream
 
 The source can be selected via the `--audio_device` argument.
 
----
+______________________________________________________________________
 
 ## Frontend Controls
 
-| Control | Description |
-|-------|-------------|
+| Control         | Description                          |
+| --------------- | ------------------------------------ |
 | Start Recording | Starts audio recording on the device |
-| Stop | Stops recording |
-| Download | Downloads the most recent recording |
+| Stop            | Stops recording                      |
+| Download        | Downloads the most recent recording  |
 
 The **Download** button is disabled while recording to prevent incomplete files from being retrieved.
 
----
+______________________________________________________________________
 
 ## How It Works
 
 The backend provides several services exposed to the frontend:
 
-| Service | Purpose |
-|-------|---------|
-| Start Recording | Starts the PulseAudio recording process |
-| Stop Recording | Stops recording and saves the file |
-| List Recordings | Lists available recordings |
+| Service            | Purpose                                          |
+| ------------------ | ------------------------------------------------ |
+| Start Recording    | Starts the PulseAudio recording process          |
+| Stop Recording     | Stops recording and saves the file               |
+| List Recordings    | Lists available recordings                       |
 | Download Recording | Returns the selected recording encoded in base64 |
 
 Audio recording is implemented using:
@@ -137,7 +137,7 @@ parec
 
 which connects to the device’s PulseAudio server.
 
----
+______________________________________________________________________
 
 ## File Structure
 
