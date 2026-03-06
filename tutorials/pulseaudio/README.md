@@ -5,7 +5,7 @@ The recording is stored on the device and can be downloaded through the web inte
 
 ## Demo
 
-![pulseaudio](media/pilseaudio_demo.gif)
+![pulseaudio](media/pulseaudio_demo.gif)
 
 When running, the frontend shows:
 
