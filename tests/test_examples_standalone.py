@@ -326,7 +326,7 @@ def get_app_status(app_id: str, args: Dict):
         )
         apps = json.loads(result.stdout)
         for app in apps:
-            if app["container_id"] == app_id:
+            if app.get("container_id") == app_id or app.get("app_id") == app_id:
                 return app["status"]
         return None  # App not found
     except Exception as e:
