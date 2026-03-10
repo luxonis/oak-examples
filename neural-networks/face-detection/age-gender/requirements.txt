@@ -1,2 +1,2 @@
-depthai==3.3.0
+depthai==3.4.0
 depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@changes_for_oak_examples_update
