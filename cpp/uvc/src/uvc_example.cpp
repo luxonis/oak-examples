@@ -6,15 +6,19 @@
  */
 
 #include <atomic>
+#include <algorithm>
+#include <cstdlib>
 #include <csignal>
+#include <cctype>
 #include <cstring>
-#include <fstream>
 #include <iostream>
+#include <string>
+#include <vector>
 
 #include "depthai/depthai.hpp"
 #include "depthai/pipeline/MessageQueue.hpp"
+#include "depthai/pipeline/datatype/Buffer.hpp"
 #include "depthai/pipeline/datatype/ImgFrame.hpp"
-#include "depthai/pipeline/datatype/MessageGroup.hpp"
 #include "uvc_example.hpp"
 
 extern "C" {
@@ -37,6 +41,28 @@ std::atomic<bool> quitEvent(false);
 std::shared_ptr<dai::InputQueue> inputQueue{nullptr};
 std::shared_ptr<dai::MessageQueue> outputQueue;
 
+enum class StreamFormat {
+    MJPEG,
+    UNCOMPRESSED,
+};
+
+static StreamFormat gStreamFormat = StreamFormat::UNCOMPRESSED;
+static std::vector<uint8_t> gNv12Buffer;
+
+static StreamFormat parseStreamFormat() {
+    const char* format = std::getenv("UVC_FORMAT");
+    if(format == nullptr) return StreamFormat::UNCOMPRESSED;
+
+    std::string formatStr(format);
+    std::transform(formatStr.begin(), formatStr.end(), formatStr.begin(), [](unsigned char c) { return std::tolower(c); });
+
+    if(formatStr == "mjpeg") return StreamFormat::MJPEG;
+    if(formatStr == "uncompressed" || formatStr == "nv12") return StreamFormat::UNCOMPRESSED;
+
+    std::cerr << "Unknown UVC_FORMAT=\"" << formatStr << "\", defaulting to uncompressed NV12." << std::endl;
+    return StreamFormat::UNCOMPRESSED;
+}
+
 /* Necessary for and only used by signal handler. */
 static struct events *sigint_events;
 
@@ -48,56 +74,65 @@ void signalHandler(int signum) {
 	events_stop(sigint_events);
 }
 
-// Custom host node for saving video data
-class VideoSaver : public dai::node::CustomNode<VideoSaver> {
-   public:
-    VideoSaver() : fileHandle("video.encoded", std::ios::binary) {
-        if(!fileHandle.is_open()) {
-            throw std::runtime_error("Could not open video.encoded for writing");
-        }
-    }
-
-    ~VideoSaver() {
-        if(fileHandle.is_open()) {
-            fileHandle.close();
-        }
-    }
-
-    std::shared_ptr<dai::Buffer> processGroup(std::shared_ptr<dai::MessageGroup> message) override {
-        if(!fileHandle.is_open()) return nullptr;
-
-        // Get raw data and write to file
-        auto frame = message->get<dai::EncodedFrame>("data");
-        unsigned char* frameData = frame->getData().data();
-        size_t frameSize = frame->getData().size();
-        std::cout << "Storing frame of size: " << frameSize << std::endl;
-        fileHandle.write(reinterpret_cast<const char*>(frameData), frameSize);
-
-        // Don't send anything back
-        return nullptr;
-    }
-
-   private:
-    std::ofstream fileHandle;
-};
-
 extern "C" void depthai_uvc_get_buffer(struct video_source *s, struct video_buffer *buf) {
 	unsigned int frame_size, size;
-    uint8_t *f;
+    const uint8_t *f;
 
     if(quitEvent) {
         std::cout << "depthai_uvc_get_buffer(): Stopping capture due to quit event." << std::endl;
         return;
     }      
 
-    auto frame = outputQueue->get<dai::ImgFrame>();
-    if(frame == nullptr) {
-        std::cerr << "depthai_uvc_get_buffer(): No frame available." << std::endl;
-        return;
-    }
+    if(gStreamFormat == StreamFormat::MJPEG) {
+        auto frame = outputQueue->get<dai::Buffer>();
+        if(frame == nullptr || frame->getData().empty()) {
+            std::cerr << "depthai_uvc_get_buffer(): No MJPEG frame available." << std::endl;
+            return;
+        }
+        f = frame->getData().data();
+        frame_size = frame->getData().size();
+    } else {
+        auto frame = outputQueue->get<dai::ImgFrame>();
+        if(frame == nullptr) {
+            std::cerr << "depthai_uvc_get_buffer(): No uncompressed frame available." << std::endl;
+            return;
+        }
+        if(frame->getType() != dai::ImgFrame::Type::NV12) {
+            std::cerr << "depthai_uvc_get_buffer(): Unexpected frame type for uncompressed mode: " << static_cast<int>(frame->getType()) << std::endl;
+            return;
+        }
 
-    f = frame->getData().data();
-    frame_size = frame->getData().size();
+        const auto width = frame->getWidth();
+        const auto height = frame->getHeight();
+        const auto stride = frame->getStride();
+        const auto uvPlaneOffset = frame->getPlaneStride(0);
+        const auto compactNv12FrameSize = (width * height * 3) / 2;
+        const auto expectedSrcBytes = uvPlaneOffset + (stride * (height / 2));
+        const auto& data = frame->getData();
+
+        if(data.size() < expectedSrcBytes) {
+            std::cerr << "depthai_uvc_get_buffer(): NV12 frame smaller than expected: have "
+                      << data.size() << " need " << expectedSrcBytes << std::endl;
+            return;
+        }
+
+        gNv12Buffer.resize(compactNv12FrameSize);
+        const auto* src = data.data();
+        auto* dst = gNv12Buffer.data();
+
+        for(uint32_t y = 0; y < height; ++y) {
+            memcpy(dst + (y * width), src + (y * stride), width);
+        }
+
+        const auto* uvSrc = src + uvPlaneOffset;
+        auto* uvDst = dst + (width * height);
+        for(uint32_t y = 0; y < height / 2; ++y) {
+            memcpy(uvDst + (y * width), uvSrc + (y * stride), width);
+        }
+
+        f = gNv12Buffer.data();
+        frame_size = static_cast<unsigned int>(gNv12Buffer.size());
+    }
 
 	size = std::min(frame_size, buf->size);
 	memcpy(buf->mem, f, size);
@@ -124,6 +159,8 @@ int main() {
     struct uvc_function_config *fc;
     struct video_source* src;
     struct uvc_stream* stream;
+
+    gStreamFormat = parseStreamFormat();
 
     depthai_uvc_register_get_buffer(depthai_uvc_get_buffer);
 
@@ -176,13 +213,20 @@ int main() {
     // Create nodes
     auto camRgb = pipeline.create<dai::node::Camera>()->build(socket);
     inputQueue  = camRgb->inputControl.createInputQueue();
-    auto output = camRgb->requestOutput(std::make_pair(1920, 1080), dai::ImgFrame::Type::NV12);
+    constexpr uint32_t width = 1920;
+    constexpr uint32_t height = 1080;
+    auto output = camRgb->requestOutput(std::make_pair(width, height), dai::ImgFrame::Type::NV12);
 
-    // Create video encoder node
-    auto encoded = pipeline.create<dai::node::VideoEncoder>();
-    encoded->setDefaultProfilePreset(30, dai::VideoEncoderProperties::Profile::MJPEG);
-    output->link(encoded->input);
-    outputQueue = encoded->bitstream.createOutputQueue(1, false);
+    if(gStreamFormat == StreamFormat::MJPEG) {
+        auto encoded = pipeline.create<dai::node::VideoEncoder>();
+        encoded->setDefaultProfilePreset(30, dai::VideoEncoderProperties::Profile::MJPEG);
+        output->link(encoded->input);
+        outputQueue = encoded->bitstream.createOutputQueue(1, false);
+        std::cout << "Configured UVC stream format: MJPEG" << std::endl;
+    } else {
+        outputQueue = output->createOutputQueue(1, false);
+        std::cout << "Configured UVC stream format: uncompressed NV12" << std::endl;
+    }
 
     // Start pipeline
     pipeline.start();

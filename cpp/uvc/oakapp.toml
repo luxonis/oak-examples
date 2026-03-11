@@ -5,10 +5,10 @@
 
 # Application metadata
 identifier = "com.example.streaming.uvc"
-app_version = "3.0.0"
+app_version = "3.1.0"
 
 # Command to run when the container starts
-entrypoint = ["bash", "-c", "/app/uvc-start.sh start"]
+entrypoint = ["bash", "-c", "export UVC_FORMAT=nv12 && /app/uvc-start.sh start"]
 
 # Here is the place where you can install all the dependencies that are needed at run-time
 prepare_container = [
