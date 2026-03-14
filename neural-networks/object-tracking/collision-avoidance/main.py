@@ -91,8 +91,8 @@ with dai.Pipeline(device) as pipeline:
     # visualization
     visualizer.addTopic("Video", nn.passthrough, "images")
     visualizer.addTopic("Tracklets", collision_avoidance.out, "images")
-    visualizer.addTopic("Direction", collision_avoidance.out_direction, "images")
-    visualizer.addTopic("Bird Frame", birds_eye_view.output, "images")
+    visualizer.addTopic("Direction", collision_avoidance.out_direction)
+    visualizer.addTopic("Bird Frame", birds_eye_view.output)
     print("Pipeline created.")
 
     pipeline.start()

@@ -74,7 +74,9 @@ with dai.Pipeline(device) as pipeline:
         dai.TrackerIdAssignmentPolicy.SMALLEST_ID
     )
 
-    color_transform_disparity = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
+    color_transform_disparity = pipeline.create(ApplyDepthColormap).build(
+        stereo.disparity
+    )
     color_transform_disparity.out.link(objectTracker.inputTrackerFrame)
     color_transform_disparity.out.link(objectTracker.inputDetectionFrame)
     detection_generator.out.link(objectTracker.inputDetections)
