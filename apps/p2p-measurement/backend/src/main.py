@@ -1,5 +1,5 @@
 import depthai as dai
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 import numpy as np
 import cv2
 
@@ -58,9 +58,8 @@ with dai.Pipeline(device) as pipeline:
     stereo.depth.link(align.input)
     cam_out.link(align.inputAlignTo)
 
-    coloredDepth = pipeline.create(ApplyColormap).build(align.outputAligned)
+    coloredDepth = pipeline.create(ApplyDepthColormap).build(align.outputAligned)
     coloredDepth.setColormap(cv2.COLORMAP_JET)
-    coloredDepth.setDepthPreset()
 
     point_tracker = pipeline.create(
         PointTracker, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT

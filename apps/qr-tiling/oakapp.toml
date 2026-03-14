@@ -1,0 +1,39 @@
+identifier = "com.example.apps.qr-tiling"
+entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+app_version = "1.0.0"
+
+prepare_container = [
+    { type = "RUN", command = "apt-get update" },
+    { type = "RUN", command = "apt-get install -y python3-pip libzbar-dev" },
+    { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
+    { type = "RUN", command = "python3.12 -m pip install -r /app/backend/requirements.txt --break-system-packages"},
+]
+
+prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
+build_steps = [
+    "mkdir -p /etc/service/backend",
+    "cp /app/backend-run.sh /etc/service/backend/run",
+    "chmod +x /etc/service/backend/run",
+]
+
+depthai_models = { yaml_path = "./backend/src/depthai_models" }
+
+[static_frontend]
+dist_path = "./frontend/dist"
+
+[static_frontend.build]
+source_path = "./frontend"
+steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
+
+[env]
+PYTHONUNBUFFERED = "1"
+DEPTHAI_PIPELINE_DEBUGGING = "1"
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.7"

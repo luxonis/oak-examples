@@ -4,7 +4,7 @@ import cv2
 import depthai as dai
 from utils.roi_control import ROIControl
 from utils.arguments import initialize_argparser
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 from utils.measure_distance import MeasureDistance
 
 
@@ -28,7 +28,7 @@ with dai.Pipeline(device) as pipeline:
         monoLeft, monoRight, presetMode=dai.node.StereoDepth.PresetMode.DEFAULT
     )
 
-    depth_color_transform = pipeline.create(ApplyColormap).build(stereo.disparity)
+    depth_color_transform = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
     depth_color_transform.setColormap(cv2.COLORMAP_JET)
 
     measure_distance = pipeline.create(MeasureDistance).build(

@@ -7,7 +7,8 @@ import pipeline_builders
 from arguments import initialize_argparser
 from depthai_nodes.node.extended_neural_network import ExtendedNeuralNetwork
 from depthai_nodes.node.stage_2_neural_network import Stage2NeuralNetwork
-
+import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,14 @@ logger.error("Starting")
 frame_type = dai.ImgFrame.Type.BGR888i
 HIGH_RES_WIDTH, HIGH_RES_HEIGHT = 2000, 2000
 LOW_RES_WIDTH, LOW_RES_HEIGHT = 640, 640
-PEOPLE_DETECTION_MODEL = "luxonis/scrfd-person-detection:25g-640x640"
-FACE_DETECTION_MODEL = "luxonis/yunet:320x240"
+SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+DEPTHAI_MODELS_DIR = SCRIPT_DIR / "depthai_models"
+PEOPLE_DETECTION_MODEL = dai.NNModelDescription.fromYamlFile(
+    DEPTHAI_MODELS_DIR / "scrfd-person-detection.yaml"
+)
+FACE_DETECTION_MODEL = dai.NNModelDescription.fromYamlFile(
+    DEPTHAI_MODELS_DIR / "yunet.yaml"
+)
 if not args.fps_limit:
     args.fps_limit = 13
 

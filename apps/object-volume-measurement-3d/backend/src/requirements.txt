@@ -1,0 +1,11 @@
+depthai==3.2.1
+depthai-nodes==0.3.7
+opencv-python-headless~=4.10.0
+numpy>=1.22
+tokenizers~=0.21.0
+onnxruntime
+open3d~=0.18
+scipy==1.11.4
+# onnxruntime-gpu # if you want to use CUDAExecutionProvider
+requests
+tqdm

@@ -1,0 +1,2 @@
+model: yoloe-v8-l:640x640
+platform: RVC4

@@ -14,6 +14,8 @@ build_steps = [
     "chmod +x /etc/service/backend/run",
 ]
 
+depthai_models = { yaml_path = "./backend/src/depthai_models" }
+
 [static_frontend]
 dist_path = "./frontend/dist"
 

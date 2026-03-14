@@ -1,5 +1,6 @@
+import cv2
 import depthai as dai
-from depthai_nodes.node import ApplyColormap, ParsingNeuralNetwork
+from depthai_nodes.node import ApplyColormap, ApplyDepthColormap, ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 
 _, args = initialize_argparser()
@@ -87,12 +88,16 @@ with dai.Pipeline(device) as pipeline:
     demux.outputs["right"].link(nn.inputs["right"])
 
     # color stereo disparity
-    disparity_coloring = pipeline.create(ApplyColormap).build(stereo.disparity)
-    disparity_coloring.setColormap(15)  # cv2.COLORMAP_PLASMA
+    disparity_coloring = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
+    disparity_coloring.setColormap(cv2.COLORMAP_PLASMA)
+
+    # color nn output
+    nn_coloring = pipeline.create(ApplyColormap).build(nn.out)
+    nn_coloring.setColormap(cv2.COLORMAP_PLASMA)
 
     # visualization
     visualizer.addTopic("Stereo Disparity", disparity_coloring.out)
-    visualizer.addTopic("NN", nn.out)
+    visualizer.addTopic("NN", nn_coloring.out)
 
     print("Pipeline created.")
 

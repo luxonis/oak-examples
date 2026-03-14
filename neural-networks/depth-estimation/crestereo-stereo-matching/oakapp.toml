@@ -15,3 +15,12 @@ build_steps = []
 depthai_models = { yaml_path = "./depthai_models" }
 
 entrypoint = ["bash", "-c", "python3 -u /app/main.py"]
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.5"

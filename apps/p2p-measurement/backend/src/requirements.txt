@@ -1,5 +1,4 @@
-depthai==3.2.1
-#depthai-nodes==0.3.7
-depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@c0f382fbe6514b62b8e98b6b805e5023c9c9438c   # depth visualization in ApplyColormap
+depthai==3.3.0
+depthai-nodes==0.4.0
 opencv-contrib-python==4.12.0.88
 numpy>=1.22

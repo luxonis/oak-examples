@@ -1,0 +1,2 @@
+model: qrdet:nano-512x288
+platform: RVC4

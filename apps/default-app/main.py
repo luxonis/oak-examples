@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import cv2
 import depthai as dai
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 from typing import Optional
 from utils.arguments import initialize_argparser
 
@@ -10,7 +10,6 @@ _, args = initialize_argparser()
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
-STEREO_RESOLUTION = (800, 600)
 NN_DIMENSIONS = (512, 288)
 
 if not device.setIrLaserDotProjectorIntensity(1):
@@ -73,11 +72,22 @@ with dai.Pipeline(device) as pipeline:
             right=right_cam.requestFullResolutionOutput(dai.ImgFrame.Type.NV12),
             presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
         )
-        stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-        if platform == dai.Platform.RVC2:
-            stereo.setOutputSize(*STEREO_RESOLUTION)
 
-        coloredDepth = pipeline.create(ApplyColormap).build(stereo.disparity)
+        # RVC4 does not support stereo.setDepthAlign, ImageAlign node used instead
+        if platform == dai.Platform.RVC4:
+            cam_out = cameraNode.requestOutput(
+                (640, 480), type=dai.ImgFrame.Type.NV12, enableUndistortion=True
+            )
+            align = pipeline.create(dai.node.ImageAlign)
+            stereo.depth.link(align.input)
+            cam_out.link(align.inputAlignTo)
+            coloredDepth = pipeline.create(ApplyDepthColormap).build(
+                align.outputAligned
+            )
+        else:
+            stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
+            stereo.setOutputSize(800, 600)
+            coloredDepth = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
         coloredDepth.setColormap(cv2.COLORMAP_JET)
         visualizer.addTopic("Depth", coloredDepth.out)
 
