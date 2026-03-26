@@ -6,7 +6,7 @@ assign_frontend_port = true
 prepare_container = [
     { type = "COPY", source = "./requirements.txt", target = "./requirements.txt" },
     { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages" },
-    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y libhidapi-hidraw0 libhidapi-libusb0'" }
+    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y libhidapi-hidraw0 libhidapi-libusb0'" },
 ]
 
 build_steps = [
@@ -20,7 +20,7 @@ allowed_devices = [{ allow = true, access = "rwm" }]
 additional_mounts = [
     { source = "/dev", target = "/dev", type = "devtmpfs", options = [
         "mode=777",
-    ] }
+    ] },
 ]
 
 [base_image]

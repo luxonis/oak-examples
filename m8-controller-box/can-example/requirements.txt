@@ -1,2 +1,3 @@
 hidapi
 python-can
+git+https://github.com/luxonis/rp2040_u2if.git

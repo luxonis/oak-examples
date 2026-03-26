@@ -1,17 +1,28 @@
+"""
+Controller Box CAN Button IRQ Example
+------------------------------------
+
+Demonstrates how to send a CAN frame using
+ControllerBox button events without polling.
+Uses GPIO interrupts instead of continuous polling.
+"""
+
 import time
 import can
-from utils.rp2040_u2if import RP2040_u2if
+from luxonis_u2if import ControllerBox
 
-# button
-BUTTON_PIN = 19
 
-rp2040 = RP2040_u2if()
-rp2040.open()
+# ------------------------------------------------------------
+# Connect to ControllerBox device
+# ------------------------------------------------------------
 
-# Button uses pull-up; typical behavior: released=1, pressed=0
-rp2040.gpio_init_pin(BUTTON_PIN, RP2040_u2if.GPIO_IN, RP2040_u2if.GPIO_PULL_UP)
+box = ControllerBox()
 
-# --- CAN (python-can with SocketCAN) ---
+
+# ------------------------------------------------------------
+# CAN configuration
+# ------------------------------------------------------------
+
 CAN_IFACE = "can0"
 CAN_ID = 0x123
 CAN_DATA = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88]
@@ -20,6 +31,9 @@ bus = can.interface.Bus(channel=CAN_IFACE, interface="socketcan")
 
 
 def send_can_frame():
+    """
+    Send a predefined CAN frame.
+    """
     msg = can.Message(
         arbitration_id=CAN_ID,
         data=CAN_DATA,
@@ -29,26 +43,46 @@ def send_can_frame():
     print(f"Sent CAN: {CAN_IFACE} id=0x{CAN_ID:X} data={CAN_DATA}")
 
 
-# --- Button edge detection (send once per press) ---
-last_button_state = rp2040.gpio_get_pin(BUTTON_PIN)
+# ------------------------------------------------------------
+# Button callback
+# ------------------------------------------------------------
 
-# Debounce
-last_press_time = 0.0
-debounce_s = 0.05
+BUTTON_INDEX = 1  # Button 1
+button_pin = ControllerBox.BUTTON_PINS[BUTTON_INDEX - 1]
 
-while True:
-    button_state = rp2040.gpio_get_pin(BUTTON_PIN)
+def button_cb(btn, state):
+    """
+    Triggered on button press/release.
 
-    # With pull-up: a press is usually 1->0 (falling edge)
-    now = time.monotonic()
-    pressed_edge = (last_button_state != 0) and (button_state == 0)
-
-    if pressed_edge and (now - last_press_time) > debounce_s:
+    Parameters
+    ----------
+    btn : int
+        Button index (1..3)
+    state : bool
+        True = pressed, False = released
+    """
+    if btn == BUTTON_INDEX and state:  # pressed
         try:
             send_can_frame()
         except Exception as e:
             print(f"[ERROR] Failed to send CAN frame: {e}")
-        last_press_time = now
 
-    last_button_state = button_state
-    time.sleep(0.001)
+
+# ------------------------------------------------------------
+# Register callback
+# ------------------------------------------------------------
+
+box.set_btn_callback(button_cb)
+
+
+print("ControllerBox ready")
+print("Press Button 1 to send CAN frame")
+
+
+# ------------------------------------------------------------
+# Main loop
+# ------------------------------------------------------------
+
+# Nothing required here — button events handled via IRQ
+while True:
+    time.sleep(1)
