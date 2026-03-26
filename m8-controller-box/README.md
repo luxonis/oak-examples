@@ -1,6 +1,6 @@
 # M8 Controller Box (PR1)
 
-The **M8 Controller Box (PR1)** is a M8-connected expansion module designed for integrating CAN devices, GPIO, relays, and peripheral interfaces into OAK-based systems.
+The **M8 Controller Box (PR1)** is a USB-connected expansion module designed for integrating CAN devices, GPIO, relays, and peripheral interfaces into OAK-based systems.
 
 This document serves as the **primary usage reference** for the M8 Controller Box within `oak-examples`.
 
@@ -13,16 +13,14 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 * Baud rates up to **1 Mbps**
 * Native **Linux SocketCAN** interface
 
-> CAN setup is handled within example applications. Refer to the `can-example` for usage.
-
-
+> For more information look at the [example](./can-example/).
 
 ### USB Audio
 
 * Integrated **buzzer / 3.5mm audio output**
 * Available via internal USB connection
 
-
+> For more information look at the [example](./simple-example/)
 
 ### USB Expansion
 
@@ -31,12 +29,11 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 * Up to **500mA current limit (shared)**
 
 
-
 ### Serial Interface
 
 * **1× RS232 interface**
 
-
+> For more information look at the [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_serial.py).
 
 ### Isolated Strobe Driver
 
@@ -56,7 +53,7 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 
 * Total combined current must not exceed **50mA**
 
-
+> For more information look at the [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_gpio_irq.py).
 
 ### Power Relays
 
@@ -64,14 +61,14 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 * Up to **16A current**
 * Maximum **400VAC switching voltage**
 
-
+> For more information look at the [strobe-relay example](./strobe-relay-example/) (extra [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_relay.py)).
 
 ### User Interface
 
 * **3× physical buttons**
 * **3× status LEDs**
 
-
+> For more example look at the [simple-example](./simple-example/)
 
 ## Pinout
 
@@ -85,33 +82,34 @@ Device-level pinout is shown below:
 
 The repository includes reference applications demonstrating typical usage.
 
-### simple-example
+### [simple-example](./simple-example/)
 
-* Blinks LED on GPIO18
-* Button on GPIO19 toggles LED on GPIO17
+* Blinks LED 1
+* Button 2 toggles LED 2
 
 
-
-### depthai-example
+### [depthai-example](./depthai-example/)
 
 * Based on Luxonis hand pose detection
-* Turns on LED (GPIO17) when a hand is detected
+* Turns on LED 1 when a hand is detected
 
 
+### [can-example](./can-example/)
 
-### can-example
-
-* Monitors button on GPIO19
-* Sends CAN frame on press via `can0`
+* Monitors button 1
+* Sends CAN frame on press
 * Uses Linux SocketCAN (`python-can`)
 
+### [strobe-relay-example](./strobe-relay-example/)
 
+* Detects barcodes using `pyzbar`
+* On barcode detection it switches relay
 
 ## Notes
 
 * GPIO and peripheral control is exposed via the **u2if (USB-to-interfaces) protocol**
 * Example applications demonstrate recommended interaction patterns
-
+* Additional example repo: [rp2040_u2if](https://github.com/luxonis/rp2040_u2if)
 
 
 ## Support
