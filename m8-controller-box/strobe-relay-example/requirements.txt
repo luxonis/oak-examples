@@ -4,5 +4,4 @@ depthai
 numpy
 opencv-python-headless
 pyzbar
-Flask
 Pillow

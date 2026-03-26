@@ -1,146 +1,119 @@
-# M8 Controller Box (PR1 Prototype)
+# M8 Controller Box (PR1)
 
-The **M8 Controller Box (PR1)** is a versatile USB-connected I/O and communication expansion module designed to simplify integration with CAN devices, sensors, relays, and general-purpose GPIO.
+The **M8 Controller Box (PR1)** is a M8-connected expansion module designed for integrating CAN devices, GPIO, relays, and peripheral interfaces into OAK-based systems.
 
-It connects directly to your host device via USB and provides a compact, robust interface for industrial and embedded applications.
+This document serves as the **primary usage reference** for the M8 Controller Box within `oak-examples`.
+
 
 ## Key Features
 
-### USB ↔ CAN Bus Interface
+### CAN Interface
 
-- Integrated **USB to CAN transceiver**
-- Connected internally over an on-board **USB 2.0 hub**
-- Powered by **candleLight firmware**
-- Compatible with **can-utils** on Linux
-- Optional **120Ω termination resistor** (not enabled by default)
+* Supports **CAN 2.0A and 2.0B**
+* Baud rates up to **1 Mbps**
+* Native **Linux SocketCAN** interface
 
-**Linux setup example:**
+> CAN setup is handled within example applications. Refer to the `can-example` for usage.
 
-```bash
-sudo ip link set can0 type can bitrate 500000
-sudo ip link set can0 up
-cansend can0 123#1122334455667788
-```
 
-Note: Linux is required for CAN functionality.
 
-### USB Audio (Speaker)
+### USB Audio
 
-- Integrated via USB hub using **PCM2912APJTR**
-- No additional drivers required (Linux tested)
+* Integrated **buzzer / 3.5mm audio output**
+* Available via internal USB connection
 
-### USB 2.0 Expansion
 
-- USB-A ports act as **USB 2.0 extensions**
-- Connected via internal USB hub
-- Up to **500mA current limit**
 
-### UART1 – RS232
+### USB Expansion
 
-Available via dedicated interface.
+* **2× USB-A ports**
+* USB 2.0 speeds
+* Up to **500mA current limit (shared)**
 
-Contact us for configuration and usage details.
 
-### FSYNC & Strobe
 
-Hardware support available.
+### Serial Interface
 
-Contact us for integration support and documentation.
+* **1× RS232 interface**
 
-### IO Interface (via rp2040_u2if)
 
-General-purpose I/O is handled through the **RP2040 USB-to-interface firmware**:
 
-Repository:
-https://github.com/luxonis/rp2040_u2if
+### Isolated Strobe Driver
 
-**Setup:**
+* Supports **5–24V strobe lights**
+* Electrically isolated output
 
-1. Download the repository
-2. Install dependencies
-3. Flash firmware
-4. Refer to pinout diagram for GPIO mapping
 
-## Buttons & LEDs
 
-**Buttons (Top → Bottom):**
+### GPIO
 
-- GPIO19
-- GPIO20
-- GPIO21
+* **16× GPIO pins**
+* 3.3V logic level
+* Reverse voltage protection and ESD protection
+* Configurable as input or output
 
-**LEDs (Top → Bottom):**
+**Electrical limits:**
 
-- GPIO17
-- GPIO16
-- GPIO18
+* Total combined current must not exceed **50mA**
 
-## GPIO Overview
 
-- GPIOs: **0–13, 26, 27**
-- GPIO64–71 available
-- Configurable as:
-  - Outputs
-  - Inputs
 
-## Relays
+### Power Relays
 
-Relays are present in hardware but **not yet supported in firmware**.
+* **4× SPDT latching relays**
+* Up to **16A current**
+* Maximum **400VAC switching voltage**
 
-Contact us for early access support.
 
-## What’s in the Box
 
-- M8 Controller Box (PR1 Prototype)
-- M8 Cable (Male–Female)
-- Plug-in screw terminals:
-  - 3× 6-pin
-  - 1× 4-pin
-  - 2× 3-pin
+### User Interface
 
-## OS & Prerequisites
+* **3× physical buttons**
+* **3× status LEDs**
 
-- Linux required for CAN functionality
-- USB configuration may require:
-  - USB muxing
-  - Forcing USB Host mode
 
-Setup differs between **OAK-4 S** and **OAK-4 D**.
 
-(Example configuration guide coming soon.)
+## Pinout
 
-## Pinout Diagram
+Device-level pinout is shown below:
 
 ![M8 Controller Box Schematics](media/schematics.png)
 
-## Example Application
 
-The repository includes the following example applications:
+
+## Example Applications
+
+The repository includes reference applications demonstrating typical usage.
 
 ### simple-example
 
-A minimal container example running directly on the M8 Controller Box.
+* Blinks LED on GPIO18
+* Button on GPIO19 toggles LED on GPIO17
 
-- LED on **pin 18** blinks continuously
-- Button on **pin 19** turns on LED on **pin 17**
+
 
 ### depthai-example
 
-Based on the official Luxonis hand pose example.
+* Based on Luxonis hand pose detection
+* Turns on LED (GPIO17) when a hand is detected
 
-- Performs hand detection and landmark estimation
-- Turns on LED on **pin 17** when a hand is detected
+
 
 ### can-example
 
-Demonstrates CAN transmission triggered by a physical button.
+* Monitors button on GPIO19
+* Sends CAN frame on press via `can0`
+* Uses Linux SocketCAN (`python-can`)
 
-- Monitors button on **pin 19**
-- Sends a CAN frame over `can0` when pressed
-- Uses `python-can` with Linux SocketCAN
+
+
+## Notes
+
+* GPIO and peripheral control is exposed via the **u2if (USB-to-interfaces) protocol**
+* Example applications demonstrate recommended interaction patterns
+
+
 
 ## Support
 
-For integration help, firmware support, or early-access features:
-
-Please contact us.
+For integration support or early access features, contact Luxonis.
