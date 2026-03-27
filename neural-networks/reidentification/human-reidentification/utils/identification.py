@@ -53,7 +53,7 @@ class IdentificationNode(dai.node.HostNode):
         dets_msg: dai.ImgDetections = gather_data_msg.reference_data
         assert isinstance(dets_msg, dai.ImgDetections)
 
-        rec_msg_list = gather_data_msg.gathered
+        rec_msg_list = gather_data_msg.items
         assert isinstance(rec_msg_list, list)
         assert all(isinstance(msg, dai.NNData) for msg in rec_msg_list)
 

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.box_processing_node import BoxProcessingNode
@@ -6,6 +8,8 @@ from utils.helper_functions import read_intrinsics
 
 
 _, args = initialize_argparser()
+EXAMPLE_DIR = Path(__file__).resolve().parent
+MODEL_DIR = EXAMPLE_DIR / "depthai_models"
 
 NN_WIDTH, NN_HEIGHT = 512, 320
 INPUT_SHAPE = (NN_WIDTH, NN_HEIGHT)
@@ -21,7 +25,7 @@ with dai.Pipeline(device) as p:
     platform = device.getPlatform()
 
     model_description = dai.NNModelDescription.fromYamlFile(
-        f"box_instance_segmentation.{platform.name}.yaml"
+        str(MODEL_DIR / f"box_instance_segmentation.{platform.name}.yaml")
     )
     nn_archive = dai.NNArchive(
         dai.getModelFromZoo(
@@ -76,7 +80,7 @@ with dai.Pipeline(device) as p:
 
     color_output.link(manip.inputImage)
 
-    nn = p.create(ParsingNeuralNetwork).build(nn_source=nn_archive, input=manip.out)
+    nn = p.create(ParsingNeuralNetwork).build(nnSource=nn_archive, input=manip.out)
 
     if platform == dai.Platform.RVC2:
         nn.setNNArchive(nn_archive, numShaves=7)

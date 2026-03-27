@@ -3,11 +3,11 @@ from pathlib import Path
 import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
-    HRNetParser,
     GatherData,
     ImgDetectionsFilter,
     FrameCropper,
 )
+from depthai_nodes.node.parsers import HRNetParser
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -100,9 +100,9 @@ with dai.Pipeline(device) as pipeline:
 
     # detections and recognitions sync
     gather_data_node = pipeline.create(GatherData).build(
-        camera_fps=args.fps_limit,
-        input_data=rec_nn.out,
-        input_reference=detections_filter.out,
+        cameraFps=args.fps_limit,
+        inputData=rec_nn.out,
+        inputReference=detections_filter.out,
     )
 
     # annotation

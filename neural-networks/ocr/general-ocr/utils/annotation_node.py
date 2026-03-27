@@ -18,7 +18,7 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
             passthrough_frame = self.passthrough.get()
 
             detections_list = text_descriptions.reference_data.detections
-            recognitions_list = text_descriptions.gathered
+            recognitions_list = text_descriptions.items
 
             w, h = passthrough_frame.getWidth(), passthrough_frame.getHeight()
 

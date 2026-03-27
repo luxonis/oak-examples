@@ -84,9 +84,9 @@ with dai.Pipeline(device) as pipeline:
 
     # detections and pose estimations sync
     gather_data = pipeline.create(GatherData).build(
-        camera_fps=args.fps_limit,
-        input_data=pose_nn.out,
-        input_reference=detections_filter.out,
+        cameraFps=args.fps_limit,
+        inputData=pose_nn.out,
+        inputReference=detections_filter.out,
     )
 
     # annotation

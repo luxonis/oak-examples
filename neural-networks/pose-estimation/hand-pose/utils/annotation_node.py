@@ -1,6 +1,5 @@
 import depthai as dai
 from depthai_nodes import (
-    Keypoints,
     Predictions,
     GatheredData,
     SECONDARY_COLOR,
@@ -51,9 +50,9 @@ class AnnotationNode(dai.node.HostNode):
         det_list = []
 
         for ix, detection in enumerate(detections_list):
-            keypoints_msg: Keypoints = gathered_data.gathered[ix]["0"]
-            confidence_msg: Predictions = gathered_data.gathered[ix]["1"]
-            handness_msg: Predictions = gathered_data.gathered[ix]["2"]
+            keypoints_msg: dai.KeypointsList = gathered_data.items[ix]["0"]
+            confidence_msg: Predictions = gathered_data.items[ix]["1"]
+            handness_msg: Predictions = gathered_data.items[ix]["2"]
 
             hand_confidence = confidence_msg.prediction
             handness = handness_msg.prediction
@@ -94,7 +93,7 @@ class AnnotationNode(dai.node.HostNode):
             xs = []
             ys = []
 
-            for kp in keypoints_msg.keypoints:
+            for kp in keypoints_msg.getKeypoints():
                 x = min(max(xmin - padding + slope_x * kp.x, 0.0), 1.0)
                 y = min(max(ymin - padding + slope_y * kp.y, 0.0), 1.0)
                 xs.append(x)

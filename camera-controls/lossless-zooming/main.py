@@ -25,7 +25,13 @@ frame_type = (
     else dai.ImgFrame.Type.BGR888p
 )
 
-model_description = dai.NNModelDescription.fromYamlFile(f"yunet.{platform.name}.yaml")
+model_description = dai.NNModelDescription.fromYamlFile(
+    str(
+        Path(__file__).resolve().parent
+        / "depthai_models"
+        / f"yunet.{platform.name}.yaml"
+    )
+)
 nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 model_width = nn_archive.getInputWidth()
 model_height = nn_archive.getInputHeight()

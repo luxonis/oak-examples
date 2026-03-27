@@ -81,14 +81,11 @@ with dai.Pipeline(device) as pipeline:
         crop_node.out, pos_nn_archive
     )
 
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
-    detections_filter.keepLabels(VALID_LABELS)
-
     # detections and position estimations sync
     gather_data = pipeline.create(GatherData).build(
-        camera_fps=args.fps_limit,
-        input_data=pos_nn.getOutput(0),
-        input_reference=detections_filter.out,
+        cameraFps=args.fps_limit,
+        inputData=pos_nn.getOutput(0),
+        inputReference=first_stage_filter.out,
     )
 
     # annotation

@@ -95,9 +95,9 @@ with dai.Pipeline(device) as pipeline:
 
     # detections and embeddings sync
     gather_data = pipeline.create(GatherData).build(
-        camera_fps=args.fps_limit,
-        input_data=embeddings_nn.out,
-        input_reference=det_nn.out,
+        cameraFps=args.fps_limit,
+        inputData=embeddings_nn.out,
+        inputReference=det_nn.out,
     )
 
     # tracking

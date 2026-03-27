@@ -1,9 +1,12 @@
+from pathlib import Path
+
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork, ApplyColormap, DepthMerger
 from utils.arguments import initialize_argparser
 from utils.depth_driven_focus import DepthDrivenFocus
 
 _, args = initialize_argparser()
+MODEL_DIR = Path(__file__).resolve().parent / "depthai_models"
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
@@ -15,7 +18,7 @@ with dai.Pipeline(device) as pipeline:
     platform = device.getPlatform()
 
     model_description = dai.NNModelDescription.fromYamlFile(
-        f"yunet.{platform.name}.yaml"
+        str(MODEL_DIR / f"yunet.{platform.name}.yaml")
     )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 

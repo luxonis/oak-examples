@@ -21,7 +21,7 @@ class AnnotationNode(dai.node.HostNode):
         dets_msg: dai.ImgDetections = gather_data_msg.reference_data
         assert isinstance(dets_msg, dai.ImgDetections)
 
-        rec_msg_list: List[Classifications] = gather_data_msg.gathered
+        rec_msg_list: List[Classifications] = gather_data_msg.items
         assert isinstance(rec_msg_list, list)
         assert all(isinstance(rec_msg, Classifications) for rec_msg in rec_msg_list)
         assert len(dets_msg.detections) == len(rec_msg_list)

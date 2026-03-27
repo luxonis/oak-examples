@@ -2,7 +2,7 @@ import depthai as dai
 from deep_sort_realtime.deepsort_tracker import DeepSort
 from typing import List
 
-from depthai_nodes import GatheredData
+from depthai_nodes.message import GatheredData
 from .visualized_tracklets import VisualizedTracklets
 
 
@@ -41,7 +41,7 @@ class DeepsortTracking(dai.node.HostNode):
 
         detections: dai.ImgDetections = gathered_data.reference_data
         detections = detections.detections
-        recognitions: dai.NNData = gathered_data.gathered
+        recognitions: list[dai.NNData] = gathered_data.items
 
         tracklets = VisualizedTracklets()
         tracklets.setLabels(self._labels)

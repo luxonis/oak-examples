@@ -113,18 +113,18 @@ with dai.Pipeline(device) as pipeline:
     parser.setConfidenceThreshold(0.7)
 
     detection_depth_merger = pipeline.create(DepthMerger).build(
-        output_2d=obj_det_nn.out,
-        output_depth=stereo.depth,
-        calib_data=device.readCalibration2(),
-        depth_alignment_socket=dai.CameraBoardSocket.CAM_A,
-        shrinking_factor=0.1,
+        output2d=obj_det_nn.out,
+        outputDepth=stereo.depth,
+        calibData=device.readCalibration2(),
+        depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
+        shrinkingFactor=0.1,
     )
     palm_depth_merger = pipeline.create(DepthMerger).build(
-        output_2d=palm_det_nn.out,
-        output_depth=stereo.depth,
-        calib_data=device.readCalibration2(),
-        depth_alignment_socket=dai.CameraBoardSocket.CAM_A,
-        shrinking_factor=0.1,
+        output2d=palm_det_nn.out,
+        outputDepth=stereo.depth,
+        calibData=device.readCalibration2(),
+        depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
+        shrinkingFactor=0.1,
     )
 
     # merge both detections into one message

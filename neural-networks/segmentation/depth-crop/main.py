@@ -62,7 +62,7 @@ with dai.Pipeline(device) as pipeline:
     color_output.link(manip.inputImage)
 
     nn = pipeline.create(ParsingNeuralNetwork).build(
-        nn_source=nn_archive, input=manip.out
+        nnSource=nn_archive, input=manip.out
     )
 
     # annotation

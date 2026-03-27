@@ -22,7 +22,7 @@ class AnnotationNode(dai.node.HostNode):
         img_detections_msg: dai.ImgDetections = gather_data_msg.reference_data
         assert isinstance(img_detections_msg, dai.ImgDetections)
 
-        pose_msg_group_list: List[dai.MessageGroup] = gather_data_msg.gathered
+        pose_msg_group_list: List[dai.MessageGroup] = gather_data_msg.items
         assert isinstance(pose_msg_group_list, list)
         assert all(isinstance(msg, dai.MessageGroup) for msg in pose_msg_group_list)
 

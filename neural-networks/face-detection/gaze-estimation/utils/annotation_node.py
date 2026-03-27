@@ -17,7 +17,7 @@ class AnnotationNode(dai.node.HostNode):
         assert isinstance(detections_msg, dai.ImgDetections)
         src_w, src_h = detections_msg.getTransformation().getSize()
 
-        gaze_msg_list: List[dai.NNData] = gather_data_msg.gathered
+        gaze_msg_list: List[dai.NNData] = gather_data_msg.items
         assert isinstance(gaze_msg_list, list)
         assert all(isinstance(rec_msg, dai.NNData) for rec_msg in gaze_msg_list)
         assert len(gaze_msg_list) == len(detections_msg.detections)

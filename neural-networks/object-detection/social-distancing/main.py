@@ -75,16 +75,16 @@ with dai.Pipeline(device) as pipeline:
 
     nn_parser: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         input=rgb,
-        nn_source=det_model_nn_archive,
+        nnSource=det_model_nn_archive,
     )
 
     # produce spatial detections
     depth_merger = pipeline.create(DepthMerger).build(
-        output_2d=nn_parser.out,
-        output_depth=stereo.depth,
-        calib_data=device.readCalibration2(),
-        depth_alignment_socket=dai.CameraBoardSocket.CAM_A,
-        shrinking_factor=0.1,
+        output2d=nn_parser.out,
+        outputDepth=stereo.depth,
+        calibData=device.readCalibration2(),
+        depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
+        shrinkingFactor=0.1,
     )
 
     # annotation

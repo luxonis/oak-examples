@@ -92,9 +92,9 @@ with dai.Pipeline(device) as pipeline:
 
     # detections and recognitions sync
     gather_data_node = pipeline.create(GatherData).build(
-        camera_fps=args.fps_limit,
-        input_data=ocr_nn.out,
-        input_reference=crop_configs_creator.detections_output,
+        cameraFps=args.fps_limit,
+        inputData=ocr_nn.out,
+        inputReference=crop_configs_creator.detections_output,
     )
 
     # annotation
