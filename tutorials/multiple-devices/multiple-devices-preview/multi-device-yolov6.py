@@ -47,7 +47,7 @@ def setup_detection_pipeline(
     nn_archive_obj = dai.NNArchive(archivePath=archive_path)
 
     detector_host_node = pipeline.create(ParsingNeuralNetwork).build(
-        input=cam_node, nn_source=nn_archive_obj
+        input=cam_node, nnSource=nn_archive_obj
     )
 
     visualizer.addTopic(

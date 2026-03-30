@@ -70,7 +70,7 @@ with dai.Pipeline(device) as pipeline:
     det_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         resize_node.out, det_model_nn_archive
     )
-    det_nn.getParser(0).conf_threshold = 0.9  # for more stable detections
+    det_nn.getParser(0).setConfidenceThreshold(0.9)  # for more stable detections
 
     crop_node = (
         pipeline.create(FrameCropper)

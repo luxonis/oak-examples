@@ -2,11 +2,16 @@ from datetime import timedelta
 
 import depthai as dai
 import numpy as np
-from pyzbar.pyzbar import decode
+
+try:
+    from pyzbar.pyzbar import decode
+
+    DECODE = True
+except ImportError:
+    decode = None
+    DECODE = False
 
 from utils.qr_detections import QRDetection, QRDetections
-
-DECODE = True
 
 
 class QRScanner(dai.node.HostNode):
