@@ -12,6 +12,6 @@ In addition to the original example, this version integrates an **M8 Controller 
 
 When a hand is detected:
 
-- The LED connected to **pin 17** on the M8 controller will turn on.
+- **LED 1** on the M8 controller will turn on.
 
 This allows simple hardware feedback triggered directly from hand detection events.

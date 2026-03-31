@@ -8,7 +8,7 @@ The application runs inside a container directly on the device and uses `python-
 
 This example performs the following actions:
 
-- Monitors the button connected to **GPIO pin 19**.
+- Monitors the **button 1**.
 - When the button is pressed, a CAN frame is transmitted over the M8 CAN interface (`can0`).
 
 This provides a minimal, practical reference for sending CAN messages from a containerized application running on the OAK4 device.
@@ -20,8 +20,8 @@ Before running the application, the CAN interface must be configured on the targ
 Run the following commands on the device:
 
 ```bash
-sudo ip link set can0 type can bitrate 500000
-sudo ip link set can0 up
+ip link set can0 type can bitrate 500000
+ip link set can0 up
 ```
 
 This:
@@ -39,7 +39,7 @@ To verify transmission, you can listen to CAN traffic on a Linux system using:
 candump can0
 ```
 
-When the button on **pin 19** is pressed, a CAN frame will appear on the bus.
+When the **button 1** is pressed, a CAN frame will appear on the bus.
 
 ## Use Case
 

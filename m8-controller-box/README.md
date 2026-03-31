@@ -13,14 +13,14 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 * Baud rates up to **1 Mbps**
 * Native **Linux SocketCAN** interface
 
-> For more information look at the [example](./can-example/).
+> For more information look at [can-example](./can-example/)
 
 ### USB Audio
 
 * Integrated **buzzer / 3.5mm audio output**
 * Available via internal USB connection
 
-> For more information look at the [example](./simple-example/)
+> For more information look at the [simple-example](./simple-example/)
 
 ### USB Expansion
 
@@ -33,14 +33,14 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 
 * **1× RS232 interface**
 
-> For more information look at the [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_serial.py).
+> For more information look at the [library example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_serial.py).
 
 ### Isolated Strobe Driver
 
 * Supports **5–24V strobe lights**
 * Electrically isolated output
 
-
+> For more information look at the [strobe-relay example](./strobe-relay-example/)
 
 ### GPIO
 
@@ -53,7 +53,7 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 
 * Total combined current must not exceed **50mA**
 
-> For more information look at the [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_gpio_irq.py).
+> For more information look at the [library example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_gpio_irq.py).
 
 ### Power Relays
 
@@ -61,7 +61,7 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 * Up to **16A current**
 * Maximum **400VAC switching voltage**
 
-> For more information look at the [strobe-relay example](./strobe-relay-example/) (extra [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_relay.py)).
+> For more information look at the [strobe-relay example](./strobe-relay-example/) (library example [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_relay.py)).
 
 ### User Interface
 
@@ -109,9 +109,9 @@ The repository includes reference applications demonstrating typical usage.
 
 * GPIO and peripheral control is exposed via the **u2if (USB-to-interfaces) protocol**
 * Example applications demonstrate recommended interaction patterns
-* Additional example repo: [rp2040_u2if](https://github.com/luxonis/rp2040_u2if)
+* Library repository: [rp2040_u2if](https://github.com/luxonis/rp2040_u2if)
 
 
 ## Support
 
-For integration support or early access features, contact Luxonis.
+For integration support or early access features, contact support@luxonis.com
