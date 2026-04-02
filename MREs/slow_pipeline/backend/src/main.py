@@ -1,15 +1,14 @@
-from pathlib import Path
 import logging
 import numpy as np
 
 import depthai as dai
 from coordinates_mapper import CoordinatesMapper
-from depthai_nodes.node.frame_cropper import FrameCropper
-from depthai_nodes.node.tiling import Tiling
-
+from frame_cropper import FrameCropper
+from tiling import Tiling
 
 TILING_SIZE = (1920 // 4, 1080 // 4)
 OUT_SIZE = (1920 // 4, 1080 // 4)
+RESIZE_SHAPE = (512, 288)
 DEFAULT_TILING_PARAMS = {
     "rows": 4,
     "cols": 4,
@@ -20,28 +19,14 @@ DEFAULT_TILING_PARAMS = {
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-MODEL_DIR = Path(__file__).resolve().parent / "depthai_models"
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device()
 
 with dai.Pipeline(device) as pipeline:
     logger.info("Creating pipeline...")
-
     platform = device.getPlatform()
-    nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(
-            dai.NNModelDescription.fromYamlFile(
-                MODEL_DIR / f"qrdet_nano.{platform.name}.yaml"
-            )
-        )
-    )
     FPS = 30
-
-    # camera = pipeline.create(dai.node.Camera).build(sensorFps=FPS)
-    #
-    # rgb_nn = camera.requestOutput(TILING_SIZE, type=dai.ImgFrame.Type.BGR888i, fps=FPS)
-    # rgb_display = camera.requestOutput(OUT_SIZE, type=dai.ImgFrame.Type.BGR888i, fps=FPS)
     rgb_nn_bench = pipeline.create(dai.node.BenchmarkOut)
     rgb_nn_bench.setFps(FPS)
     rgb_nn_in_q = rgb_nn_bench.input.createInputQueue()
@@ -68,32 +53,38 @@ with dai.Pipeline(device) as pipeline:
         overlap=DEFAULT_TILING_PARAMS["overlap"],
         gridSize=(DEFAULT_TILING_PARAMS["cols"], DEFAULT_TILING_PARAMS["rows"]),
         canvasShape=TILING_SIZE,
-        resizeShape=nn_archive.getInputSize(),
+        resizeShape=RESIZE_SHAPE,
         resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
         globalDetection=DEFAULT_TILING_PARAMS["global_detection"],
         gridMatrix=DEFAULT_TILING_PARAMS["grid_matrix"],
     )
-    print(f"tiling ID: {tiling.id=}")
-
-    tiling_cropper = (
+    frame_cropper = (
         pipeline.create(FrameCropper)
         .fromManipConfigs(tiling.out)
         .build(
             inputImage=rgb_nn,
-            outputSize=nn_archive.getInputSize(),
+            outputSize=RESIZE_SHAPE,
             resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
         )
     )
-    print(f"tiling_cropper ID: {tiling_cropper.id=}")
+    # Comment out FROM HERE if you test the slow variant using the coordinates_mapper
+    # benchmark = pipeline.create(dai.node.BenchmarkIn)
+    # benchmark.sendReportEveryNMessages(1_000)
+    # frame_cropper.out.link(benchmark.input)
+    # bench_out = benchmark.report.createOutputQueue()
+    # Comment out TO HERE if you test the slow variant using the coordinates_mapper
+
+    # Comment out FROM HERE if you test without coordinates_mapper which is still fast
     coordinates_mapper = pipeline.create(CoordinatesMapper).build(
         toTransformationInput=rgb_nn,
-        fromTransformationInput=tiling_cropper.out,
+        fromTransformationInput=frame_cropper.out,
     )
 
     benchmark = pipeline.create(dai.node.BenchmarkIn)
     benchmark.sendReportEveryNMessages(1_000)
     coordinates_mapper.out.link(benchmark.input)
     bench_out = benchmark.report.createOutputQueue()
+    # Comment out TO HERE if you test without coordinates_mapper which is still fast
 
     logger.info("Pipeline created. Starting...")
     pipeline.start()

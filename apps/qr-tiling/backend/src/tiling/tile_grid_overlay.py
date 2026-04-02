@@ -1,4 +1,3 @@
-import time
 from typing import Callable, List, Tuple
 
 import cv2
@@ -98,29 +97,16 @@ class TileGridOverlay(BaseHostNode):
         tile_positions: List[Tuple[int, int, int, int]],
     ) -> np.ndarray:
         """Draw tile grid overlay on the frame."""
-        draw_start = time.monotonic()
         frame_h, frame_w = frame.shape[:2]
         scaled_positions = self._scale_positions(tile_positions, (frame_w, frame_h))
-
-        copy_start = time.monotonic()
         overlay = frame.copy()
-        copy_end = time.monotonic()
-
-        rectangles_start = time.monotonic()
         for idx, (x1, y1, x2, y2) in enumerate(scaled_positions):
             color = self._colors[idx % len(self._colors)]
-
             cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
-
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        rectangles_end = time.monotonic()
 
-        blend_start = time.monotonic()
         frame = cv2.addWeighted(overlay, 0.3, frame, 0.7, 0)
-        blend_end = time.monotonic()
-
         text = f"Tiles: {len(tile_positions)}"
-        text_start = time.monotonic()
         cv2.putText(
             frame,
             text,
@@ -131,15 +117,4 @@ class TileGridOverlay(BaseHostNode):
             2,
             cv2.LINE_AA,
         )
-        text_end = time.monotonic()
-        print(
-            "OVERLAY DRAW "
-            f"total={text_end - draw_start:.6f}s "
-            f"copy={copy_end - copy_start:.6f}s "
-            f"rectangles={rectangles_end - rectangles_start:.6f}s "
-            f"blend={blend_end - blend_start:.6f}s "
-            f"text={text_end - text_start:.6f}s "
-            f"tiles={len(tile_positions)}"
-        )
-
         return frame

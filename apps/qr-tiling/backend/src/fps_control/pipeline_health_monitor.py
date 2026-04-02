@@ -17,12 +17,12 @@ class PipelineHealthConfig:
     poll_interval_sec: float = 0.5
     settle_after_tile_change_sec: float = 2.0
     skip_node_names: tuple = (
-        "Script",
-        "ImageManip",
-        "XLinkOut",
-        "XLinkOutHost",
-        "XLinkIn",
-        "XLinkInHost",
+        # "Script",
+        # "ImageManip",
+        # "XLinkOut",
+        # "XLinkOutHost",
+        # "XLinkIn",
+        # "XLinkInHost",
         "Sync",
         "Camera",
         "VideoEncoder",
@@ -209,22 +209,39 @@ class PipelineHealthMonitor(dai.node.ThreadedHostNode):
         state = self._pipeline.getPipelineState().nodes().detailed()
         blocked_nodes = []
         queue_details = []
+        stats = []
 
         for node_id, node_state in state.nodeStates.items():
             node = self._pipeline.getNode(node_id)
             node_name = node.getName() if node else "unknown"
+            main_loop_dur = (
+                node_state.mainLoopTiming.durationStats.averageMicrosRecent // 1_000
+            )
+            input_dur = (
+                node_state.inputsGetTiming.durationStats.averageMicrosRecent // 1_000
+            )
+            output_dur = (
+                node_state.outputsSendTiming.durationStats.averageMicrosRecent // 1_000
+            )
+            out_fps = node_state.outputsSendTiming.fps
+
             if node_name in self._config.skip_node_names:
                 continue
-
             label_prefix = f"{node_name}[{node_id}]"
+            input_fps = f"{label_prefix}"
             for input_name, input_queue in node_state.inputStates.items():
                 label = f"{label_prefix}/{input_name}"
+                input_fps += f"{input_name}: {input_queue.timing.durationStats.averageMicrosRecent // 1_000} ms Q: {input_queue.queueStats.maxQueuedRecent} "
                 if input_queue.state == input_queue.State.BLOCKED:
                     queue_details.append(
                         f"{label}(queued={input_queue.numQueued}, state={input_queue.state.name})"
                     )
                     blocked_nodes.append(label)
+            stats.append(
+                f"{input_fps} MAIN: {main_loop_dur}ms, IN: {input_dur}ms, OUT: {output_dur}ms, OUT FPS: {out_fps}"
+            )
 
+        print("\n".join(stats))
         has_blocked = len(blocked_nodes) > 0
         self._blocked_inputs_history.append(has_blocked)
         blocked_count = sum(self._blocked_inputs_history)
@@ -273,6 +290,7 @@ class PipelineHealthMonitor(dai.node.ThreadedHostNode):
             self._try_rise()
 
     def _drop_fps(self, step: int) -> None:
+        return
         new_fps = max(self._config.min_fps, self._output_fps - step)
         self._post_drop_cooldown_left = self._config.post_drop_hold_polls
 
