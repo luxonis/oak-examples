@@ -1,10 +1,21 @@
-import time
+from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 import depthai as dai
 import numpy as np
 
 from depthai_nodes.node.base_threaded_host_node import BaseThreadedHostNode
+
+
+@dataclass
+class TilingCfg:
+    overlap: float
+    gridSize: Tuple[int, int]
+    canvasShape: Tuple[int, int]
+    resizeShape: Tuple[int, int]
+    resizeMode: dai.ImageManipConfig.ResizeMode
+    globalDetection: bool
+    gridMatrix: Union[np.ndarray, List, None]
 
 
 class Tiling(BaseThreadedHostNode):
@@ -19,66 +30,39 @@ class Tiling(BaseThreadedHostNode):
     configured via ``fromManipConfigs``.
     """
 
-    SCRIPT_CONTENT = """
-try:
-    def clone_message_group(msg_group):
-        new_group = MessageGroup()
-        for name in msg_group.getMessageNames():
-            new_group[name] = msg_group[name]
-        return new_group
-
-    latest_cfg = node.inputs['cfg'].get()
-
-    while True:
-        trigger = node.inputs['trigger'].get()
-        cfg = node.inputs['cfg'].tryGet()
-        if cfg is not None:
-            latest_cfg = cfg
-
-        cfg_to_send = clone_message_group(latest_cfg)
-        cfg_to_send.setSequenceNum(trigger.getSequenceNum())
-        cfg_to_send.setTimestamp(trigger.getTimestamp())
-        cfg_to_send.setTimestampDevice(trigger.getTimestampDevice())
-        node.outputs['cfg_group'].send(cfg_to_send)
-
-except Exception as e:
-    node.error(str(e))
-"""
-
     def __init__(self) -> None:
         super().__init__()
 
-        self._script = self._pipeline.create(dai.node.Script)
-        self._script.setScript(self.SCRIPT_CONTENT)
-        self._script.outputs["cfg_group"].setPossibleDatatypes(
-            [(dai.DatatypeEnum.MessageGroup, True)]
-        )
-
         self._cfg_out = self.createOutput()
-        self._crop_configs: List[dai.ImageManipConfig] = []
-        self._cfg_group: Optional[dai.MessageGroup] = None
-        self._is_built = False
+        self._cfg_out.setPossibleDatatypes([(dai.DatatypeEnum.MessageGroup, True)])
+        self._tiling_cfg: Optional[TilingCfg] = None
         self._logger.debug("Tiling initialized")
 
     @property
     def out(self) -> dai.Node.Output:
         """Return the output stream of tile configuration groups."""
-        return self._script.outputs["cfg_group"]
+        return self._cfg_out
 
     @property
     def tileCount(self) -> int:
         """Return the number of tiles in the current configuration."""
-        return len(self._crop_configs)
+        return self._tiling_cfg.gridSize[0] * self._tiling_cfg.gridSize[1] + int(
+            self._tiling_cfg.globalDetection
+        )
 
-    def setTilingConfig(
+    @property
+    def tilePositions(self) -> list[tuple[int, int, int, int]]:
+        return self._computeTilePositions(tiling_cfg=self._tiling_cfg)
+
+    def updateTilingConfig(
         self,
-        overlap: float,
-        gridSize: Tuple[int, int],
-        canvasShape: Tuple[int, int],
-        resizeShape: Tuple[int, int],
-        resizeMode: dai.ImageManipConfig.ResizeMode,
-        globalDetection: bool = False,
-        gridMatrix: Union[np.ndarray, List, None] = None,
+        overlap: Optional[float] = None,
+        gridSize: Optional[Tuple[int, int]] = None,
+        canvasShape: Optional[Tuple[int, int]] = None,
+        resizeShape: Optional[Tuple[int, int]] = None,
+        resizeMode: Optional[dai.ImageManipConfig.ResizeMode] = None,
+        globalDetection: Optional[bool] = None,
+        gridMatrix: Optional[Union[np.ndarray, List, None]] = None,
     ) -> None:
         """Update the tiling configuration used for future trigger messages.
 
@@ -102,23 +86,28 @@ except Exception as e:
             Optional grouping matrix for merging neighboring grid cells into
             larger crops.
         """
-        tile_positions = self._computeTilePositions(
-            overlap=overlap,
-            grid_size=gridSize,
-            canvas_shape=canvasShape,
-            grid_matrix=gridMatrix,
-            global_detection=globalDetection,
-        )
-        self._crop_configs = self._generateManipConfigs(
-            tile_positions=tile_positions,
-            resize_shape=resizeShape,
-            resize_mode=resizeMode,
-        )
-        self._cfg_group = self._createMessageGroup(self._crop_configs)
+        if self._tiling_cfg is None:
+            raise RuntimeError("Tiling was not built yet. Call `build()` first.")
+
+        if overlap is not None:
+            self._tiling_cfg.overlap = overlap
+        if gridSize is not None:
+            self._tiling_cfg.gridSize = gridSize
+        if canvasShape is not None:
+            self._tiling_cfg.canvasShape = canvasShape
+        if resizeShape is not None:
+            self._tiling_cfg.resizeShape = resizeShape
+        if resizeMode is not None:
+            self._tiling_cfg.resizeMode = resizeMode
+        if globalDetection is not None:
+            self._tiling_cfg.globalDetection = globalDetection
+        if gridMatrix is not None:
+            self._tiling_cfg.gridMatrix = gridMatrix
+
+        self._process_tiling_config()
 
     def build(
         self,
-        trigger: dai.Node.Output,
         overlap: float,
         gridSize: Tuple[int, int],
         canvasShape: Tuple[int, int],
@@ -131,9 +120,6 @@ except Exception as e:
 
         Parameters
         ----------
-        trigger
-            Any upstream message stream used only to trigger output of the latest
-            tiling configuration.
         overlap
             Fractional overlap between adjacent tiles in the range ``[0, 1)``.
         gridSize
@@ -157,7 +143,7 @@ except Exception as e:
         Tiling
             The configured node instance.
         """
-        self.setTilingConfig(
+        self._tiling_cfg = TilingCfg(
             overlap=overlap,
             gridSize=gridSize,
             canvasShape=canvasShape,
@@ -166,11 +152,6 @@ except Exception as e:
             globalDetection=globalDetection,
             gridMatrix=gridMatrix,
         )
-
-        self._cfg_out.link(self._script.inputs["cfg"])
-        trigger.link(self._script.inputs["trigger"])
-        self._is_built = True
-
         self._logger.debug(
             "Tiling built with overlap=%s, gridSize=%s, canvasShape=%s, resizeShape=%s, globalDetection=%s",
             overlap,
@@ -182,12 +163,18 @@ except Exception as e:
         return self
 
     def run(self) -> None:
-        """Send the latest tiling configuration to the script node when updated."""
-        while self._pipeline.isRunning():
-            if self._cfg_group is not None:
-                self._cfg_out.send(self._cfg_group)
-                self._cfg_group = None
-                time.sleep(0.1)
+        """Send the initial tiling configuration to the script node when updated."""
+        self._process_tiling_config()
+
+    def _process_tiling_config(self) -> None:
+        tile_positions = self._computeTilePositions(tiling_cfg=self._tiling_cfg)
+        crop_configs = self._generateManipConfigs(
+            tile_positions=tile_positions,
+            resize_shape=self._tiling_cfg.resizeShape,
+            resize_mode=self._tiling_cfg.resizeMode,
+        )
+        cfg_group = self._createMessageGroup(crop_configs)
+        self.out.send(cfg_group)
 
     def _createMessageGroup(
         self, crop_configs: List[dai.ImageManipConfig]
@@ -199,23 +186,24 @@ except Exception as e:
 
     def _computeTilePositions(
         self,
-        overlap: float,
-        grid_size: Tuple[int, int],
-        canvas_shape: Tuple[int, int],
-        grid_matrix: Union[np.ndarray, List, None],
-        global_detection: bool,
+        tiling_cfg: TilingCfg,
     ) -> List[Tuple[int, int, int, int]]:
-        tile_dims = self._calculateTiles(grid_size, canvas_shape, overlap)
+        tile_dims = self._calculateTiles(
+            grid_size=tiling_cfg.gridSize,
+            canvas_shape=tiling_cfg.canvasShape,
+            overlap=tiling_cfg.overlap,
+        )
+        grid_matrix = tiling_cfg.gridMatrix
         if grid_matrix is None:
-            n_tiles_w, n_tiles_h = grid_size
+            n_tiles_w, n_tiles_h = tiling_cfg.gridSize
             grid_matrix = [
                 [j + i * n_tiles_w for j in range(n_tiles_w)] for i in range(n_tiles_h)
             ]
-        if grid_size != (len(grid_matrix[0]), len(grid_matrix)):
+        if tiling_cfg.gridSize != (len(grid_matrix[0]), len(grid_matrix)):
             raise ValueError("Grid matrix dimensions do not match the grid size.")
 
-        n_tiles_w, n_tiles_h = grid_size
-        img_width, img_height = canvas_shape
+        n_tiles_w, n_tiles_h = tiling_cfg.gridSize
+        img_width, img_height = tiling_cfg.canvasShape
         tile_width, tile_height = tile_dims
 
         labels = [[-1 for _ in range(n_tiles_w)] for _ in range(n_tiles_h)]
@@ -261,7 +249,7 @@ except Exception as e:
                 components[comp_id].append((i, j))
 
         tile_positions = []
-        if global_detection:
+        if tiling_cfg.globalDetection:
             tile_positions.append((0, 0, img_width, img_height))
 
         for positions in components.values():
@@ -271,8 +259,8 @@ except Exception as e:
             y2_list = []
 
             for i, j in positions:
-                x1_tile = int(j * tile_width * (1 - overlap))
-                y1_tile = int(i * tile_height * (1 - overlap))
+                x1_tile = int(j * tile_width * (1 - tiling_cfg.overlap))
+                y1_tile = int(i * tile_height * (1 - tiling_cfg.overlap))
                 x2_tile = min(int(x1_tile + tile_width), img_width)
                 y2_tile = min(int(y1_tile + tile_height), img_height)
 

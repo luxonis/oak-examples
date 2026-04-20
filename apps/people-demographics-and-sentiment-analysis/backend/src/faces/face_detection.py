@@ -1,13 +1,13 @@
 import depthai as dai
 
-from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsBridge
+from depthai_nodes.node import ParsingNeuralNetwork
 from .filter_n_largest_bboxes import FilterNLargestBBoxes
 
 
 class FaceDetectionNode(dai.node.ThreadedHostNode):
     """
     High-level node grouping the face detection pipeline block:
-        ImageManip -> ParsingNeuralNetwork -> FilterNLargestBBoxes -> ImgDetectionsBridge
+        ImageManip -> ParsingNeuralNetwork -> FilterNLargestBBoxes
 
     Acts as a structural container (NodeGroup); it only creates and wires subnodes and
     does not process messages at runtime.
@@ -22,15 +22,13 @@ class FaceDetectionNode(dai.node.ThreadedHostNode):
         self._filtered_face_det: FilterNLargestBBoxes = self.createSubnode(
             FilterNLargestBBoxes
         )
-        self._filtered_face_det_bridge: ImgDetectionsBridge = self.createSubnode(
-            ImgDetectionsBridge
-        )
 
         self.inputImage: dai.Node.Input = self._img_manip.inputImage
         self.filtered_output: dai.Node.Output = self._filtered_face_det.out
-        self.filtered_bridge_output: dai.Node.Output = (
-            self._filtered_face_det_bridge.out
-        )
+
+    @property
+    def out(self):
+        return self._filtered_face_det.out
 
     def build(
         self, image_source: dai.Node.Output, archive: dai.NNArchive
@@ -45,13 +43,12 @@ class FaceDetectionNode(dai.node.ThreadedHostNode):
 
         self._nn.build(self._img_manip.out, archive)
         self._nn.getParser().setConfidenceThreshold(0.85)
-        self._nn.getParser().setIOUThreshold(0.75)
+        self._nn.getParser().setIouThreshold(0.75)
 
         self._filtered_face_det.build(
             face_detections=self._nn.out,
             n_face_crops=self._max_faces,
         )
-        self._filtered_face_det_bridge.build(self._filtered_face_det.out)
 
         return self
 

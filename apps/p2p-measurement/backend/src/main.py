@@ -36,6 +36,7 @@ with dai.Pipeline(device) as pipeline:
         size=(FRAME_WIDTH, FRAME_HEIGHT),
         type=dai.ImgFrame.Type.RGB888i,
         fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
     left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)

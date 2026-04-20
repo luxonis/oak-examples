@@ -131,8 +131,8 @@ class NNDetectionController:
         if label_offset < 0:
             raise ValueError("label_offset must be >= 0")
 
-        self._det_filter.setLabels(
-            labels=list(range(label_offset, label_offset + len(label_names))), keep=True
+        self._det_filter.keepLabels(
+            labels=list(range(label_offset, label_offset + len(label_names)))
         )
 
         encoding = {label_offset + k: v for k, v in enumerate(label_names)}

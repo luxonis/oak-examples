@@ -1,7 +1,6 @@
-import time
-
 import depthai as dai
 
+from depthai_nodes.message import Collection
 from depthai_nodes.node.base_threaded_host_node import BaseThreadedHostNode
 from depthai_nodes.node.utils.message_remapping import remap_message
 
@@ -128,38 +127,18 @@ except Exception as e:
         """Cache the latest target transformation and remap incoming messages."""
         first_target_msg = self._to_transformation_input.get()
         self._cached_transformation = self._extract_transformation(first_target_msg)
-        last_report = time.monotonic()
-        durations = []
-        total_durations = []
-
         while self.isRunning():
-            start_time = time.monotonic()
             new_target_msg = self._to_transformation_input.tryGet()
-            # if new_target_msg is not None:
-            #     self._cached_transformation = self._extract_transformation(
-            #         new_target_msg
-            #     )
-            # from_transformation_msg = self._from_transformation_input.get()
-            # remapped_message = self._remap_message(
-            #     msg=from_transformation_msg,
-            #     to_transformation=self._cached_transformation,
-            # )
-            remapped_message = self._from_transformation_input.get()
-
-            end_time = time.monotonic()
-            durations.append(end_time - start_time)
-            self.out.send(remapped_message)
-            total_end_time = time.monotonic()
-            total_durations.append(total_end_time - start_time)
-            if end_time - last_report > 2:
-                last_report = end_time
-                avg_duration = sum(durations) / len(durations)
-                avg_total_duration = sum(total_durations) / len(total_durations)
-                print(f"TOOK AVG: {avg_duration} ms FPS: {1 / avg_duration}")
-                print(
-                    f"TOTA AVG: {avg_total_duration} ms FPS: {1 / avg_total_duration}"
+            if new_target_msg is not None:
+                self._cached_transformation = self._extract_transformation(
+                    new_target_msg
                 )
-                durations.clear()
+            from_transformation_msg = self._from_transformation_input.get()
+            remapped_message = self._remap_message(
+                msg=from_transformation_msg,
+                to_transformation=self._cached_transformation,
+            )
+            self.out.send(remapped_message)
 
     def _extract_transformation(
         self, to_transformation_msg: dai.ImgFrame
@@ -188,6 +167,19 @@ except Exception as e:
             new_msg_group.setSequenceNum(msg.getSequenceNum())
             new_msg_group.setTimestampDevice(msg.getTimestampDevice())
             return new_msg_group
+        elif isinstance(msg, Collection):
+            remapped_msgs = []
+            for m in msg.items:
+                remapped_msg = self._remap_message(
+                    msg=m, to_transformation=to_transformation
+                )
+                remapped_msgs.append(remapped_msg)
+            new_collection = Collection(items=remapped_msgs)
+            new_collection.setTimestamp(msg.getTimestamp())
+            new_collection.setSequenceNum(msg.getSequenceNum())
+            new_collection.setTimestampDevice(msg.getTimestampDevice())
+            return new_collection
+
         try:
             remapped_msg = remap_message(
                 message=msg,

@@ -53,7 +53,10 @@ with dai.Pipeline(device) as pipeline:
         boardSocket=dai.CameraBoardSocket.CAM_A
     )
     cam_out = cam.requestOutput(
-        size=(640, 400), type=dai.ImgFrame.Type.RGB888i, fps=args.fps_limit
+        size=(640, 400),
+        type=dai.ImgFrame.Type.RGB888i,
+        fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
     left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
@@ -106,7 +109,7 @@ with dai.Pipeline(device) as pipeline:
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
 
     det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.setLabels(labels=[i for i in range(len(CLASS_NAMES))], keep=True)
+    det_process_filter.keepLabels(labels=[i for i in range(len(CLASS_NAMES))])
 
     # Annotation node
     annotation_node = pipeline.create(AnnotationNode).build(
@@ -154,9 +157,7 @@ with dai.Pipeline(device) as pipeline:
         )
         textInputQueue.send(inputNNData)
 
-        det_process_filter.setLabels(
-            labels=[i for i in range(len(CLASS_NAMES))], keep=True
-        )
+        det_process_filter.keepLabels(labels=[i for i in range(len(CLASS_NAMES))])
         annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
         print(f"Classes set to: {CLASS_NAMES}")
 

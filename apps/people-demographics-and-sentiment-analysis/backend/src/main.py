@@ -48,7 +48,7 @@ def main():
         face_crops_node = pipeline.create(FaceCropsNode).build(
             camera_fps=sys_config.video.fps,
             preview_source=cam_out,
-            detections_source=face_det_node.filtered_bridge_output,
+            detections_source=face_det_node.out,
             face_reference_detections=face_det_node.filtered_output,
         )
 

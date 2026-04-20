@@ -84,9 +84,11 @@ class FrameCropper(BaseThreadedHostNode):
                 # We receive 1 detection count message and image per frame
                 frame = node.inputs['inputImage'].get()
                 img_detections = node.inputs['inputImgDetections'].get()
+                node.outputs['manip_img'].send(frame)
                 for det in img_detections.detections:
                     rot_rect = det.getBoundingBox()
                     cfg = ImageManipConfig()
+                    cfg.setReusePreviousImage(True)
                     cfg.addCropRotatedRect(rect=pad_rotated_rect(rot_rect, PADDING), normalizedCoords=True)
                     cfg.setTimestamp(img_detections.getTimestamp())
                     cfg.setTimestampDevice(img_detections.getTimestampDevice())
@@ -94,24 +96,32 @@ class FrameCropper(BaseThreadedHostNode):
                     cfg.setOutputSize(OUT_WIDTH, OUT_HEIGHT, RESIZE_MODE)
                     cfg.setFrameType(FRAME_TYPE)
                     node.outputs['manip_cfg'].send(cfg)
-                    node.outputs['manip_img'].send(frame)
 
         except Exception as e:
             node.error(str(e))
         """
     )
 
-    MANIP_CONFIGS_SCRIPT_CONTENT = """
+    MANIP_CONFIGS_SCRIPT_CONTENT = Template(
+        """
+        wait_for_cfg = $WAIT_FOR_CFG
         try:
+            latest_cfgs = node.inputs['inputManipConfigs'].get()
             while True:
                 frame = node.inputs['inputImage'].get()
-                configs = node.inputs['inputManipConfigs'].get()
-                for key, cfg in configs:
+                if wait_for_cfg:
+                    latest_cfgs =node.inputs['inputManipConfigs'].get()
+                else:
+                    cfgs = node.inputs['inputManipConfigs'].tryGet()
+                    if cfgs:
+                        latest_cfgs = cfgs
+                for key, cfg in latest_cfgs:
                     node.outputs['manip_cfg'].send(cfg)
                     node.outputs['manip_img'].send(frame)
         except Exception as e:
             node.error(str(e))
         """
+    )
 
     def __init__(self):
         super().__init__()
@@ -126,6 +136,7 @@ class FrameCropper(BaseThreadedHostNode):
 
         # when fromManipConfigs is used, script node receives MessageGroup of precomputed configs
         self._input_manip_configs: Optional[dai.Node.Output] = None
+        self._wait_for_cfg = False
         self._logger.debug("FrameCropper initialized")
 
     @property
@@ -151,7 +162,9 @@ class FrameCropper(BaseThreadedHostNode):
         self._padding = padding
         return self
 
-    def fromManipConfigs(self, inputManipConfigs: dai.Node.Output) -> "FrameCropper":
+    def fromManipConfigs(
+        self, inputManipConfigs: dai.Node.Output, waitForConfig: bool
+    ) -> "FrameCropper":
         """Configure cropping from a stream of precomputed ImageManipConfig groups.
 
         Expects `inputManipConfigs` to output dai.MessageGroup messages where each
@@ -167,6 +180,7 @@ class FrameCropper(BaseThreadedHostNode):
             )
         self._version_selected = True
         self._input_manip_configs = inputManipConfigs
+        self._wait_for_cfg = waitForConfig
         return self
 
     def build(
@@ -227,7 +241,10 @@ class FrameCropper(BaseThreadedHostNode):
 
     def _build_manip_configs_cropper(self, input_image: dai.Node.Output):
         self._script = self._pipeline.create(dai.node.Script)
-        self._script.setScript(self.MANIP_CONFIGS_SCRIPT_CONTENT)
+        script_content = self.MANIP_CONFIGS_SCRIPT_CONTENT.substitute(
+            {"WAIT_FOR_CFG": self._wait_for_cfg}
+        )
+        self._script.setScript(script_content)
         input_image.link(self._script.inputs["inputImage"])
         self._input_manip_configs.link(self._script.inputs["inputManipConfigs"])
         self._script.outputs["manip_cfg"].link(self._cropper_image_manip.inputConfig)
