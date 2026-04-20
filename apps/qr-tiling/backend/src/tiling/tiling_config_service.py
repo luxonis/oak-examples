@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from depthai_nodes.node import Tiling
+from .tiling import Tiling
 import depthai as dai
 from pydantic import BaseModel, Field
 
@@ -35,12 +35,11 @@ class TilingConfigService(BaseService[TilingConfigPayload]):
         self._adjust_fps_from_tile_count = adjust_fps_from_tile_count
         self._old_tile_count = tiling.tileCount
         self._current_params = initial_params.copy()
-        self._tile_positions = self._compute_tile_positions()
 
     def handle_typed(self, payload: TilingConfigPayload) -> dict:
         grid_size = (payload.cols, payload.rows)
 
-        self._tiling.setTilingConfig(
+        self._tiling.updateTilingConfig(
             overlap=payload.overlap,
             gridSize=grid_size,
             canvasShape=self._canvas_shape,
@@ -56,7 +55,6 @@ class TilingConfigService(BaseService[TilingConfigPayload]):
             "global_detection": payload.global_detection,
             "grid_matrix": payload.grid_matrix,
         }
-        self._tile_positions = self._compute_tile_positions()
 
         new_tile_count = self._tiling.tileCount
         if new_tile_count != self._old_tile_count:
@@ -69,14 +67,5 @@ class TilingConfigService(BaseService[TilingConfigPayload]):
     def current_params(self) -> dict:
         return self._current_params.copy()
 
-    def _compute_tile_positions(self) -> list[tuple[int, int, int, int]]:
-        return self._tiling._computeTilePositions(
-            overlap=self._current_params["overlap"],
-            grid_size=(self._current_params["cols"], self._current_params["rows"]),
-            canvas_shape=self._canvas_shape,
-            grid_matrix=self._current_params["grid_matrix"],
-            global_detection=self._current_params["global_detection"],
-        )
-
     def get_tile_positions(self) -> list[tuple[int, int, int, int]]:
-        return self._tile_positions.copy()
+        return self._tiling.tilePositions

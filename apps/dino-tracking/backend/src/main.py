@@ -71,7 +71,7 @@ def main():
         )
 
         segmentation_nn = pipeline.create(ParsingNeuralNetwork).build(
-            input=segmentation_rgb, nn_source=constants.nn.segmentation.model_name
+            input=segmentation_rgb, nnSource=constants.nn.segmentation.model_name
         )
 
         dino_nn = pipeline.create(dai.node.NeuralNetwork).build(

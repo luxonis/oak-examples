@@ -5,8 +5,15 @@ import depthai as dai
 import host_nodes
 import pipeline_builders
 from arguments import initialize_argparser
-from depthai_nodes.node.extended_neural_network import ExtendedNeuralNetwork
-from depthai_nodes.node.stage_2_neural_network import Stage2NeuralNetwork
+from depthai_nodes.node import (
+    ImgDetectionsFilter,
+    ExtendedNeuralNetwork,
+    FrameCropper,
+    GatherData,
+    CoordinatesMapper,
+    ParsingNeuralNetwork,
+    Tiling,
+)
 import os
 from pathlib import Path
 
@@ -57,21 +64,15 @@ with dai.Pipeline(device) as pipeline:
     # Naive face detection
     face_detection_naive = pipeline.create(ExtendedNeuralNetwork)
     face_detection_naive.build(
-        input=rgb_low_res_out,
-        input_resize_mode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
-        nn_source=FACE_DETECTION_MODEL,
-        enable_detection_filtering=True,
+        inputImage=rgb_low_res_out,
+        resizeMode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
+        nnSource=FACE_DETECTION_MODEL,
     )
-    largest_face_detection_naive = host_nodes.PickLargestBbox().build(
+    largest_face_detection_naive = pipeline.create(host_nodes.PickLargestBbox).build(
         face_detection_naive.out
     )
-    face_detection_naive_as_img_det = (
-        host_nodes.SafeImgDetectionsExtendedBridge().build(
-            largest_face_detection_naive.out, ignore_angle=True
-        )
-    )
-    switch_naive = host_nodes.Switch().build(
-        face_detection_naive_as_img_det.out, rgb_low_res_out
+    switch_naive = pipeline.create(host_nodes.Switch).build(
+        largest_face_detection_naive.out, rgb_low_res_out
     )
     face_cropper_naive = pipeline_builders.build_roi_cropper(
         pipeline=pipeline,
@@ -93,39 +94,44 @@ with dai.Pipeline(device) as pipeline:
     # 2-stage face detection
     people_detection = pipeline.create(ExtendedNeuralNetwork)
     people_detection.build(
-        input=rgb_low_res_out,
-        input_resize_mode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
-        nn_source=PEOPLE_DETECTION_MODEL,
-        enable_detection_filtering=True,
+        inputImage=rgb_low_res_out,
+        resizeMode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
+        nnSource=PEOPLE_DETECTION_MODEL,
     )
-    largest_people_detection = host_nodes.PickLargestBbox().build(people_detection.out)
-    largest_people_detection_as_img_detection = (
-        host_nodes.SafeImgDetectionsExtendedBridge().build(
-            largest_people_detection.out, ignore_angle=True
-        )
+    largest_people_detection = pipeline.create(host_nodes.PickLargestBbox).build(
+        people_detection.out
     )
     largest_people_detection_cropped = host_nodes.CropPersonDetectionWaistDown(
         ymin_transformer=pipeline_builders.transform_ymin,
         ymax_transformer=pipeline_builders.transform_ymax,
-    ).build(largest_people_detection_as_img_detection.out)
-    face_people_gathered = pipeline.create(Stage2NeuralNetwork).build(
-        img_frame=rgb_high_res_out,
-        stage_1_nn=largest_people_detection_cropped.out,
-        nn_source=FACE_DETECTION_MODEL,
-        input_resize_mode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
-        fps=args.fps_limit,
-        remap_detections=True,
+    ).build(largest_people_detection.out)
+
+    frame_cropper = pipeline.create(FrameCropper)
+    face_det_nn = pipeline.create(ParsingNeuralNetwork).build(
+        input=frame_cropper.out,
+        nnSource=FACE_DETECTION_MODEL,
     )
-    face_detection_2_stage = host_nodes.FaceDetectionFromGatheredData().build(
-        node_out=face_people_gathered.out
+    frame_cropper.fromImgDetections(
+        inputImgDetections=largest_people_detection_cropped.out,
+        outputSize=face_det_nn._nn_archive.getInputSize(),
+        resizeMode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
+    ).build(
+        inputImage=rgb_high_res_out,
     )
-    face_detection_2_stage_as_img_detection = (
-        host_nodes.SafeImgDetectionsExtendedBridge().build(
-            face_detection_2_stage.out, ignore_angle=True
-        )
+    face_det_collector = pipeline.create(GatherData).build(
+        inputData=face_det_nn.out,
+        inputReference=largest_people_detection_cropped.out,
+        cameraFps=args.fps_limit,
     )
+    face_det_coordinates_mapper = pipeline.create(CoordinatesMapper).build(
+        toTransformationInput=rgb_high_res_out,
+        fromTransformationInput=face_det_collector.out,
+    )
+    face_detection_2_stage = pipeline.create(
+        host_nodes.FaceDetectionFromCollection
+    ).build(node_out=face_det_coordinates_mapper.out)
     switch_2_stage = host_nodes.Switch().build(
-        face_detection_2_stage_as_img_detection.out, rgb_high_res_out
+        face_detection_2_stage.out, rgb_high_res_out
     )
     face_cropper_2_stage = pipeline_builders.build_roi_cropper(
         pipeline=pipeline,
@@ -145,27 +151,61 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # 1 stage with tiling
-    face_detection_with_tiling_nn = pipeline.create(ExtendedNeuralNetwork)
-    face_detection_with_tiling_nn.build(
-        input=rgb_high_res_out,
-        input_resize_mode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
-        nn_source=FACE_DETECTION_MODEL,
-        enable_detection_filtering=True,
-        enable_tiling=True,
-        input_size=(HIGH_RES_WIDTH, HIGH_RES_HEIGHT),
+    nn_source = dai.NNArchive(dai.getModelFromZoo(FACE_DETECTION_MODEL))
+    nn_input_size = nn_source.getInputSize()
+    tiling = pipeline.create(Tiling).build(
+        overlap=0.2,
+        gridSize=(2, 2),
+        canvasShape=(HIGH_RES_WIDTH, HIGH_RES_HEIGHT),
+        resizeShape=nn_input_size,
+        resizeMode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
+        globalDetection=True,
     )
-    face_detection_with_tiling_nn.setConfidenceThreshold(0.75)
-    face_detection_with_tiling_nn.setTilingGridSize((4, 4))
-    largest_face_detection_tiling = host_nodes.PickLargestBbox().build(
-        face_detection_with_tiling_nn.out
-    )
-    face_detection_tiling_as_img_det = (
-        host_nodes.SafeImgDetectionsExtendedBridge().build(
-            largest_face_detection_tiling.out, ignore_angle=True
+    frame_cropper_tiling = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(
+            inputManipConfigs=tiling.out,
+            maxOutputFrameSize=nn_input_size[0] * nn_input_size[1] * 3,
+            waitForConfig=False,
+        )
+        .build(
+            inputImage=rgb_high_res_out,
         )
     )
+    face_detection_nn_tiling = pipeline.create(ParsingNeuralNetwork).build(
+        input=frame_cropper_tiling.out,
+        nnSource=nn_source,
+    )
+    face_detection_tiling_collector = pipeline.create(GatherData).build(
+        inputData=face_detection_nn_tiling.out,
+        inputReference=rgb_high_res_out,
+        cameraFps=args.fps_limit,
+        waitCountFn=lambda _: tiling.tileCount,
+    )
+    face_detection_tiling_remapper = pipeline.create(CoordinatesMapper).build(
+        toTransformationInput=rgb_high_res_out,
+        fromTransformationInput=face_detection_tiling_collector.out,
+    )
+    face_detections_tiling_merged = pipeline.create(
+        host_nodes.MergeImgDetections
+    ).build(collection_out=face_detection_tiling_remapper.out)
+    face_detection_tiling_filter = (
+        pipeline.create(ImgDetectionsFilter)
+        .minConfidence(
+            threshold=0.75,
+        )
+        .useNms(
+            confThresh=0.75,
+        )
+        .build(
+            input=face_detections_tiling_merged.out,
+        )
+    )
+    largest_face_detection_tiling = host_nodes.PickLargestBbox().build(
+        face_detection_tiling_filter.out
+    )
     switch_tiling = host_nodes.Switch().build(
-        face_detection_tiling_as_img_det.out, rgb_high_res_out
+        largest_face_detection_tiling.out, rgb_high_res_out
     )
     head_cropper_tiling = pipeline_builders.build_roi_cropper(
         pipeline=pipeline,

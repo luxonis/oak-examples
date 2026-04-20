@@ -1,5 +1,4 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended
 
 
 class FilterNLargestBBoxes(dai.node.HostNode):
@@ -22,8 +21,8 @@ class FilterNLargestBBoxes(dai.node.HostNode):
 
     def process(self, face_detections: dai.Buffer) -> None:
         assert isinstance(
-            face_detections, ImgDetectionsExtended
-        ), f"Expected ImgDetectionsExtended, got {type(face_detections)}"
+            face_detections, dai.ImgDetections
+        ), f"Expected dai.ImgDetections, got {type(face_detections)}"
 
         detections = face_detections.detections
         if not detections or len(detections) < self.n_face_crops:
@@ -33,13 +32,13 @@ class FilterNLargestBBoxes(dai.node.HostNode):
         detections.sort(key=self._area, reverse=True)
         n_detections = detections[: self.n_face_crops]
 
-        filtered_detections = ImgDetectionsExtended()
+        filtered_detections = dai.ImgDetections()
         filtered_detections.detections = n_detections
         filtered_detections.setTimestamp(face_detections.getTimestamp())
         filtered_detections.setSequenceNum(face_detections.getSequenceNum())
         self.out.send(filtered_detections)
 
     @staticmethod
-    def _area(det: ImgDetectionsExtended) -> float:
-        rr = det.rotated_rect
+    def _area(det: dai.ImgDetection) -> float:
+        rr = det.getBoundingBox()
         return rr.size.width * rr.size.height

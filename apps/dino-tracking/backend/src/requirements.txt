@@ -1,8 +1,0 @@
-depthai==3.2.1
-depthai-nodes==0.3.7
-opencv-python-headless~=4.10.0
-numpy>=1.22
-python-dotenv
-python-box
-PyYAML>=6.0
-pydantic

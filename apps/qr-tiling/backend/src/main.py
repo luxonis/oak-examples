@@ -2,17 +2,17 @@ from pathlib import Path
 import logging
 
 import depthai as dai
-from depthai_nodes.node.coordinates_mapper import CoordinatesMapper
-from depthai_nodes.node.frame_cropper import FrameCropper
-from depthai_nodes.node.gather_data import GatherData
+from coordinates_mapper import CoordinatesMapper
+from frame_cropper import FrameCropper
+from message_collector import MessageCollector
 from depthai_nodes.node.img_detections_filter import ImgDetectionsFilter
 from depthai_nodes.node.parsing_neural_network import ParsingNeuralNetwork
-from depthai_nodes.node.tiling import Tiling
+from tiling import Tiling, TileGridOverlay
 
 from fps_control import FPSController, PipelineHealthMonitor
 from params_service import CurrentParamsService
 from qr_scan import QRConfigService, QRDecoder
-from tiling import TileGridOverlay, TilingConfigService
+from tiling import TilingConfigService
 from tiling.merge_img_detections import MergeImgDetections
 
 TILING_SIZE = (3840, 2160)
@@ -43,7 +43,6 @@ with dai.Pipeline(device) as pipeline:
             )
         )
     )
-
     camera = pipeline.create(dai.node.Camera).build()
 
     rgb_nn = camera.requestOutput(TILING_SIZE, type=dai.ImgFrame.Type.BGR888i)
@@ -54,7 +53,6 @@ with dai.Pipeline(device) as pipeline:
     )
 
     tiling = pipeline.create(Tiling).build(
-        trigger=fps_controller.rgb_nn,
         overlap=DEFAULT_TILING_PARAMS["overlap"],
         gridSize=(DEFAULT_TILING_PARAMS["cols"], DEFAULT_TILING_PARAMS["rows"]),
         canvasShape=TILING_SIZE,
@@ -67,7 +65,10 @@ with dai.Pipeline(device) as pipeline:
 
     tiling_cropper = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(tiling.out)
+        .fromManipConfigs(
+            inputManipConfigs=tiling.out,
+            waitForConfig=False,
+        )
         .build(
             inputImage=fps_controller.rgb_nn,
             outputSize=nn_archive.getInputSize(),
@@ -80,22 +81,20 @@ with dai.Pipeline(device) as pipeline:
         input=tiling_cropper.out, nnSource=nn_archive
     )
 
+    collected_detections = pipeline.create(MessageCollector).build(
+        inputData=nn.out,
+        cameraFps=300000,
+    )
+    print(f"collected_detections ID: {collected_detections.id=}")
+
     detections_in_display_space = pipeline.create(CoordinatesMapper).build(
         toTransformationInput=fps_controller.rgb_nn,
-        fromTransformationInput=nn.out,
+        fromTransformationInput=collected_detections.out,
     )
     print(f"detections_in_display_space ID: {detections_in_display_space.id=}")
 
-    gathered_detections = pipeline.create(GatherData).build(
-        inputData=detections_in_display_space.out,
-        inputReference=fps_controller.rgb_nn,
-        cameraFps=30,
-        waitCountFn=lambda _: tiling.tileCount,
-    )
-    print(f"gathered_detections ID: {gathered_detections.id=}")
-
     merged_detections = pipeline.create(MergeImgDetections).build(
-        input=gathered_detections.out
+        input=detections_in_display_space.out
     )
     print(f"merged_detections ID: {merged_detections.id=}")
 

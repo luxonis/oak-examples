@@ -52,7 +52,7 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
         @param preview_source: Node output that produces RGB/preview frames (dai.ImgFrame).
         @param detections_source: Node output that produces face detections (ImgDetections)
                                   used to define crop ROIs.
-        @param face_reference_detections: Node output that produces face detections (ImgDetectionsExtended)
+        @param face_reference_detections: Node output that produces face detections (dai.ImgDetections)
                                           used as reference for synchronization in GatherData.
         """
         self._camera_fps = camera_fps
@@ -75,9 +75,9 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
         self._script.outputs["manip_cfg"].link(self._img_manip.inputConfig)
 
         self._gather.build(
-            camera_fps=self._camera_fps,
-            input_data=self._img_manip.out,
-            input_reference=face_reference_detections,
+            cameraFps=self._camera_fps,
+            inputData=self._img_manip.out,
+            inputReference=face_reference_detections,
         )
 
         return self

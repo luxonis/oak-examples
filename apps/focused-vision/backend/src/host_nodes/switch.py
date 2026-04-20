@@ -1,7 +1,5 @@
 import depthai as dai
 
-from depthai_nodes.message import ImgDetectionsExtended
-
 
 class Switch(dai.node.HostNode):
     """"""
@@ -19,7 +17,7 @@ class Switch(dai.node.HostNode):
 
     def process(self, detections: dai.Buffer, rgb: dai.ImgFrame) -> None:
         assert isinstance(detections, dai.ImgDetections)
-        detections: ImgDetectionsExtended
+        detections: dai.ImgDetections
         if detections.detections:
             self.has_detections.send(detections)
             self.rgb.send(rgb)
