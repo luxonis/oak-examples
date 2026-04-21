@@ -1,2 +1,3 @@
-depthai==3.4.0
+depthai==3.5.0
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@changes_for_oak_examples_update
 opencv-python-headless~=4.10.0

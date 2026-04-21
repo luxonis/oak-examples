@@ -1,5 +1,5 @@
-depthai==3.4.0
-depthai-nodes==0.4.0
+depthai==3.5.0
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@changes_for_oak_examples_update
 onnxruntime>=1.19.0
 onnxruntime-gpu>=1.19.0
 numpy>=1.22

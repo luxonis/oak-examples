@@ -1,4 +1,4 @@
-depthai==3.4.0
+depthai==3.5.0
 depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@changes_for_oak_examples_update
 numpy>=1.22
 open3d~=0.18

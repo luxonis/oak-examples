@@ -1,5 +1,6 @@
 /
-depthai==3.4.0
+depthai==3.5.0
+depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@changes_for_oak_examples_update
 modelconv==0.3.3
 numpy==1.23.0
 onnx==1.17.0
