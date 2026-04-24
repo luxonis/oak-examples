@@ -68,12 +68,12 @@ with dai.Pipeline(device) as pipeline:
         pipeline.create(FrameCropper)
         .fromImgDetections(
             inputImgDetections=first_stage_filter.out,
+            outputSize=(pos_model_w, pos_model_h),
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
             padding=PADDING,
         )
         .build(
             inputImage=det_nn.passthrough,
-            outputSize=(pos_model_w, pos_model_h),
-            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
         )
     )
 

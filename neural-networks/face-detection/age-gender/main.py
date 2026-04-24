@@ -76,6 +76,8 @@ with dai.Pipeline(device) as pipeline:
         pipeline.create(FrameCropper)
         .fromImgDetections(
             inputImgDetections=det_nn.out,
+            outputSize=rec_model_nn_archive.getInputSize(),
+            resizeMode=dai.ImageManipConfig.ResizeMode.CENTER_CROP,
         )
         .build(
             inputImage=input_node_out,

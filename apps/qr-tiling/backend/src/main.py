@@ -2,11 +2,13 @@ from pathlib import Path
 import logging
 
 import depthai as dai
-from coordinates_mapper import CoordinatesMapper
-from frame_cropper import FrameCropper
-from message_collector import MessageCollector
-from depthai_nodes.node.img_detections_filter import ImgDetectionsFilter
-from depthai_nodes.node.parsing_neural_network import ParsingNeuralNetwork
+from depthai_nodes.node import (
+    CoordinatesMapper,
+    FrameCropper,
+    ImgDetectionsFilter,
+    MessageCollector,
+    ParsingNeuralNetwork,
+)
 from tiling import Tiling, TileGridOverlay
 
 from fps_control import FPSController, PipelineHealthMonitor
@@ -63,16 +65,16 @@ with dai.Pipeline(device) as pipeline:
     )
     print(f"tiling ID: {tiling.id=}")
 
+    nn_input_size = nn_archive.getInputSize()
     tiling_cropper = (
         pipeline.create(FrameCropper)
         .fromManipConfigs(
             inputManipConfigs=tiling.out,
+            maxOutputFrameSize=nn_input_size[0] * nn_input_size[1] * 3,
             waitForConfig=False,
         )
         .build(
             inputImage=fps_controller.rgb_nn,
-            outputSize=nn_archive.getInputSize(),
-            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
         )
     )
     print(f"tiling_cropper ID: {tiling_cropper.id=}")
