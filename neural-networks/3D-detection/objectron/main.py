@@ -106,6 +106,7 @@ with dai.Pipeline(device) as pipeline:
 
     pipeline.start()
     visualizer.registerPipeline(pipeline)
+    print("Pipeline started.")
 
     while pipeline.isRunning():
         key_pressed = visualizer.waitKey(1)
