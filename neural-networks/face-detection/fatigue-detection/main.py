@@ -76,10 +76,10 @@ with dai.Pipeline(device) as pipeline:
         pipeline.create(FrameCropper)
         .fromImgDetections(
             inputImgDetections=det_nn.out,
+            outputSize=(rec_model_w, rec_model_h),
         )
         .build(
             inputImage=input_node_out,
-            outputSize=(rec_model_w, rec_model_h),
         )
     )
 

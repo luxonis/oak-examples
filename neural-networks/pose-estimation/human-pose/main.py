@@ -77,14 +77,14 @@ with dai.Pipeline(device) as pipeline:
         pipeline.create(FrameCropper)
         .fromImgDetections(
             inputImgDetections=det_nn.out,
-            padding=PADDING,
-        )
-        .build(
-            inputImage=det_nn.passthrough,
             outputSize=(
                 rec_model_nn_archive.getInputWidth(),
                 rec_model_nn_archive.getInputHeight(),
             ),
+            padding=PADDING,
+        )
+        .build(
+            inputImage=det_nn.passthrough,
         )
     )
 

@@ -82,10 +82,10 @@ with dai.Pipeline(device) as pipeline:
         pipeline.create(FrameCropper)
         .fromImgDetections(
             inputImgDetections=det_nn.out,
+            outputSize=(embeddings_model_w, embeddings_model_h),
         )
         .build(
             inputImage=det_nn.passthrough,
-            outputSize=(embeddings_model_w, embeddings_model_h),
         )
     )
 

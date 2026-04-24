@@ -81,10 +81,6 @@ with dai.Pipeline(device) as pipeline:
         )
         .build(
             inputImage=input_node_out,
-            outputSize=(
-                rec_model_nn_archive.getInputWidth(),
-                rec_model_nn_archive.getInputHeight(),
-            ),
         )
     )
 
