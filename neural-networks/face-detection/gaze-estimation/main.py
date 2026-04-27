@@ -106,18 +106,30 @@ with dai.Pipeline(device) as pipeline:
     )
     left_eye_crop_node = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(detection_process_node.left_config_output)
-        .build(input_node_out, crop_output_size)
+        .fromManipConfigs(
+            inputManipConfigs=detection_process_node.left_config_output,
+            maxOutputFrameSize=crop_output_size[0] * crop_output_size[1] * 3,
+            waitForConfig=True,
+        )
+        .build(input_node_out)
     )
     right_eye_crop_node = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(detection_process_node.right_config_output)
-        .build(input_node_out, crop_output_size)
+        .fromManipConfigs(
+            inputManipConfigs=detection_process_node.right_config_output,
+            maxOutputFrameSize=crop_output_size[0] * crop_output_size[1] * 3,
+            waitForConfig=True,
+        )
+        .build(input_node_out)
     )
     face_crop_node = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(detection_process_node.face_config_output)
-        .build(input_node_out, crop_output_size)
+        .fromManipConfigs(
+            inputManipConfigs=detection_process_node.face_config_output,
+            maxOutputFrameSize=crop_output_size[0] * crop_output_size[1] * 3,
+            waitForConfig=True,
+        )
+        .build(input_node_out)
     )
 
     # head pose estimation

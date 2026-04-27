@@ -53,7 +53,6 @@ with dai.Pipeline(device) as pipeline:
     grid_size = (args.rows, args.columns)
 
     tile_manager = pipeline.create(Tiling).build(
-        trigger=cam_out,
         canvasShape=IMG_SHAPE,
         overlap=OVERLAP,
         gridSize=grid_size,
@@ -65,11 +64,15 @@ with dai.Pipeline(device) as pipeline:
 
     tiling_cropper = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(tile_manager.out)
+        .fromManipConfigs(
+            inputManipConfigs=tile_manager.out,
+            maxOutputFrameSize=nn_archive.getInputWidth()
+            * nn_archive.getInputHeight()
+            * 3,
+            waitForConfig=False,
+        )
         .build(
             inputImage=cam_out,
-            outputSize=nn_archive.getInputSize(),
-            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
         )
     )
 

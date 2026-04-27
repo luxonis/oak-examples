@@ -80,8 +80,12 @@ with dai.Pipeline(device) as pipeline:
 
     crop_node = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(crop_configs_creator.config_output)
-        .build(input_node_out, (rec_model_w, rec_model_h))
+        .fromManipConfigs(
+            inputManipConfigs=crop_configs_creator.config_output,
+            maxOutputFrameSize=rec_model_w * rec_model_h * 3,
+            waitForConfig=True,
+        )
+        .build(input_node_out)
     )
 
     ocr_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(

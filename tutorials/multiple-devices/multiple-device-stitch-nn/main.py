@@ -107,7 +107,6 @@ with contextlib.ExitStack() as stack:
     grid_size = (len(outputs), 1)
 
     tile_manager = pipeline.create(Tiling).build(
-        trigger=stitch_pl.out,
         canvasShape=out_stitch_res,
         overlap=0.5,
         gridSize=grid_size,
@@ -118,11 +117,15 @@ with contextlib.ExitStack() as stack:
 
     tiling_cropper = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(tile_manager.out)
+        .fromManipConfigs(
+            inputManipConfigs=tile_manager.out,
+            maxOutputFrameSize=nn_archive.getInputWidth()
+            * nn_archive.getInputHeight()
+            * 3,
+            waitForConfig=False,
+        )
         .build(
             inputImage=stitch_pl.out,
-            outputSize=nn_archive.getInputSize(),
-            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
         )
     )
 

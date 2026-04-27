@@ -86,8 +86,12 @@ with dai.Pipeline(device) as pipeline:
     )
     hand_crop_node = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(detections_processor.config_output)
-        .build(detection_nn.passthrough, crop_output_size)
+        .fromManipConfigs(
+            inputManipConfigs=detections_processor.config_output,
+            maxOutputFrameSize=crop_output_size[0] * crop_output_size[1] * 3,
+            waitForConfig=True,
+        )
+        .build(detection_nn.passthrough)
     )
 
     pose_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
