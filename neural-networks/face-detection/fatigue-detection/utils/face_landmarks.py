@@ -2,15 +2,21 @@ from typing import Tuple
 import cv2
 import math
 import numpy as np
-import depthai as dai
+from depthai_nodes.message import Keypoints
 
 
 def determine_fatigue(
-    shape: Tuple[int, int], face_keypoints: dai.KeypointsList, pitch_angle: int = 20
+    shape: Tuple[int, int], face_keypoints: Keypoints, pitch_angle: int = 20
 ):
     h, w = shape  # frame.shape[:2]
     face_points_2d = np.array(
-        [[int(kp.x * w), int(kp.y * h)] for kp in face_keypoints.getKeypoints()]
+        [
+            [
+                int(kp.imageCoordinates.x * w),
+                int(kp.imageCoordinates.y * h),
+            ]
+            for kp in face_keypoints.getKeypoints()
+        ]
     )
 
     left_eye_idx = [33, 160, 158, 133, 144, 153]

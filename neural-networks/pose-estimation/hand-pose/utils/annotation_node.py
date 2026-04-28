@@ -4,6 +4,7 @@ from depthai_nodes import (
     GatheredData,
     SECONDARY_COLOR,
 )
+from depthai_nodes.message import Keypoints
 from depthai_nodes.utils import AnnotationHelper
 from typing import List
 from utils.gesture_recognition import recognize_gesture
@@ -50,7 +51,7 @@ class AnnotationNode(dai.node.HostNode):
         det_list = []
 
         for ix, detection in enumerate(detections_list):
-            keypoints_msg: dai.KeypointsList = gathered_data.items[ix]["0"]
+            keypoints_msg: Keypoints = gathered_data.items[ix]["0"]
             confidence_msg: Predictions = gathered_data.items[ix]["1"]
             handness_msg: Predictions = gathered_data.items[ix]["2"]
 
@@ -94,8 +95,8 @@ class AnnotationNode(dai.node.HostNode):
             ys = []
 
             for kp in keypoints_msg.getKeypoints():
-                x = min(max(xmin - padding + slope_x * kp.x, 0.0), 1.0)
-                y = min(max(ymin - padding + slope_y * kp.y, 0.0), 1.0)
+                x = min(max(xmin - padding + slope_x * kp.imageCoordinates.x, 0.0), 1.0)
+                y = min(max(ymin - padding + slope_y * kp.imageCoordinates.y, 0.0), 1.0)
                 xs.append(x)
                 ys.append(y)
 

@@ -4,6 +4,7 @@ from depthai_nodes import (
     PRIMARY_COLOR,
     SECONDARY_COLOR,
 )
+from depthai_nodes.message import Keypoints
 from depthai_nodes.utils import AnnotationHelper
 from typing import List
 
@@ -46,7 +47,7 @@ class AnnotationNode(dai.node.HostNode):
         for ix, detection in enumerate(detections_list):
             detection.labelName = "Animal"
 
-            keypoints_message: dai.KeypointsList = gathered_data.items[ix]
+            keypoints_message: Keypoints = gathered_data.items[ix]
             xmin, ymin, xmax, ymax = detection.getBoundingBox().getOuterRect()
 
             slope_x = (xmax + padding) - (xmin - padding)
@@ -54,8 +55,8 @@ class AnnotationNode(dai.node.HostNode):
             xs = []
             ys = []
             for kp in keypoints_message.getKeypoints():
-                x = min(max(xmin - padding + slope_x * kp.x, 0.0), 1.0)
-                y = min(max(ymin - padding + slope_y * kp.y, 0.0), 1.0)
+                x = min(max(xmin - padding + slope_x * kp.imageCoordinates.x, 0.0), 1.0)
+                y = min(max(ymin - padding + slope_y * kp.imageCoordinates.y, 0.0), 1.0)
                 xs.append(x)
                 ys.append(y)
 

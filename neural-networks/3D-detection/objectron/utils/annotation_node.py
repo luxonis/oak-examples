@@ -4,6 +4,7 @@ from depthai_nodes import (
     PRIMARY_COLOR,
     SECONDARY_COLOR,
 )
+from depthai_nodes.message import Keypoints
 from depthai_nodes.utils.annotation_helper import AnnotationHelper
 from typing import List
 
@@ -42,7 +43,7 @@ class AnnotationNode(dai.node.HostNode):
         padding = self.padding
 
         for ix, detection in enumerate(detections_list):
-            keypoints_msg: dai.KeypointsList = gathered_data.items[ix]
+            keypoints_msg: Keypoints = gathered_data.items[ix]
 
             slope_x = (detection.xmax + padding) - (detection.xmin - padding)
             slope_y = (detection.ymax + padding) - (detection.ymin - padding)
