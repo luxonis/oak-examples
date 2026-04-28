@@ -1,6 +1,6 @@
 identifier = "com.example.apps.dino-tracking"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "0.9.0"
+app_version = "0.9.1"
 
 prepare_container = [
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },

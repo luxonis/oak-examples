@@ -105,16 +105,10 @@ with dai.Pipeline(device) as pipeline:
         .build(input=merged_detections.out)
     )
 
-    tile_positions = tile_manager._computeTilePositions(
-        overlap=OVERLAP,
-        grid_size=grid_size,
-        canvas_shape=IMG_SHAPE,
-        grid_matrix=GRID_MATRIX,
-        global_detection=GLOBAL_DETECTION,
-    )
-
     scanner = pipeline.create(QRScanner).build(
-        preview=cam_out, nn=filtered_detections.out, tile_positions=tile_positions
+        preview=cam_out,
+        nn=filtered_detections.out,
+        tile_positions=tile_manager.tilePositions,
     )
     scanner.inputs["detections"].setBlocking(False)
     scanner.inputs["detections"].setMaxSize(2)
