@@ -2,9 +2,9 @@
 """Generate the agent-facing example catalog.
 
 The generated index is intentionally lightweight: it discovers runnable example
-roots from the repository layout and pulls short summaries from README files.
-Keep per-example guidance in AGENTS.md/README.md instead of hand-editing the
-catalog body.
+roots from the repository layout and pulls short summaries from example
+AGENTS.md files when available, falling back to README files while coverage is
+incomplete.
 """
 
 from __future__ import annotations
@@ -121,35 +121,64 @@ def clean_inline(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip(" -")
 
 
-def read_title_and_summary(readme: Path, fallback: Path) -> tuple[str, str]:
+def truncate_summary(summary: str, limit: int = 220) -> str:
+    if len(summary) <= limit:
+        return summary
+    truncated = summary[: limit + 1]
+    if " " in truncated:
+        truncated = truncated.rsplit(" ", 1)[0]
+    return truncated.rstrip(".,;:- ") + "..."
+
+
+def read_title_and_summary(markdown: Path, fallback: Path) -> tuple[str, str]:
     title = fallback.name.replace("-", " ").replace("_", " ").title()
     paragraphs: list[str] = []
+    current: list[str] = []
     in_code = False
-    for raw in readme.read_text(encoding="utf-8", errors="ignore").splitlines():
+    in_summary = False
+    found_summary = False
+
+    def flush_paragraph() -> None:
+        if current:
+            paragraphs.append(clean_inline(" ".join(current)))
+            current.clear()
+
+    for raw in markdown.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = raw.strip()
         if line.startswith("```"):
             in_code = not in_code
             continue
-        if in_code or not line or line.startswith("<!--"):
+        if in_code or line.startswith("<!--"):
             continue
         if line.startswith("#"):
-            maybe_title = clean_inline(line.lstrip("#").strip())
-            if maybe_title:
-                title = maybe_title
+            flush_paragraph()
+            heading = clean_inline(line.lstrip("#").strip())
+            if heading and not in_summary:
+                title = heading
+            if heading.lower() == "summary":
+                in_summary = True
+                found_summary = True
+                continue
+            if found_summary:
+                break
+            continue
+        if not line:
+            flush_paragraph()
+            if found_summary and paragraphs:
+                break
             continue
         if line.startswith(("[!", "<img", "<p", "</p", "<div", "</div")):
             continue
         if line.startswith(("- ", "* ", "|")):
             continue
-        paragraphs.append(clean_inline(line))
-        if len(" ".join(paragraphs)) > 180:
-            break
+        if in_summary or not found_summary:
+            current.append(line)
+    flush_paragraph()
+
     summary = " ".join(p for p in paragraphs if p)
     if not summary:
         summary = f"Runnable/reference example under `{fallback.as_posix()}`."
-    if len(summary) > 220:
-        summary = summary[:217].rstrip() + "..."
-    return title, summary
+    return title, truncate_summary(summary)
 
 
 def infer_shape(path: Path) -> str:
@@ -231,7 +260,8 @@ def candidate_example_dirs() -> list[Path]:
 def discover_examples() -> list[Example]:
     examples: list[Example] = []
     for directory in candidate_example_dirs():
-        title, summary = read_title_and_summary(directory / "README.md", rel(directory))
+        guide = directory / "AGENTS.md" if (directory / "AGENTS.md").exists() else directory / "README.md"
+        title, summary = read_title_and_summary(guide, rel(directory))
         shape = infer_shape(directory)
         examples.append(
             Example(
