@@ -1,5 +1,6 @@
-depthai==3.0.0
-depthai-nodes==0.3.4
+--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/
+depthai==3.6.1
+depthai-nodes==0.5.0
 aiortc==1.9.0
 aiohttp>=3.10.0,<4.0
 aiohttp-cors==0.7.0

@@ -30,7 +30,7 @@ Camera and shoes can not be detected with general YOLOv6 detector. So, you need 
 
 ### Installation
 
-You need to first prepare a **Python 3.10** environment with the following packages installed:
+You need to first prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/),
 - [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).

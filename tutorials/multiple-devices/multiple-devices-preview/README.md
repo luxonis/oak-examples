@@ -53,7 +53,7 @@ Here is a list of all available parameters:
 
 Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app.
 You can find more information about the supported devices and the set up instructions in our [Documentation](https://rvc4.docs.luxonis.com/hardware).
-Moreover, you need to prepare a **Python 3.10** environment with the following packages installed:
+Moreover, you need to prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/)
 - [DepthAI Nodes](https://pypi.org/project/depthai-nodes/)

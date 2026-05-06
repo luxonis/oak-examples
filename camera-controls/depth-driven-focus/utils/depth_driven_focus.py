@@ -21,7 +21,7 @@ class DepthDrivenFocus(dai.node.HostNode):
         )
 
     def build(
-        self, control_queue: dai.Node.Output, face_detection: dai.Node.Output
+        self, control_queue: dai.InputQueue, face_detection: dai.Node.Output
     ) -> "DepthDrivenFocus":
         self.link_args(face_detection)
         self.control_queue = control_queue

@@ -1,0 +1,8 @@
+--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/
+depthai==3.6.1
+depthai-nodes==0.5.0
+opencv-python-headless~=4.10.0
+python-dotenv
+python-box
+PyYAML>=6.0
+pydantic

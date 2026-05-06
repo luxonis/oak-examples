@@ -1,5 +1,4 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended
 
 
 class DetectionMerger(dai.node.HostNode):
@@ -22,7 +21,7 @@ class DetectionMerger(dai.node.HostNode):
     def process(self, det_nn_1: dai.Buffer, det_nn_2: dai.Buffer) -> dai.ImgDetections:
         assert isinstance(
             det_nn_1,
-            (dai.ImgDetections, ImgDetectionsExtended, dai.SpatialImgDetections),
+            (dai.ImgDetections, dai.SpatialImgDetections),
         )
         assert type(det_nn_1) is type(det_nn_2)
         new_dets = type(det_nn_1)()

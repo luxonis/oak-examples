@@ -1,5 +1,5 @@
 import depthai as dai
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 
 from utils.arguments import initialize_argparser
 from utils.utility import get_resolution_profile
@@ -50,7 +50,7 @@ with dai.Pipeline(device) as pipeline:
         inference_shape=resolution_profile.nn_shape,
     )
 
-    colored_disp = pipeline.create(ApplyColormap).build(stereo.disparity)
+    colored_disp = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
 
     visualizer.addTopic("FS Result", fs_inferer.output)
     visualizer.addTopic("Disparity", colored_disp.out)

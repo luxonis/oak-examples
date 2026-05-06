@@ -1,8 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData, ImgDetectionsBridge
-from depthai_nodes.node.utils import generate_script_content
+from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -71,38 +70,30 @@ with dai.Pipeline(device) as pipeline:
     det_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         resize_node.out, det_model_nn_archive
     )
-    det_nn.getParser(0).conf_threshold = 0.9  # for more stable detections
+    det_nn.getParser(0).setConfidenceThreshold(0.9)  # for more stable detections
 
-    # detection processing
-    det_bridge = pipeline.create(ImgDetectionsBridge).build(
-        det_nn.out
-    )  # TODO: remove once we have it working with ImgDetectionsExtended
-    script_node = pipeline.create(dai.node.Script)
-    det_bridge.out.link(script_node.inputs["det_in"])
-    input_node_out.link(script_node.inputs["preview"])
-    script_content = generate_script_content(
-        resize_width=rec_model_nn_archive.getInputWidth(),
-        resize_height=rec_model_nn_archive.getInputHeight(),
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_nn.out,
+            outputSize=rec_model_nn_archive.getInputSize(),
+            resizeMode=dai.ImageManipConfig.ResizeMode.CENTER_CROP,
+        )
+        .build(
+            inputImage=input_node_out,
+        )
     )
-    script_node.setScript(script_content)
-
-    crop_node = pipeline.create(dai.node.ImageManip)
-    crop_node.initialConfig.setOutputSize(
-        rec_model_nn_archive.getInputWidth(), rec_model_nn_archive.getInputHeight()
-    )
-    crop_node.inputConfig.setWaitForMessage(True)
-
-    script_node.outputs["manip_cfg"].link(crop_node.inputConfig)
-    script_node.outputs["manip_img"].link(crop_node.inputImage)
 
     rec_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         crop_node.out, rec_model_nn_archive
     )
 
     # detections and recognitions sync
-    gather_data_node = pipeline.create(GatherData).build(args.fps_limit)
-    rec_nn.outputs.link(gather_data_node.input_data)
-    det_nn.out.link(gather_data_node.input_reference)
+    gather_data_node = pipeline.create(GatherData).build(
+        cameraFps=args.fps_limit,
+        inputData=rec_nn.outputs,
+        inputReference=det_nn.out,
+    )
 
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(gather_data_node.out)

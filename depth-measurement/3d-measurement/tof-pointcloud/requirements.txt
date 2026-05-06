@@ -1,4 +1,6 @@
-depthai~=3.0
+--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/
+depthai==3.6.1
+depthai-nodes==0.5.0
 numpy>=1.22
 open3d~=0.18
 opencv-python~=4.10.0

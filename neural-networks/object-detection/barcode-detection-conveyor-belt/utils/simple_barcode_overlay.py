@@ -228,7 +228,12 @@ class SimpleBarcodeOverlay(dai.node.HostNode):
             h, w = frame.shape[:2]
 
             for detection in detections.detections:
-                xmin, ymin, xmax, ymax = detection.rotated_rect.getOuterRect()
+                xmin, ymin, xmax, ymax = (
+                    detection.xmin,
+                    detection.ymin,
+                    detection.xmax,
+                    detection.ymax,
+                )
 
                 x1 = int(xmin * w)
                 y1 = int(ymin * h)

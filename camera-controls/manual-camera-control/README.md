@@ -56,7 +56,7 @@ The following controls can be selected and modified with `+` and `-` keys:
 
 ### Installation
 
-You need to first prepare a **Python 3.10** environment with the following packages installed:
+You need to first prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/)
 

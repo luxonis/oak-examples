@@ -99,18 +99,13 @@ class TileGridOverlay(BaseHostNode):
         """Draw tile grid overlay on the frame."""
         frame_h, frame_w = frame.shape[:2]
         scaled_positions = self._scale_positions(tile_positions, (frame_w, frame_h))
-
         overlay = frame.copy()
-
         for idx, (x1, y1, x2, y2) in enumerate(scaled_positions):
             color = self._colors[idx % len(self._colors)]
-
             cv2.rectangle(overlay, (x1, y1), (x2, y2), color, -1)
-
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
         frame = cv2.addWeighted(overlay, 0.3, frame, 0.7, 0)
-
         text = f"Tiles: {len(tile_positions)}"
         cv2.putText(
             frame,
@@ -122,5 +117,4 @@ class TileGridOverlay(BaseHostNode):
             2,
             cv2.LINE_AA,
         )
-
         return frame

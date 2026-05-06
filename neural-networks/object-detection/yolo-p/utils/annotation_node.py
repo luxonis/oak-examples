@@ -1,5 +1,5 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended, SegmentationMask
+from depthai_nodes import SegmentationMask
 
 import cv2
 import numpy as np
@@ -31,7 +31,7 @@ class AnnotationNode(dai.node.HostNode):
         lane_segmentations_message: dai.Buffer,
     ) -> None:
         assert isinstance(frame, dai.ImgFrame)
-        assert isinstance(detections_message, ImgDetectionsExtended)
+        assert isinstance(detections_message, dai.ImgDetections)
         assert isinstance(road_segmentations_message, SegmentationMask)
         assert isinstance(lane_segmentations_message, SegmentationMask)
 

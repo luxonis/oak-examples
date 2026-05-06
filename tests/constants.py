@@ -189,6 +189,5 @@ IGNORED_WARNINGS = [
     "Network compiled for 8 shaves, maximum available",
     "UserWarning: Specified provider 'TensorrtExecutionProvider' is not in available",
     "UserWarning: Specified provider 'CUDAExecutionProvider' is not in available",
-    "You are using ImgDetectionsBridge to transform from ImgDetectionsExtended to ImgDetections.",
     "Sync node has been trying to sync for",
 ]

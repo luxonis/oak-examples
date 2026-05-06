@@ -1,7 +1,7 @@
 import cv2
 import depthai as dai
 from utils.host_wls_filter import WLSFilter
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 from utils.arguments import initialize_argparser
 
 _, args = initialize_argparser()
@@ -39,14 +39,12 @@ with dai.Pipeline(device) as pipeline:
         baseline=baseline,
     )
 
-    disp_colored = pipeline.create(ApplyColormap).build(stereo.disparity)
-    disp_colored.setMaxValue(int(stereo.initialConfig.getMaxDisparity()))
+    disp_colored = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
     disp_colored.setColormap(cv2.COLORMAP_JET)
 
-    filtered_disp_colored = pipeline.create(ApplyColormap).build(
+    filtered_disp_colored = pipeline.create(ApplyDepthColormap).build(
         wls_filter.filtered_disp
     )
-    filtered_disp_colored.setMaxValue(255)
     filtered_disp_colored.setColormap(cv2.COLORMAP_JET)
 
     visualizer.addTopic("Rectified Right", stereo.rectifiedRight)

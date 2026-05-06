@@ -1,10 +1,9 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended, ImgDetectionExtended
 import cv2
 
 
 class AnnotationNode(dai.node.HostNode):
-    """Transforms ImgDetectionsExtended received from parsers to dai.ImgDetections"""
+    """Transforms received detections from parsers to dai.ImgDetections"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -28,21 +27,29 @@ class AnnotationNode(dai.node.HostNode):
         depth_msg: dai.ImgFrame,
     ):
         assert isinstance(detections_msg, dai.SpatialImgDetections)
-        img_detections = ImgDetectionsExtended()
+        img_detections = dai.ImgDetections()
+        det_list = []
         for detection in detections_msg.detections:
             detection: dai.SpatialImgDetection = detection
-            img_detection = ImgDetectionExtended()
+            img_detection = dai.ImgDetection()
             img_detection.label = detection.label
-            rotated_rect = (
-                (detection.xmax + detection.xmin) / 2,
-                (detection.ymax + detection.ymin) / 2,
-                detection.xmax - detection.xmin,
-                detection.ymax - detection.ymin,
-                0,
+            img_detection.labelName = detection.labelName
+            img_detection.setBoundingBox(
+                dai.RotatedRect(
+                    dai.Point2f(
+                        (detection.xmax + detection.xmin) / 2,
+                        (detection.ymax + detection.ymin) / 2,
+                    ),
+                    dai.Size2f(
+                        detection.xmax - detection.xmin,
+                        detection.ymax - detection.ymin,
+                    ),
+                    0,
+                )
             )
-            img_detection.rotated_rect = rotated_rect
             img_detection.confidence = detection.confidence
-            img_detections.detections.append(img_detection)
+            det_list.append(img_detection)
+        img_detections.detections = det_list
 
         depth_map = depth_msg.getFrame()
         colorred_depth_map = cv2.applyColorMap(

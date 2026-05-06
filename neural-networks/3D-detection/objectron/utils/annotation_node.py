@@ -1,11 +1,10 @@
 import depthai as dai
 from depthai_nodes import (
-    ImgDetectionsExtended,
-    Keypoints,
     GatheredData,
     PRIMARY_COLOR,
     SECONDARY_COLOR,
 )
+from depthai_nodes.message import Keypoints
 from depthai_nodes.utils.annotation_helper import AnnotationHelper
 from typing import List
 
@@ -36,7 +35,7 @@ class AnnotationNode(dai.node.HostNode):
     def process(self, gathered_data: dai.Buffer) -> None:
         assert isinstance(gathered_data, GatheredData)
 
-        detections_message: ImgDetectionsExtended = gathered_data.reference_data
+        detections_message: dai.ImgDetections = gathered_data.reference_data
         detections_list: List[dai.ImgDetection] = detections_message.detections
 
         annotation_helper = AnnotationHelper()
@@ -44,15 +43,25 @@ class AnnotationNode(dai.node.HostNode):
         padding = self.padding
 
         for ix, detection in enumerate(detections_list):
-            keypoints_msg: Keypoints = gathered_data.gathered[ix]
+            keypoints_msg: Keypoints = gathered_data.items[ix]
 
             slope_x = (detection.xmax + padding) - (detection.xmin - padding)
             slope_y = (detection.ymax + padding) - (detection.ymin - padding)
             xs = []
             ys = []
-            for kp in keypoints_msg.keypoints:
-                x = min(max(detection.xmin - padding + slope_x * kp.x, 0.0), 1.0)
-                y = min(max(detection.ymin - padding + slope_y * kp.y, 0.0), 1.0)
+            for kp in keypoints_msg.getKeypoints():
+                x = min(
+                    max(
+                        detection.xmin - padding + slope_x * kp.imageCoordinates.x, 0.0
+                    ),
+                    1.0,
+                )
+                y = min(
+                    max(
+                        detection.ymin - padding + slope_y * kp.imageCoordinates.y, 0.0
+                    ),
+                    1.0,
+                )
                 xs.append(x)
                 ys.append(y)
 
@@ -74,7 +83,7 @@ class AnnotationNode(dai.node.HostNode):
                     )
 
             annotation_helper.draw_text(
-                text=f"{(detection.confidence * 100):.2f}%",
+                text=f"{int(detection.confidence * 100)}%",
                 position=(detection.xmin, detection.ymin - 0.05),
                 color=SECONDARY_COLOR,
                 size=16.0,

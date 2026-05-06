@@ -1,6 +1,5 @@
 import depthai as dai
 from typing import Tuple
-from depthai_nodes import ImgDetectionsExtended
 
 AVG_MAX_NUM = 10
 
@@ -15,7 +14,7 @@ class CropFace(dai.node.HostNode):
     Attributes
     ----------
     detections_input : dai.Input
-        The input link for the ImageDetectionsExtended message.
+        The input link for the dai.ImgDetections message.
     config_output : dai.Output
         The output link for the ImageManipConfig messages.
     source_size : Tuple[int, int]
@@ -49,7 +48,7 @@ class CropFace(dai.node.HostNode):
         Parameters
         ----------
         detections_input : dai.Node.Output
-            The input link for the ImgDetectionsExtended message
+            The input link for the dai.ImgDetections message
         source_size : Tuple[int, int]
             The size of the source image (width, height).
         target_size : Optional[Tuple[int, int]]
@@ -67,11 +66,11 @@ class CropFace(dai.node.HostNode):
 
     def process(self, detection_message: dai.Buffer):
         """Process the input detections and create a crop config. This function is
-        ran every time a new ImgDetectionsExtended message is received.
+        ran every time a new dai.ImgDetections message is received.
 
         Sends one crop configuration to the config_output link.
         """
-        assert isinstance(detection_message, ImgDetectionsExtended)
+        assert isinstance(detection_message, dai.ImgDetections)
         timestamp = detection_message.getTimestamp()
         sequence_num = detection_message.getSequenceNum()
 
@@ -85,7 +84,7 @@ class CropFace(dai.node.HostNode):
         if len(dets) > 0:
             cfg.setSkipCurrentImage(False)
             coords = dets[0]
-            rect = coords.rotated_rect
+            rect = coords.getBoundingBox()
 
             x = rect.center.x
             y = rect.center.y

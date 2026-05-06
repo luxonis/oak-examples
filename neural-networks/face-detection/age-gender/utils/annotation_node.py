@@ -2,7 +2,6 @@ from typing import List
 import depthai as dai
 
 from depthai_nodes import (
-    ImgDetectionsExtended,
     Predictions,
     Classifications,
     SECONDARY_COLOR,
@@ -22,34 +21,28 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, gather_data_msg: dai.Buffer) -> None:
-        img_detections_extended_msg: ImgDetectionsExtended = (
-            gather_data_msg.reference_data
-        )
-        assert isinstance(img_detections_extended_msg, ImgDetectionsExtended)
+        img_detections_msg: dai.ImgDetections = gather_data_msg.reference_data
+        assert isinstance(img_detections_msg, dai.ImgDetections)
 
-        age_gender_msg_group_list: List[dai.MessageGroup] = gather_data_msg.gathered
+        age_gender_msg_group_list: List[dai.MessageGroup] = gather_data_msg.items
         assert isinstance(age_gender_msg_group_list, list)
         assert all(
             isinstance(msg, dai.MessageGroup) for msg in age_gender_msg_group_list
         )
 
-        assert len(img_detections_extended_msg.detections) == len(
-            age_gender_msg_group_list
-        )
+        assert len(img_detections_msg.detections) == len(age_gender_msg_group_list)
 
         annotations = AnnotationHelper()
 
-        for img_detection_extended_msg, age_gender_msg_group in zip(
-            img_detections_extended_msg.detections, age_gender_msg_group_list
+        for img_detection_msg, age_gender_msg_group in zip(
+            img_detections_msg.detections, age_gender_msg_group_list
         ):
             age_msg: Predictions = age_gender_msg_group["0"]
             assert isinstance(age_msg, Predictions)
             gender_msg: Classifications = age_gender_msg_group["1"]
             assert isinstance(gender_msg, Classifications)
 
-            xmin, ymin, xmax, ymax = (
-                img_detection_extended_msg.rotated_rect.getOuterRect()
-            )
+            xmin, ymin, xmax, ymax = img_detection_msg.getBoundingBox().getOuterRect()
 
             annotations.draw_rectangle(
                 (xmin, ymin),
@@ -64,8 +57,8 @@ class AnnotationNode(dai.node.HostNode):
             )
 
         annotations_msg = annotations.build(
-            timestamp=img_detections_extended_msg.getTimestamp(),
-            sequence_num=img_detections_extended_msg.getSequenceNum(),
+            timestamp=img_detections_msg.getTimestamp(),
+            sequence_num=img_detections_msg.getSequenceNum(),
         )
 
         self.out.send(annotations_msg)

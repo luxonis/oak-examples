@@ -18,7 +18,7 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
             passthrough_frame = self.passthrough.get()
 
             detections_list = text_descriptions.reference_data.detections
-            recognitions_list = text_descriptions.gathered
+            recognitions_list = text_descriptions.items
 
             w, h = passthrough_frame.getWidth(), passthrough_frame.getHeight()
 
@@ -27,7 +27,7 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
 
                 for i, recognition in enumerate(recognitions_list):
                     detection = detections_list[i]
-                    points = detection.rotated_rect.getPoints()
+                    points = detection.getBoundingBox().getPoints()
 
                     text_line = ""
                     for text, score in zip(recognition.classes, recognition.scores):

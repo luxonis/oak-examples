@@ -1,5 +1,6 @@
-depthai==3.2.1
-depthai-nodes==0.3.7
+--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/
+depthai==3.6.1
+depthai-nodes==0.5.0
 opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0

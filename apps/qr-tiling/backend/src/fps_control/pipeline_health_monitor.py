@@ -209,13 +209,11 @@ class PipelineHealthMonitor(dai.node.ThreadedHostNode):
         state = self._pipeline.getPipelineState().nodes().detailed()
         blocked_nodes = []
         queue_details = []
-
         for node_id, node_state in state.nodeStates.items():
             node = self._pipeline.getNode(node_id)
             node_name = node.getName() if node else "unknown"
             if node_name in self._config.skip_node_names:
                 continue
-
             label_prefix = f"{node_name}[{node_id}]"
             for input_name, input_queue in node_state.inputStates.items():
                 label = f"{label_prefix}/{input_name}"

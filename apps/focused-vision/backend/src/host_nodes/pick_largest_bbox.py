@@ -1,6 +1,5 @@
 import depthai as dai
 
-from depthai_nodes import ImgDetectionsExtended
 from depthai_nodes.node import BaseHostNode
 
 
@@ -13,12 +12,14 @@ class PickLargestBbox(BaseHostNode):
         return self
 
     def process(self, nn_output: dai.Buffer) -> None:
-        assert isinstance(nn_output, ImgDetectionsExtended)
+        assert isinstance(nn_output, dai.ImgDetections)
         max_area = -1_000
         largest_bbox = None
         for detection in nn_output.detections:
+            detection: dai.ImgDetection
             area = (
-                detection.rotated_rect.size.width * detection.rotated_rect.size.height
+                detection.getBoundingBox().size.width
+                * detection.getBoundingBox().size.height
             )
             if area > max_area:
                 max_area = area

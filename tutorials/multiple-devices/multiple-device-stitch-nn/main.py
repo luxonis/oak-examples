@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 
-from depthai_nodes.node import ParsingNeuralNetwork
-from depthai_nodes.node import TilesPatcher, Tiling
+from depthai_nodes.node import (
+    CoordinatesMapper,
+    FrameCropper,
+    GatherData,
+    ImgDetectionsFilter,
+    ParsingNeuralNetwork,
+    Tiling,
+)
 from utils.arguments import initialize_argparser
+from utils.merge_img_detections import MergeImgDetections
 from utils.stitch import Stitch
 import contextlib
 import depthai as dai
@@ -100,33 +107,60 @@ with contextlib.ExitStack() as stack:
     grid_size = (len(outputs), 1)
 
     tile_manager = pipeline.create(Tiling).build(
-        img_output=stitch_pl.out,
-        img_shape=out_stitch_res,
+        canvasShape=out_stitch_res,
         overlap=0.5,
-        grid_size=grid_size,
-        grid_matrix=None,
-        global_detection=False,
-        nn_shape=nn_archive.getInputSize(),
+        gridSize=grid_size,
+        gridMatrix=None,
+        globalDetection=False,
+        resizeShape=nn_archive.getInputSize(),
     )
 
-    nn_input = tile_manager.out
-    if platform == dai.Platform.RVC4:
-        interleaved_manip = pipeline.create(dai.node.ImageManip)
-        interleaved_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
-        tile_manager.out.link(interleaved_manip.inputImage)
-        nn_input = interleaved_manip.out
+    tiling_cropper = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(
+            inputManipConfigs=tile_manager.out,
+            maxOutputFrameSize=nn_archive.getInputWidth()
+            * nn_archive.getInputHeight()
+            * 3,
+            waitForConfig=False,
+        )
+        .build(
+            inputImage=stitch_pl.out,
+        )
+    )
 
-    # Run NN detection on stitched output
-    nn = pipeline.create(ParsingNeuralNetwork).build(nn_input, nn_archive)
-    nn.input.setMaxSize(len(tile_manager.tile_positions))
+    nn = pipeline.create(ParsingNeuralNetwork).build(
+        input=tiling_cropper.out, nnSource=nn_archive
+    )
 
-    patcher = pipeline.create(TilesPatcher).build(
-        tile_manager=tile_manager, nn=nn.out, conf_thresh=0.1, iou_thresh=0.2
+    detections_in_stitched_space = pipeline.create(CoordinatesMapper).build(
+        toTransformationInput=stitch_pl.out,
+        fromTransformationInput=nn.out,
+    )
+
+    gathered_detections = pipeline.create(GatherData).build(
+        inputData=detections_in_stitched_space.out,
+        inputReference=stitch_pl.out,
+        cameraFps=args.fps_limit,
+        waitCountFn=lambda _: tile_manager.tileCount,
+    )
+
+    merged_detections = pipeline.create(MergeImgDetections).build(
+        input=gathered_detections.out
+    )
+
+    filtered_detections = (
+        pipeline.create(ImgDetectionsFilter)
+        .useNms(
+            confThresh=0.1,
+            iouThresh=0.2,
+        )
+        .build(input=merged_detections.out)
     )
 
     # Show stitched image on visualizer overlayed with nn detections
     visualizer.addTopic("Stitched", stitch_pl.out_full_res)
-    visualizer.addTopic("Patcher", patcher.out)
+    visualizer.addTopic("Patcher", filtered_detections.out)
 
     for i, p in enumerate(pipelines):
         p.start()

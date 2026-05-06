@@ -59,7 +59,7 @@ class SegmentationOverlayNode(dai.node.ThreadedHostNode):
         self._img_overlay.build(
             frame1=input_frame,
             frame2=self._apply_colormap.out,
-            preserve_background=True,
+            preserveBackground=True,
         )
 
         self._img_manip.setMaxOutputFrameSize(w * h * 3)
