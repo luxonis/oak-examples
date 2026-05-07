@@ -5,11 +5,17 @@
  * Contact: <support@luxonis.com>
  */
 
+#include <algorithm>
 #include <atomic>
+#include <cerrno>
+#include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <mutex>
+#include <thread>
 
 #include "depthai/depthai.hpp"
 #include "depthai/pipeline/MessageQueue.hpp"
@@ -19,10 +25,12 @@
 
 extern "C" {
 #include "video-buffers.h"
+#include "control.h"
 #include "configfs.h"
 #include "events.h"
 #include "stream.h"
 #include "uvc.h"
+#include <linux/usb/video.h>
 #include "libcamera-source.h"
 #include "v4l2-source.h"
 #include "test-source.h"
@@ -35,7 +43,9 @@ extern "C" {
 std::atomic<bool> quitEvent(false);
 
 std::shared_ptr<dai::InputQueue> inputQueue{nullptr};
-std::shared_ptr<dai::MessageQueue> outputQueue;
+std::shared_ptr<dai::MessageQueue> videoBitstreamQueue{nullptr};
+std::shared_ptr<dai::MessageQueue> stillBitstreamQueue{nullptr};
+std::mutex queueMutex;
 
 /* Necessary for and only used by signal handler. */
 static struct events *sigint_events;
@@ -48,60 +58,95 @@ void signalHandler(int signum) {
 	events_stop(sigint_events);
 }
 
-// Custom host node for saving video data
-class VideoSaver : public dai::node::CustomNode<VideoSaver> {
-   public:
-    VideoSaver() : fileHandle("video.encoded", std::ios::binary) {
-        if(!fileHandle.is_open()) {
-            throw std::runtime_error("Could not open video.encoded for writing");
-        }
-    }
 
-    ~VideoSaver() {
-        if(fileHandle.is_open()) {
-            fileHandle.close();
-        }
-    }
-
-    std::shared_ptr<dai::Buffer> processGroup(std::shared_ptr<dai::MessageGroup> message) override {
-        if(!fileHandle.is_open()) return nullptr;
-
-        // Get raw data and write to file
-        auto frame = message->get<dai::EncodedFrame>("data");
-        unsigned char* frameData = frame->getData().data();
-        size_t frameSize = frame->getData().size();
-        std::cout << "Storing frame of size: " << frameSize << std::endl;
-        fileHandle.write(reinterpret_cast<const char*>(frameData), frameSize);
-
-        // Don't send anything back
+std::shared_ptr<dai::ImgFrame> waitForEncodedFrame(const std::shared_ptr<dai::MessageQueue>& queue,
+                                                       std::chrono::milliseconds timeout,
+                                                       bool flushQueue = false) {
+    if(queue == nullptr) {
         return nullptr;
     }
 
-   private:
-    std::ofstream fileHandle;
-};
+    if(flushQueue) {
+        while(queue->tryGet<dai::ImgFrame>() != nullptr) {
+        }
+    }
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while(!quitEvent && std::chrono::steady_clock::now() < deadline) {
+        auto frame = queue->tryGet<dai::ImgFrame>();
+        if(frame != nullptr) {
+            return frame;
+        }
 
-extern "C" void depthai_uvc_get_buffer(struct video_source *s, struct video_buffer *buf) {
-	unsigned int frame_size, size;
-    uint8_t *f;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
-    if(quitEvent) {
-        std::cout << "depthai_uvc_get_buffer(): Stopping capture due to quit event." << std::endl;
-        return;
-    }      
+    return nullptr;
+}
 
-    auto frame = outputQueue->get<dai::ImgFrame>();
-    if(frame == nullptr) {
-        std::cerr << "depthai_uvc_get_buffer(): No frame available." << std::endl;
+void flushEncodedFrames(const std::shared_ptr<dai::MessageQueue>& queue) {
+    if(queue == nullptr) {
         return;
     }
 
-    f = frame->getData().data();
-    frame_size = frame->getData().size();
+    while(queue->tryGet<dai::ImgFrame>() != nullptr) {
+    }
+}
 
-	size = std::min(frame_size, buf->size);
-	memcpy(buf->mem, f, size);
-	buf->bytesused = size;
+void copyEncodedFrameToBuffer(const std::shared_ptr<dai::ImgFrame>& frame,
+                              struct video_buffer* buf,
+                              const char* streamLabel) {
+    if(frame == nullptr || buf == nullptr) {
+        if(buf != nullptr) {
+            buf->bytesused = 0;
+        }
+        return;
+    }
+
+    const auto& data = frame->getData();
+    const auto size = std::min(data.size(), static_cast<size_t>(buf->size));
+    std::memcpy(buf->mem, data.data(), size);
+    buf->bytesused = size;
+
+    if(size < data.size()) {
+        std::cerr << streamLabel << ": encoded frame truncated from " << data.size() << " to " << size << " bytes." << std::endl;
+    }
+}
+
+
+extern "C" void depthai_uvc_get_buffer(struct video_source *s, struct video_buffer *buf, bool still) {
+    if(quitEvent) {
+        std::cout << "depthai_uvc_get_buffer(): Stopping capture due to quit event." << std::endl;
+        buf->bytesused = 0;
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(queueMutex);
+
+    if(still) {
+        std::cout << "depthai_uvc_get_buffer(): Sending latest full-resolution frame as still image." << std::endl;
+
+        // Drain any backlog so the still response uses the most recent full-frame image.
+        flushEncodedFrames(stillBitstreamQueue);
+
+        auto stillFrame = waitForEncodedFrame(stillBitstreamQueue, std::chrono::milliseconds(500));
+        if(stillFrame == nullptr) {
+            std::cerr << "depthai_uvc_get_buffer(): Timed out waiting for still frame." << std::endl;
+            buf->bytesused = 0;
+            return;
+        }
+
+        copyEncodedFrameToBuffer(stillFrame, buf, "depthai_uvc_get_buffer(still)");
+        return;
+    }
+
+    auto frame = waitForEncodedFrame(videoBitstreamQueue, std::chrono::milliseconds(500));
+    if(frame == nullptr) {
+        std::cerr << "depthai_uvc_get_buffer(): Timed out waiting for video frame." << std::endl;
+        buf->bytesused = 0;
+        return;
+    }
+
+    copyEncodedFrameToBuffer(frame, buf, "depthai_uvc_get_buffer(video)");
 }
 
 extern "C" void depthai_control_pipeline_cb(uint32_t arg) {
@@ -118,6 +163,9 @@ extern "C" void depthai_control_pipeline_cb(uint32_t arg) {
     }
     inputQueue->send(ctrl); // Commit the command to DAI pipeline
 }
+
+const int MODEL_WIDTH = 640;
+const int MODEL_HEIGHT = 480;
 
 int main() {
     struct events events;
@@ -176,13 +224,27 @@ int main() {
     // Create nodes
     auto camRgb = pipeline.create<dai::node::Camera>()->build(socket);
     inputQueue  = camRgb->inputControl.createInputQueue();
-    auto output = camRgb->requestOutput(std::make_pair(1920, 1080), dai::ImgFrame::Type::NV12);
+    auto videoSource = camRgb->requestOutput(std::make_pair(1920, 1080), dai::ImgFrame::Type::NV12);
+    auto stillSource = camRgb->requestOutput(std::make_pair(3840, 2160), dai::ImgFrame::Type::NV12);
 
-    // Create video encoder node
-    auto encoded = pipeline.create<dai::node::VideoEncoder>();
-    encoded->setDefaultProfilePreset(30, dai::VideoEncoderProperties::Profile::MJPEG);
-    output->link(encoded->input);
-    outputQueue = encoded->bitstream.createOutputQueue(1, false);
+    auto image_manip = pipeline.create<dai::node::ImageManip>();
+    image_manip->setMaxOutputFrameSize(1920 * 1080 * 3);
+    image_manip->initialConfig->addCrop(320, 180, 1280, 720); // Crop region: x=50, y=50, width=150, height=200
+    image_manip->initialConfig->setOutputSize(1920, 1080, dai::ImageManipConfig::ResizeMode::CENTER_CROP);
+    image_manip->initialConfig->setFrameType(dai::ImgFrame::Type::NV12);
+    videoSource->link(image_manip->inputImage);
+
+    // Encode the center-cropped HD stream for continuous UVC video.
+    auto videoEncoder = pipeline.create<dai::node::VideoEncoder>();
+    videoEncoder->setDefaultProfilePreset(30, dai::VideoEncoderProperties::Profile::MJPEG);
+    image_manip->out.link(videoEncoder->input);
+    videoBitstreamQueue = videoEncoder->bitstream.createOutputQueue(1, false);
+
+    // Encode full-resolution frames for UVC still-image requests.
+    auto stillEncoder = pipeline.create<dai::node::VideoEncoder>();
+    stillEncoder->setDefaultProfilePreset(4, dai::VideoEncoderProperties::Profile::MJPEG);
+    stillSource->link(stillEncoder->input);
+    stillBitstreamQueue = stillEncoder->bitstream.createOutputQueue(1, false);
 
     // Start pipeline
     pipeline.start();

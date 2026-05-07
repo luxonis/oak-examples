@@ -22,14 +22,17 @@ if [ -z "$SERIAL" ]; then
     SERIAL="12345678"
 fi
 
-MANUF="Luxonis"
-PRODUCT="Luxonis UVC Camera"
+MANUF="Fast"
+PRODUCT="Fast Station Camera"
 UDC=$(ls /sys/class/udc | head -n1) # will identify the 'first' UDC
+STILL_WIDTH="3840"
+STILL_HEIGHT="2160"
 
 log "=== Detecting platform:"
 log "    product : $PRODUCT"
 log "    udc     : $UDC"
 log "    serial  : $SERIAL"
+log "    still   : ${STILL_WIDTH}x${STILL_HEIGHT}"
 
 remove_uvc_gadget() {
     if [ ! -d /sys/kernel/config/usb_gadget/g1/functions/uvc.0 ]; then
@@ -66,6 +69,8 @@ remove_uvc_gadget() {
     rm functions/uvc.0/control/class/ss/* 2>/dev/null
     rmdir functions/uvc.0/control/header/* 2>/dev/null
 
+    rmdir functions/uvc.0/control/extensions/* 2>/dev/null
+
     rmdir functions/uvc.0 2>/dev/null
 
     popd >/dev/null
@@ -95,7 +100,7 @@ create_frame() {
     mkdir -p "$wdir"
     echo "$WIDTH" > "$wdir/wWidth"
     echo "$HEIGHT" > "$wdir/wHeight"
-    echo $(( WIDTH * HEIGHT * 2 )) > "$wdir/dwMaxVideoFrameBufferSize"
+    echo $(( STILL_WIDTH * STILL_HEIGHT * 2 )) > "$wdir/dwMaxVideoFrameBufferSize"
     cat <<EOF > "$wdir/dwFrameInterval"
 333333
 EOF
@@ -113,6 +118,9 @@ create_uvc() {
     pushd "$GADGET/g1" >/dev/null
     mkdir "functions/$FUNCTION"
 
+    # write to fule function_name PRODUCT var
+    echo "Fast Station Camera" > "functions/$FUNCTION/function_name"
+
     # create_frame "$FUNCTION" 640 360 uncompressed u
     # create_frame "$FUNCTION" 1280 720 uncompressed u
     # create_frame "$FUNCTION" 320 180 uncompressed u
@@ -121,6 +129,14 @@ create_uvc() {
     # create_frame "$FUNCTION" 640 360 mjpeg m
 
     mkdir "functions/$FUNCTION/streaming/header/h"
+    if [ -w "functions/$FUNCTION/streaming/header/h/still_width" ] && \
+       [ -w "functions/$FUNCTION/streaming/header/h/still_height" ]; then
+        echo "$STILL_WIDTH" > "functions/$FUNCTION/streaming/header/h/still_width"
+        echo "$STILL_HEIGHT" > "functions/$FUNCTION/streaming/header/h/still_height"
+    else
+        log "    Still frame configfs attributes not present, using kernel defaults"
+    fi
+
     cd "functions/$FUNCTION/streaming/header/h"
     # ln -s ../../uncompressed/u
     ln -s ../../mjpeg/m
@@ -135,6 +151,41 @@ create_uvc() {
     ln -s header/h class/fs
     ln -s header/h class/ss
     cd ../../../
+
+    if [ -w "functions/$FUNCTION/control/terminal/camera/default/bmControls" ]; then
+        # Advertise Auto-Exposure Mode only.
+        echo 0x02 > "functions/$FUNCTION/control/terminal/camera/default/bmControls"
+    else
+        log "    Camera terminal bmControls attribute not present, using kernel defaults"
+    fi
+
+    if [ -w "functions/$FUNCTION/control/processing/default/bmControls" ]; then
+        # Advertise Brightness only to match the example control registration.
+        echo 0x01 > "functions/$FUNCTION/control/processing/default/bmControls"
+    else
+        log "    Processing unit bmControls attribute not present, using kernel defaults"
+    fi
+
+	# Include an Extension Unit if the kernel supports that
+	if [ -d functions/$FUNCTION/control/extensions ]; then
+		mkdir functions/$FUNCTION/control/extensions/xu.0
+		pushd functions/$FUNCTION/control/extensions/xu.0
+
+		# Set the bUnitID of the Processing Unit as the XU's source
+		echo 2 > baSourceID
+
+		# Set this XU as the source for the default output terminal
+		cat bUnitID > ../../terminal/output/default/bSourceID
+
+		# Flag some arbitrary controls. This sets alternating bits of the
+		# first byte of bmControls active.
+		echo 0x55 > bmControls
+
+		# Set the GUID
+		echo -e -n "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10" > guidExtensionCode
+
+		popd
+	fi
 
     echo 3072 > "functions/$FUNCTION/streaming_maxpacket"
 
