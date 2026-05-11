@@ -12,7 +12,7 @@ def initialize_argparser():
         "--model",
         help="The HubAI model reference for XFeat model. Get it from the Luxonis HubAI.",
         required=False,
-        default="luxonis/xfeat:mono-320x240",
+        default="luxonis/xfeat:mono-640x480",
         type=str,
     )
 
