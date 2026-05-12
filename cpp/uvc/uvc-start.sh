@@ -25,6 +25,8 @@ fi
 MANUF="Luxonis"
 PRODUCT="Luxonis UVC Camera"
 UDC=$(ls /sys/class/udc | head -n1) # will identify the 'first' UDC
+STILL_WIDTH="3840"
+STILL_HEIGHT="2160"
 
 log "=== Detecting platform:"
 log "    product : $PRODUCT"
@@ -66,6 +68,8 @@ remove_uvc_gadget() {
     rm functions/uvc.0/control/class/ss/* 2>/dev/null
     rmdir functions/uvc.0/control/header/* 2>/dev/null
 
+    rmdir functions/uvc.0/control/extensions/* 2>/dev/null
+
     rmdir functions/uvc.0 2>/dev/null
 
     popd >/dev/null
@@ -95,7 +99,7 @@ create_frame() {
     mkdir -p "$wdir"
     echo "$WIDTH" > "$wdir/wWidth"
     echo "$HEIGHT" > "$wdir/wHeight"
-    echo $(( WIDTH * HEIGHT * 2 )) > "$wdir/dwMaxVideoFrameBufferSize"
+    echo $(( STILL_WIDTH * STILL_HEIGHT * 2 )) > "$wdir/dwMaxVideoFrameBufferSize"
     cat <<EOF > "$wdir/dwFrameInterval"
 333333
 EOF
@@ -113,6 +117,9 @@ create_uvc() {
     pushd "$GADGET/g1" >/dev/null
     mkdir "functions/$FUNCTION"
 
+    # write to fule function_name PRODUCT var
+    echo "Luxonis UVC Camera" > "functions/$FUNCTION/function_name"
+
     # create_frame "$FUNCTION" 640 360 uncompressed u
     # create_frame "$FUNCTION" 1280 720 uncompressed u
     # create_frame "$FUNCTION" 320 180 uncompressed u
@@ -121,6 +128,14 @@ create_uvc() {
     # create_frame "$FUNCTION" 640 360 mjpeg m
 
     mkdir "functions/$FUNCTION/streaming/header/h"
+    if [ -w "functions/$FUNCTION/streaming/header/h/still_width" ] && \
+       [ -w "functions/$FUNCTION/streaming/header/h/still_height" ]; then
+        echo "$STILL_WIDTH" > "functions/$FUNCTION/streaming/header/h/still_width"
+        echo "$STILL_HEIGHT" > "functions/$FUNCTION/streaming/header/h/still_height"
+    else
+        log "    Still frame configfs attributes not present, using kernel defaults"
+    fi
+
     cd "functions/$FUNCTION/streaming/header/h"
     # ln -s ../../uncompressed/u
     ln -s ../../mjpeg/m

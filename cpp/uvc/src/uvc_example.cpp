@@ -35,7 +35,8 @@ extern "C" {
 std::atomic<bool> quitEvent(false);
 
 std::shared_ptr<dai::InputQueue> inputQueue{nullptr};
-std::shared_ptr<dai::MessageQueue> outputQueue;
+std::shared_ptr<dai::MessageQueue> videoBitstreamQueue{nullptr};
+std::shared_ptr<dai::MessageQueue> stillBitstreamQueue{nullptr};
 
 /* Necessary for and only used by signal handler. */
 static struct events *sigint_events;
@@ -48,49 +49,30 @@ void signalHandler(int signum) {
 	events_stop(sigint_events);
 }
 
-// Custom host node for saving video data
-class VideoSaver : public dai::node::CustomNode<VideoSaver> {
-   public:
-    VideoSaver() : fileHandle("video.encoded", std::ios::binary) {
-        if(!fileHandle.is_open()) {
-            throw std::runtime_error("Could not open video.encoded for writing");
-        }
-    }
 
-    ~VideoSaver() {
-        if(fileHandle.is_open()) {
-            fileHandle.close();
-        }
-    }
-
-    std::shared_ptr<dai::Buffer> processGroup(std::shared_ptr<dai::MessageGroup> message) override {
-        if(!fileHandle.is_open()) return nullptr;
-
-        // Get raw data and write to file
-        auto frame = message->get<dai::EncodedFrame>("data");
-        unsigned char* frameData = frame->getData().data();
-        size_t frameSize = frame->getData().size();
-        std::cout << "Storing frame of size: " << frameSize << std::endl;
-        fileHandle.write(reinterpret_cast<const char*>(frameData), frameSize);
-
-        // Don't send anything back
-        return nullptr;
-    }
-
-   private:
-    std::ofstream fileHandle;
-};
-
-extern "C" void depthai_uvc_get_buffer(struct video_source *s, struct video_buffer *buf) {
-	unsigned int frame_size, size;
+extern "C" void depthai_uvc_get_buffer(struct video_source *s, struct video_buffer *buf, bool still) {
+    unsigned int frame_size, size;
     uint8_t *f;
 
     if(quitEvent) {
         std::cout << "depthai_uvc_get_buffer(): Stopping capture due to quit event." << std::endl;
         return;
-    }      
+    }
 
-    auto frame = outputQueue->get<dai::ImgFrame>();
+    if(still) {
+        std::cout << "depthai_uvc_get_buffer(): Sending latest full-resolution frame as still image." << std::endl;
+
+        auto frame = stillBitstreamQueue->get<dai::ImgFrame>();
+
+        f = frame->getData().data();
+        frame_size = frame->getData().size();
+        size = std::min(frame_size, buf->size);
+        memcpy(buf->mem, f, size);
+        buf->bytesused = size;
+        return;
+    }
+
+    auto frame = videoBitstreamQueue->get<dai::ImgFrame>();
     if(frame == nullptr) {
         std::cerr << "depthai_uvc_get_buffer(): No frame available." << std::endl;
         return;
@@ -176,13 +158,20 @@ int main() {
     // Create nodes
     auto camRgb = pipeline.create<dai::node::Camera>()->build(socket);
     inputQueue  = camRgb->inputControl.createInputQueue();
-    auto output = camRgb->requestOutput(std::make_pair(1920, 1080), dai::ImgFrame::Type::NV12);
+    auto videoSource = camRgb->requestOutput(std::make_pair(1920, 1080), dai::ImgFrame::Type::NV12);
 
-    // Create video encoder node
-    auto encoded = pipeline.create<dai::node::VideoEncoder>();
-    encoded->setDefaultProfilePreset(30, dai::VideoEncoderProperties::Profile::MJPEG);
-    output->link(encoded->input);
-    outputQueue = encoded->bitstream.createOutputQueue(1, false);
+    // Encode the center-cropped HD stream for continuous UVC video.
+    auto videoEncoder = pipeline.create<dai::node::VideoEncoder>();
+    videoEncoder->setDefaultProfilePreset(30, dai::VideoEncoderProperties::Profile::MJPEG);
+    videoSource->link(videoEncoder->input);
+    videoBitstreamQueue = videoEncoder->bitstream.createOutputQueue(1, false);
+
+    auto stillSource = camRgb->requestOutput(std::make_pair(3840, 2160), dai::ImgFrame::Type::NV12);
+    // Encode full-resolution frames for UVC still-image requests.
+    auto stillEncoder = pipeline.create<dai::node::VideoEncoder>();
+    stillEncoder->setDefaultProfilePreset(4, dai::VideoEncoderProperties::Profile::MJPEG);
+    stillSource->link(stillEncoder->input);
+    stillBitstreamQueue = stillEncoder->bitstream.createOutputQueue(1, false);
 
     // Start pipeline
     pipeline.start();
