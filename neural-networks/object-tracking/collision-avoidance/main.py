@@ -66,9 +66,8 @@ with dai.Pipeline(device) as pipeline:
             nn_archive, numShaves=6
         )  # TODO: change to numShaves=4 if running on OAK-D Lite
 
-    img_detections_filter = pipeline.create(ImgDetectionsFilter).build(
-        nn.out, labels_to_keep=[person_label]
-    )
+    img_detections_filter = pipeline.create(ImgDetectionsFilter).build(nn.out)
+    img_detections_filter.keepLabels([person_label])  # keep only person detections
 
     # tracking
     tracker = pipeline.create(dai.node.ObjectTracker)
@@ -92,8 +91,8 @@ with dai.Pipeline(device) as pipeline:
     # visualization
     visualizer.addTopic("Video", nn.passthrough, "images")
     visualizer.addTopic("Tracklets", collision_avoidance.out, "images")
-    visualizer.addTopic("Direction", collision_avoidance.out_direction, "images")
-    visualizer.addTopic("Bird Frame", birds_eye_view.output, "images")
+    visualizer.addTopic("Direction", collision_avoidance.out_direction)
+    visualizer.addTopic("Bird Frame", birds_eye_view.output)
     print("Pipeline created.")
 
     pipeline.start()

@@ -3,8 +3,6 @@ import time
 
 import depthai as dai
 
-from depthai_nodes import ImgDetectionExtended, ImgDetectionsExtended
-
 
 class CropConfigsCreator(dai.node.HostNode):
     """A node to create and send a dai.ImageManipConfigV2 crop configuration for each
@@ -17,11 +15,11 @@ class CropConfigsCreator(dai.node.HostNode):
     Attributes
     ----------
     detections_input : dai.Input
-        The input link for the ImageDetectionsExtended | dai.ImgDetections message.
+        The input link for the dai.ImgDetections message.
     config_output : dai.Output
         The output link for the ImageManipConfigV2 messages.
     detections_output : dai.Output
-        The output link for the ImgDetectionsExtended message.
+        The output link for the dai.ImgDetections message.
     source_size : Tuple[int, int]
         The size of the source image (width, height).
     target_size : Optional[Tuple[int, int]] = None
@@ -146,7 +144,7 @@ class CropConfigsCreator(dai.node.HostNode):
         Parameters
         ----------
         detections_input : dai.Node.Output
-            The input link for the ImgDetectionsExtended message
+            The input link for the dai.ImgDetections message
         source_size : Tuple[int, int]
             The size of the source image (width, height).
         target_size : Optional[Tuple[int, int]]
@@ -170,24 +168,18 @@ class CropConfigsCreator(dai.node.HostNode):
 
     def process(self, detections_input: dai.Buffer) -> None:
         """Process the input detections and create crop configurations. This function is
-        ran every time a new ImgDetectionsExtended or dai.ImgDetections message is
-        received.
+        ran every time a new dai.ImgDetections message is received.
 
         Sends len(detections) number of crop configurations to the config_output link.
-        In addition sends an ImgDetectionsExtended object containing the corresponding
+        In addition sends a dai.ImgDetections object containing the corresponding
         detections to the detections_output link.
         """
 
-        assert isinstance(detections_input, (ImgDetectionsExtended, dai.ImgDetections))
+        assert isinstance(detections_input, dai.ImgDetections)
         sequence_num = detections_input.getSequenceNum()
         timestamp = detections_input.getTimestamp()
 
-        if isinstance(detections_input, dai.ImgDetections):
-            detections_msg = self._convert_to_extended(detections_input)
-        else:
-            detections_msg = detections_input
-
-        detections = detections_msg.detections
+        detections = detections_input.detections
 
         # Skip the current frame / load new frame
         cfg = dai.ImageManipConfig()
@@ -206,11 +198,17 @@ class CropConfigsCreator(dai.node.HostNode):
 
         for i in range(len(detections)):
             cfg = dai.ImageManipConfig()
-            detection: ImgDetectionExtended = detections[i]
-            rect = detection.rotated_rect
-            rect = rect.denormalize(self.w, self.h)
+            detection: dai.ImgDetection = detections[i]
 
-            cfg.addCropRotatedRect(rect, normalizedCoords=False)
+            x_center = (detection.xmin + detection.xmax) / 2
+            y_center = (detection.ymin + detection.ymax) / 2
+            width = (detection.xmax - detection.xmin) * 1.15
+            height = (detection.ymax - detection.ymin) * 1.15
+            rect = dai.RotatedRect(
+                dai.Point2f(x_center, y_center), dai.Size2f(width, height), 0.0
+            )
+
+            cfg.addCropRotatedRect(rect, normalizedCoords=True)
 
             if self.target_w is not None and self.target_h is not None:
                 cfg.setOutputSize(self.target_w, self.target_h, self.resize_mode)
@@ -229,37 +227,7 @@ class CropConfigsCreator(dai.node.HostNode):
                     attempts += 1
                     time.sleep(0.001)  # Small delay to prevent busy waiting
 
-        self.detections_output.send(detections_msg)
-
-    def _convert_to_extended(
-        self, detections: dai.ImgDetections
-    ) -> ImgDetectionsExtended:
-        rotated_rectangle_detections = []
-        for det in detections.detections:
-            img_detection = ImgDetectionExtended()
-            img_detection.label = det.label
-            img_detection.confidence = det.confidence
-
-            x_center = (det.xmin + det.xmax) / 2
-            y_center = (det.ymin + det.ymax) / 2
-            width = det.xmax - det.xmin
-            height = det.ymax - det.ymin
-            width = width * 1.15
-            height = height * 1.15
-
-            img_detection.rotated_rect = (x_center, y_center, width, height, 0.0)
-
-            rotated_rectangle_detections.append(img_detection)
-
-        img_detections_extended = ImgDetectionsExtended()
-        img_detections_extended.setSequenceNum(detections.getSequenceNum())
-        img_detections_extended.setTimestamp(detections.getTimestamp())
-        img_detections_extended.detections = rotated_rectangle_detections
-        transformation = detections.getTransformation()
-        if transformation is not None:
-            img_detections_extended.setTransformation(transformation)
-
-        return img_detections_extended
+        self.detections_output.send(detections_input)
 
     def _validate_positive_integer(self, value: int):
         """Validates that the set size is a positive integer.

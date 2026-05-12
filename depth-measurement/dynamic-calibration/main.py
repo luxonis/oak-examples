@@ -1,6 +1,6 @@
 import cv2
 
-from depthai_nodes.node import ApplyColormap
+from depthai_nodes.node import ApplyDepthColormap
 import depthai as dai
 
 from utils.dynamic_controler import DynamicCalibrationControler
@@ -35,8 +35,7 @@ with dai.Pipeline(device) as pipeline:
     right_out.link(dyn_calib.right)
 
     # Output queues
-    depth_parser = pipeline.create(ApplyColormap).build(stereo.disparity)
-    # depth_parser.setMaxValue(int(stereo.initialConfig.getMaxDisparity())) # NOTE: Uncomment when DAI fixes a bug
+    depth_parser = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
     depth_parser.setColormap(cv2.COLORMAP_JET)
 
     calibration = device.readCalibration()

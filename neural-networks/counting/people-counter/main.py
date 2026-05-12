@@ -51,9 +51,9 @@ with dai.Pipeline(device) as pipeline:
     # person detection filter
     classes = det_model_nn_archive.getConfig().model.heads[0].metadata.classes
     labels_to_keep = [classes.index("person")] if "person" in classes else []
-    det_filter = pipeline.create(ImgDetectionsFilter).build(
-        det_nn.out, labels_to_keep=labels_to_keep, confidence_threshold=0.5
-    )
+    det_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
+    det_filter.keepLabels(labels_to_keep)
+    det_filter.minConfidence(0.5)
 
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(det_filter.out)

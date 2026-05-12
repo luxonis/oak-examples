@@ -6,7 +6,6 @@ import numpy as np
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
     ImgDetectionsFilter,
-    ImgDetectionsBridge,
 )
 from config import NeuralNetworkConfig
 from .nn_detection_controller import NNDetectionController
@@ -26,7 +25,6 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
           -> ParsingNeuralNetwork
           -> ImgDetectionsFilter (filter by enabled label IDs)
           -> LabelMapperNode (add label names for visualization)
-          -> ImgDetectionsBridge (convert to dai.ImgDetections)
           -> LabelMapperNode (re-add label names after bridge)
 
     Exposes:
@@ -40,7 +38,6 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
 
         self._nn: ParsingNeuralNetwork = self.createSubnode(ParsingNeuralNetwork)
         self._det_filter: ImgDetectionsFilter = self.createSubnode(ImgDetectionsFilter)
-        self._bridge: ImgDetectionsBridge = self.createSubnode(ImgDetectionsBridge)
         self._det_label_mapper_extended: DetectionsLabelMapper = self.createSubnode(
             DetectionsLabelMapper
         )
@@ -86,11 +83,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._det_label_mapper_extended.build(self._det_filter.out)
         self.detections_extended = self._det_label_mapper_extended.out
 
-        # Bridge to convert ImgDetectionsExtended -> dai.ImgDetections
-        self._bridge.build(self._det_filter.out)
-
-        # Re-add label after bridge (until ImgDetectionsBridge fix - it doesn't copy label names)
-        self._det_label_mapper.build(self._bridge.out)
+        self._det_label_mapper.build(self._det_filter.out)
         self.detections = self._det_label_mapper.out
 
         # Prompt encoders

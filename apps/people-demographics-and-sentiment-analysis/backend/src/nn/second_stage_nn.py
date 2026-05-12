@@ -56,9 +56,9 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
         self._nn.build(self._img_manip.out, archive)
 
         self._gather.build(
-            camera_fps=camera_fps,
-            input_data=self._nn.outputs if self._multi_head_nn else self._nn.out,
-            input_reference=reference_detections,
+            cameraFps=camera_fps,
+            inputData=self._nn.outputs if self._multi_head_nn else self._nn.out,
+            inputReference=reference_detections,
         )
 
         return self

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsBridge
+from depthai_nodes.node import ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
 from utils.people_counter import PeopleCounter
@@ -48,8 +48,6 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # tracking
-    bridge = pipeline.create(ImgDetectionsBridge).build(nn.out, ignore_angle=True)
-
     tracker = pipeline.create(dai.node.ObjectTracker)
     tracker.setDetectionLabelsToTrack([0])
     if platform == "RVC2":
@@ -60,7 +58,7 @@ with dai.Pipeline(device) as pipeline:
     tracker.setTrackerThreshold(0.4)
     nn.passthrough.link(tracker.inputTrackerFrame)
     nn.passthrough.link(tracker.inputDetectionFrame)
-    bridge.out.link(tracker.inputDetections)
+    nn.out.link(tracker.inputDetections)
 
     # annotation
     tracklet_visualizer = pipeline.create(TrackletVisualizer).build(

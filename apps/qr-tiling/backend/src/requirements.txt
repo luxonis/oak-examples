@@ -1,5 +1,0 @@
-depthai==3.2.1
-depthai-nodes==0.3.7
-numpy>=1.22
-pyzbar==0.1.9
-pydantic

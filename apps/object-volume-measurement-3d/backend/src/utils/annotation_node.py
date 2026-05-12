@@ -1,5 +1,4 @@
 import depthai as dai
-from depthai_nodes import ImgDetectionsExtended
 from depthai_nodes.utils import AnnotationHelper
 from typing import Dict, Tuple, Optional
 import numpy as np
@@ -13,7 +12,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
     """Interactive annotation / selection node
 
     Inputs:
-      - in_detections: ImgDetectionsExtended produced by NN parser
+      - in_detections: dai.ImgDetections produced by NN parser
       - in_rgb_stream: RGB ImgFrame
       - in_depth_stream: depth ImgFrame (will be masked to create segmented PCL)
 
@@ -138,7 +137,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
     def _contains_point(self, det, sx_rgb, sy_rgb) -> bool:
         # corners are NN-normalized → warp to RGB-normalized
-        rr = det.rotated_rect
+        rr = det.getBoundingBox()
         pts_nn_norm = [(p.x, p.y) for p in rr.getPoints()]
         pts_rgb_norm = self._nn_to_rgb_norm_pts(pts_nn_norm)
         return self.point_in_convex_quad(sx_rgb, sy_rgb, pts_rgb_norm)
@@ -207,7 +206,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
     def _draw_rotrect_and_label(self, helper: AnnotationHelper, det, text: str):
         # rr corners are NN-normalized already (0..1 in NN space)
-        rr = det.rotated_rect
+        rr = det.getBoundingBox()
         corners = rr.getPoints()
         pts_nn_norm = [(p.x, p.y) for p in corners]
         # draw polygon in RGB space
@@ -303,9 +302,9 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                     self._src_trans, self._dst_trans
                 )  # To transform mask from NN space to rgb space
 
-            assert isinstance(det_msg, ImgDetectionsExtended)
+            assert isinstance(det_msg, dai.ImgDetections)
             for detection in det_msg.detections:
-                detection.label_name = self._label_encoding.get(
+                detection.labelName = self._label_encoding.get(
                     detection.label, "unknown"
                 )
 
@@ -324,7 +323,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 # self._plane_capture = False
                 continue
 
-            m = det_msg.masks
+            m = det_msg.getCvSegmentationMask()
             dets = det_msg.detections
             mask_rgb = None
 
@@ -337,7 +336,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                     for idx in present_ids:
                         self._draw_mask(helper, m, idx)
                 for d in dets:
-                    label_txt = f"{d.label_name} {getattr(d, 'confidence', 0.0):.2f}"
+                    label_txt = f"{d.labelName} {getattr(d, 'confidence', 0.0):.2f}"
                     self._draw_rotrect_and_label(helper, d, label_txt)
 
                 # emit: annotations + full depth + all dets
@@ -365,7 +364,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                     for idx in present_ids:
                         self._draw_mask(helper, m, idx)
                 for d in dets:
-                    label_txt = f"{d.label_name} {getattr(d, 'confidence', 0.0):.2f}"
+                    label_txt = f"{d.labelName} {getattr(d, 'confidence', 0.0):.2f}"
                     self._draw_rotrect_and_label(helper, d, label_txt)
 
                 ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
@@ -408,7 +407,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
                 for i, d in enumerate(dets):
                     if i == sel_i:
-                        base = f"{d.label_name} {getattr(d, 'confidence', 0.0):.2f}"
+                        base = f"{d.labelName} {getattr(d, 'confidence', 0.0):.2f}"
                         extra = ""
                         if (
                             isinstance(self._last_dims, list)
@@ -420,7 +419,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                         label_txt = base + extra
                         self._draw_rotrect_and_label(helper, d, label_txt)
                         continue
-                    base = f"{d.label_name} {getattr(d, 'confidence', 0.0):.2f}"
+                    base = f"{d.labelName} {getattr(d, 'confidence', 0.0):.2f}"
                     self._draw_rotrect_and_label(helper, d, base)
 
                 # Mask depth to get segmented pointcloud
@@ -450,7 +449,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 for idx in present_ids:
                     self._draw_mask(helper, m, idx)
             for d in dets:
-                label_txt = f"{d.label_name} {getattr(d, 'confidence', 0.0):.2f}"
+                label_txt = f"{d.labelName} {getattr(d, 'confidence', 0.0):.2f}"
                 self._draw_rotrect_and_label(helper, d, label_txt)
 
             ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())

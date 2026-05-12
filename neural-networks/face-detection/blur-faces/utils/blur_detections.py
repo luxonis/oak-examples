@@ -21,7 +21,7 @@ class BlurBboxes(dai.node.ThreadedHostNode):
 
             h, w = frame_copy.shape[:2]
             for detection in detections:
-                rect: dai.RotatedRect = detection.rotated_rect
+                rect: dai.RotatedRect = detection.getBoundingBox()
                 rect = rect.denormalize(w, h)
                 detection = rect.getOuterRect()
                 bbox = [int(d) for d in detection]

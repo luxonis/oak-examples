@@ -2,7 +2,7 @@ from typing import List
 
 import depthai as dai
 
-from depthai_nodes import ImgDetectionsExtended, Classifications, SECONDARY_COLOR
+from depthai_nodes import Classifications, SECONDARY_COLOR
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -18,10 +18,10 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, gather_data_msg: dai.Buffer) -> None:
-        dets_msg: ImgDetectionsExtended = gather_data_msg.reference_data
-        assert isinstance(dets_msg, ImgDetectionsExtended)
+        dets_msg: dai.ImgDetections = gather_data_msg.reference_data
+        assert isinstance(dets_msg, dai.ImgDetections)
 
-        rec_msg_list: List[Classifications] = gather_data_msg.gathered
+        rec_msg_list: List[Classifications] = gather_data_msg.items
         assert isinstance(rec_msg_list, list)
         assert all(isinstance(rec_msg, Classifications) for rec_msg in rec_msg_list)
         assert len(dets_msg.detections) == len(rec_msg_list)
@@ -29,7 +29,7 @@ class AnnotationNode(dai.node.HostNode):
         annotations = AnnotationHelper()
 
         for det_msg, rec_msg in zip(dets_msg.detections, rec_msg_list):
-            xmin, ymin, xmax, ymax = det_msg.rotated_rect.getOuterRect()
+            xmin, ymin, xmax, ymax = det_msg.getBoundingBox().getOuterRect()
 
             annotations.draw_rectangle(
                 (xmin, ymin),

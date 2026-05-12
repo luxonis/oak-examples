@@ -1,8 +1,12 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter, GatherData
-from depthai_nodes.node.utils import generate_script_content
+from depthai_nodes.node import (
+    ParsingNeuralNetwork,
+    ImgDetectionsFilter,
+    GatherData,
+    FrameCropper,
+)
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -56,43 +60,33 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_model_description, args.fps_limit
     )
 
-    first_stage_filter = pipeline.create(ImgDetectionsFilter).build(
-        det_nn.out,
-        labels_to_keep=VALID_LABELS,
-    )
+    first_stage_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
+    first_stage_filter.keepLabels(VALID_LABELS)
 
     # detection processing
-    script = pipeline.create(dai.node.Script)
-    first_stage_filter.out.link(script.inputs["det_in"])
-    det_nn.passthrough.link(script.inputs["preview"])
-    script_content = generate_script_content(
-        resize_width=pos_model_w,
-        resize_height=pos_model_h,
-        padding=PADDING,
-        resize_mode="STRETCH",
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=first_stage_filter.out,
+            outputSize=(pos_model_w, pos_model_h),
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+            padding=PADDING,
+        )
+        .build(
+            inputImage=det_nn.passthrough,
+        )
     )
-    script.setScript(script_content)
-
-    crop_node = pipeline.create(dai.node.ImageManip)
-    crop_node.initialConfig.setOutputSize(pos_model_w, pos_model_h)
-    crop_node.inputConfig.setWaitForMessage(True)
-
-    script.outputs["manip_cfg"].link(crop_node.inputConfig)
-    script.outputs["manip_img"].link(crop_node.inputImage)
 
     pos_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         crop_node.out, pos_nn_archive
     )
 
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(
-        det_nn.out,
-        labels_to_keep=VALID_LABELS,
-    )
-
     # detections and position estimations sync
-    gather_data = pipeline.create(GatherData).build(camera_fps=args.fps_limit)
-    detections_filter.out.link(gather_data.input_reference)
-    pos_nn.getOutput(0).link(gather_data.input_data)
+    gather_data = pipeline.create(GatherData).build(
+        cameraFps=args.fps_limit,
+        inputData=pos_nn.getOutput(0),
+        inputReference=first_stage_filter.out,
+    )
 
     # annotation
     connection_pairs = (
@@ -112,6 +106,7 @@ with dai.Pipeline(device) as pipeline:
 
     pipeline.start()
     visualizer.registerPipeline(pipeline)
+    print("Pipeline started.")
 
     while pipeline.isRunning():
         key_pressed = visualizer.waitKey(1)

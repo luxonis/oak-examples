@@ -34,7 +34,7 @@ To change the stereo depth settings, use the following keys:
 
 ### Installation
 
-You need to first prepare a **Python 3.10** environment with the following packages installed:
+You need to first prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/),
 - [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).

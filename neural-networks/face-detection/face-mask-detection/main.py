@@ -4,7 +4,6 @@ import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
     ImgDetectionsFilter,
-    ImgDetectionsBridge,
 )
 
 from utils.arguments import initialize_argparser
@@ -57,14 +56,11 @@ with dai.Pipeline(device) as pipeline:
 
     # filter and rename detection labels
     det_process_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
-    det_process_filter.setLabels(list(LABEL_ENCODING.keys()), keep=True)
-    det_process_bridge = pipeline.create(ImgDetectionsBridge).build(
-        det_process_filter.out, label_encoding=LABEL_ENCODING
-    )
+    det_process_filter.keepLabels(list(LABEL_ENCODING.keys()))
 
     # visualization
     visualizer.addTopic("Video", det_nn.passthrough, "images")
-    visualizer.addTopic("Detections", det_process_bridge.out, "images")
+    visualizer.addTopic("Detections", det_process_filter.out, "images")
 
     print("Pipeline created.")
 

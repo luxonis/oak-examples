@@ -3,7 +3,6 @@ import depthai as dai
 import numpy as np
 
 from depthai_nodes import (
-    ImgDetectionsExtended,
     Classifications,
     Predictions,
     GatheredData,
@@ -22,14 +21,14 @@ def merge_face_features(
     """
     reference = age_gender.reference_data
     assert isinstance(
-        reference, ImgDetectionsExtended
-    ), "Expected ImgDetectionsExtended"
+        reference, dai.ImgDetections
+    ), "Expected dai.ImgDetections, got {}".format(reference)
 
     detections = list(reference.detections)
-    age_gender_groups = age_gender.gathered
-    emotion_groups = emotions.gathered
-    reid_groups = reid.gathered
-    crop_frames = crops.gathered
+    age_gender_groups = age_gender.items
+    emotion_groups = emotions.items
+    reid_groups = reid.items
+    crop_frames = crops.items
 
     assert all(
         isinstance(msg, dai.NNData) for msg in reid_groups
@@ -40,7 +39,7 @@ def merge_face_features(
     for detection, age_gender_msg, emotion_msg, crop_frame, reid_msg in zip(
         detections, age_gender_groups, emotion_groups, crop_frames, reid_groups
     ):
-        bbox = detection.rotated_rect.getOuterRect()
+        bbox = detection.getOuterBoundingBox()
         age_msg: Predictions = age_gender_msg["0"]
         gender_msg: Classifications = age_gender_msg["1"]
 

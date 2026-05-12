@@ -1,8 +1,16 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, TilesPatcher, Tiling
+from depthai_nodes.node import (
+    CoordinatesMapper,
+    FrameCropper,
+    GatherData,
+    ImgDetectionsFilter,
+    ParsingNeuralNetwork,
+    Tiling,
+)
 from utils.arguments import initialize_argparser
+from utils.merge_img_detections import MergeImgDetections
 from utils.host_qr_scanner import QRScanner
 
 _, args = initialize_argparser()
@@ -20,6 +28,11 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     platform = device.getPlatform()
+    frame_type = (
+        dai.ImgFrame.Type.BGR888i
+        if platform == dai.Platform.RVC4
+        else dai.ImgFrame.Type.BGR888p
+    )
     model_description = dai.NNModelDescription.fromYamlFile(
         f"qrdet_nano.{platform.name}.yaml"
     )
@@ -28,59 +41,74 @@ with dai.Pipeline(device) as pipeline:
     if args.media_path:
         replay = pipeline.create(dai.node.ReplayVideo)
         replay.setReplayVideoFile(Path(args.media_path))
-        replay.setOutFrameType(dai.ImgFrame.Type.NV12)
+        replay.setOutFrameType(frame_type)
         replay.setLoop(True)
         replay.setFps(args.fps_limit)
         replay.setSize(IMG_SHAPE)
         cam_out = replay.out
     else:
         cam = pipeline.create(dai.node.Camera).build()
-        cam_out = cam.requestOutput(
-            IMG_SHAPE, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-        )
+        cam_out = cam.requestOutput(IMG_SHAPE, type=frame_type, fps=args.fps_limit)
 
     grid_size = (args.rows, args.columns)
 
     tile_manager = pipeline.create(Tiling).build(
-        img_output=cam_out,
-        img_shape=IMG_SHAPE,
+        canvasShape=IMG_SHAPE,
         overlap=OVERLAP,
-        grid_size=grid_size,
-        grid_matrix=GRID_MATRIX,
-        global_detection=GLOBAL_DETECTION,
-        nn_shape=nn_archive.getInputSize(),
-        resize_mode=dai.ImageManipConfig.ResizeMode.STRETCH,
+        gridSize=grid_size,
+        gridMatrix=GRID_MATRIX,
+        globalDetection=GLOBAL_DETECTION,
+        resizeShape=nn_archive.getInputSize(),
+        resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
     )
 
-    nn_input = tile_manager.out
-    if platform == dai.Platform.RVC4:
-        interleaved_manip = pipeline.create(dai.node.ImageManip)
-        interleaved_manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
-        interleaved_manip.setMaxOutputFrameSize(
-            nn_archive.getInputHeight() * nn_archive.getInputWidth() * 3
+    tiling_cropper = (
+        pipeline.create(FrameCropper)
+        .fromManipConfigs(
+            inputManipConfigs=tile_manager.out,
+            maxOutputFrameSize=nn_archive.getInputWidth()
+            * nn_archive.getInputHeight()
+            * 3,
+            waitForConfig=False,
         )
-        tile_manager.out.link(interleaved_manip.inputImage)
-        nn_input = interleaved_manip.out
-
-    nn = pipeline.create(ParsingNeuralNetwork).build(nn_input, nn_archive)
-
-    nn.input.setMaxSize(grid_size[0] * grid_size[1])
-    nn.input.setBlocking(False)
-
-    patcher = pipeline.create(TilesPatcher).build(
-        img_frames=cam_out, nn=nn.out, conf_thresh=0.3, iou_thresh=0.2
+        .build(
+            inputImage=cam_out,
+        )
     )
 
-    tile_positions = tile_manager._computeTilePositions(
-        overlap=OVERLAP,
-        grid_size=grid_size,
-        img_shape=IMG_SHAPE,
-        grid_matrix=GRID_MATRIX,
-        global_detection=GLOBAL_DETECTION,
+    nn = pipeline.create(ParsingNeuralNetwork).build(
+        input=tiling_cropper.out, nnSource=nn_archive
+    )
+
+    detections_in_image_space = pipeline.create(CoordinatesMapper).build(
+        toTransformationInput=cam_out,
+        fromTransformationInput=nn.out,
+    )
+
+    gathered_detections = pipeline.create(GatherData).build(
+        inputData=detections_in_image_space.out,
+        inputReference=cam_out,
+        cameraFps=args.fps_limit,
+        waitCountFn=lambda _: tile_manager.tileCount,
+    )
+
+    merged_detections = pipeline.create(MergeImgDetections).build(
+        input=gathered_detections.out
+    )
+
+    filtered_detections = (
+        pipeline.create(ImgDetectionsFilter)
+        .useNms(
+            confThresh=0.3,
+            iouThresh=0.2,
+        )
+        .build(input=merged_detections.out)
     )
 
     scanner = pipeline.create(QRScanner).build(
-        preview=cam_out, nn=patcher.out, tile_positions=tile_positions
+        preview=cam_out,
+        nn=filtered_detections.out,
+        tile_positions=tile_manager.tilePositions,
     )
     scanner.inputs["detections"].setBlocking(False)
     scanner.inputs["detections"].setMaxSize(2)

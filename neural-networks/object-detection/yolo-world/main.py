@@ -8,7 +8,7 @@ from depthai_nodes.node import (
 
 from utils.helper_functions import extract_text_embeddings
 from utils.arguments import initialize_argparser
-from utils.annotation_node import AnnotationNode
+from utils.detections_label_mapper import DetectionsLabelMapper
 
 MAX_NUM_CLASSES = 80
 
@@ -82,20 +82,18 @@ with dai.Pipeline(device) as pipeline:
 
     # filter and rename detection labels
     det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.setLabels(
-        labels=[i for i in range(len(args.class_names))], keep=True
-    )
-    annotation_node = pipeline.create(AnnotationNode).build(
+    det_process_filter.keepLabels([i for i in range(len(args.class_names))])
+
+    label_mapper = pipeline.create(DetectionsLabelMapper).build(
         det_process_filter.out,
         label_encoding={k: v for k, v in enumerate(args.class_names)},
     )
 
     # visualization
-    visualizer.addTopic("Detections", annotation_node.out)
+    visualizer.addTopic("Detections", label_mapper.out)
     visualizer.addTopic("Video", nn_with_parser.passthroughs["images"])
 
     print("Pipeline created.")
-
     pipeline.start()
     visualizer.registerPipeline(pipeline)
 

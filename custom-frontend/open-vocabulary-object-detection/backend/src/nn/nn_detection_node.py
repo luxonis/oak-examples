@@ -27,7 +27,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
           -> LabelMapperNode (add label names for visualization)
 
     Exposes:
-      - detections_extended: ImgDetectionsExtended with label names (for visualizer)
+      - detections_extended: dai.ImgDetections with label names (for visualizer)
       - detections: dai.ImgDetections with label names (for snapping)
       - controller: PromptController for dynamic prompt updates (classes, confidence threshold)
     """
@@ -80,7 +80,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         # Detection filter
         self._det_filter.build(self._nn.out)
 
-        # Add label for visualization (ImgDetectionsExtended)
+        # Add label for visualization
         self._det_label_mapper.build(
             input_detections=self._det_filter.out, input_frame=input_frame
         )

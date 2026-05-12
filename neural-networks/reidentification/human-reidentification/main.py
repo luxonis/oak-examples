@@ -1,8 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData, ImgDetectionsBridge
-from depthai_nodes.node.utils import generate_script_content
+from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.arguments import initialize_argparser
 from utils.identification import IdentificationNode
@@ -91,36 +90,30 @@ with dai.Pipeline(device) as pipeline:
         resize_node.out, det_model_nn_archive
     )
 
-    # detection processing
-    det_bridge = pipeline.create(ImgDetectionsBridge).build(
-        det_nn.out
-    )  # TODO: remove once we have it working with ImgDetectionsExtended
-    script_node = pipeline.create(dai.node.Script)
-    det_bridge.out.link(script_node.inputs["det_in"])
-    input_node_out.link(script_node.inputs["preview"])
-    script_content = generate_script_content(
-        resize_width=rec_nn_archive.getInputWidth(),
-        resize_height=rec_nn_archive.getInputHeight(),
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_nn.out,
+            outputSize=(
+                rec_nn_archive.getInputWidth(),
+                rec_nn_archive.getInputHeight(),
+            ),
+        )
+        .build(
+            inputImage=input_node_out,
+        )
     )
-    script_node.setScript(script_content)
-
-    crop_node = pipeline.create(dai.node.ImageManip)
-    crop_node.initialConfig.setOutputSize(
-        rec_nn_archive.getInputWidth(), rec_nn_archive.getInputHeight()
-    )
-    crop_node.inputConfig.setWaitForMessage(True)
-
-    script_node.outputs["manip_cfg"].link(crop_node.inputConfig)
-    script_node.outputs["manip_img"].link(crop_node.inputImage)
 
     rec_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         crop_node.out, rec_nn_archive
     )
 
     # detections and recognitions sync
-    gather_data_node = pipeline.create(GatherData).build(args.fps_limit)
-    rec_nn.out.link(gather_data_node.input_data)
-    det_nn.out.link(gather_data_node.input_reference)
+    gather_data_node = pipeline.create(GatherData).build(
+        cameraFps=args.fps_limit,
+        inputData=rec_nn.out,
+        inputReference=det_nn.out,
+    )
 
     # idenfication
     id_node = pipeline.create(IdentificationNode).build(gather_data_node.out, csim=CSIM)

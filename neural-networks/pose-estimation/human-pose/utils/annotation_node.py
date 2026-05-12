@@ -1,6 +1,6 @@
 from typing import List, Optional
 import depthai as dai
-from depthai_nodes import Keypoints
+from depthai_nodes.message import Keypoints
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -34,7 +34,7 @@ class AnnotationNode(dai.node.HostNode):
         img_detections_msg: dai.ImgDetections = gather_data_msg.reference_data
         assert isinstance(img_detections_msg, dai.ImgDetections)
 
-        keypoints_msg_list: List[Keypoints] = gather_data_msg.gathered
+        keypoints_msg_list: List[Keypoints] = gather_data_msg.items
         assert isinstance(keypoints_msg_list, list)
         assert all(isinstance(msg, Keypoints) for msg in keypoints_msg_list)
 
@@ -55,13 +55,19 @@ class AnnotationNode(dai.node.HostNode):
             xs = []
             ys = []
             confidences = []
-            for keypoint_msg in keypoints_msg.keypoints:
+            for keypoint_msg in keypoints_msg.getKeypoints():
                 x = min(
-                    max(xmin - self.padding + slope_x * keypoint_msg.x, 0.0),
+                    max(
+                        xmin - self.padding + slope_x * keypoint_msg.imageCoordinates.x,
+                        0.0,
+                    ),
                     1.0,
                 )
                 y = min(
-                    max(ymin - self.padding + slope_y * keypoint_msg.y, 0.0),
+                    max(
+                        ymin - self.padding + slope_y * keypoint_msg.imageCoordinates.y,
+                        0.0,
+                    ),
                     1.0,
                 )
                 xs.append(x)

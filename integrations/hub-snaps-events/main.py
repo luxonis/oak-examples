@@ -69,11 +69,9 @@ with dai.Pipeline(device) as pipeline:
         except ValueError:
             print(f"Class `{curr_class}` not predicted by the model, skipping.")
 
-    det_process_filter = pipeline.create(ImgDetectionsFilter).build(
-        nn_with_parser.out,
-        labels_to_keep=labels_to_keep,
-        confidence_threshold=args.confidence_threshold,
-    )
+    det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
+    det_process_filter.keepLabels(labels_to_keep)
+    det_process_filter.minConfidence(args.confidence_threshold)
 
     snaps_producer = pipeline.create(SnapsProducer).build(
         frame=nn_with_parser.passthrough,

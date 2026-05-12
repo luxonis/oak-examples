@@ -18,10 +18,11 @@ class BlurBboxes(dai.node.ThreadedHostNode):
             frame = self.input_frame.get()
             frame_copy = frame.getCvFrame()
             detections = self.input_detections.get().detections
+            dai.ImgDetections
 
             h, w = frame_copy.shape[:2]
             for detection in detections:
-                rect: dai.RotatedRect = detection.rotated_rect
+                rect: dai.RotatedRect = detection.getBoundingBox()
                 rect = rect.denormalize(w, h)
                 detection = rect.getOuterRect()
                 bbox = [int(d) for d in detection]

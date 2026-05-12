@@ -24,7 +24,7 @@ class FaceCropsStage:
         pipeline: dai.Pipeline,
         preview_source: dai.Node.Output,
         detections_source: dai.Node.Output,  # ImgDetections
-        face_reference_detections: dai.Node.Output,  # ImgDetectionsExtended
+        face_reference_detections: dai.Node.Output,  # dai.ImgDetections
         camera_fps: int,
     ):
         self._pipeline = pipeline

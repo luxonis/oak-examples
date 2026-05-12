@@ -1,12 +1,10 @@
 import depthai as dai
 from depthai_nodes import (
-    ImgDetectionsExtended,
-    ImgDetectionExtended,
-    Keypoints,
     Predictions,
     GatheredData,
     SECONDARY_COLOR,
 )
+from depthai_nodes.message import Keypoints
 from depthai_nodes.utils import AnnotationHelper
 from typing import List
 from utils.gesture_recognition import recognize_gesture
@@ -43,18 +41,19 @@ class AnnotationNode(dai.node.HostNode):
     def process(self, gathered_data: dai.Buffer, video_message: dai.ImgFrame) -> None:
         assert isinstance(gathered_data, GatheredData)
 
-        detections_message: ImgDetectionsExtended = gathered_data.reference_data
-        detections_list: List[ImgDetectionExtended] = detections_message.detections
+        detections_message: dai.ImgDetections = gathered_data.reference_data
+        detections_list: List[dai.ImgDetection] = detections_message.detections
 
-        new_dets = ImgDetectionsExtended()
-        new_dets.transformation = video_message.getTransformation()
+        new_dets = dai.ImgDetections()
+        new_dets.setTransformation(video_message.getTransformation())
 
         annotation_helper = AnnotationHelper()
+        det_list = []
 
         for ix, detection in enumerate(detections_list):
-            keypoints_msg: Keypoints = gathered_data.gathered[ix]["0"]
-            confidence_msg: Predictions = gathered_data.gathered[ix]["1"]
-            handness_msg: Predictions = gathered_data.gathered[ix]["2"]
+            keypoints_msg: Keypoints = gathered_data.items[ix]["0"]
+            confidence_msg: Predictions = gathered_data.items[ix]["1"]
+            handness_msg: Predictions = gathered_data.items[ix]["2"]
 
             hand_confidence = confidence_msg.prediction
             handness = handness_msg.prediction
@@ -62,38 +61,42 @@ class AnnotationNode(dai.node.HostNode):
             if hand_confidence < self.confidence_threshold:
                 continue
 
-            width = detection.rotated_rect.size.width
-            height = detection.rotated_rect.size.height
+            width = detection.getBoundingBox().size.width
+            height = detection.getBoundingBox().size.height
 
-            xmin = detection.rotated_rect.center.x - width / 2
-            xmax = detection.rotated_rect.center.x + width / 2
-            ymin = detection.rotated_rect.center.y - height / 2
-            ymax = detection.rotated_rect.center.y + height / 2
+            xmin = detection.getBoundingBox().center.x - width / 2
+            xmax = detection.getBoundingBox().center.x + width / 2
+            ymin = detection.getBoundingBox().center.y - height / 2
+            ymax = detection.getBoundingBox().center.y + height / 2
 
             padding = self.padding_factor
 
             slope_x = (xmax + padding) - (xmin - padding)
             slope_y = (ymax + padding) - (ymin - padding)
 
-            new_det = ImgDetectionExtended()
-            new_det.rotated_rect = (
-                detection.rotated_rect.center.x,
-                detection.rotated_rect.center.y,
-                detection.rotated_rect.size.width + 2 * padding,
-                detection.rotated_rect.size.height + 2 * padding,
-                detection.rotated_rect.angle,
+            new_det = dai.ImgDetection()
+            rotated_rect = detection.getBoundingBox()
+            new_det.setBoundingBox(
+                dai.RotatedRect(
+                    rotated_rect.center,
+                    dai.Size2f(
+                        rotated_rect.size.width + 2 * padding,
+                        rotated_rect.size.height + 2 * padding,
+                    ),
+                    rotated_rect.angle,
+                )
             )
             new_det.label = 0
-            new_det.label_name = "Hand"
+            new_det.labelName = "Hand"
             new_det.confidence = detection.confidence
-            new_dets.detections.append(new_det)
+            det_list.append(new_det)
 
             xs = []
             ys = []
 
-            for kp in keypoints_msg.keypoints:
-                x = min(max(xmin - padding + slope_x * kp.x, 0.0), 1.0)
-                y = min(max(ymin - padding + slope_y * kp.y, 0.0), 1.0)
+            for kp in keypoints_msg.getKeypoints():
+                x = min(max(xmin - padding + slope_x * kp.imageCoordinates.x, 0.0), 1.0)
+                y = min(max(ymin - padding + slope_y * kp.imageCoordinates.y, 0.0), 1.0)
                 xs.append(x)
                 ys.append(y)
 
@@ -111,8 +114,8 @@ class AnnotationNode(dai.node.HostNode):
             text = "Left" if handness < 0.5 else "Right"
             text += f" {gesture}"
 
-            text_x = detection.rotated_rect.center.x - 0.05
-            text_y = detection.rotated_rect.center.y - height / 2 - 0.10
+            text_x = detection.getBoundingBox().center.x - 0.05
+            text_y = detection.getBoundingBox().center.y - height / 2 - 0.10
 
             annotation_helper.draw_text(
                 text=text,
@@ -125,6 +128,7 @@ class AnnotationNode(dai.node.HostNode):
                 points=keypoints, color=SECONDARY_COLOR, thickness=2
             )
 
+        new_dets.detections = det_list
         new_dets.setTimestamp(detections_message.getTimestamp())
         new_dets.setSequenceNum(detections_message.getSequenceNum())
         self.out_detections.send(new_dets)

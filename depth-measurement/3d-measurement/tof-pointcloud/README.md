@@ -16,7 +16,7 @@ Running this example requires a **Luxonis device** connected to your computer. R
 
 ### Installation
 
-You need to first prepare a **Python 3.10** environment (python versions 3.8 - 3.13 should work too) with the following packages installed:
+You need to first prepare a **Python >= 3.10** environment (python versions 3.8 - 3.13 should work too) with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/),
 - [Open3D](https://pypi.org/project/open3d/)
