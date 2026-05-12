@@ -182,9 +182,13 @@ def read_title_and_summary(markdown: Path, fallback: Path) -> tuple[str, str]:
 
 
 def infer_shape(path: Path) -> str:
-    if (path / "frontend" / "package.json").exists() or (path / "frontend" / "src").exists():
+    if (path / "frontend" / "package.json").exists() or (
+        path / "frontend" / "src"
+    ).exists():
         return "frontend"
-    if "ros" in path.parts or any((path / child).exists() for child in ("package.xml", "colcon.meta")):
+    if "ros" in path.parts or any(
+        (path / child).exists() for child in ("package.xml", "colcon.meta")
+    ):
         return "ros"
     if (path / "CMakeLists.txt").exists() or (path / "src" / "main.cpp").exists():
         return "cpp"
@@ -200,7 +204,9 @@ def infer_mode(path: Path, shape: str) -> str:
     if "multiple-devices" in text or "multi-device" in text:
         return "multi-device host"
     if shape in {"frontend", "ros"} and (path / "oakapp.toml").exists():
-        readme = (path / "README.md").read_text(encoding="utf-8", errors="ignore").lower()
+        readme = (
+            (path / "README.md").read_text(encoding="utf-8", errors="ignore").lower()
+        )
         if "standalone" in readme and "peripheral" not in readme:
             return "standalone-only"
     if (path / "oakapp.toml").exists():
@@ -237,7 +243,11 @@ def candidate_example_dirs() -> list[Path]:
     for readme in iter_readmes():
         directory = readme.parent
         relative_directory = rel(directory)
-        if directory == ROOT or directory.parent == ROOT or is_ignored(relative_directory):
+        if (
+            directory == ROOT
+            or directory.parent == ROOT
+            or is_ignored(relative_directory)
+        ):
             continue
         direct_markers = [
             directory / "main.py",
@@ -247,12 +257,17 @@ def candidate_example_dirs() -> list[Path]:
             directory / "host.py",
             directory / "oak.py",
         ]
-        frontend_backend = (
-            (directory / "frontend" / "package.json").exists()
-            and (directory / "backend" / "src" / "main.py").exists()
+        frontend_backend = (directory / "frontend" / "package.json").exists() and (
+            directory / "backend" / "src" / "main.py"
+        ).exists()
+        ros_workspace = (
+            "ros" in relative_directory.parts and (directory / "oakapp.toml").exists()
         )
-        ros_workspace = "ros" in relative_directory.parts and (directory / "oakapp.toml").exists()
-        if any(marker.exists() for marker in direct_markers) or frontend_backend or ros_workspace:
+        if (
+            any(marker.exists() for marker in direct_markers)
+            or frontend_backend
+            or ros_workspace
+        ):
             dirs.add(directory)
     return sorted(dirs, key=lambda p: rel(p).as_posix())
 
@@ -260,7 +275,11 @@ def candidate_example_dirs() -> list[Path]:
 def discover_examples() -> list[Example]:
     examples: list[Example] = []
     for directory in candidate_example_dirs():
-        guide = directory / "AGENTS.md" if (directory / "AGENTS.md").exists() else directory / "README.md"
+        guide = (
+            directory / "AGENTS.md"
+            if (directory / "AGENTS.md").exists()
+            else directory / "README.md"
+        )
         title, summary = read_title_and_summary(guide, rel(directory))
         shape = infer_shape(directory)
         examples.append(
@@ -286,7 +305,10 @@ def category_heading(category: str) -> str:
 
 
 def render_index(examples: list[Example]) -> str:
-    categories = sorted({category_key(example) for example in examples}, key=lambda c: (CATEGORY_ORDER.index(c) if c in CATEGORY_ORDER else 99, c))
+    categories = sorted(
+        {category_key(example) for example in examples},
+        key=lambda c: (CATEGORY_ORDER.index(c) if c in CATEGORY_ORDER else 99, c),
+    )
     lines = [
         "# INDEX.md",
         "",
@@ -320,15 +342,22 @@ def render_index(examples: list[Example]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate INDEX.md for agent-facing example navigation.")
-    parser.add_argument("--check", action="store_true", help="Fail if INDEX.md is not up to date.")
+    parser = argparse.ArgumentParser(
+        description="Generate INDEX.md for agent-facing example navigation."
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="Fail if INDEX.md is not up to date."
+    )
     args = parser.parse_args()
 
     generated = render_index(discover_examples())
     if args.check:
         current = INDEX.read_text(encoding="utf-8") if INDEX.exists() else ""
         if current != generated:
-            print("INDEX.md is out of date. Run: python3 scripts/generate_agents_index.py", file=sys.stderr)
+            print(
+                "INDEX.md is out of date. Run: python3 scripts/generate_agents_index.py",
+                file=sys.stderr,
+            )
             return 1
         return 0
     INDEX.write_text(generated, encoding="utf-8")

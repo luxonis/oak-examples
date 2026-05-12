@@ -20,7 +20,7 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 
 - `Entrypoint:` [main.py](main.py)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Message service:` [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) <-> [main.py](main.py)
+- `Message service:` [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) \<-> [main.py](main.py)
 - `Frontend server:` [frontend_server.py](frontend_server.py)
 - `Standalone config:` [oakapp.toml](oakapp.toml)
 - `Input:` camera stream plus text entered in the frontend

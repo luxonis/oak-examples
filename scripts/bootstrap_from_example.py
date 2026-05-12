@@ -91,7 +91,9 @@ def copy_example(example_dir: Path, output_dir: Path) -> None:
 
 
 def bootstrap(example: Path, output: Path, force: bool) -> None:
-    example_dir = (ROOT / example).resolve() if not example.is_absolute() else example.resolve()
+    example_dir = (
+        (ROOT / example).resolve() if not example.is_absolute() else example.resolve()
+    )
     output_dir = output.resolve()
 
     if not example_dir.is_dir():
@@ -106,7 +108,9 @@ def bootstrap(example: Path, output: Path, force: bool) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     copy_example(example_dir, output_dir)
 
-    transformed_agents = remove_related_examples((example_dir / "AGENTS.md").read_text(encoding="utf-8"))
+    transformed_agents = remove_related_examples(
+        (example_dir / "AGENTS.md").read_text(encoding="utf-8")
+    )
     (output_dir / "AGENTS.md").write_text(transformed_agents, encoding="utf-8")
     shutil.copy2(ESSENTIAL_KNOWLEDGE, output_dir / "ESSENTIAL_KNOWLEDGE.md")
     update_oakapp_identifier(output_dir)
@@ -116,9 +120,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Bootstrap a standalone project from an oak-examples example."
     )
-    parser.add_argument("example", type=Path, help="Example path relative to repository root.")
+    parser.add_argument(
+        "example", type=Path, help="Example path relative to repository root."
+    )
     parser.add_argument("output", type=Path, help="Output project directory.")
-    parser.add_argument("--force", action="store_true", help="Overwrite a non-empty output directory.")
+    parser.add_argument(
+        "--force", action="store_true", help="Overwrite a non-empty output directory."
+    )
     args = parser.parse_args()
 
     try:
