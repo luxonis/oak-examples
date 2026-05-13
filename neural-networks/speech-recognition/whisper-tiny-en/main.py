@@ -28,7 +28,7 @@ if platform != "RVC4":
     raise ValueError("This example is only supported for RVC4 platform.")
 
 encoder_model_description = dai.NNModelDescription.fromYamlFile(
-    f"whisper_tiny_en_decoder.{platform}.yaml"
+    f"whisper_tiny_en_encoder.{platform}.yaml"
 )
 encoder_archive_path = dai.getModelFromZoo(encoder_model_description)
 
