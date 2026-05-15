@@ -13,6 +13,7 @@ find_package(depthai REQUIRED)
 message(STATUS "Found depthai: ${depthai_DIR}")
 
 add_executable(uvc_example
+    src/uvc_controls.cpp
     src/uvc_example.cpp
 )
 
