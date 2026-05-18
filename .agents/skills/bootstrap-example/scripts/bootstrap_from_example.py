@@ -294,8 +294,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Bootstrap an OAK project from an oak-examples example."
     )
-    parser.add_argument("example", type=Path, help="Example path relative to oak-examples root.")
-    parser.add_argument("output", type=Path, help="New output project directory.")
+    parser.add_argument("example", nargs="?", type=Path, help="Example path relative to oak-examples root.")
+    parser.add_argument("output", nargs="?", type=Path, help="New output project directory.")
     parser.add_argument(
         "--repo",
         type=Path,
@@ -311,10 +311,20 @@ def main() -> int:
         default=DEFAULT_REPO_BRANCH,
         help=f"Repository branch to shallow clone. Default: {DEFAULT_REPO_BRANCH}",
     )
+    parser.add_argument(
+        "--print-index",
+        action="store_true",
+        help="Find or shallow-clone oak-examples and print the local INDEX.md path for example selection.",
+    )
     args = parser.parse_args()
 
     try:
         repo = find_repo(args.repo, args.repo_url, args.branch)
+        if args.print_index:
+            print(repo / "INDEX.md")
+            return 0
+        if args.example is None or args.output is None:
+            parser.error("example and output are required unless --print-index is used")
         bootstrap(repo, args.example, args.output)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -11,21 +11,27 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 ## Workflow
 
 1. Clarify the target app before choosing an example: task, required hardware, host-script vs standalone mode, UI needs, model/inference needs, streaming/output needs, and whether the user wants the smallest scaffold or closest production-shaped app.
-2. Use `<repo-root>/INDEX.md` to identify the source example. Prefer the closest task and hardware match first, then the closest execution shape.
-3. Choose a new output directory for the generated project. For installable-skill usage, default to a new subdirectory under the user's current working directory, such as `./raw-stream-app`; do not write directly into the current directory. The output directory must not already exist.
-4. Run this skill's bundled helper. It uses the current `oak-examples` checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1`.
+2. Ensure the `oak-examples` index is available for selection. This command uses the current checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1` and prints the local `INDEX.md` path:
+
+```bash
+python3 scripts/bootstrap_from_example.py --print-index
+```
+
+3. Read the printed `INDEX.md` path and identify the source example. Prefer the closest task and hardware match first, then the closest execution shape.
+4. Choose a new output directory for the generated project. For installable-skill usage, default to a new subdirectory under the user's current working directory, such as `./raw-stream-app`; do not write directly into the current directory. The output directory must not already exist.
+5. Run this skill's bundled helper.
 
 ```bash
 python3 scripts/bootstrap_from_example.py <example-path> ./<new-project-dir>
 ```
 
-5. Use `--repo /path/to/oak-examples` when the user already has a preferred checkout, or when you need to clone into a specific location.
+6. Use `--repo /path/to/oak-examples` when the user already has a preferred checkout, or when you need to clone into a specific location.
 
 ```bash
 python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> ./<new-project-dir>
 ```
 
-6. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
+7. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
 6. Tell the user where the project was created, that `oakapp.toml` identifier was changed if present, and that dependencies, hardware compatibility, and runtime validation still need to be handled separately.
 
 ## Example
@@ -36,7 +42,7 @@ python3 scripts/bootstrap_from_example.py custom-frontend/raw-stream ./raw-strea
 
 ## Available Scripts
 
-- `scripts/bootstrap_from_example.py`: finds or shallow-clones `oak-examples`, copies an example into a new project, writes `AGENTS.md` and `CLAUDE.md`, copies `ESSENTIAL_KNOWLEDGE.md`, converts cross-example links to GitHub `main` URLs, and rewrites `oakapp.toml` identifiers.
+- `scripts/bootstrap_from_example.py`: finds or shallow-clones `oak-examples`, prints the local `INDEX.md` path with `--print-index`, copies an example into a new project, writes `AGENTS.md` and `CLAUDE.md`, copies `ESSENTIAL_KNOWLEDGE.md`, converts cross-example links to GitHub `main` URLs, and rewrites `oakapp.toml` identifiers.
 
 ## Selection Checklist
 
