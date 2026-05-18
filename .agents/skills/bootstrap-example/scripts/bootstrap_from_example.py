@@ -18,6 +18,7 @@ from pathlib import Path
 
 DEFAULT_REPO_URL = "https://github.com/luxonis/oak-examples.git"
 DEFAULT_REPO_BRANCH = "main"
+FALLBACK_REPO_BRANCHES = ("feat/agents",)
 DEFAULT_REPO_CACHE = Path.home() / ".cache" / "luxonis" / "oak-examples"
 GITHUB_MAIN_BASE_URL = "https://github.com/luxonis/oak-examples"
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
@@ -49,12 +50,7 @@ def looks_like_oak_examples(path: Path) -> bool:
     )
 
 
-def clone_repo(target: Path, repo_url: str, branch: str) -> Path:
-    target = target.expanduser().resolve()
-    if target.exists() and any(target.iterdir()):
-        raise FileExistsError(
-            f"Repository path exists but is not an oak-examples checkout: {target}"
-        )
+def clone_repo_once(target: Path, repo_url: str, branch: str) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     command = [
         "git",
@@ -71,10 +67,35 @@ def clone_repo(target: Path, repo_url: str, branch: str) -> Path:
     except FileNotFoundError as exc:
         raise RuntimeError("git is required to clone oak-examples") from exc
     except subprocess.CalledProcessError as exc:
-        raise RuntimeError(f"Could not clone oak-examples from {repo_url}") from exc
+        raise RuntimeError(f"Could not clone oak-examples branch {branch} from {repo_url}") from exc
     if not looks_like_oak_examples(target):
-        raise FileNotFoundError(f"Cloned repository is missing expected files: {target}")
+        raise FileNotFoundError(
+            f"Cloned branch {branch} is missing expected bootstrap files: {target}"
+        )
     return target
+
+
+def clone_repo(target: Path, repo_url: str, branch: str, replace_invalid: bool = False) -> Path:
+    target = target.expanduser().resolve()
+    branches = [branch, *(b for b in FALLBACK_REPO_BRANCHES if b != branch)]
+    errors: list[str] = []
+    for candidate_branch in branches:
+        if target.exists():
+            if any(target.iterdir()):
+                if not replace_invalid:
+                    raise FileExistsError(
+                        f"Repository path exists but is not an oak-examples checkout: {target}"
+                    )
+                shutil.rmtree(target)
+            else:
+                target.rmdir()
+        try:
+            return clone_repo_once(target, repo_url, candidate_branch)
+        except Exception as exc:
+            errors.append(f"{candidate_branch}: {exc}")
+            if target.exists():
+                shutil.rmtree(target)
+    raise RuntimeError("Could not clone a compatible oak-examples checkout. " + "; ".join(errors))
 
 
 def find_repo(explicit_repo: Path | None, repo_url: str, branch: str) -> Path:
@@ -83,7 +104,7 @@ def find_repo(explicit_repo: Path | None, repo_url: str, branch: str) -> Path:
         if looks_like_oak_examples(repo):
             return repo
         if not repo.exists():
-            return clone_repo(repo, repo_url, branch)
+            return clone_repo(repo, repo_url, branch, replace_invalid=True)
         raise FileNotFoundError(f"Not an oak-examples checkout: {repo}")
 
     if os.environ.get("OAK_EXAMPLES_REPO"):
@@ -107,7 +128,7 @@ def find_repo(explicit_repo: Path | None, repo_url: str, branch: str) -> Path:
 
     if looks_like_oak_examples(DEFAULT_REPO_CACHE):
         return DEFAULT_REPO_CACHE
-    return clone_repo(DEFAULT_REPO_CACHE, repo_url, branch)
+    return clone_repo(DEFAULT_REPO_CACHE, repo_url, branch, replace_invalid=True)
 
 
 def insert_after_title(markdown: str, sections: list[str]) -> str:
