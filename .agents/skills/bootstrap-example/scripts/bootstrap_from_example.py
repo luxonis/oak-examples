@@ -321,7 +321,8 @@ def main() -> int:
     try:
         repo = find_repo(args.repo, args.repo_url, args.branch)
         if args.print_index:
-            print(repo / "INDEX.md")
+            print(f"repo: {repo}")
+            print(f"index: {repo / 'INDEX.md'}")
             return 0
         if args.example is None or args.output is None:
             parser.error("example and output are required unless --print-index is used")

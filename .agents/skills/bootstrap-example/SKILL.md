@@ -11,13 +11,13 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 ## Workflow
 
 1. Clarify the target app before choosing an example: task, required hardware, host-script vs standalone mode, UI needs, model/inference needs, streaming/output needs, and whether the user wants the smallest scaffold or closest production-shaped app.
-2. Before selecting an example, run the helper with `--print-index` to acquire the local `INDEX.md` path. This command uses the current checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1` and prints the local `INDEX.md` path:
+2. Before selecting an example, run the helper with `--print-index` to acquire the local checkout path and `INDEX.md` path. This command uses the current checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1`:
 
 ```bash
 python3 scripts/bootstrap_from_example.py --print-index
 ```
 
-3. Read the printed `INDEX.md` path and identify candidate examples. The index links are relative to the directory containing `INDEX.md` in the local checkout/cache; resolve those paths locally and read the candidate `AGENTS.md` files before choosing. Prefer the closest task and hardware match first, then the closest execution shape.
+3. Read the printed `index:` path and identify candidate examples. The index links are relative to the printed `repo:` path; resolve those paths locally and read the candidate `AGENTS.md` files before choosing. Prefer the closest task and hardware match first, then the closest execution shape.
 4. Choose a new output directory for the generated project. For installable-skill usage, default to a new subdirectory under the user's current working directory, such as `./raw-stream-app`; do not write directly into the current directory. The output directory must not already exist.
 5. Run this skill's bundled helper.
 
