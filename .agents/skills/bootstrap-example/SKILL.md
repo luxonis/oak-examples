@@ -12,19 +12,32 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 1. Clarify the target app before choosing an example: task, required hardware, host-script vs standalone mode, UI needs, model/inference needs, streaming/output needs, and whether the user wants the smallest scaffold or closest production-shaped app.
 2. Use `<repo-root>/INDEX.md` to identify the source example. Prefer the closest task and hardware match first, then the closest execution shape.
 3. Choose a new output directory outside the source example. It must not already exist.
-4. Run the helper from the repository root:
+4. If this skill is installed outside an `oak-examples` checkout, locate or clone the repository first:
+
+```bash
+git clone https://github.com/luxonis/oak-examples.git /tmp/oak-examples
+```
+
+5. Run the helper. From the repository root, use the repo-local wrapper:
 
 ```bash
 python3 scripts/bootstrap_from_example.py <example-path> <output-dir>
 ```
 
-5. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
+6. From a standalone skill install, use this skill's bundled helper and pass the repo path:
+
+```bash
+python3 <skill-dir>/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> <output-dir>
+```
+
+7. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
 6. Tell the user where the project was created, that `oakapp.toml` identifier was changed if present, and that dependencies, hardware compatibility, and runtime validation still need to be handled separately.
 
 ## Example
 
 ```bash
 python3 scripts/bootstrap_from_example.py custom-frontend/raw-stream /tmp/raw-stream-app
+python3 <skill-dir>/bootstrap_from_example.py --repo /tmp/oak-examples custom-frontend/raw-stream /tmp/raw-stream-app
 ```
 
 ## Selection Checklist

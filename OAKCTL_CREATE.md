@@ -19,7 +19,7 @@ A generated project should be useful outside the `oak-examples` monorepo. Agent 
 
 ## Reference Script
 
-[scripts/bootstrap_from_example.py](scripts/bootstrap_from_example.py) simulates this contract for internal testing and handoff. The product path should map the same behavior to `oakctl app create`. Example:
+[scripts/bootstrap_from_example.py](scripts/bootstrap_from_example.py) is a repo-local wrapper around the installable helper in [.agents/skills/bootstrap-example/bootstrap_from_example.py](.agents/skills/bootstrap-example/bootstrap_from_example.py). It simulates this contract for internal testing and handoff. The product path should map the same behavior to `oakctl app create`. Example:
 
 ```bash
 python3 scripts/bootstrap_from_example.py custom-frontend/raw-stream /tmp/raw-stream-app
