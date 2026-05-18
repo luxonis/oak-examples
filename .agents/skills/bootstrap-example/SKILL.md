@@ -11,7 +11,7 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 ## Workflow
 
 1. Clarify the target app before choosing an example: task, required hardware, host-script vs standalone mode, UI needs, model/inference needs, streaming/output needs, and whether the user wants the smallest scaffold or closest production-shaped app.
-2. Ensure the `oak-examples` index is available for selection. This command uses the current checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1` and prints the local `INDEX.md` path:
+2. Before selecting an example, run the helper with `--print-index` to acquire the local `INDEX.md` path. This command uses the current checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1` and prints the local `INDEX.md` path:
 
 ```bash
 python3 scripts/bootstrap_from_example.py --print-index
@@ -32,7 +32,7 @@ python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path
 ```
 
 7. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
-6. Tell the user where the project was created, that `oakapp.toml` identifier was changed if present, and that dependencies, hardware compatibility, and runtime validation still need to be handled separately.
+8. Tell the user where the project was created, that `oakapp.toml` identifier was changed if present, and that dependencies, hardware compatibility, and runtime validation still need to be handled separately.
 
 ## Example
 
