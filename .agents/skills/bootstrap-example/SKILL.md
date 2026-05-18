@@ -12,17 +12,17 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 
 1. Clarify the target app before choosing an example: task, required hardware, host-script vs standalone mode, UI needs, model/inference needs, streaming/output needs, and whether the user wants the smallest scaffold or closest production-shaped app.
 2. Use `<repo-root>/INDEX.md` to identify the source example. Prefer the closest task and hardware match first, then the closest execution shape.
-3. Choose a new output directory outside the source example. It must not already exist.
+3. Choose a new output directory for the generated project. For installable-skill usage, default to a new subdirectory under the user's current working directory, such as `./raw-stream-app`; do not write directly into the current directory. The output directory must not already exist.
 4. Run this skill's bundled helper. It uses the current `oak-examples` checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1`.
 
 ```bash
-python3 scripts/bootstrap_from_example.py <example-path> <output-dir>
+python3 scripts/bootstrap_from_example.py <example-path> ./<new-project-dir>
 ```
 
 5. Use `--repo /path/to/oak-examples` when the user already has a preferred checkout, or when you need to clone into a specific location.
 
 ```bash
-python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> <output-dir>
+python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> ./<new-project-dir>
 ```
 
 6. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
@@ -31,7 +31,7 @@ python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path
 ## Example
 
 ```bash
-python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples custom-frontend/raw-stream /tmp/raw-stream-app
+python3 scripts/bootstrap_from_example.py custom-frontend/raw-stream ./raw-stream-app
 ```
 
 ## Available Scripts
