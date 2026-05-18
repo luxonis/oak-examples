@@ -66,7 +66,7 @@ This is the best reference in the repository for live manual camera tuning throu
 - `To add another camera control:` extend [utils/manual_camera_control.py](utils/manual_camera_control.py) with a new key, state field, and annotation line
 - `To change the default camera stream size:` edit the `cam.requestOutput(...)` call in [main.py](main.py)
 - `To reuse only the overlay/control host node:` keep [utils/manual_camera_control.py](utils/manual_camera_control.py) and feed it another camera output plus input-control queue
-- `To switch from manual to automatic focus logic:` compare against [../depth-driven-focus](../depth-driven-focus/)
+- `To switch from manual to automatic focus logic:` compare against [camera-controls/depth-driven-focus](https://github.com/luxonis/oak-examples/tree/main/camera-controls/depth-driven-focus)
 
 ## Constraints
 
@@ -84,9 +84,9 @@ This is the best reference in the repository for live manual camera tuning throu
 
 ## Related Examples
 
-- [../depth-driven-focus](../depth-driven-focus/): use this when focus should follow face depth automatically
-- [../lossless-zooming](../lossless-zooming/): use this when the main control problem is crop/zoom, not sensor tuning
-- [../../tutorials/camera-demo](../../tutorials/camera-demo/): use this when you need a simpler camera-streaming baseline
+- [camera-controls/depth-driven-focus](https://github.com/luxonis/oak-examples/tree/main/camera-controls/depth-driven-focus): use this when focus should follow face depth automatically
+- [camera-controls/lossless-zooming](https://github.com/luxonis/oak-examples/tree/main/camera-controls/lossless-zooming): use this when the main control problem is crop/zoom, not sensor tuning
+- [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you need a simpler camera-streaming baseline
 
 ## Validation
 

@@ -75,7 +75,7 @@ This is the repository reference for building a Roboflow dataset from live Depth
 - `To switch to another detector:` replace the model YAMLs in [depthai_models/](depthai_models/) and keep the same detection output contract
 - `To change annotation format:` replace the VOC XML generation in [utils/roboflow_uploader.py](utils/roboflow_uploader.py)
 - `To make manual-only uploads the default:` remove or disable the auto-upload branch in [utils/roboflow_node.py](utils/roboflow_node.py)
-- `To switch to Hub instead of Roboflow:` compare against [../hub-snaps-events](../hub-snaps-events/)
+- `To switch to Hub instead of Roboflow:` compare against [integrations/hub-snaps-events](https://github.com/luxonis/oak-examples/tree/main/integrations/hub-snaps-events)
 
 ## Constraints
 
@@ -93,10 +93,10 @@ This is the repository reference for building a Roboflow dataset from live Depth
 
 ## Related Examples
 
-- [../hub-snaps-events](../hub-snaps-events/): use this when you want Luxonis Hub snaps instead of Roboflow dataset uploads
-- [../roboflow-workflow](../roboflow-workflow/): use this when Roboflow is the live inference engine rather than the dataset sink
-- [../../apps/data-collection](../../apps/data-collection/): use this when you want a larger standalone data-collection app rather than a small integration script
-- [../../apps/default-app](../../apps/default-app/): use this when you need a packaged detector baseline with no upload logic
+- [integrations/hub-snaps-events](https://github.com/luxonis/oak-examples/tree/main/integrations/hub-snaps-events): use this when you want Luxonis Hub snaps instead of Roboflow dataset uploads
+- [integrations/roboflow-workflow](https://github.com/luxonis/oak-examples/tree/main/integrations/roboflow-workflow): use this when Roboflow is the live inference engine rather than the dataset sink
+- [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when you want a larger standalone data-collection app rather than a small integration script
+- [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): use this when you need a packaged detector baseline with no upload logic
 
 ## Validation
 

@@ -89,10 +89,10 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 ## Related Examples
 
-- [../qr-tiling](../qr-tiling/): use this when you want a live tiling UI and runtime tile control
-- [../dino-tracking](../dino-tracking/): use this when you want another RVC4 standalone frontend-heavy app with backend state synchronization
-- [../../tutorials/full-fov-nn](../../tutorials/full-fov-nn/): use this when the main topic is field-of-view and resolution handling rather than multi-branch comparison
-- [../../neural-networks/face-detection/head-posture-detection](../../neural-networks/face-detection/head-posture-detection/): use this when the main goal is face-related inference rather than detail-preserving capture
+- [apps/qr-tiling](https://github.com/luxonis/oak-examples/tree/main/apps/qr-tiling): use this when you want a live tiling UI and runtime tile control
+- [apps/dino-tracking](https://github.com/luxonis/oak-examples/tree/main/apps/dino-tracking): use this when you want another RVC4 standalone frontend-heavy app with backend state synchronization
+- [tutorials/full-fov-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/full-fov-nn): use this when the main topic is field-of-view and resolution handling rather than multi-branch comparison
+- [neural-networks/face-detection/head-posture-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/head-posture-detection): use this when the main goal is face-related inference rather than detail-preserving capture
 
 ## Validation
 

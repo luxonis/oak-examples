@@ -79,7 +79,7 @@ This is the strongest standalone reference in the repo for multi-stage people an
 - `To change models:` start in [backend/src/config/system_configuration.py](backend/src/config/system_configuration.py)
 - `To change how many faces are shown in the UI:` inspect [backend/src/visualization/monitor_node.py](backend/src/visualization/monitor_node.py) and [frontend/src/App.tsx](frontend/src/App.tsx)
 - `To reuse only the analytics backend:` keep the join and monitor nodes, then replace the frontend with another service consumer
-- `To study just one subtask:` compare against the face-specific examples under [../../neural-networks/face-detection/](../../neural-networks/face-detection/)
+- `To study just one subtask:` compare against the face-specific examples under [neural-networks/face-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection)
 
 ## Constraints
 
@@ -92,14 +92,14 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 - [backend/src/config/arguments.py](backend/src/config/arguments.py) still exposes `--device` for development, but the indexed and documented path for this example is standalone-only.
 - The frontend does not derive face metadata from stream topics; it depends on the `Get Faces` service from [backend/src/visualization/monitor_node.py](backend/src/visualization/monitor_node.py).
-- The static frontend path is active here, unlike the partially wired frontend tree in [../focused-vision](../focused-vision/).
+- The static frontend path is active here, unlike the partially wired frontend tree in [apps/focused-vision](https://github.com/luxonis/oak-examples/tree/main/apps/focused-vision).
 
 ## Related Examples
 
-- [../dino-tracking](../dino-tracking/): use this when you need another standalone frontend/backend app with backend-owned state
-- [../../neural-networks/face-detection/age-gender](../../neural-networks/face-detection/age-gender/): use this when you only need age/gender
-- [../../neural-networks/face-detection/emotion-recognition](../../neural-networks/face-detection/emotion-recognition/): use this when you only need emotion recognition
-- [../../neural-networks/reidentification/human-reidentification](../../neural-networks/reidentification/human-reidentification/): use this when the main task is re-id rather than a user-facing analytics app
+- [apps/dino-tracking](https://github.com/luxonis/oak-examples/tree/main/apps/dino-tracking): use this when you need another standalone frontend/backend app with backend-owned state
+- [neural-networks/face-detection/age-gender](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/age-gender): use this when you only need age/gender
+- [neural-networks/face-detection/emotion-recognition](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/emotion-recognition): use this when you only need emotion recognition
+- [neural-networks/reidentification/human-reidentification](https://github.com/luxonis/oak-examples/tree/main/neural-networks/reidentification/human-reidentification): use this when the main task is re-id rather than a user-facing analytics app
 
 ## Validation
 

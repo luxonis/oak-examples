@@ -53,9 +53,9 @@ This is the repository reference for density-map-based crowd counting. Use it wh
 
 ## Related Examples
 
-- [../people-counter](../people-counter/): use this when you need counts derived from person detections
-- [../cumulative-object-counting](../cumulative-object-counting/): use this when you need line-crossing counts
-- [../../../neural-networks/generic-example](../../../neural-networks/generic-example/): use this when you want the simpler single-model scaffold
+- [neural-networks/counting/people-counter](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/people-counter): use this when you need counts derived from person detections
+- [neural-networks/counting/cumulative-object-counting](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/cumulative-object-counting): use this when you need line-crossing counts
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you want the simpler single-model scaffold
 
 ## Validation
 

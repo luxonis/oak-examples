@@ -94,10 +94,10 @@ This is the best standalone reference for open-vocabulary detection plus configu
 
 ## Related Examples
 
-- [../dino-tracking](../dino-tracking/): use this when you need interactive tracking rather than open-vocabulary snapping
-- [../object-volume-measurement-3d](../object-volume-measurement-3d/): use this when you need object clicks and a richer 3D measurement backend
-- [../../custom-frontend/open-vocabulary-object-detection](../../custom-frontend/open-vocabulary-object-detection/): use this when you want another open-vocabulary frontend/backend pattern
-- [../../neural-networks/generic-example](../../neural-networks/generic-example/): use this when you want the lighter single-model baseline
+- [apps/dino-tracking](https://github.com/luxonis/oak-examples/tree/main/apps/dino-tracking): use this when you need interactive tracking rather than open-vocabulary snapping
+- [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need object clicks and a richer 3D measurement backend
+- [custom-frontend/open-vocabulary-object-detection](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/open-vocabulary-object-detection): use this when you want another open-vocabulary frontend/backend pattern
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you want the lighter single-model baseline
 
 ## Validation
 

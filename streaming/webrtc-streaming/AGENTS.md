@@ -57,9 +57,9 @@ This is the repository reference for browser-based WebRTC streaming with runtime
 
 ## Related Examples
 
-- [../rtsp-streaming](../rtsp-streaming/): use this when you need a standard player-consumable stream instead of a browser app
-- [../mjpeg-streaming](../mjpeg-streaming/): use this when a simple HTTP MJPEG feed is enough
-- [../../custom-frontend/raw-stream](../../custom-frontend/raw-stream/): use this when you need a different custom frontend/backend app shape
+- [streaming/rtsp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/rtsp-streaming): use this when you need a standard player-consumable stream instead of a browser app
+- [streaming/mjpeg-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/mjpeg-streaming): use this when a simple HTTP MJPEG feed is enough
+- [custom-frontend/raw-stream](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream): use this when you need a different custom frontend/backend app shape
 
 ## Validation
 

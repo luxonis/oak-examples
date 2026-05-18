@@ -53,9 +53,9 @@ This is the repository reference for person detection on thermal imagery. Use it
 
 ## Related Examples
 
-- [../spatial-detections](../spatial-detections/): use this when you need the normal RGB spatial-detection baseline
-- [../yolo-host-decoding](../yolo-host-decoding/): use this when you need host decoding on standard RGB detections
-- [../../generic-example](../../generic-example/): use this when you need the generic single-model scaffold on non-thermal input
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the normal RGB spatial-detection baseline
+- [neural-networks/object-detection/yolo-host-decoding](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-host-decoding): use this when you need host decoding on standard RGB detections
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you need the generic single-model scaffold on non-thermal input
 
 ## Validation
 

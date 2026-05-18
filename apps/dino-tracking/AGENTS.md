@@ -96,10 +96,10 @@ This is the best standalone reference for class-free interactive tracking based 
 
 ## Related Examples
 
-- [../data-collection](../data-collection/): use this when you need interactive prompting and backend state sync but not similarity tracking
-- [../people-demographics-and-sentiment-analysis](../people-demographics-and-sentiment-analysis/): use this when you need another standalone frontend app with richer backend state
-- [../../neural-networks/object-tracking/deepsort-tracking](../../neural-networks/object-tracking/deepsort-tracking/): use this when you need a class-based tracking reference
-- [../focused-vision](../focused-vision/): use this when your main problem is preserving detail rather than selecting and tracking an object
+- [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when you need interactive prompting and backend state sync but not similarity tracking
+- [apps/people-demographics-and-sentiment-analysis](https://github.com/luxonis/oak-examples/tree/main/apps/people-demographics-and-sentiment-analysis): use this when you need another standalone frontend app with richer backend state
+- [neural-networks/object-tracking/deepsort-tracking](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/deepsort-tracking): use this when you need a class-based tracking reference
+- [apps/focused-vision](https://github.com/luxonis/oak-examples/tree/main/apps/focused-vision): use this when your main problem is preserving detail rather than selecting and tracking an object
 
 ## Validation
 

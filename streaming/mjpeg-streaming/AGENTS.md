@@ -54,9 +54,9 @@ This is the repository reference for HTTP MJPEG streaming with inline YOLOv6 ove
 
 ## Related Examples
 
-- [../rtsp-streaming](../rtsp-streaming/): use this when you need a standard RTSP endpoint instead of MJPEG over HTTP
-- [../webrtc-streaming](../webrtc-streaming/): use this when you need a browser-oriented interactive stream with runtime options
-- [../poe-tcp-streaming](../poe-tcp-streaming/): use this when you need a custom TCP transport and a control backchannel
+- [streaming/rtsp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/rtsp-streaming): use this when you need a standard RTSP endpoint instead of MJPEG over HTTP
+- [streaming/webrtc-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/webrtc-streaming): use this when you need a browser-oriented interactive stream with runtime options
+- [streaming/poe-tcp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/poe-tcp-streaming): use this when you need a custom TCP transport and a control backchannel
 
 ## Validation
 

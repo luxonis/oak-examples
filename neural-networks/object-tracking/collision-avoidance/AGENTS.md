@@ -55,9 +55,9 @@ This is the repository reference for tracking objects moving toward the camera a
 
 ## Related Examples
 
-- [../kalman](../kalman/): use this when you want smoothing of tracked spatial boxes instead of collision alerts
-- [../../object-detection/social-distancing](../../object-detection/social-distancing/): use this when you need person distance monitoring rather than motion-toward-camera logic
-- [../people-tracker](../people-tracker/): use this when you need directional people-flow counts
+- [neural-networks/object-tracking/kalman](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/kalman): use this when you want smoothing of tracked spatial boxes instead of collision alerts
+- [neural-networks/object-detection/social-distancing](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/social-distancing): use this when you need person distance monitoring rather than motion-toward-camera logic
+- [neural-networks/object-tracking/people-tracker](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/people-tracker): use this when you need directional people-flow counts
 
 ## Validation
 

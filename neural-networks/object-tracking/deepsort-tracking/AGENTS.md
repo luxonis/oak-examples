@@ -54,9 +54,9 @@ This is the repository reference for DeepSORT-style tracking using detector outp
 
 ## Related Examples
 
-- [../people-tracker](../people-tracker/): use this when you want person tracking with the built-in tracker and counting logic
-- [../../reidentification/human-reidentification](../../reidentification/human-reidentification/): use this when the task is identity matching rather than online tracking
-- [../kalman](../kalman/): use this when you need smoothed tracklets from spatial detections instead of embedding-based tracking
+- [neural-networks/object-tracking/people-tracker](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/people-tracker): use this when you want person tracking with the built-in tracker and counting logic
+- [neural-networks/reidentification/human-reidentification](https://github.com/luxonis/oak-examples/tree/main/neural-networks/reidentification/human-reidentification): use this when the task is identity matching rather than online tracking
+- [neural-networks/object-tracking/kalman](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/kalman): use this when you need smoothed tracklets from spatial detections instead of embedding-based tracking
 
 ## Validation
 

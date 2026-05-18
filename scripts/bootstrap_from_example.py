@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ESSENTIAL_KNOWLEDGE = ROOT / "ESSENTIAL_KNOWLEDGE.md"
+MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
 IGNORED_PARTS = {
     ".git",
@@ -35,23 +36,61 @@ def is_ignored(path: Path) -> bool:
     return any(part in IGNORED_PARTS for part in path.parts)
 
 
-def remove_related_examples(markdown: str) -> str:
-    lines = markdown.splitlines()
-    output: list[str] = []
-    index = 0
-    while index < len(lines):
-        if lines[index].strip() == "## Related Examples":
-            index += 1
-            while index < len(lines) and not lines[index].startswith("## "):
-                index += 1
-            while output and output[-1] == "":
-                output.pop()
-            if index < len(lines) and output:
-                output.append("")
-            continue
-        output.append(lines[index])
-        index += 1
-    return "\n".join(output).rstrip() + "\n"
+def insert_after_title(markdown: str, sections: list[str]) -> str:
+    lines = markdown.rstrip().splitlines()
+    inserted = "\n\n".join(section.strip() for section in sections if section.strip())
+
+    if lines and lines[0].startswith("# "):
+        rest = lines[1:]
+        while rest and rest[0] == "":
+            rest = rest[1:]
+        lines = lines[:1] + ["", inserted, ""] + rest
+    else:
+        lines = [inserted, ""] + lines
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def build_project_origin_section(example: Path) -> str:
+    return (
+        "## Project Origin\n\n"
+        f"This project was bootstrapped from `oak-examples/{example.as_posix()}`. "
+        "Treat this directory as an independent project: prefer local files when modifying behavior, "
+        "and use the source example only as upstream reference material."
+    )
+
+
+def build_start_here_section() -> str:
+    return (
+        "## Start Here\n\n"
+        "1. Read [ESSENTIAL_KNOWLEDGE.md](ESSENTIAL_KNOWLEDGE.md) for shared Luxonis/OAK vocabulary, platform concepts, and documentation entrypoints.\n"
+        "2. Then follow this example-specific guide for local architecture, constraints, and validation."
+    )
+
+
+def transform_agents(markdown: str, example: Path) -> str:
+    return insert_after_title(
+        markdown,
+        [build_project_origin_section(example), build_start_here_section()],
+    )
+
+
+def validate_standalone_markdown_links(markdown: str) -> None:
+    errors: list[str] = []
+    for line_number, line in enumerate(markdown.splitlines(), start=1):
+        for match in MARKDOWN_LINK_RE.finditer(line):
+            href = match.group(1).split("#", 1)[0].strip()
+            if not href or href.startswith(("http://", "https://", "#", "mailto:")):
+                continue
+            path = Path(href)
+            if path.is_absolute() or ".." in path.parts:
+                errors.append(f"line {line_number}: {match.group(1)}")
+    if errors:
+        details = "\n".join(f"  - {error}" for error in errors)
+        raise ValueError(
+            "Generated AGENTS.md contains relative links that escape the project root. "
+            "Move cross-example links to ## Related Examples and use GitHub main URLs.\n"
+            f"{details}"
+        )
 
 
 def slugify_identifier_part(value: str) -> str:
@@ -90,7 +129,7 @@ def copy_example(example_dir: Path, output_dir: Path) -> None:
             shutil.copy2(source, target)
 
 
-def bootstrap(example: Path, output: Path, force: bool) -> None:
+def bootstrap(example: Path, output: Path) -> None:
     example_dir = (
         (ROOT / example).resolve() if not example.is_absolute() else example.resolve()
     )
@@ -100,18 +139,27 @@ def bootstrap(example: Path, output: Path, force: bool) -> None:
         raise FileNotFoundError(f"Example directory does not exist: {example_dir}")
     if not (example_dir / "AGENTS.md").is_file():
         raise FileNotFoundError(f"Example must contain AGENTS.md: {example_dir}")
-    if output_dir.exists() and any(output_dir.iterdir()):
-        if not force:
-            raise FileExistsError(f"Output directory is not empty: {output_dir}")
-        shutil.rmtree(output_dir)
+    if output_dir.exists():
+        raise FileExistsError(f"Output directory already exists: {output_dir}")
+    try:
+        output_dir.relative_to(example_dir)
+    except ValueError:
+        pass
+    else:
+        raise ValueError(f"Output directory must not be inside the source example: {output_dir}")
+    if output_dir == ROOT:
+        raise ValueError(f"Output directory must not be the repository root: {output_dir}")
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True)
     copy_example(example_dir, output_dir)
 
-    transformed_agents = remove_related_examples(
-        (example_dir / "AGENTS.md").read_text(encoding="utf-8")
+    example_ref = example if not example.is_absolute() else example_dir.relative_to(ROOT)
+    transformed_agents = transform_agents(
+        (example_dir / "AGENTS.md").read_text(encoding="utf-8"), example_ref
     )
+    validate_standalone_markdown_links(transformed_agents)
     (output_dir / "AGENTS.md").write_text(transformed_agents, encoding="utf-8")
+    (output_dir / "CLAUDE.md").write_text(transformed_agents, encoding="utf-8")
     shutil.copy2(ESSENTIAL_KNOWLEDGE, output_dir / "ESSENTIAL_KNOWLEDGE.md")
     update_oakapp_identifier(output_dir)
 
@@ -124,13 +172,10 @@ def main() -> int:
         "example", type=Path, help="Example path relative to repository root."
     )
     parser.add_argument("output", type=Path, help="Output project directory.")
-    parser.add_argument(
-        "--force", action="store_true", help="Overwrite a non-empty output directory."
-    )
     args = parser.parse_args()
 
     try:
-        bootstrap(args.example, args.output, args.force)
+        bootstrap(args.example, args.output)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

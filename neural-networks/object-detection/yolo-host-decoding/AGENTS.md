@@ -54,9 +54,9 @@ This is the repository reference for running YOLO on-device while decoding raw o
 
 ## Related Examples
 
-- [../spatial-detections](../spatial-detections/): use this when you want the standard parsed spatial detection baseline
-- [../barcode-detection-conveyor-belt](../barcode-detection-conveyor-belt/): use this when you want another detect-then-host-postprocess pattern
-- [../../generic-example](../../generic-example/): use this when you want the simplest parsed single-model detector scaffold
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you want the standard parsed spatial detection baseline
+- [neural-networks/object-detection/barcode-detection-conveyor-belt](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/barcode-detection-conveyor-belt): use this when you want another detect-then-host-postprocess pattern
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you want the simplest parsed single-model detector scaffold
 
 ## Validation
 

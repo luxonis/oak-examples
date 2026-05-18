@@ -54,9 +54,9 @@ This is the repository reference for person detection plus distance monitoring. 
 
 ## Related Examples
 
-- [../human-machine-safety](../human-machine-safety/): use this when you need palm-to-object safety logic
-- [../spatial-detections](../spatial-detections/): use this when you need the general spatial-detection baseline
-- [../../counting/people-counter](../../counting/people-counter/): use this when you only need a current-frame person count
+- [neural-networks/object-detection/human-machine-safety](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/human-machine-safety): use this when you need palm-to-object safety logic
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the general spatial-detection baseline
+- [neural-networks/counting/people-counter](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/people-counter): use this when you only need a current-frame person count
 
 ## Validation
 

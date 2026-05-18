@@ -52,9 +52,9 @@ This is the repository reference for text detection followed by selective blur. 
 
 ## Related Examples
 
-- [../../ocr/general-ocr](../../ocr/general-ocr/): use this when you need text recognition instead of blur
-- [../../segmentation/blur-background](../../segmentation/blur-background/): use this when you need segmentation-based blur
-- [../../face-detection/blur-faces](../../face-detection/blur-faces/): use this when the blur target should be faces
+- [neural-networks/ocr/general-ocr](https://github.com/luxonis/oak-examples/tree/main/neural-networks/ocr/general-ocr): use this when you need text recognition instead of blur
+- [neural-networks/segmentation/blur-background](https://github.com/luxonis/oak-examples/tree/main/neural-networks/segmentation/blur-background): use this when you need segmentation-based blur
+- [neural-networks/face-detection/blur-faces](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/blur-faces): use this when the blur target should be faces
 
 ## Validation
 

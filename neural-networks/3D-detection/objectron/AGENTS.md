@@ -55,9 +55,9 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 
 ## Related Examples
 
-- [../../object-detection/spatial-detections](../../object-detection/spatial-detections/): use this when you need stereo spatial detections instead of model-based 3D boxes
-- [../../generic-example](../../generic-example/): use this when you only need a single-model baseline
-- [../../pose-estimation/animal-pose](../../pose-estimation/animal-pose/): use this when you need detect-then-crop-then-keypoints without 3D box fitting
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need stereo spatial detections instead of model-based 3D boxes
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you only need a single-model baseline
+- [neural-networks/pose-estimation/animal-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/animal-pose): use this when you need detect-then-crop-then-keypoints without 3D box fitting
 
 ## Validation
 

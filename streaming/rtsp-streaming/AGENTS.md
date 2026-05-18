@@ -57,9 +57,9 @@ This is the repository reference for serving a live H265 RTSP stream from an OAK
 
 ## Related Examples
 
-- [../mjpeg-streaming](../mjpeg-streaming/): use this when a browser-friendly HTTP stream is enough
-- [../webrtc-streaming](../webrtc-streaming/): use this when you need browser delivery and runtime configuration
-- [../on-device-encoding](../on-device-encoding/): use this when you need device-side encoding saved to disk rather than served live
+- [streaming/mjpeg-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/mjpeg-streaming): use this when a browser-friendly HTTP stream is enough
+- [streaming/webrtc-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/webrtc-streaming): use this when you need browser delivery and runtime configuration
+- [streaming/on-device-encoding](https://github.com/luxonis/oak-examples/tree/main/streaming/on-device-encoding): use this when you need device-side encoding saved to disk rather than served live
 
 ## Validation
 

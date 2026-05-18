@@ -74,7 +74,7 @@ This is the repository reference for sending Hub snaps from detection-driven con
 - `To trigger on different classes:` adjust `--class_names` handling or the default list in [utils/arguments.py](utils/arguments.py)
 - `To customize snap metadata:` edit `snap_name`, `tags`, and `extras` in [utils/snaps_producer.py](utils/snaps_producer.py)
 - `To change upload cadence:` edit `time_interval` handling in [utils/snaps_producer.py](utils/snaps_producer.py)
-- `To switch to another dataset sink:` compare this with [../roboflow-dataset](../roboflow-dataset/) and replace the uploader stage
+- `To switch to another dataset sink:` compare this with [integrations/roboflow-dataset](https://github.com/luxonis/oak-examples/tree/main/integrations/roboflow-dataset) and replace the uploader stage
 
 ## Constraints
 
@@ -91,10 +91,10 @@ This is the repository reference for sending Hub snaps from detection-driven con
 
 ## Related Examples
 
-- [../roboflow-dataset](../roboflow-dataset/): use this when you need automatic detections exported into a Roboflow dataset instead of Hub
-- [../../apps/data-collection](../../apps/data-collection/): use this when you want a richer standalone collection app rather than a small integration script
-- [../../apps/default-app](../../apps/default-app/): use this when you need a simpler packaged detection baseline with no Hub upload side effect
-- [../roboflow-workflow](../roboflow-workflow/): use this when the external integration target is a live Roboflow Workflow rather than Hub collection
+- [integrations/roboflow-dataset](https://github.com/luxonis/oak-examples/tree/main/integrations/roboflow-dataset): use this when you need automatic detections exported into a Roboflow dataset instead of Hub
+- [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when you want a richer standalone collection app rather than a small integration script
+- [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): use this when you need a simpler packaged detection baseline with no Hub upload side effect
+- [integrations/roboflow-workflow](https://github.com/luxonis/oak-examples/tree/main/integrations/roboflow-workflow): use this when the external integration target is a live Roboflow Workflow rather than Hub collection
 
 ## Validation
 

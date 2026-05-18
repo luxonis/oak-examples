@@ -52,9 +52,9 @@ This is the simplest person-counting reference in the repository. Use it when yo
 
 ## Related Examples
 
-- [../cumulative-object-counting](../cumulative-object-counting/): use this when you need line-crossing counts
-- [../../object-tracking/people-tracker](../../object-tracking/people-tracker/): use this when you need directional person flow
-- [../../object-detection/social-distancing](../../object-detection/social-distancing/): use this when you need person detections plus spatial reasoning
+- [neural-networks/counting/cumulative-object-counting](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/cumulative-object-counting): use this when you need line-crossing counts
+- [neural-networks/object-tracking/people-tracker](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/people-tracker): use this when you need directional person flow
+- [neural-networks/object-detection/social-distancing](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/social-distancing): use this when you need person detections plus spatial reasoning
 
 ## Validation
 

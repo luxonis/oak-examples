@@ -6,7 +6,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 ## Use This Example When
 
-- You need a richer standalone frontend/backend pattern than [../raw-stream](../raw-stream/).
+- You need a richer standalone frontend/backend pattern than [custom-frontend/raw-stream](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream).
 - You want open-vocabulary detection where classes can be changed at runtime from the UI.
 - You need image-prompt and bbox-prompt flows in addition to text prompts.
 - You want a reference for backend-owned prompt state that is restored into the frontend on connect.
@@ -83,7 +83,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 - `To change prompt limits:` edit `max_num_classes` and `max_image_prompts` in the prompt YAMLs under [backend/src/config/yaml_configs/](backend/src/config/yaml_configs/)
 - `To add another prompt source:` extend [backend/src/prompting/fe_services.py](backend/src/prompting/fe_services.py) and add a matching control in [frontend/src/App.tsx](frontend/src/App.tsx)
 - `To reuse just the open-vocabulary backend:` keep [backend/src/nn/](backend/src/nn/) and [backend/src/prompting/](backend/src/prompting/), then replace the frontend with another service client
-- `To step down to a minimal custom frontend baseline:` compare against [../raw-stream](../raw-stream/)
+- `To step down to a minimal custom frontend baseline:` compare against [custom-frontend/raw-stream](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream)
 
 ## Constraints
 
@@ -104,10 +104,10 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 ## Related Examples
 
-- [../raw-stream](../raw-stream/): use this when you need the smallest frontend/backend baseline with one service and one stream
-- [../../apps/data-collection](../../apps/data-collection/): use this when you want another prompt-driven standalone app with more backend state and snap logic
-- [../../neural-networks/generic-example](../../neural-networks/generic-example/): use this when you want a generic single-model baseline with no custom UI
-- [../../apps/object-volume-measurement-3d](../../apps/object-volume-measurement-3d/): use this when you want another click-driven custom frontend with backend services
+- [custom-frontend/raw-stream](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream): use this when you need the smallest frontend/backend baseline with one service and one stream
+- [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when you want another prompt-driven standalone app with more backend state and snap logic
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you want a generic single-model baseline with no custom UI
+- [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you want another click-driven custom frontend with backend services
 
 ## Validation
 

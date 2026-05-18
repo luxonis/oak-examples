@@ -54,9 +54,9 @@ This is the repository reference for directional people flow counting with track
 
 ## Related Examples
 
-- [../../counting/people-counter](../../counting/people-counter/): use this when you only need a current-frame person count
-- [../../counting/cumulative-object-counting](../../counting/cumulative-object-counting/): use this when you want generic object line crossing
-- [../deepsort-tracking](../deepsort-tracking/): use this when you need embedding-based tracking rather than simple person flow counting
+- [neural-networks/counting/people-counter](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/people-counter): use this when you only need a current-frame person count
+- [neural-networks/counting/cumulative-object-counting](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/cumulative-object-counting): use this when you want generic object line crossing
+- [neural-networks/object-tracking/deepsort-tracking](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/deepsort-tracking): use this when you need embedding-based tracking rather than simple person flow counting
 
 ## Validation
 

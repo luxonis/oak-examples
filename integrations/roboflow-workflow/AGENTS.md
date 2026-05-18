@@ -79,7 +79,7 @@ This is the strongest integration reference in the repository for running Robofl
 - `To support additional workflow output types:` extend [backend/src/core/annotation_node.py](backend/src/core/annotation_node.py)
 - `To make pipeline settings updateable from the UI:` extend [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx), [backend/src/core/manager.py](backend/src/core/manager.py), and the config model in [backend/src/config/config.py](backend/src/config/config.py)
 - `To reuse only the backend workflow bridge:` keep [backend/src/core/](backend/src/core/) and replace the frontend with another service client
-- `To step down to a smaller frontend/backend baseline:` compare with [../../custom-frontend/raw-stream](../../custom-frontend/raw-stream/)
+- `To step down to a smaller frontend/backend baseline:` compare with [custom-frontend/raw-stream](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream)
 
 ## Constraints
 
@@ -98,10 +98,10 @@ This is the strongest integration reference in the repository for running Robofl
 
 ## Related Examples
 
-- [../roboflow-dataset](../roboflow-dataset/): use this when Roboflow is the dataset sink instead of the inference engine
-- [../../custom-frontend/raw-stream](../../custom-frontend/raw-stream/): use this when you need a much smaller frontend/backend baseline
-- [../../custom-frontend/open-vocabulary-object-detection](../../custom-frontend/open-vocabulary-object-detection/): use this when you need another standalone custom frontend with richer backend-owned inference state
-- [../../apps/default-app](../../apps/default-app/): use this when you want a packaged app baseline with repo-local inference instead of external workflows
+- [integrations/roboflow-dataset](https://github.com/luxonis/oak-examples/tree/main/integrations/roboflow-dataset): use this when Roboflow is the dataset sink instead of the inference engine
+- [custom-frontend/raw-stream](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream): use this when you need a much smaller frontend/backend baseline
+- [custom-frontend/open-vocabulary-object-detection](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/open-vocabulary-object-detection): use this when you need another standalone custom frontend with richer backend-owned inference state
+- [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): use this when you want a packaged app baseline with repo-local inference instead of external workflows
 
 ## Validation
 

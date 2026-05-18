@@ -78,7 +78,7 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 - `To change default tile behavior:` edit `DEFAULT_TILING_PARAMS` in [backend/src/main.py](backend/src/main.py)
 - `To change how FPS adapts:` start in [backend/src/fps_control/pipeline_health_monitor.py](backend/src/fps_control/pipeline_health_monitor.py)
 - `To reuse only the tiling UI:` keep [frontend/src/TilingControl.tsx](frontend/src/TilingControl.tsx) and reimplement the backend services
-- `To compare against a fixed tiling pipeline:` see [../../tutorials/qr-with-tiling](../../tutorials/qr-with-tiling/)
+- `To compare against a fixed tiling pipeline:` see [tutorials/qr-with-tiling](https://github.com/luxonis/oak-examples/tree/main/tutorials/qr-with-tiling)
 
 ## Constraints
 
@@ -96,10 +96,10 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Related Examples
 
-- [../../tutorials/qr-with-tiling](../../tutorials/qr-with-tiling/): use this when you want a simpler tiled QR detection reference
-- [../data-collection](../data-collection/): use this when you need another service-driven standalone frontend/backend app
-- [../../custom-frontend/open-vocabulary-object-detection](../../custom-frontend/open-vocabulary-object-detection/): use this when you want a richer frontend/backend baseline
-- [../focused-vision](../focused-vision/): use this when the tiling idea matters but the task is detail-preserving face detection instead of QR
+- [tutorials/qr-with-tiling](https://github.com/luxonis/oak-examples/tree/main/tutorials/qr-with-tiling): use this when you want a simpler tiled QR detection reference
+- [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when you need another service-driven standalone frontend/backend app
+- [custom-frontend/open-vocabulary-object-detection](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/open-vocabulary-object-detection): use this when you want a richer frontend/backend baseline
+- [apps/focused-vision](https://github.com/luxonis/oak-examples/tree/main/apps/focused-vision): use this when the tiling idea matters but the task is detail-preserving face detection instead of QR
 
 ## Validation
 

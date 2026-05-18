@@ -68,8 +68,8 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 - `To colorize from mono by default:` start from the `--mono` branch in [main.py](main.py)
 - `To reuse this as a point-cloud baseline for another task:` keep the `StereoDepth` and `RGBD` branch and replace the Visualizer topics
-- `To add host-side geometry processing:` compare against [../box-measurement](../box-measurement/) after this baseline is working
-- `To move to ToF:` use [../tof-pointcloud](../tof-pointcloud/) instead
+- `To add host-side geometry processing:` compare against [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement) after this baseline is working
+- `To move to ToF:` use [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud) instead
 
 ## Constraints
 
@@ -86,10 +86,10 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 ## Related Examples
 
-- [../box-measurement](../box-measurement/): use this when you need segmentation-driven measurements on top of RGBD point clouds
-- [../tof-pointcloud](../tof-pointcloud/): use this when the point cloud should come from a ToF sensor
-- [../../stereo-on-host](../../stereo-on-host/): use this when you need host-side stereo comparison rather than a point cloud
-- [../../../tutorials/camera-stereo-depth](../../../tutorials/camera-stereo-depth/): use this when you need a simpler stereo depth baseline before RGBD fusion
+- [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement): use this when you need segmentation-driven measurements on top of RGBD point clouds
+- [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud): use this when the point cloud should come from a ToF sensor
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host-side stereo comparison rather than a point cloud
+- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler stereo depth baseline before RGBD fusion
 
 ## Validation
 

@@ -56,9 +56,9 @@ This is the repository reference for matching mismatched camera and NN aspect ra
 
 ## Related Examples
 
-- [../display-detections](../display-detections/): use this when you need display-mapping strategies instead of resize-mode switching
-- [../../neural-networks/generic-example](../../neural-networks/generic-example/): use this when you need the basic single-model detector scaffold
-- [../camera-demo](../camera-demo/): use this when you need a camera baseline without any NN resize logic
+- [tutorials/display-detections](https://github.com/luxonis/oak-examples/tree/main/tutorials/display-detections): use this when you need display-mapping strategies instead of resize-mode switching
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you need the basic single-model detector scaffold
+- [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you need a camera baseline without any NN resize logic
 
 ## Validation
 

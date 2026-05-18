@@ -53,9 +53,9 @@ This is the repository reference for comparing neural stereo matching against De
 
 ## Related Examples
 
-- [../foundation-stereo](../foundation-stereo/): use this when you need a heavier host-run stereo model baseline
-- [../neural-depth](../neural-depth/): use this when you need Luxonis NeuralDepth on RVC4
-- [../../../depth-measurement/stereo-on-host](../../../depth-measurement/stereo-on-host/): use this when you want host-side stereo comparison rather than on-device neural disparity
+- [neural-networks/depth-estimation/foundation-stereo](https://github.com/luxonis/oak-examples/tree/main/neural-networks/depth-estimation/foundation-stereo): use this when you need a heavier host-run stereo model baseline
+- [neural-networks/depth-estimation/neural-depth](https://github.com/luxonis/oak-examples/tree/main/neural-networks/depth-estimation/neural-depth): use this when you need Luxonis NeuralDepth on RVC4
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you want host-side stereo comparison rather than on-device neural disparity
 
 ## Validation
 

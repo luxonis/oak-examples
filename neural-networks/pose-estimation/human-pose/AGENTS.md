@@ -53,9 +53,9 @@ This is the repository reference for person detection plus human pose estimation
 
 ## Related Examples
 
-- [../hand-pose](../hand-pose/): use this when you need hand landmarks and gesture logic
-- [../animal-pose](../animal-pose/): use this when you need animal pose
-- [../../reidentification/human-reidentification](../../reidentification/human-reidentification/): use this when you need to identify tracked people or faces rather than estimate pose
+- [neural-networks/pose-estimation/hand-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/hand-pose): use this when you need hand landmarks and gesture logic
+- [neural-networks/pose-estimation/animal-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/animal-pose): use this when you need animal pose
+- [neural-networks/reidentification/human-reidentification](https://github.com/luxonis/oak-examples/tree/main/neural-networks/reidentification/human-reidentification): use this when you need to identify tracked people or faces rather than estimate pose
 
 ## Validation
 

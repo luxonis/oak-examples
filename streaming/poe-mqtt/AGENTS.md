@@ -54,9 +54,9 @@ This is the repository reference for publishing detection telemetry to MQTT dire
 
 ## Related Examples
 
-- [../mjpeg-streaming](../mjpeg-streaming/): use this when you need image transport instead of telemetry
-- [../rtsp-streaming](../rtsp-streaming/): use this when you need a standard live video endpoint
-- [../../neural-networks/counting/people-counter](../../neural-networks/counting/people-counter/): use this when your main goal is counting logic rather than broker transport
+- [streaming/mjpeg-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/mjpeg-streaming): use this when you need image transport instead of telemetry
+- [streaming/rtsp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/rtsp-streaming): use this when you need a standard live video endpoint
+- [neural-networks/counting/people-counter](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/people-counter): use this when your main goal is counting logic rather than broker transport
 
 ## Validation
 

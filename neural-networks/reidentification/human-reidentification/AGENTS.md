@@ -53,9 +53,9 @@ This is the repository reference for person or face re-identification using inte
 
 ## Related Examples
 
-- [../../object-tracking/deepsort-tracking](../../object-tracking/deepsort-tracking/): use this when you need embeddings for online tracking instead of identity matching
-- [../../pose-estimation/human-pose](../../pose-estimation/human-pose/): use this when you need pose landmarks instead of embeddings
-- [../../face-detection/age-gender](../../face-detection/age-gender/): use this when you need another face crop pipeline without identity matching
+- [neural-networks/object-tracking/deepsort-tracking](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/deepsort-tracking): use this when you need embeddings for online tracking instead of identity matching
+- [neural-networks/pose-estimation/human-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/human-pose): use this when you need pose landmarks instead of embeddings
+- [neural-networks/face-detection/age-gender](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/age-gender): use this when you need another face crop pipeline without identity matching
 
 ## Validation
 

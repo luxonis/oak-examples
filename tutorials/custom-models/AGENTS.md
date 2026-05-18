@@ -58,9 +58,9 @@ This is the repository reference for running simple custom converted models pack
 
 ## Related Examples
 
-- [../../neural-networks/generic-example](../../neural-networks/generic-example/): use this when you need the generic model-zoo single-model scaffold
-- [../camera-demo](../camera-demo/): use this when you need a minimal camera baseline without custom models
-- [../display-detections](../display-detections/): use this when the tutorial should stay in the detector/annotation space instead of image-processing models
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you need the generic model-zoo single-model scaffold
+- [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you need a minimal camera baseline without custom models
+- [tutorials/display-detections](https://github.com/luxonis/oak-examples/tree/main/tutorials/display-detections): use this when the tutorial should stay in the detector/annotation space instead of image-processing models
 
 ## Validation
 

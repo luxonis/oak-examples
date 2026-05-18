@@ -52,9 +52,9 @@ This is the repository reference for real-time face blurring. Use it when you ne
 
 ## Related Examples
 
-- [../face-mask-detection](../face-mask-detection/): use this when you need mask/no-mask classification instead of blur
-- [../fatigue-detection](../fatigue-detection/): use this when you need face landmarks and state logic instead of privacy blur
-- [../../object-detection/text-blur](../../object-detection/text-blur/): use this when the blur target should be text instead of faces
+- [neural-networks/face-detection/face-mask-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/face-mask-detection): use this when you need mask/no-mask classification instead of blur
+- [neural-networks/face-detection/fatigue-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/fatigue-detection): use this when you need face landmarks and state logic instead of privacy blur
+- [neural-networks/object-detection/text-blur](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/text-blur): use this when the blur target should be text instead of faces
 
 ## Validation
 

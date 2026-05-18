@@ -33,7 +33,7 @@ This is the repository reference for offline NeuralDepth evaluation on stereo da
 
 ## Read First
 
-- [README.md](../README.md)
+- [README.md](https://github.com/luxonis/oak-examples/blob/main/neural-networks/depth-estimation/neural-depth/README.md)
 - [main.py](main.py)
 - [utils/utils.py](utils/utils.py)
 - [utils/arguments.py](utils/arguments.py)
@@ -55,9 +55,9 @@ This is the repository reference for offline NeuralDepth evaluation on stereo da
 
 ## Related Examples
 
-- [../](../): use this when you need the live NeuralDepth demo
-- [../../foundation-stereo](../../foundation-stereo/): use this when you want a heavy host stereo comparison baseline
-- [../../../../depth-measurement/stereo-on-host](../../../../depth-measurement/stereo-on-host/): use this when you need host stereo comparison rather than NeuralDepth evaluation
+- [neural-networks/depth-estimation/neural-depth](https://github.com/luxonis/oak-examples/tree/main/neural-networks/depth-estimation/neural-depth): use this when you need the live NeuralDepth demo
+- [neural-networks/depth-estimation/foundation-stereo](https://github.com/luxonis/oak-examples/tree/main/neural-networks/depth-estimation/foundation-stereo): use this when you want a heavy host stereo comparison baseline
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host stereo comparison rather than NeuralDepth evaluation
 
 ## Validation
 

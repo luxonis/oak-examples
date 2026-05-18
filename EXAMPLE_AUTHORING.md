@@ -55,9 +55,10 @@ Before finishing, run the most relevant local test command available for the cha
 
 ## Bootstrap Compatibility
 
-- `oakctl app create` may bootstrap standalone projects from these examples; keep example `AGENTS.md` files usable outside the monorepo.
-- Put monorepo-only cross-links under a section named exactly `## Related Examples`; the bootstrapper removes that section deterministically.
-- Keep other relative links scoped to files inside the example directory whenever possible.
+- `oakctl app create` may bootstrap host-script or standalone projects from these examples; keep example `AGENTS.md` files usable outside the monorepo.
+- Put cross-example references under a section named exactly `## Related Examples`; the bootstrapper preserves that section when links are portable GitHub `main` URLs.
+- Use GitHub URLs pinned to `main` for cross-example links, for example `https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream`.
+- Keep relative links scoped to files inside the example directory. Do not use `../` links to sibling or parent examples.
 - See [OAKCTL_CREATE.md](OAKCTL_CREATE.md) for the bootstrap contract.
 
 ## Index Maintenance

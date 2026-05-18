@@ -57,9 +57,9 @@ This is the repository reference for custom bidirectional TCP streaming between 
 
 ## Related Examples
 
-- [../rtsp-streaming](../rtsp-streaming/): use this when you need a standard media endpoint instead of a custom socket protocol
-- [../mjpeg-streaming](../mjpeg-streaming/): use this when HTTP MJPEG is sufficient and you do not need a control backchannel
-- [../on-device-encoding](../on-device-encoding/): use this when you need file recording instead of live transport
+- [streaming/rtsp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/rtsp-streaming): use this when you need a standard media endpoint instead of a custom socket protocol
+- [streaming/mjpeg-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/mjpeg-streaming): use this when HTTP MJPEG is sufficient and you do not need a control backchannel
+- [streaming/on-device-encoding](https://github.com/luxonis/oak-examples/tree/main/streaming/on-device-encoding): use this when you need file recording instead of live transport
 
 ## Validation
 

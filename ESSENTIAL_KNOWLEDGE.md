@@ -4,13 +4,14 @@ Shared vocabulary and repository concepts for agents working in `oak-examples`.
 
 ## Official Docs
 
-Use these when an example guide or source code is not enough. Prefer the narrowest relevant page instead of broad documentation browsing.
+Use these when an example guide or source code is not enough. Start with the docs index when you need broad Luxonis context, then prefer the narrowest relevant page for implementation details.
 
+- [Luxonis docs index for LLMs](https://docs.luxonis.com/llms.txt): canonical entrypoint for discovering all Luxonis documentation that may be relevant to an agent task.
 - [DepthAI](https://docs.luxonis.com/software-v3/depthai.md): SDK/API overview for building OAK pipelines in Python or C++.
 - [Device](https://docs.luxonis.com/software-v3/depthai/depthai-components/device.md), [Pipeline](https://docs.luxonis.com/software-v3/depthai/depthai-components/pipeline.md), and [Nodes](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes.md): core DepthAI runtime concepts.
 - [Host Nodes](https://docs.luxonis.com/software-v3/depthai/depthai-components/host_nodes.md): host-side processing inside a DepthAI pipeline.
 - [OAK Apps](https://docs.luxonis.com/software-v3/oak-apps.md): standalone application model for OAK devices.
-- [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl.md): CLI for managing OAK devices and deploying/managing OAK Apps.
+- [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl.md): main Luxonis CLI for developing OAK apps, including host-script and standalone workflows, plus device/app management.
 - [oakapp.toml configuration](https://docs.luxonis.com/software-v3/oak-apps/configuration.md): OAK App configuration file reference.
 - [AI inference](https://docs.luxonis.com/software-v3/ai-inference.md), [Model Zoo](https://docs.luxonis.com/software-v3/ai-inference/model-source/zoo.md), [NN Archive](https://docs.luxonis.com/software-v3/ai-inference/nn-archive.md), and [conversion](https://docs.luxonis.com/software-v3/ai-inference/conversion.md): model selection, packaging, and conversion concepts.
 - [RVC2](https://docs.luxonis.com/hardware/platform/rvc/rvc2.md) and [RVC4](https://docs.luxonis.com/hardware/platform/rvc/rvc4.md): hardware platform background.
@@ -27,7 +28,7 @@ Use these when an example guide or source code is not enough. Prefer the narrowe
 
 - `host` or `peripheral` means Python/C++ code runs on the host computer and communicates with the OAK device.
 - `standalone` means the app is packaged and run on an RVC4 device as an OAK App.
-- `oakctl` is the main CLI to know about for standalone workflows: use it to interact with devices and deploy/manage OAK Apps.
+- `oakctl` is the main Luxonis CLI every agent should know and use for developing OAK apps, whether they run as host scripts or standalone apps. Use it to create, inspect, run, package, deploy, and manage apps unless a task explicitly requires a lower-level command.
 - `host + standalone` means the same example has a host/peripheral workflow and an RVC4 standalone packaging path.
 - `standalone-only` means standalone deployment is the intended workflow; these examples are usually RVC4-focused.
 - `multi-device host` means a host-driven workflow that connects to more than one OAK device.

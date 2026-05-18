@@ -54,9 +54,9 @@ This is the repository reference for XFeat-based local feature extraction and ma
 
 ## Related Examples
 
-- [../../object-tracking/deepsort-tracking](../../object-tracking/deepsort-tracking/): use this when you need tracking based on detections and embeddings instead of local feature matches
-- [../../generic-example](../../generic-example/): use this when you only need the generic single-model scaffold
-- [../../../depth-measurement/triangulation](../../../depth-measurement/triangulation/): use this when you need stereo correspondence for 3D measurement rather than generic feature matching
+- [neural-networks/object-tracking/deepsort-tracking](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/deepsort-tracking): use this when you need tracking based on detections and embeddings instead of local feature matches
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you only need the generic single-model scaffold
+- [depth-measurement/triangulation](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/triangulation): use this when you need stereo correspondence for 3D measurement rather than generic feature matching
 
 ## Validation
 

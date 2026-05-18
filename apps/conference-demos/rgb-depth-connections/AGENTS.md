@@ -69,7 +69,7 @@ This is the best app-shaped reference for composing RGB, depth, and spatial dete
 - `To change the detector:` swap the YAML-backed model in [depthai_models/](depthai_models/) and keep the same spatial pipeline shape
 - `To reuse only the composed renderer:` keep [utils/host_rgb_conference_node.py](utils/host_rgb_conference_node.py) and feed it your own synced color, depth, and detections
 - `To reuse only the bird's-eye view:` keep [utils/host_bird_eye_view.py](utils/host_bird_eye_view.py) and replace the combined-frame host node
-- `To build a less fixed spatial app:` compare against [../../../neural-networks/object-detection/spatial-detections](../../../neural-networks/object-detection/spatial-detections/)
+- `To build a less fixed spatial app:` compare against [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections)
 
 ## Constraints
 
@@ -87,10 +87,10 @@ This is the best app-shaped reference for composing RGB, depth, and spatial dete
 
 ## Related Examples
 
-- [../../default-app](../../default-app/): use this when you want a simpler packaged baseline
-- [../../../neural-networks/object-detection/spatial-detections](../../../neural-networks/object-detection/spatial-detections/): use this when you need the spatial detection scaffold more than the polished composed output
-- [../../../tutorials/camera-stereo-depth](../../../tutorials/camera-stereo-depth/): use this when you need a simpler stereo baseline
-- [../../../depth-measurement/calc-spatial-on-host](../../../depth-measurement/calc-spatial-on-host/): use this when host-side spatial measurement matters more than presentation
+- [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): use this when you want a simpler packaged baseline
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the spatial detection scaffold more than the polished composed output
+- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler stereo baseline
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial measurement matters more than presentation
 
 ## Validation
 

@@ -54,9 +54,9 @@ This is the repository reference for privacy-preserving people counting from dis
 
 ## Related Examples
 
-- [../cumulative-object-counting](../cumulative-object-counting/): use this when you want RGB detection plus tracking for line crossing
-- [../../object-detection/spatial-detections](../../object-detection/spatial-detections/): use this when you need semantic detections with stereo
-- [../../../depth-measurement/stereo-on-host](../../../depth-measurement/stereo-on-host/): use this when the focus is host stereo processing rather than counting
+- [neural-networks/counting/cumulative-object-counting](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/cumulative-object-counting): use this when you want RGB detection plus tracking for line crossing
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need semantic detections with stereo
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when the focus is host stereo processing rather than counting
 
 ## Validation
 

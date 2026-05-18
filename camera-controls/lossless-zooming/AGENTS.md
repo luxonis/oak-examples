@@ -70,7 +70,7 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 - `To change the zoom window size:` edit `target_size` in [main.py](main.py) and [utils/crop_face.py](utils/crop_face.py)
 - `To smooth more or less aggressively:` change `AVG_MAX_NUM` in [utils/crop_face.py](utils/crop_face.py)
 - `To follow a different detection policy:` replace the "first detection" logic in [utils/crop_face.py](utils/crop_face.py)
-- `To compare against a higher-level face-detail app:` see [../../apps/focused-vision](../../apps/focused-vision/)
+- `To compare against a higher-level face-detail app:` see [apps/focused-vision](https://github.com/luxonis/oak-examples/tree/main/apps/focused-vision)
 
 ## Constraints
 
@@ -88,10 +88,10 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Related Examples
 
-- [../manual-camera-control](../manual-camera-control/): use this when you need direct camera tuning instead of crop control
-- [../depth-driven-focus](../depth-driven-focus/): use this when you want the lens to follow face distance instead of cropping the frame
-- [../../apps/focused-vision](../../apps/focused-vision/): use this when you need more advanced high-detail face handling than a single crop window
-- [../../tutorials/full-fov-nn](../../tutorials/full-fov-nn/): use this when the broader topic is resolution and field-of-view handling
+- [camera-controls/manual-camera-control](https://github.com/luxonis/oak-examples/tree/main/camera-controls/manual-camera-control): use this when you need direct camera tuning instead of crop control
+- [camera-controls/depth-driven-focus](https://github.com/luxonis/oak-examples/tree/main/camera-controls/depth-driven-focus): use this when you want the lens to follow face distance instead of cropping the frame
+- [apps/focused-vision](https://github.com/luxonis/oak-examples/tree/main/apps/focused-vision): use this when you need more advanced high-detail face handling than a single crop window
+- [tutorials/full-fov-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/full-fov-nn): use this when the broader topic is resolution and field-of-view handling
 
 ## Validation
 

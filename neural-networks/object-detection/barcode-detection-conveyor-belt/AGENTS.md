@@ -55,9 +55,9 @@ This is the repository reference for barcode-region detection followed by host-s
 
 ## Related Examples
 
-- [../yolo-host-decoding](../yolo-host-decoding/): use this when you want another detect-then-host-postprocess pattern
-- [../../../apps/qr-tiling](../../../apps/qr-tiling/): use this when the task is QR-specific rather than conveyor-style barcode decoding
-- [../../generic-example](../../generic-example/): use this when you only need the detector stage
+- [neural-networks/object-detection/yolo-host-decoding](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-host-decoding): use this when you want another detect-then-host-postprocess pattern
+- [apps/qr-tiling](https://github.com/luxonis/oak-examples/tree/main/apps/qr-tiling): use this when the task is QR-specific rather than conveyor-style barcode decoding
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you only need the detector stage
 
 ## Validation
 

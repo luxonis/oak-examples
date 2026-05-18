@@ -54,9 +54,9 @@ This is the repository reference for fatigue-style face state analysis using fac
 
 ## Related Examples
 
-- [../gaze-estimation](../gaze-estimation/): use this when you need a more complex face-landmark-derived gaze pipeline
-- [../emotion-recognition](../emotion-recognition/): use this when the second stage should classify emotions
-- [../../pose-estimation/hand-pose](../../pose-estimation/hand-pose/): use this when you need another landmark-heavy multi-stage pattern
+- [neural-networks/face-detection/gaze-estimation](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/gaze-estimation): use this when you need a more complex face-landmark-derived gaze pipeline
+- [neural-networks/face-detection/emotion-recognition](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/emotion-recognition): use this when the second stage should classify emotions
+- [neural-networks/pose-estimation/hand-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/hand-pose): use this when you need another landmark-heavy multi-stage pattern
 
 ## Validation
 

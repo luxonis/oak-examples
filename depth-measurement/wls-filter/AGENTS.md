@@ -67,8 +67,8 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 - `To change the tuning range:` edit the bounds in the `Filter` class in [utils/host_wls_filter.py](utils/host_wls_filter.py)
 - `To reuse only the host filter stage:` keep [utils/host_wls_filter.py](utils/host_wls_filter.py) and feed it your own disparity and right image streams
-- `To compare against an unfiltered host stereo baseline:` switch to [../stereo-on-host](../stereo-on-host/)
-- `To move from disparity cleanup into spatial measurement:` switch to [../calc-spatial-on-host](../calc-spatial-on-host/)
+- `To compare against an unfiltered host stereo baseline:` switch to [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host)
+- `To move from disparity cleanup into spatial measurement:` switch to [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host)
 
 ## Constraints
 
@@ -85,10 +85,10 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 ## Related Examples
 
-- [../stereo-on-host](../stereo-on-host/): use this when you want host-side stereo comparison instead of WLS post-processing
-- [../stereo-runtime-configuration](../stereo-runtime-configuration/): use this when the tuning target should be device stereo parameters rather than host filters
-- [../calc-spatial-on-host](../calc-spatial-on-host/): use this when the host-side task should become ROI coordinate measurement
-- [../3d-measurement/rgbd-pointcloud](../3d-measurement/rgbd-pointcloud/): use this when the end goal is a point cloud rather than a filtered disparity view
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you want host-side stereo comparison instead of WLS post-processing
+- [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration): use this when the tuning target should be device stereo parameters rather than host filters
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when the host-side task should become ROI coordinate measurement
+- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when the end goal is a point cloud rather than a filtered disparity view
 
 ## Validation
 

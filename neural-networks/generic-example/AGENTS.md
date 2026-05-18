@@ -76,10 +76,10 @@ Reusable single-model inference scaffold. It runs one Model Zoo model with one i
 
 ## Related Examples
 
-- [../object-detection/spatial-detections](../object-detection/spatial-detections/): detections with stereo spatial coordinates
-- [../object-detection/yolo-host-decoding](../object-detection/yolo-host-decoding/): YOLO raw output decoded on the host
-- [../../tutorials/custom-models](../../tutorials/custom-models/): custom model authoring or conversion
-- [../../apps/default-app](../../apps/default-app/): more app-shaped packaged baseline with fixed outputs
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): detections with stereo spatial coordinates
+- [neural-networks/object-detection/yolo-host-decoding](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-host-decoding): YOLO raw output decoded on the host
+- [tutorials/custom-models](https://github.com/luxonis/oak-examples/tree/main/tutorials/custom-models): custom model authoring or conversion
+- [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): more app-shaped packaged baseline with fixed outputs
 
 ## Validation
 

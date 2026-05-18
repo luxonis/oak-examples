@@ -73,7 +73,7 @@ This is the runtime stereo dynamic-calibration workflow reference in the repo. U
 - `To reuse only the calibration HUD:` keep [utils/dynamic_controler.py](utils/dynamic_controler.py) and feed it your own preview/depth streams and control queues
 - `To disable automatic application of new calibration:` change `auto_apply_new` in [utils/dynamic_controler.py](utils/dynamic_controler.py)
 - `To build a safer demo:` remove or guard the `p`, `k`, and `f` flash paths before handing it to less experienced operators
-- `To compare against simpler stereo tools:` use [../stereo-runtime-configuration](../stereo-runtime-configuration/) or [../stereo-on-host](../stereo-on-host/)
+- `To compare against simpler stereo tools:` use [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration) or [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host)
 
 ## Constraints
 
@@ -91,10 +91,10 @@ This is the runtime stereo dynamic-calibration workflow reference in the repo. U
 
 ## Related Examples
 
-- [../stereo-runtime-configuration](../stereo-runtime-configuration/): use this when you want runtime stereo parameter tuning rather than calibration workflows
-- [../stereo-on-host](../stereo-on-host/): use this when you want host-side stereo benchmarking rather than calibration control
-- [../calc-spatial-on-host](../calc-spatial-on-host/): use this when you need host-side ROI spatial measurement
-- [../wls-filter](../wls-filter/): use this when the host-side focus is disparity filtering instead of calibration state management
+- [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration): use this when you want runtime stereo parameter tuning rather than calibration workflows
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you want host-side stereo benchmarking rather than calibration control
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when you need host-side ROI spatial measurement
+- [depth-measurement/wls-filter](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/wls-filter): use this when the host-side focus is disparity filtering instead of calibration state management
 
 ## Validation
 

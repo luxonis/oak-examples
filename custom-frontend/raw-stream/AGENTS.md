@@ -62,12 +62,12 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 - The frontend is served by [frontend_server.py](frontend_server.py), not by `dai.RemoteConnection`.
 - This example intentionally avoids inference, encoded streaming, and advanced backend state.
 
-## Relreated Examples
+## Related Examples
 
-- [../open-vocabulary-object-detection](../open-vocabulary-object-detection/): richer standalone frontend/backend app with model controls
-- [../../tutorials/camera-demo](../../tutorials/camera-demo/): minimal camera/Visualizer pipeline without custom frontend
-- [../../apps/default-app](../../apps/default-app/): packaged baseline app without custom frontend
-- [../../integrations/roboflow-workflow](../../integrations/roboflow-workflow/): another frontend/backend pattern with external inference integration
+- [custom-frontend/open-vocabulary-object-detection](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/open-vocabulary-object-detection): richer standalone frontend/backend app with model controls
+- [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): minimal camera/Visualizer pipeline without custom frontend
+- [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): packaged baseline app without custom frontend
+- [integrations/roboflow-workflow](https://github.com/luxonis/oak-examples/tree/main/integrations/roboflow-workflow): another frontend/backend pattern with external inference integration
 
 ## Validation
 

@@ -7,7 +7,7 @@ This is the repository reference for fusing spatial detections from multiple cal
 ## Use This Example When
 
 - You need multi-device 3D detection fusion.
-- You already have calibration outputs from [../multi-cam-calibration](../multi-cam-calibration/).
+- You already have calibration outputs from [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration).
 - You want the repo’s most direct Bird’s Eye View fusion example.
 
 ## Do Not Use This Example When
@@ -57,9 +57,9 @@ This is the repository reference for fusing spatial detections from multiple cal
 
 ## Related Examples
 
-- [../multi-cam-calibration](../multi-cam-calibration/): run this first to create the required extrinsic files
-- [../multiple-devices-preview](../multiple-devices-preview/): use this when you only need one independent pipeline per device
-- [../../../neural-networks/object-detection/spatial-detections](../../../neural-networks/object-detection/spatial-detections/): use this when you need the single-device spatial-detection baseline
+- [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration): run this first to create the required extrinsic files
+- [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you only need one independent pipeline per device
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the single-device spatial-detection baseline
 
 ## Validation
 

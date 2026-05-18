@@ -55,9 +55,9 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 ## Related Examples
 
-- [../general-ocr](../general-ocr/): use this when you need general text detection and recognition
-- [../../object-detection/barcode-detection-conveyor-belt](../../object-detection/barcode-detection-conveyor-belt/): use this when the detect-then-decode target is barcodes instead of plates
-- [../../face-detection/gaze-estimation](../../face-detection/gaze-estimation/): use this when you want another complex multi-stage crop pipeline
+- [neural-networks/ocr/general-ocr](https://github.com/luxonis/oak-examples/tree/main/neural-networks/ocr/general-ocr): use this when you need general text detection and recognition
+- [neural-networks/object-detection/barcode-detection-conveyor-belt](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/barcode-detection-conveyor-belt): use this when the detect-then-decode target is barcodes instead of plates
+- [neural-networks/face-detection/gaze-estimation](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/gaze-estimation): use this when you want another complex multi-stage crop pipeline
 
 ## Validation
 

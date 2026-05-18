@@ -71,7 +71,7 @@ This is the ToF-specific depth and point-cloud tuning demo in the repo. Use it w
 - `To reuse only the ToF pipeline:` extract `camera_pipeline()` and drop the GUI/Open3D sections
 - `To change default filter behavior:` edit [main.py](main.py) in `get_initial_filter_params()` and the Tkinter variable defaults
 - `To disable point clouds and keep only 2D visualization:` remove the Open3D thread setup and keep the OpenCV windows
-- `To compare against stereo point clouds:` use [../rgbd-pointcloud](../rgbd-pointcloud/) as the stereo baseline
+- `To compare against stereo point clouds:` use [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud) as the stereo baseline
 
 ## Constraints
 
@@ -90,10 +90,10 @@ This is the ToF-specific depth and point-cloud tuning demo in the repo. Use it w
 
 ## Related Examples
 
-- [../rgbd-pointcloud](../rgbd-pointcloud/): use this when you want a stereo RGBD point-cloud baseline instead of ToF
-- [../../wls-filter](../../wls-filter/): use this when you want host-side stereo post-processing rather than ToF filtering
-- [../../dynamic-calibration](../../dynamic-calibration/): use this when your goal is stereo calibration workflows rather than ToF tuning
-- [../../stereo-on-host](../../stereo-on-host/): use this when you want another host-processing depth reference built around stereo disparity instead of ToF point clouds
+- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you want a stereo RGBD point-cloud baseline instead of ToF
+- [depth-measurement/wls-filter](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/wls-filter): use this when you want host-side stereo post-processing rather than ToF filtering
+- [depth-measurement/dynamic-calibration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/dynamic-calibration): use this when your goal is stereo calibration workflows rather than ToF tuning
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you want another host-processing depth reference built around stereo disparity instead of ToF point clouds
 
 ## Validation
 
