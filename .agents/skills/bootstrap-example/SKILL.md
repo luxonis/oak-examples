@@ -17,7 +17,7 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 python3 scripts/bootstrap_from_example.py --print-index
 ```
 
-3. Read the printed `INDEX.md` path and identify the source example. Prefer the closest task and hardware match first, then the closest execution shape.
+3. Read the printed `INDEX.md` path and identify candidate examples. The index links are relative to the directory containing `INDEX.md` in the local checkout/cache; resolve those paths locally and read the candidate `AGENTS.md` files before choosing. Prefer the closest task and hardware match first, then the closest execution shape.
 4. Choose a new output directory for the generated project. For installable-skill usage, default to a new subdirectory under the user's current working directory, such as `./raw-stream-app`; do not write directly into the current directory. The output directory must not already exist.
 5. Run this skill's bundled helper.
 
