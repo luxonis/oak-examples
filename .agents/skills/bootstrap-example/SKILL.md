@@ -1,6 +1,7 @@
 ---
 name: bootstrap-example
 description: Bootstrap an OAK project from an example in oak-examples. Use when the user wants to copy, extract, start, scaffold, or create a host-script or standalone app/project from an existing repository example, especially for oakctl app create handoff or customization.
+compatibility: Requires Python 3 and an accessible luxonis/oak-examples checkout; can clone the public repository when needed.
 ---
 
 # Bootstrap Example
@@ -21,7 +22,7 @@ git clone https://github.com/luxonis/oak-examples.git /tmp/oak-examples
 5. Run this skill's bundled helper and pass the repo path:
 
 ```bash
-python3 <skill-dir>/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> <output-dir>
+python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> <output-dir>
 ```
 
 6. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
@@ -30,8 +31,12 @@ python3 <skill-dir>/bootstrap_from_example.py --repo /tmp/oak-examples <example-
 ## Example
 
 ```bash
-python3 <skill-dir>/bootstrap_from_example.py --repo /tmp/oak-examples custom-frontend/raw-stream /tmp/raw-stream-app
+python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples custom-frontend/raw-stream /tmp/raw-stream-app
 ```
+
+## Available Scripts
+
+- `scripts/bootstrap_from_example.py`: copies an example into a new project, writes `AGENTS.md` and `CLAUDE.md`, copies `ESSENTIAL_KNOWLEDGE.md`, preserves portable GitHub `main` related-example links, and rewrites `oakapp.toml` identifiers.
 
 ## Selection Checklist
 
