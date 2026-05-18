@@ -11,7 +11,7 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 ## Workflow
 
 1. Clarify the target app before choosing an example: task, required hardware, host-script vs standalone mode, UI needs, model/inference needs, streaming/output needs, and whether the user wants the smallest scaffold or closest production-shaped app.
-2. Before selecting an example, run the helper with `--print-index` to acquire the local checkout path and `INDEX.md` path. This command uses the current checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1` (default branch `main`, with a temporary fallback to `feat/agents` while the agents PR is open):
+2. Before selecting an example, run the helper with `--print-index` to acquire the local checkout path and `INDEX.md` path. This command uses the current checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1` from the default branch `main`:
 
 ```bash
 python3 scripts/bootstrap_from_example.py --print-index

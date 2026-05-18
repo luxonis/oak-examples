@@ -18,7 +18,6 @@ from pathlib import Path
 
 DEFAULT_REPO_URL = "https://github.com/luxonis/oak-examples.git"
 DEFAULT_REPO_BRANCH = "main"
-FALLBACK_REPO_BRANCHES = ("feat/agents",)
 DEFAULT_REPO_CACHE = Path.home() / ".cache" / "luxonis" / "oak-examples"
 GITHUB_MAIN_BASE_URL = "https://github.com/luxonis/oak-examples"
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
@@ -77,25 +76,16 @@ def clone_repo_once(target: Path, repo_url: str, branch: str) -> Path:
 
 def clone_repo(target: Path, repo_url: str, branch: str, replace_invalid: bool = False) -> Path:
     target = target.expanduser().resolve()
-    branches = [branch, *(b for b in FALLBACK_REPO_BRANCHES if b != branch)]
-    errors: list[str] = []
-    for candidate_branch in branches:
-        if target.exists():
-            if any(target.iterdir()):
-                if not replace_invalid:
-                    raise FileExistsError(
-                        f"Repository path exists but is not an oak-examples checkout: {target}"
-                    )
-                shutil.rmtree(target)
-            else:
-                target.rmdir()
-        try:
-            return clone_repo_once(target, repo_url, candidate_branch)
-        except Exception as exc:
-            errors.append(f"{candidate_branch}: {exc}")
-            if target.exists():
-                shutil.rmtree(target)
-    raise RuntimeError("Could not clone a compatible oak-examples checkout. " + "; ".join(errors))
+    if target.exists():
+        if any(target.iterdir()):
+            if not replace_invalid:
+                raise FileExistsError(
+                    f"Repository path exists but is not an oak-examples checkout: {target}"
+                )
+            shutil.rmtree(target)
+        else:
+            target.rmdir()
+    return clone_repo_once(target, repo_url, branch)
 
 
 def find_repo(explicit_repo: Path | None, repo_url: str, branch: str) -> Path:
