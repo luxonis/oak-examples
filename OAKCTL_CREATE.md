@@ -17,12 +17,12 @@ A generated project should be useful outside the `oak-examples` monorepo. Agent 
 - If the example contains `oakapp.toml`, replace its `identifier` with a generated identifier derived from the output project directory name.
 - Do not copy [INDEX.md](INDEX.md), [EXAMPLE_AUTHORING.md](EXAMPLE_AUTHORING.md), or this file into generated projects unless the user explicitly asks for repository-maintenance docs.
 
-## Reference Script
+## Reference Helper
 
-[scripts/bootstrap_from_example.py](scripts/bootstrap_from_example.py) is a repo-local wrapper around the installable helper in [.agents/skills/bootstrap-example/bootstrap_from_example.py](.agents/skills/bootstrap-example/bootstrap_from_example.py). It simulates this contract for internal testing and handoff. The product path should map the same behavior to `oakctl app create`. Example:
+[.agents/skills/bootstrap-example/bootstrap_from_example.py](.agents/skills/bootstrap-example/bootstrap_from_example.py) is the installable skill helper. It simulates this contract for internal testing and handoff. The product path should map the same behavior to `oakctl app create`. Example:
 
 ```bash
-python3 scripts/bootstrap_from_example.py custom-frontend/raw-stream /tmp/raw-stream-app
+python3 .agents/skills/bootstrap-example/bootstrap_from_example.py --repo . custom-frontend/raw-stream /tmp/raw-stream-app
 ```
 
 The helper copies files and applies the documented agent-doc transform. It does not install dependencies, validate hardware compatibility, run the example, or rewrite arbitrary links beyond the rules below.

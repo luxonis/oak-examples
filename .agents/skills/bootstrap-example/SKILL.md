@@ -18,25 +18,18 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 git clone https://github.com/luxonis/oak-examples.git /tmp/oak-examples
 ```
 
-5. Run the helper. From the repository root, use the repo-local wrapper:
-
-```bash
-python3 scripts/bootstrap_from_example.py <example-path> <output-dir>
-```
-
-6. From a standalone skill install, use this skill's bundled helper and pass the repo path:
+5. Run this skill's bundled helper and pass the repo path:
 
 ```bash
 python3 <skill-dir>/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> <output-dir>
 ```
 
-7. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
+6. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
 6. Tell the user where the project was created, that `oakapp.toml` identifier was changed if present, and that dependencies, hardware compatibility, and runtime validation still need to be handled separately.
 
 ## Example
 
 ```bash
-python3 scripts/bootstrap_from_example.py custom-frontend/raw-stream /tmp/raw-stream-app
 python3 <skill-dir>/bootstrap_from_example.py --repo /tmp/oak-examples custom-frontend/raw-stream /tmp/raw-stream-app
 ```
 
