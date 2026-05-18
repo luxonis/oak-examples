@@ -1,7 +1,7 @@
 ---
 name: bootstrap-example
 description: Bootstrap an OAK project from an example in oak-examples. Use when the user wants to copy, extract, start, scaffold, or create a host-script or standalone app/project from an existing repository example, especially for oakctl app create handoff or customization.
-compatibility: Requires Python 3 and an accessible luxonis/oak-examples checkout; can clone the public repository when needed.
+compatibility: Requires Python 3 and git. Uses an accessible luxonis/oak-examples checkout or shallow-clones the public repository when needed.
 ---
 
 # Bootstrap Example
@@ -13,13 +13,13 @@ Use this skill when the user wants to copy, extract, bootstrap, or start an OAK 
 1. Clarify the target app before choosing an example: task, required hardware, host-script vs standalone mode, UI needs, model/inference needs, streaming/output needs, and whether the user wants the smallest scaffold or closest production-shaped app.
 2. Use `<repo-root>/INDEX.md` to identify the source example. Prefer the closest task and hardware match first, then the closest execution shape.
 3. Choose a new output directory outside the source example. It must not already exist.
-4. If this skill is installed outside an `oak-examples` checkout, locate or clone the repository first:
+4. Run this skill's bundled helper. It uses the current `oak-examples` checkout when available; otherwise it shallow-clones `https://github.com/luxonis/oak-examples.git` into a local cache with `--depth 1`.
 
 ```bash
-git clone https://github.com/luxonis/oak-examples.git /tmp/oak-examples
+python3 scripts/bootstrap_from_example.py <example-path> <output-dir>
 ```
 
-5. Run this skill's bundled helper and pass the repo path:
+5. Use `--repo /path/to/oak-examples` when the user already has a preferred checkout, or when you need to clone into a specific location.
 
 ```bash
 python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> <output-dir>
@@ -36,7 +36,7 @@ python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples custom-fronte
 
 ## Available Scripts
 
-- `scripts/bootstrap_from_example.py`: copies an example into a new project, writes `AGENTS.md` and `CLAUDE.md`, copies `ESSENTIAL_KNOWLEDGE.md`, preserves portable GitHub `main` related-example links, and rewrites `oakapp.toml` identifiers.
+- `scripts/bootstrap_from_example.py`: finds or shallow-clones `oak-examples`, copies an example into a new project, writes `AGENTS.md` and `CLAUDE.md`, copies `ESSENTIAL_KNOWLEDGE.md`, converts cross-example links to GitHub `main` URLs, and rewrites `oakapp.toml` identifiers.
 
 ## Selection Checklist
 

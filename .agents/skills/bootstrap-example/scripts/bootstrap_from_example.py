@@ -12,9 +12,14 @@ import argparse
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
+DEFAULT_REPO_URL = "https://github.com/luxonis/oak-examples.git"
+DEFAULT_REPO_BRANCH = "main"
+DEFAULT_REPO_CACHE = Path.home() / ".cache" / "luxonis" / "oak-examples"
+GITHUB_MAIN_BASE_URL = "https://github.com/luxonis/oak-examples"
 MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
 IGNORED_PARTS = {
@@ -44,29 +49,65 @@ def looks_like_oak_examples(path: Path) -> bool:
     )
 
 
-def find_repo(explicit_repo: Path | None) -> Path:
-    candidates: list[Path] = []
+def clone_repo(target: Path, repo_url: str, branch: str) -> Path:
+    target = target.expanduser().resolve()
+    if target.exists() and any(target.iterdir()):
+        raise FileExistsError(
+            f"Repository path exists but is not an oak-examples checkout: {target}"
+        )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    command = [
+        "git",
+        "clone",
+        "--depth",
+        "1",
+        "--branch",
+        branch,
+        repo_url,
+        str(target),
+    ]
+    try:
+        subprocess.run(command, check=True)
+    except FileNotFoundError as exc:
+        raise RuntimeError("git is required to clone oak-examples") from exc
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"Could not clone oak-examples from {repo_url}") from exc
+    if not looks_like_oak_examples(target):
+        raise FileNotFoundError(f"Cloned repository is missing expected files: {target}")
+    return target
+
+
+def find_repo(explicit_repo: Path | None, repo_url: str, branch: str) -> Path:
     if explicit_repo is not None:
-        candidates.append(explicit_repo)
+        repo = explicit_repo.expanduser().resolve()
+        if looks_like_oak_examples(repo):
+            return repo
+        if not repo.exists():
+            return clone_repo(repo, repo_url, branch)
+        raise FileNotFoundError(f"Not an oak-examples checkout: {repo}")
+
     if os.environ.get("OAK_EXAMPLES_REPO"):
-        candidates.append(Path(os.environ["OAK_EXAMPLES_REPO"]))
+        repo = Path(os.environ["OAK_EXAMPLES_REPO"]).expanduser().resolve()
+        if looks_like_oak_examples(repo):
+            return repo
+        raise FileNotFoundError(f"OAK_EXAMPLES_REPO is not an oak-examples checkout: {repo}")
+
+    candidates = [Path.cwd().resolve()]
     candidates.extend(Path.cwd().resolve().parents)
-    candidates.insert(0, Path.cwd().resolve())
 
     # When this helper lives in .agents/skills/bootstrap-example inside the repo.
     script_path = Path(__file__).resolve()
-    if len(script_path.parents) > 3:
-        candidates.append(script_path.parents[3])
+    if len(script_path.parents) > 4:
+        candidates.append(script_path.parents[4])
 
     for candidate in candidates:
         repo = candidate.expanduser().resolve()
         if looks_like_oak_examples(repo):
             return repo
 
-    raise FileNotFoundError(
-        "Could not find an oak-examples checkout. Run from the repository root, "
-        "set OAK_EXAMPLES_REPO, or pass --repo /path/to/oak-examples."
-    )
+    if looks_like_oak_examples(DEFAULT_REPO_CACHE):
+        return DEFAULT_REPO_CACHE
+    return clone_repo(DEFAULT_REPO_CACHE, repo_url, branch)
 
 
 def insert_after_title(markdown: str, sections: list[str]) -> str:
@@ -100,7 +141,41 @@ def build_start_here_section() -> str:
     )
 
 
-def transform_agents(markdown: str, example: Path) -> str:
+def rewrite_escaping_relative_links(markdown: str, source_dir: Path, repo: Path) -> str:
+    def replace(match: re.Match[str]) -> str:
+        href = match.group(1)
+        href_path, separator, fragment = href.partition("#")
+        if not href_path or href.startswith(("http://", "https://", "#", "mailto:")):
+            return match.group(0)
+
+        target = (source_dir / href_path).resolve()
+        try:
+            target.relative_to(source_dir)
+            return match.group(0)
+        except ValueError:
+            pass
+
+        try:
+            repo_relative = target.relative_to(repo)
+        except ValueError:
+            return match.group(0)
+
+        kind = "tree" if target.is_dir() else "blob"
+        url = f"{GITHUB_MAIN_BASE_URL}/{kind}/main/{repo_relative.as_posix()}"
+        if separator:
+            url += f"#{fragment}"
+
+        label_match = re.match(r"(?<!!)\[([^\]]+)\]", match.group(0))
+        label = label_match.group(1) if label_match else repo_relative.as_posix()
+        if label.startswith((".", "/")):
+            label = repo_relative.as_posix()
+        return f"[{label}]({url})"
+
+    return MARKDOWN_LINK_RE.sub(replace, markdown)
+
+
+def transform_agents(markdown: str, example: Path, source_dir: Path, repo: Path) -> str:
+    markdown = rewrite_escaping_relative_links(markdown, source_dir, repo)
     return insert_after_title(
         markdown,
         [build_project_origin_section(example), build_start_here_section()],
@@ -203,7 +278,10 @@ def bootstrap(repo: Path, example: Path, output: Path) -> None:
     copy_example(example_dir, output_dir)
 
     transformed_agents = transform_agents(
-        (example_dir / "AGENTS.md").read_text(encoding="utf-8"), example_ref
+        (example_dir / "AGENTS.md").read_text(encoding="utf-8"),
+        example_ref,
+        example_dir,
+        repo,
     )
     validate_standalone_markdown_links(transformed_agents)
     (output_dir / "AGENTS.md").write_text(transformed_agents, encoding="utf-8")
@@ -221,12 +299,22 @@ def main() -> int:
     parser.add_argument(
         "--repo",
         type=Path,
-        help="Path to a luxonis/oak-examples checkout. Defaults to current repo, parents, or OAK_EXAMPLES_REPO.",
+        help="Path to a luxonis/oak-examples checkout. If missing, the helper clones a shallow checkout there.",
+    )
+    parser.add_argument(
+        "--repo-url",
+        default=DEFAULT_REPO_URL,
+        help=f"Repository URL to clone when no checkout is found. Default: {DEFAULT_REPO_URL}",
+    )
+    parser.add_argument(
+        "--branch",
+        default=DEFAULT_REPO_BRANCH,
+        help=f"Repository branch to shallow clone. Default: {DEFAULT_REPO_BRANCH}",
     )
     args = parser.parse_args()
 
     try:
-        repo = find_repo(args.repo)
+        repo = find_repo(args.repo, args.repo_url, args.branch)
         bootstrap(repo, args.example, args.output)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)
