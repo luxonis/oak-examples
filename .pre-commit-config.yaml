@@ -19,3 +19,4 @@ repos:
         args: [--number]
         additional_dependencies:
           - mdformat-gfm==0.3.6
+          - mdformat-frontmatter

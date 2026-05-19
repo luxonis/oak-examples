@@ -66,7 +66,9 @@ def clone_repo_once(target: Path, repo_url: str, branch: str) -> Path:
     except FileNotFoundError as exc:
         raise RuntimeError("git is required to clone oak-examples") from exc
     except subprocess.CalledProcessError as exc:
-        raise RuntimeError(f"Could not clone oak-examples branch {branch} from {repo_url}") from exc
+        raise RuntimeError(
+            f"Could not clone oak-examples branch {branch} from {repo_url}"
+        ) from exc
     if not looks_like_oak_examples(target):
         raise FileNotFoundError(
             f"Cloned branch {branch} is missing expected bootstrap files: {target}"
@@ -74,7 +76,9 @@ def clone_repo_once(target: Path, repo_url: str, branch: str) -> Path:
     return target
 
 
-def clone_repo(target: Path, repo_url: str, branch: str, replace_invalid: bool = False) -> Path:
+def clone_repo(
+    target: Path, repo_url: str, branch: str, replace_invalid: bool = False
+) -> Path:
     target = target.expanduser().resolve()
     if target.exists():
         if any(target.iterdir()):
@@ -101,7 +105,9 @@ def find_repo(explicit_repo: Path | None, repo_url: str, branch: str) -> Path:
         repo = Path(os.environ["OAK_EXAMPLES_REPO"]).expanduser().resolve()
         if looks_like_oak_examples(repo):
             return repo
-        raise FileNotFoundError(f"OAK_EXAMPLES_REPO is not an oak-examples checkout: {repo}")
+        raise FileNotFoundError(
+            f"OAK_EXAMPLES_REPO is not an oak-examples checkout: {repo}"
+        )
 
     candidates = [Path.cwd().resolve()]
     candidates.extend(Path.cwd().resolve().parents)
@@ -254,14 +260,18 @@ def resolve_example(repo: Path, example: Path) -> tuple[Path, Path]:
         try:
             example_ref = example_dir.relative_to(repo)
         except ValueError as exc:
-            raise ValueError(f"Example path must be inside oak-examples: {example_dir}") from exc
+            raise ValueError(
+                f"Example path must be inside oak-examples: {example_dir}"
+            ) from exc
     else:
         example_ref = example
         example_dir = (repo / example).resolve()
         try:
             example_dir.relative_to(repo)
         except ValueError as exc:
-            raise ValueError(f"Example path must stay inside oak-examples: {example}") from exc
+            raise ValueError(
+                f"Example path must stay inside oak-examples: {example}"
+            ) from exc
     return example_dir, example_ref
 
 
@@ -281,9 +291,13 @@ def bootstrap(repo: Path, example: Path, output: Path) -> None:
     except ValueError:
         pass
     else:
-        raise ValueError(f"Output directory must not be inside the source example: {output_dir}")
+        raise ValueError(
+            f"Output directory must not be inside the source example: {output_dir}"
+        )
     if output_dir == repo:
-        raise ValueError(f"Output directory must not be the repository root: {output_dir}")
+        raise ValueError(
+            f"Output directory must not be the repository root: {output_dir}"
+        )
 
     output_dir.mkdir(parents=True)
     copy_example(example_dir, output_dir)
@@ -305,8 +319,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Bootstrap an OAK project from an oak-examples example."
     )
-    parser.add_argument("example", nargs="?", type=Path, help="Example path relative to oak-examples root.")
-    parser.add_argument("output", nargs="?", type=Path, help="New output project directory.")
+    parser.add_argument(
+        "example",
+        nargs="?",
+        type=Path,
+        help="Example path relative to oak-examples root.",
+    )
+    parser.add_argument(
+        "output", nargs="?", type=Path, help="New output project directory."
+    )
     parser.add_argument(
         "--repo",
         type=Path,

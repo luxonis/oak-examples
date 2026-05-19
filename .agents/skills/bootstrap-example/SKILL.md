@@ -1,7 +1,12 @@
 ---
 name: bootstrap-example
-description: Bootstrap an OAK project from an example in oak-examples. Use when the user wants to copy, extract, start, scaffold, or create a host-script or standalone app/project from an existing repository example, especially for oakctl app create handoff or customization.
-compatibility: Requires Python 3 and git. Uses an accessible luxonis/oak-examples checkout or shallow-clones the public repository when needed.
+description: Bootstrap an OAK project from an example in oak-examples. Use when 
+  the user wants to copy, extract, start, scaffold, or create a host-script or 
+  standalone app/project from an existing repository example, especially for 
+  oakctl app create handoff or customization.
+compatibility: Requires Python 3 and git. Uses an accessible 
+  luxonis/oak-examples checkout or shallow-clones the public repository when 
+  needed.
 ---
 
 # Bootstrap Example
