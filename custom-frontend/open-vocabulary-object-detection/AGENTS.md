@@ -100,7 +100,6 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 - When the last image prompt is deleted, the backend reverts automatically to the last text-class set.
 - Bbox prompting is model-specific: YOLO-World crops the bbox region itself, while YOLOE keeps the full frame and applies a mask.
 - The frontend restores prompt state by fetching `Get Current Params Service` rather than owning the source of truth locally.
-- [frontend/package.json](frontend/package.json) contains a `prepare` script of `panda coden`; if a clean `npm install` relies on that lifecycle, frontend build behavior should be checked carefully.
 
 ## Related Examples
 
