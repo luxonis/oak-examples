@@ -57,9 +57,9 @@ This is the smallest ROS app wrapper in the repo for RGB pointcloud publishing. 
 
 ## Common Adaptations
 
-- `To move to a custom workspace:` compare against [../ros-driver-custom-workspace](../ros-driver-custom-workspace/)
-- `To publish spatial markers too:` compare against [../ros-driver-spatial-bb](../ros-driver-spatial-bb/)
-- `To use the broader RGB/stereo/IMU driver app:` compare against [../ros-driver-basic](../ros-driver-basic/)
+- `To move to a custom workspace:` compare against [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace)
+- `To publish spatial markers too:` compare against [apps/ros/ros-driver-spatial-bb](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-spatial-bb)
+- `To use the broader RGB/stereo/IMU driver app:` compare against [apps/ros/ros-driver-basic](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-basic)
 
 ## Constraints
 
@@ -74,10 +74,10 @@ This is the smallest ROS app wrapper in the repo for RGB pointcloud publishing. 
 
 ## Related Examples
 
-- [../ros-driver-basic](../ros-driver-basic/): use this when you need RGB, stereo, and IMU rather than just pointclouds
-- [../ros-driver-spatial-bb](../ros-driver-spatial-bb/): use this when you need 3D marker visualization for detections
-- [../ros-driver-custom-workspace](../ros-driver-custom-workspace/): use this when you need local ROS source and custom launch behavior
-- [../ros-follow-object](../ros-follow-object/): use this when you need detections to drive robot control
+- [apps/ros/ros-driver-basic](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-basic): use this when you need RGB, stereo, and IMU rather than just pointclouds
+- [apps/ros/ros-driver-spatial-bb](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-spatial-bb): use this when you need 3D marker visualization for detections
+- [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace): use this when you need local ROS source and custom launch behavior
+- [apps/ros/ros-follow-object](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-follow-object): use this when you need detections to drive robot control
 
 ## Validation
 

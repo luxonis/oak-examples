@@ -58,9 +58,9 @@ This is the repository reference for short-audio Whisper transcription on OAK4 w
 
 ## Related Examples
 
-- [../../generic-example](../../generic-example/): use this when you need the simplest single-model scaffold instead of speech-specific recursion
-- [../../../apps/default-app](../../../apps/default-app/): use this when you need a packaged baseline app without speech logic
-- [../../../integrations/rerun](../../../integrations/rerun/): use this when your goal is external visualization rather than speech-driven UI feedback
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you need the simplest single-model scaffold instead of speech-specific recursion
+- [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): use this when you need a packaged baseline app without speech logic
+- [integrations/rerun](https://github.com/luxonis/oak-examples/tree/main/integrations/rerun): use this when your goal is external visualization rather than speech-driven UI feedback
 
 ## Validation
 

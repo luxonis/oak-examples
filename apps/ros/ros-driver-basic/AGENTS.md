@@ -61,9 +61,9 @@ This is the smallest ROS app wrapper in the repository. It is the best starting 
 ## Common Adaptations
 
 - `To change driver behavior:` start in [parameters.yaml](parameters.yaml)
-- `To add local ROS code:` move to [../ros-driver-custom-workspace](../ros-driver-custom-workspace/)
-- `To publish pointclouds instead:` compare against [../ros-driver-rgb-pcl](../ros-driver-rgb-pcl/)
-- `To publish spatial 3D markers:` compare against [../ros-driver-spatial-bb](../ros-driver-spatial-bb/)
+- `To add local ROS code:` move to [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace)
+- `To publish pointclouds instead:` compare against [apps/ros/ros-driver-rgb-pcl](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-rgb-pcl)
+- `To publish spatial 3D markers:` compare against [apps/ros/ros-driver-spatial-bb](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-spatial-bb)
 
 ## Constraints
 
@@ -79,10 +79,10 @@ This is the smallest ROS app wrapper in the repository. It is the best starting 
 
 ## Related Examples
 
-- [../ros-driver-rgb-pcl](../ros-driver-rgb-pcl/): use this when you need RGB pointcloud output
-- [../ros-driver-spatial-bb](../ros-driver-spatial-bb/): use this when you need 3D markers for spatial detections
-- [../ros-driver-custom-workspace](../ros-driver-custom-workspace/): use this when you need local ROS code and custom plugins
-- [../ros-follow-object](../ros-follow-object/): use this when you need control outputs from detections
+- [apps/ros/ros-driver-rgb-pcl](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-rgb-pcl): use this when you need RGB pointcloud output
+- [apps/ros/ros-driver-spatial-bb](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-spatial-bb): use this when you need 3D markers for spatial detections
+- [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace): use this when you need local ROS code and custom plugins
+- [apps/ros/ros-follow-object](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-follow-object): use this when you need control outputs from detections
 
 ## Validation
 

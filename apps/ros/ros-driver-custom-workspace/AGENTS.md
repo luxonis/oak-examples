@@ -71,7 +71,7 @@ This is the best template in the repository for shipping a custom ROS workspace 
 - `To add your own ROS package:` copy the pattern under [src/example_package/](src/example_package/)
 - `To customize the device pipeline:` edit [src/dai_ros_plugins/src/dai_ros_plugins.cpp](src/dai_ros_plugins/src/dai_ros_plugins.cpp)
 - `To change launch behavior:` start in [src/example_package/launch/example.launch.py](src/example_package/launch/example.launch.py)
-- `To simplify back to stock driver behavior:` compare against [../ros-driver-basic](../ros-driver-basic/)
+- `To simplify back to stock driver behavior:` compare against [apps/ros/ros-driver-basic](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-basic)
 
 ## Constraints
 
@@ -88,10 +88,10 @@ This is the best template in the repository for shipping a custom ROS workspace 
 
 ## Related Examples
 
-- [../ros-driver-basic](../ros-driver-basic/): use this when the stock driver launch is enough
-- [../ros-follow-object](../ros-follow-object/): use this when you want a packaged ROS workspace plus a control node
-- [../ros-driver-spatial-bb](../ros-driver-spatial-bb/): use this when you want a ready-made spatial marker app instead of a template
-- [../ros-driver-rgb-pcl](../ros-driver-rgb-pcl/): use this when you want a ready-made pointcloud app instead of a template
+- [apps/ros/ros-driver-basic](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-basic): use this when the stock driver launch is enough
+- [apps/ros/ros-follow-object](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-follow-object): use this when you want a packaged ROS workspace plus a control node
+- [apps/ros/ros-driver-spatial-bb](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-spatial-bb): use this when you want a ready-made spatial marker app instead of a template
+- [apps/ros/ros-driver-rgb-pcl](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-rgb-pcl): use this when you want a ready-made pointcloud app instead of a template
 
 ## Validation
 

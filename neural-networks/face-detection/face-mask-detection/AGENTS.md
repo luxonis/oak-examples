@@ -51,9 +51,9 @@ This is the repository reference for mask/no-mask detection using a PPE detector
 
 ## Related Examples
 
-- [../blur-faces](../blur-faces/): use this when you need privacy blur instead of mask classification
-- [../age-gender](../age-gender/): use this when you need two-stage face analytics
-- [../../generic-example](../../generic-example/): use this when you want the most generic single-model detector scaffold
+- [neural-networks/face-detection/blur-faces](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/blur-faces): use this when you need privacy blur instead of mask classification
+- [neural-networks/face-detection/age-gender](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/age-gender): use this when you need two-stage face analytics
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you want the most generic single-model detector scaffold
 
 ## Validation
 

@@ -72,7 +72,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - `To disable tracking and make measurements static:` simplify [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) and remove the tracking services
 - `To change measurement behavior:` start in [backend/src/utils/distance_calculator.py](backend/src/utils/distance_calculator.py)
 - `To reuse only the click-selection frontend:` keep [frontend/src/ClickOverlay.tsx](frontend/src/ClickOverlay.tsx) and replace the backend services
-- `To move to richer 3D measurement:` compare against [../object-volume-measurement-3d](../object-volume-measurement-3d/)
+- `To move to richer 3D measurement:` compare against [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d)
 
 ## Constraints
 
@@ -90,10 +90,10 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Related Examples
 
-- [../object-volume-measurement-3d](../object-volume-measurement-3d/): use this when you need segmented object measurement instead of two-point distance
-- [../../depth-measurement/calc-spatial-on-host](../../depth-measurement/calc-spatial-on-host/): use this when host-side spatial ROI measurement is enough
-- [../../tutorials/camera-stereo-depth](../../tutorials/camera-stereo-depth/): use this when you need a simpler stereo-depth baseline
-- [../../depth-measurement/stereo-on-host](../../depth-measurement/stereo-on-host/): use this when the main goal is host-side stereo processing, not an interactive measurement UI
+- [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need segmented object measurement instead of two-point distance
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial ROI measurement is enough
+- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler stereo-depth baseline
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when the main goal is host-side stereo processing, not an interactive measurement UI
 
 ## Validation
 

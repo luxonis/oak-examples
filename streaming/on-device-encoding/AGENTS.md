@@ -56,9 +56,9 @@ This is the repository reference for encoding video on the OAK device and muxing
 
 ## Related Examples
 
-- [../rtsp-streaming](../rtsp-streaming/): use this when you need live H265 delivery instead of a saved file
-- [../mjpeg-streaming](../mjpeg-streaming/): use this when you need browser-viewable streaming instead of recording
-- [../poe-tcp-streaming](../poe-tcp-streaming/): use this when you need a custom network transport rather than local muxing
+- [streaming/rtsp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/rtsp-streaming): use this when you need live H265 delivery instead of a saved file
+- [streaming/mjpeg-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/mjpeg-streaming): use this when you need browser-viewable streaming instead of recording
+- [streaming/poe-tcp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/poe-tcp-streaming): use this when you need a custom network transport rather than local muxing
 
 ## Validation
 

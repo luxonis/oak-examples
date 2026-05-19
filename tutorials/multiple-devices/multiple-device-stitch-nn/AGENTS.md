@@ -55,9 +55,9 @@ This is the repository reference for stitching multiple camera feeds into one pa
 
 ## Related Examples
 
-- [../multiple-devices-preview](../multiple-devices-preview/): use this when you need per-device outputs without stitching
-- [../spatial-detection-fusion](../spatial-detection-fusion/): use this when you need world-frame fused detections instead of a panorama image
-- [../../qr-with-tiling](../../qr-with-tiling/): use this when you need tiling as the main idea but not multi-device stitching
+- [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you need per-device outputs without stitching
+- [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when you need world-frame fused detections instead of a panorama image
+- [tutorials/qr-with-tiling](https://github.com/luxonis/oak-examples/tree/main/tutorials/qr-with-tiling): use this when you need tiling as the main idea but not multi-device stitching
 
 ## Validation
 

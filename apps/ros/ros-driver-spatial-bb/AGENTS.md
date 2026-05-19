@@ -57,9 +57,9 @@ This is the stock ROS wrapper to reach for when you need pointclouds plus 3D spa
 
 ## Common Adaptations
 
-- `To add local ROS code around this behavior:` compare against [../ros-driver-custom-workspace](../ros-driver-custom-workspace/)
-- `To turn detections into robot motion:` compare against [../ros-follow-object](../ros-follow-object/)
-- `To drop back to stock RGBD publishing:` compare against [../ros-driver-basic](../ros-driver-basic/) or [../ros-driver-rgb-pcl](../ros-driver-rgb-pcl/)
+- `To add local ROS code around this behavior:` compare against [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace)
+- `To turn detections into robot motion:` compare against [apps/ros/ros-follow-object](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-follow-object)
+- `To drop back to stock RGBD publishing:` compare against [apps/ros/ros-driver-basic](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-basic) or [apps/ros/ros-driver-rgb-pcl](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-rgb-pcl)
 
 ## Constraints
 
@@ -74,10 +74,10 @@ This is the stock ROS wrapper to reach for when you need pointclouds plus 3D spa
 
 ## Related Examples
 
-- [../ros-driver-rgb-pcl](../ros-driver-rgb-pcl/): use this when you only need pointclouds
-- [../ros-follow-object](../ros-follow-object/): use this when you want to consume `/spatial_bb` and publish `/cmd_vel`
-- [../ros-driver-basic](../ros-driver-basic/): use this when you need the broader stock driver topics
-- [../ros-driver-custom-workspace](../ros-driver-custom-workspace/): use this when you need local ROS source and custom launches
+- [apps/ros/ros-driver-rgb-pcl](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-rgb-pcl): use this when you only need pointclouds
+- [apps/ros/ros-follow-object](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-follow-object): use this when you want to consume `/spatial_bb` and publish `/cmd_vel`
+- [apps/ros/ros-driver-basic](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-basic): use this when you need the broader stock driver topics
+- [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace): use this when you need local ROS source and custom launches
 
 ## Validation
 

@@ -56,9 +56,9 @@ This is the repository reference for the simplest host-side multi-device orchest
 
 ## Related Examples
 
-- [../multi-cam-calibration](../multi-cam-calibration/): use this when the next step is world-frame calibration
-- [../spatial-detection-fusion](../spatial-detection-fusion/): use this when multiple devices should collaborate in 3D space
-- [../multiple-device-stitch-nn](../multiple-device-stitch-nn/): use this when multiple devices should be stitched into one panorama-like view
+- [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration): use this when the next step is world-frame calibration
+- [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when multiple devices should collaborate in 3D space
+- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when multiple devices should be stitched into one panorama-like view
 
 ## Validation
 

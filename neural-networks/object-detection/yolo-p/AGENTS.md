@@ -55,9 +55,9 @@ This is the repository reference for ADAS-style YOLO-P output: detections plus r
 
 ## Related Examples
 
-- [../yolo-world](../yolo-world/): use this when you need configurable class prompts instead of fixed ADAS outputs
-- [../spatial-detections](../spatial-detections/): use this when you need stereo spatial coordinates with detections
-- [../../segmentation/depth-crop](../../segmentation/depth-crop/): use this when the segmentation output should interact with stereo depth
+- [neural-networks/object-detection/yolo-world](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-world): use this when you need configurable class prompts instead of fixed ADAS outputs
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need stereo spatial coordinates with detections
+- [neural-networks/segmentation/depth-crop](https://github.com/luxonis/oak-examples/tree/main/neural-networks/segmentation/depth-crop): use this when the segmentation output should interact with stereo depth
 
 ## Validation
 

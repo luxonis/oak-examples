@@ -54,9 +54,9 @@ This is the repository reference for hand pose plus gesture recognition. Use it 
 
 ## Related Examples
 
-- [../human-pose](../human-pose/): use this when you need person pose instead of hands
-- [../animal-pose](../animal-pose/): use this when you need another detect-then-pose pattern
-- [../../face-detection/fatigue-detection](../../face-detection/fatigue-detection/): use this when you need another landmark-heavy two-stage flow
+- [neural-networks/pose-estimation/human-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/human-pose): use this when you need person pose instead of hands
+- [neural-networks/pose-estimation/animal-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/animal-pose): use this when you need another detect-then-pose pattern
+- [neural-networks/face-detection/fatigue-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/fatigue-detection): use this when you need another landmark-heavy two-stage flow
 
 ## Validation
 

@@ -54,9 +54,9 @@ This is the repository reference for open-vocabulary YOLO-World inference with s
 
 ## Related Examples
 
-- [../../../custom-frontend/open-vocabulary-object-detection](../../../custom-frontend/open-vocabulary-object-detection/): use this when you need runtime prompt updates and a custom frontend
-- [../yolo-host-decoding](../yolo-host-decoding/): use this when you need host-side YOLO decode logic instead of prompt embeddings
-- [../../generic-example](../../generic-example/): use this when you need the simpler fixed-model single-input scaffold
+- [custom-frontend/open-vocabulary-object-detection](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/open-vocabulary-object-detection): use this when you need runtime prompt updates and a custom frontend
+- [neural-networks/object-detection/yolo-host-decoding](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-host-decoding): use this when you need host-side YOLO decode logic instead of prompt embeddings
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you need the simpler fixed-model single-input scaffold
 
 ## Validation
 

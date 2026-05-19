@@ -70,8 +70,8 @@ This is the simplest runtime stereo-parameter tuning example in the repo. Use it
 
 - `To expose more stereo settings:` extend [utils/stereo_config_controller.py](utils/stereo_config_controller.py) with more key bindings and config mutations
 - `To remove the RGB preview:` keep the stereo branch and replace the current sync/display pattern
-- `To compare the impact of host-side stereo instead:` switch to [../stereo-on-host](../stereo-on-host/)
-- `To move into a calibration-oriented workflow:` switch to [../dynamic-calibration](../dynamic-calibration/)
+- `To compare the impact of host-side stereo instead:` switch to [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host)
+- `To move into a calibration-oriented workflow:` switch to [depth-measurement/dynamic-calibration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/dynamic-calibration)
 
 ## Constraints
 
@@ -87,10 +87,10 @@ This is the simplest runtime stereo-parameter tuning example in the repo. Use it
 
 ## Related Examples
 
-- [../stereo-on-host](../stereo-on-host/): use this when you need host-side stereo computation and comparison
-- [../dynamic-calibration](../dynamic-calibration/): use this when you need richer stereo control around calibration state
-- [../calc-spatial-on-host](../calc-spatial-on-host/): use this when the host-side work should be ROI spatial measurement
-- [../3d-measurement/rgbd-pointcloud](../3d-measurement/rgbd-pointcloud/): use this when the goal is RGBD fusion and point-cloud output
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host-side stereo computation and comparison
+- [depth-measurement/dynamic-calibration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/dynamic-calibration): use this when you need richer stereo control around calibration state
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when the host-side work should be ROI spatial measurement
+- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when the goal is RGBD fusion and point-cloud output
 
 ## Validation
 

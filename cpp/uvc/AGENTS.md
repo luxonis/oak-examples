@@ -69,7 +69,7 @@ This is the standalone-only C++ reference for turning an RVC4 device into a USB 
 - `To change the exported UVC mode:` edit `create_frame` usage in [uvc-start.sh](uvc-start.sh)
 - `To change the camera resolution or format:` edit the `requestOutput(...)` and encoder setup in [src/uvc_example.cpp](src/uvc_example.cpp)
 - `To support a different camera selection policy:` replace `device->getConnectedCameras()[0]` logic in [src/uvc_example.cpp](src/uvc_example.cpp)
-- `To strip this back to a Visualizer-based C++ baseline:` compare against [../camera_stream](../camera_stream/)
+- `To strip this back to a Visualizer-based C++ baseline:` compare against [cpp/camera_stream](https://github.com/luxonis/oak-examples/tree/main/cpp/camera_stream)
 
 ## Constraints
 
@@ -88,9 +88,9 @@ This is the standalone-only C++ reference for turning an RVC4 device into a USB 
 
 ## Related Examples
 
-- [../camera_stream](../camera_stream/): use this when you need the minimal C++ Visualizer baseline
-- [../../streaming/on-device-encoding](../../streaming/on-device-encoding/): use this when the main topic is encoded video flow rather than USB gadget mode
-- [../../streaming/rtsp-streaming](../../streaming/rtsp-streaming/): use this when you want network streaming instead of UVC over USB
+- [cpp/camera_stream](https://github.com/luxonis/oak-examples/tree/main/cpp/camera_stream): use this when you need the minimal C++ Visualizer baseline
+- [streaming/on-device-encoding](https://github.com/luxonis/oak-examples/tree/main/streaming/on-device-encoding): use this when the main topic is encoded video flow rather than USB gadget mode
+- [streaming/rtsp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/rtsp-streaming): use this when you want network streaming instead of UVC over USB
 
 ## Validation
 

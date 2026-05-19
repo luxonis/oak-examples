@@ -75,7 +75,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - `To change the default classes:` edit `CLASS_NAMES` in [backend/src/main.py](backend/src/main.py)
 - `To change confidence behavior:` edit the parser threshold and [frontend/src/ConfidenceSlider.tsx](frontend/src/ConfidenceSlider.tsx)
 - `To reuse the pointcloud measurement backend:` keep [backend/src/utils/measurement_node.py](backend/src/utils/measurement_node.py) and feed it another segmented pointcloud source
-- `To study a lighter RGBD reference:` compare against [../../depth-measurement/3d-measurement/rgbd-pointcloud](../../depth-measurement/3d-measurement/rgbd-pointcloud/)
+- `To study a lighter RGBD reference:` compare against [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud)
 
 ## Constraints
 
@@ -93,10 +93,10 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Related Examples
 
-- [../p2p-measurement](../p2p-measurement/): use this when you only need two-point distance measurement
-- [../../depth-measurement/3d-measurement/rgbd-pointcloud](../../depth-measurement/3d-measurement/rgbd-pointcloud/): use this when you need a cleaner RGBD pointcloud reference
-- [../data-collection](../data-collection/): use this when the main frontend pattern is interactive class control rather than 3D measurement
-- [../../depth-measurement/calc-spatial-on-host](../../depth-measurement/calc-spatial-on-host/): use this when host-side spatial measurement is enough
+- [apps/p2p-measurement](https://github.com/luxonis/oak-examples/tree/main/apps/p2p-measurement): use this when you only need two-point distance measurement
+- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you need a cleaner RGBD pointcloud reference
+- [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when the main frontend pattern is interactive class control rather than 3D measurement
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial measurement is enough
 
 ## Validation
 

@@ -18,6 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "INDEX.md"
+MARKDOWN_LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
 IGNORED_PARTS = {
     ".git",
@@ -111,6 +112,28 @@ def is_ignored(path: Path) -> bool:
 
 def rel(path: Path) -> Path:
     return path.relative_to(ROOT)
+
+
+def validate_agents_links() -> list[str]:
+    errors: list[str] = []
+    for path in sorted(ROOT.rglob("AGENTS.md")):
+        relative_path = rel(path)
+        if is_ignored(relative_path) or relative_path.parts[:1] == (".agents",):
+            continue
+        base = path.parent.resolve()
+        for line_number, line in enumerate(
+            path.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1
+        ):
+            for match in MARKDOWN_LINK_RE.finditer(line):
+                href = match.group(1).split("#", 1)[0].strip()
+                if not href or href.startswith(("http://", "https://", "#", "mailto:")):
+                    continue
+                target = (base / href).resolve()
+                try:
+                    target.relative_to(base)
+                except ValueError:
+                    errors.append(f"{relative_path}:{line_number}: {match.group(1)}")
+    return errors
 
 
 def clean_inline(text: str) -> str:
@@ -352,6 +375,15 @@ def main() -> int:
 
     generated = render_index(discover_examples())
     if args.check:
+        link_errors = validate_agents_links()
+        if link_errors:
+            print(
+                "AGENTS.md contains relative links that escape the example directory. "
+                "Use GitHub main URLs for cross-example links:",
+                file=sys.stderr,
+            )
+            print("\n".join(link_errors), file=sys.stderr)
+            return 1
         current = INDEX.read_text(encoding="utf-8") if INDEX.exists() else ""
         if current != generated:
             print(

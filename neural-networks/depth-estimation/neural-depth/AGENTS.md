@@ -53,9 +53,9 @@ This is the repository reference for Luxonis `NeuralDepth` running directly on R
 
 ## Related Examples
 
-- [../crestereo-stereo-matching](../crestereo-stereo-matching/): use this when you want another on-device neural stereo baseline
+- [neural-networks/depth-estimation/crestereo-stereo-matching](https://github.com/luxonis/oak-examples/tree/main/neural-networks/depth-estimation/crestereo-stereo-matching): use this when you want another on-device neural stereo baseline
 - [host_eval](host_eval/): use this when you need offline dataset evaluation for NeuralDepth
-- [../../../depth-measurement/stereo-runtime-configuration](../../../depth-measurement/stereo-runtime-configuration/): use this when you want runtime stereo controls for classic `StereoDepth`
+- [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration): use this when you want runtime stereo controls for classic `StereoDepth`
 
 ## Validation
 

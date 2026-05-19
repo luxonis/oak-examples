@@ -53,9 +53,9 @@ This is the repository reference for two-stage face emotion recognition. Use it 
 
 ## Related Examples
 
-- [../age-gender](../age-gender/): use this when the second stage should predict age/gender instead
-- [../head-posture-detection](../head-posture-detection/): use this when the second stage should predict head pose
-- [../gaze-estimation](../gaze-estimation/): use this when you need the more complex multi-input gaze pipeline
+- [neural-networks/face-detection/age-gender](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/age-gender): use this when the second stage should predict age/gender instead
+- [neural-networks/face-detection/head-posture-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/head-posture-detection): use this when the second stage should predict head pose
+- [neural-networks/face-detection/gaze-estimation](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/gaze-estimation): use this when you need the more complex multi-input gaze pipeline
 
 ## Validation
 

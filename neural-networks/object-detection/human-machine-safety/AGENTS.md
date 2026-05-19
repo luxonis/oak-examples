@@ -56,9 +56,9 @@ This is the repository reference for distance-based safety checks between detect
 
 ## Related Examples
 
-- [../social-distancing](../social-distancing/): use this when you need person-to-person distance monitoring
-- [../spatial-detections](../spatial-detections/): use this when you need the general spatial detection baseline
-- [../../object-tracking/collision-avoidance](../../object-tracking/collision-avoidance/): use this when the safety signal should come from motion toward the camera
+- [neural-networks/object-detection/social-distancing](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/social-distancing): use this when you need person-to-person distance monitoring
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the general spatial detection baseline
+- [neural-networks/object-tracking/collision-avoidance](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/collision-avoidance): use this when the safety signal should come from motion toward the camera
 
 ## Validation
 

@@ -56,9 +56,9 @@ This is the repository reference for tiling-based QR detection with host-side de
 
 ## Related Examples
 
-- [../full-fov-nn](../full-fov-nn/): use this when you need resize/FOV tradeoffs instead of tiled inference
-- [../../neural-networks/ocr/general-ocr](../../neural-networks/ocr/general-ocr/): use this when you need general text OCR rather than QR detection
-- [../../neural-networks/object-detection/yolo-host-decoding](../../neural-networks/object-detection/yolo-host-decoding/): use this when you need host-side detection processing without the tiling/decode pattern
+- [tutorials/full-fov-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/full-fov-nn): use this when you need resize/FOV tradeoffs instead of tiled inference
+- [neural-networks/ocr/general-ocr](https://github.com/luxonis/oak-examples/tree/main/neural-networks/ocr/general-ocr): use this when you need general text OCR rather than QR detection
+- [neural-networks/object-detection/yolo-host-decoding](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-host-decoding): use this when you need host-side detection processing without the tiling/decode pattern
 
 ## Validation
 

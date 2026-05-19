@@ -54,9 +54,9 @@ This is the repository’s standard reference for real-time object detections wi
 
 ## Related Examples
 
-- [../social-distancing](../social-distancing/): use this when you need person-to-person distance monitoring
-- [../human-machine-safety](../human-machine-safety/): use this when you need palm/object safety logic
-- [../../../depth-measurement/3d-measurement/rgbd-pointcloud](../../../depth-measurement/3d-measurement/rgbd-pointcloud/): use this when you need a point-cloud baseline instead of spatial boxes
+- [neural-networks/object-detection/social-distancing](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/social-distancing): use this when you need person-to-person distance monitoring
+- [neural-networks/object-detection/human-machine-safety](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/human-machine-safety): use this when you need palm/object safety logic
+- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you need a point-cloud baseline instead of spatial boxes
 
 ## Validation
 

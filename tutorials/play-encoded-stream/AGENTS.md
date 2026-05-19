@@ -57,9 +57,9 @@ This is the repository reference for comparing three host-side ways to view enco
 
 ## Related Examples
 
-- [../../streaming/on-device-encoding](../../streaming/on-device-encoding/): use this when you need encoded recording instead of playback comparison
-- [../../streaming/rtsp-streaming](../../streaming/rtsp-streaming/): use this when you need a standard streaming endpoint instead of local playback
-- [../camera-demo](../camera-demo/): use this when you need the simplest encoded preview path without comparing decoders
+- [streaming/on-device-encoding](https://github.com/luxonis/oak-examples/tree/main/streaming/on-device-encoding): use this when you need encoded recording instead of playback comparison
+- [streaming/rtsp-streaming](https://github.com/luxonis/oak-examples/tree/main/streaming/rtsp-streaming): use this when you need a standard streaming endpoint instead of local playback
+- [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you need the simplest encoded preview path without comparing decoders
 
 ## Validation
 

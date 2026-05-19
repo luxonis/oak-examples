@@ -53,9 +53,9 @@ This is the repository reference for line-crossing cumulative counting with trac
 
 ## Related Examples
 
-- [../people-counter](../people-counter/): use this when you need per-frame totals without line crossing
-- [../depth-people-counting](../depth-people-counting/): use this when the counting signal should come from depth instead of RGB detections
-- [../../object-tracking/people-tracker](../../object-tracking/people-tracker/): use this when you want person-specific directional flow tracking
+- [neural-networks/counting/people-counter](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/people-counter): use this when you need per-frame totals without line crossing
+- [neural-networks/counting/depth-people-counting](https://github.com/luxonis/oak-examples/tree/main/neural-networks/counting/depth-people-counting): use this when the counting signal should come from depth instead of RGB detections
+- [neural-networks/object-tracking/people-tracker](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/people-tracker): use this when you want person-specific directional flow tracking
 
 ## Validation
 

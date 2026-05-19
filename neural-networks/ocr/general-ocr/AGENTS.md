@@ -55,9 +55,9 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 
 ## Related Examples
 
-- [../../object-detection/text-blur](../../object-detection/text-blur/): use this when you need privacy blur instead of recognition
-- [../license-plate-recognition](../license-plate-recognition/): use this when you need the license-plate-specific three-stage OCR pipeline
-- [../../generic-example](../../generic-example/): use this when you only need the text detector as a single-model baseline
+- [neural-networks/object-detection/text-blur](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/text-blur): use this when you need privacy blur instead of recognition
+- [neural-networks/ocr/license-plate-recognition](https://github.com/luxonis/oak-examples/tree/main/neural-networks/ocr/license-plate-recognition): use this when you need the license-plate-specific three-stage OCR pipeline
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you only need the text detector as a single-model baseline
 
 ## Validation
 

@@ -88,10 +88,10 @@ This is the host-side spatial ROI measurement reference in the repo. Use it when
 
 ## Related Examples
 
-- [../stereo-runtime-configuration](../stereo-runtime-configuration/): use this when you want runtime stereo tuning instead of host spatial math
-- [../stereo-on-host](../stereo-on-host/): use this when you need host-side stereo disparity comparison
-- [../3d-measurement/box-measurement](../3d-measurement/box-measurement/): use this when you need object-size measurement instead of manual ROI measurement
-- [../wls-filter](../wls-filter/): use this when the host-side work should be disparity post-processing rather than ROI coordinate measurement
+- [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration): use this when you want runtime stereo tuning instead of host spatial math
+- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host-side stereo disparity comparison
+- [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement): use this when you need object-size measurement instead of manual ROI measurement
+- [depth-measurement/wls-filter](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/wls-filter): use this when the host-side work should be disparity post-processing rather than ROI coordinate measurement
 
 ## Validation
 

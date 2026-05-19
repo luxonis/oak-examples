@@ -69,7 +69,7 @@ This is the best reference in the repo for autofocus driven by stereo-derived fa
 - `To tune the focus curve:` edit `get_lens_position(...)` in [utils/depth_driven_focus.py](utils/depth_driven_focus.py)
 - `To change the detector:` swap the YuNet YAML under [depthai_models/](depthai_models/) and keep the same depth-merging shape
 - `To reuse only the focus-control host node:` keep [utils/depth_driven_focus.py](utils/depth_driven_focus.py) and feed it another `SpatialImgDetections` stream
-- `To compare against manual control:` see [../manual-camera-control](../manual-camera-control/)
+- `To compare against manual control:` see [camera-controls/manual-camera-control](https://github.com/luxonis/oak-examples/tree/main/camera-controls/manual-camera-control)
 
 ## Constraints
 
@@ -87,9 +87,9 @@ This is the best reference in the repo for autofocus driven by stereo-derived fa
 
 ## Related Examples
 
-- [../manual-camera-control](../manual-camera-control/): use this when you want direct keyboard focus control
-- [../lossless-zooming](../lossless-zooming/): use this when you want crop/zoom to follow a face instead of moving the lens
-- [../../neural-networks/face-detection/blur-faces](../../neural-networks/face-detection/blur-faces/): use this when the face-detection part matters more than camera actuation
+- [camera-controls/manual-camera-control](https://github.com/luxonis/oak-examples/tree/main/camera-controls/manual-camera-control): use this when you want direct keyboard focus control
+- [camera-controls/lossless-zooming](https://github.com/luxonis/oak-examples/tree/main/camera-controls/lossless-zooming): use this when you want crop/zoom to follow a face instead of moving the lens
+- [neural-networks/face-detection/blur-faces](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/blur-faces): use this when the face-detection part matters more than camera actuation
 
 ## Validation
 

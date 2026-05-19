@@ -92,10 +92,10 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 ## Related Examples
 
-- [../rgbd-pointcloud](../rgbd-pointcloud/): use this when you need the RGBD + point-cloud baseline without neural inference
-- [../tof-pointcloud](../tof-pointcloud/): use this when the depth source should be ToF instead of stereo
-- [../../calc-spatial-on-host](../../calc-spatial-on-host/): use this when you only need host-side spatial ROI measurement
-- [../../../apps/object-volume-measurement-3d](../../../apps/object-volume-measurement-3d/): use this when you need the more app-shaped frontend/backend volume-measurement workflow
+- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you need the RGBD + point-cloud baseline without neural inference
+- [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud): use this when the depth source should be ToF instead of stereo
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when you only need host-side spatial ROI measurement
+- [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need the more app-shaped frontend/backend volume-measurement workflow
 
 ## Validation
 

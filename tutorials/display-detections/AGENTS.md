@@ -55,9 +55,9 @@ This is the repository reference for three different strategies for drawing dete
 
 ## Related Examples
 
-- [../full-fov-nn](../full-fov-nn/): use this when you need a broader resize-technique tutorial with runtime switching
-- [../../neural-networks/generic-example](../../neural-networks/generic-example/): use this when you need the simpler detector scaffold
-- [../../neural-networks/object-detection/yolo-host-decoding](../../neural-networks/object-detection/yolo-host-decoding/): use this when the main concern is YOLO host decoding rather than display mapping
+- [tutorials/full-fov-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/full-fov-nn): use this when you need a broader resize-technique tutorial with runtime switching
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you need the simpler detector scaffold
+- [neural-networks/object-detection/yolo-host-decoding](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-host-decoding): use this when the main concern is YOLO host decoding rather than display mapping
 
 ## Validation
 

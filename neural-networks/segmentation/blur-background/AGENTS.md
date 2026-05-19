@@ -52,9 +52,9 @@ This is the repository reference for people segmentation with background blur. U
 
 ## Related Examples
 
-- [../../object-detection/text-blur](../../object-detection/text-blur/): use this when you need text blur
-- [../../face-detection/blur-faces](../../face-detection/blur-faces/): use this when you need face blur
-- [../depth-crop](../depth-crop/): use this when the segmentation mask should interact with stereo depth
+- [neural-networks/object-detection/text-blur](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/text-blur): use this when you need text blur
+- [neural-networks/face-detection/blur-faces](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/blur-faces): use this when you need face blur
+- [neural-networks/segmentation/depth-crop](https://github.com/luxonis/oak-examples/tree/main/neural-networks/segmentation/depth-crop): use this when the segmentation mask should interact with stereo depth
 
 ## Validation
 

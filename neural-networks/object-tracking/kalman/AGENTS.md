@@ -54,9 +54,9 @@ This is the repository reference for Kalman-filtered spatial tracking. Use it wh
 
 ## Related Examples
 
-- [../collision-avoidance](../collision-avoidance/): use this when you need motion-based alerts instead of smoothing
-- [../deepsort-tracking](../deepsort-tracking/): use this when you need embedding-based tracking
-- [../../object-detection/spatial-detections](../../object-detection/spatial-detections/): use this when you need the unsmoothed baseline spatial detections
+- [neural-networks/object-tracking/collision-avoidance](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/collision-avoidance): use this when you need motion-based alerts instead of smoothing
+- [neural-networks/object-tracking/deepsort-tracking](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/deepsort-tracking): use this when you need embedding-based tracking
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the unsmoothed baseline spatial detections
 
 ## Validation
 

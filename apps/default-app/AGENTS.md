@@ -69,7 +69,7 @@ This is the baseline packaged application in the repository. It is the best refe
 - `To swap the default detector:` change the platform YAML files in [depthai_models/](depthai_models/) or point `main.py` at another descriptor
 - `To remove depth:` keep only the RGB and detection branches in [main.py](main.py)
 - `To change encoded output:` edit the `VideoEncoder` settings in [main.py](main.py)
-- `To build a richer app:` start here for packaging shape, then compare against [../conference-demos/rgb-depth-connections](../conference-demos/rgb-depth-connections/) or [../../custom-frontend/raw-stream](../../custom-frontend/raw-stream/)
+- `To build a richer app:` start here for packaging shape, then compare against [apps/conference-demos/rgb-depth-connections](https://github.com/luxonis/oak-examples/tree/main/apps/conference-demos/rgb-depth-connections) or [custom-frontend/raw-stream](https://github.com/luxonis/oak-examples/tree/main/custom-frontend/raw-stream)
 
 ## Constraints
 
@@ -87,10 +87,10 @@ This is the baseline packaged application in the repository. It is the best refe
 
 ## Related Examples
 
-- [../../neural-networks/generic-example](../../neural-networks/generic-example/): use this when you want a more generic single-model scaffold
-- [../conference-demos/rgb-depth-connections](../conference-demos/rgb-depth-connections/): use this when you need a composed RGB-depth visualization with spatial detections
-- [../../neural-networks/object-detection/spatial-detections](../../neural-networks/object-detection/spatial-detections/): use this when spatial coordinates matter more than baseline app packaging
-- [../../tutorials/camera-demo](../../tutorials/camera-demo/): use this when you want a smaller camera-streaming baseline
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): use this when you want a more generic single-model scaffold
+- [apps/conference-demos/rgb-depth-connections](https://github.com/luxonis/oak-examples/tree/main/apps/conference-demos/rgb-depth-connections): use this when you need a composed RGB-depth visualization with spatial detections
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when spatial coordinates matter more than baseline app packaging
+- [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you want a smaller camera-streaming baseline
 
 ## Validation
 

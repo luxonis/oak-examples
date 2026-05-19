@@ -53,9 +53,9 @@ This is the repository reference for two-stage face analytics with age and gende
 
 ## Related Examples
 
-- [../emotion-recognition](../emotion-recognition/): use this when the second stage should predict emotions instead
-- [../head-posture-detection](../head-posture-detection/): use this when the second stage should predict head pose
-- [../blur-faces](../blur-faces/): use this when you only need privacy-preserving face blur
+- [neural-networks/face-detection/emotion-recognition](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/emotion-recognition): use this when the second stage should predict emotions instead
+- [neural-networks/face-detection/head-posture-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/head-posture-detection): use this when the second stage should predict head pose
+- [neural-networks/face-detection/blur-faces](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/blur-faces): use this when you only need privacy-preserving face blur
 
 ## Validation
 

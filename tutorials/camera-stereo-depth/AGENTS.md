@@ -54,9 +54,9 @@ This is the repository reference for the most minimal stereo-depth tutorial in t
 
 ## Related Examples
 
-- [../camera-demo](../camera-demo/): use this when you only need multi-sensor previews
-- [../../depth-measurement/calc-spatial-on-host](../../depth-measurement/calc-spatial-on-host/): use this when you need host-side spatial ROI computation
-- [../../neural-networks/object-detection/spatial-detections](../../neural-networks/object-detection/spatial-detections/): use this when you need stereo-backed detections instead of raw disparity
+- [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you only need multi-sensor previews
+- [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when you need host-side spatial ROI computation
+- [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need stereo-backed detections instead of raw disparity
 
 ## Validation
 

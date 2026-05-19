@@ -64,8 +64,8 @@ This is the best ROS example in the repo for turning spatial detections into rob
 
 - `To follow a different class:` edit `OBJECT_MARKER_TEXT` in [src/follow_object/follow_object/follow_object_node.py](src/follow_object/follow_object/follow_object_node.py)
 - `To change motion behavior:` tune `ANGULAR_SPEED_COEF`, `LINEAR_SPEED_COEF`, `KEEP_LINEAR_DIST_M`, and `MAX_ANG_SPEED`
-- `To replace the stock spatial launch with your own:` compare against [../ros-driver-custom-workspace](../ros-driver-custom-workspace/)
-- `To use this only for visualization:` compare against [../ros-driver-spatial-bb](../ros-driver-spatial-bb/)
+- `To replace the stock spatial launch with your own:` compare against [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace)
+- `To use this only for visualization:` compare against [apps/ros/ros-driver-spatial-bb](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-spatial-bb)
 
 ## Constraints
 
@@ -82,10 +82,10 @@ This is the best ROS example in the repo for turning spatial detections into rob
 
 ## Related Examples
 
-- [../ros-driver-spatial-bb](../ros-driver-spatial-bb/): use this when you only need `/spatial_bb` visualization
-- [../ros-driver-custom-workspace](../ros-driver-custom-workspace/): use this when you need a more general custom ROS workspace template
-- [../ros-driver-basic](../ros-driver-basic/): use this when you only need stock driver topics
-- [../../../neural-networks/object-tracking/people-tracker](../../../neural-networks/object-tracking/people-tracker/): use this when you want a non-ROS people-tracking reference
+- [apps/ros/ros-driver-spatial-bb](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-spatial-bb): use this when you only need `/spatial_bb` visualization
+- [apps/ros/ros-driver-custom-workspace](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-custom-workspace): use this when you need a more general custom ROS workspace template
+- [apps/ros/ros-driver-basic](https://github.com/luxonis/oak-examples/tree/main/apps/ros/ros-driver-basic): use this when you only need stock driver topics
+- [neural-networks/object-tracking/people-tracker](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/people-tracker): use this when you want a non-ROS people-tracking reference
 
 ## Validation
 

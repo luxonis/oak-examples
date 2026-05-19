@@ -55,9 +55,9 @@ This is the repository reference for a multi-input, three-stage gaze estimation 
 
 ## Related Examples
 
-- [../head-posture-detection](../head-posture-detection/): use this when you need the simpler face-plus-head-pose pipeline
-- [../fatigue-detection](../fatigue-detection/): use this when you need landmarks and heuristics instead of gaze vectors
-- [../../object-detection/yolo-world](../../object-detection/yolo-world/): use this when you need another multi-input model reference
+- [neural-networks/face-detection/head-posture-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/head-posture-detection): use this when you need the simpler face-plus-head-pose pipeline
+- [neural-networks/face-detection/fatigue-detection](https://github.com/luxonis/oak-examples/tree/main/neural-networks/face-detection/fatigue-detection): use this when you need landmarks and heuristics instead of gaze vectors
+- [neural-networks/object-detection/yolo-world](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/yolo-world): use this when you need another multi-input model reference
 
 ## Validation
 
