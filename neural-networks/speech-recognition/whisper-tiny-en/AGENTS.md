@@ -54,7 +54,6 @@ This is the repository reference for short-audio Whisper transcription on OAK4 w
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - The README notes that host recording crashes in standalone mode; standalone is effectively for pre-recorded audio only.
 - The current CLI uses `-d/--device`, not `--device_ip` as the README examples say.
-- In the current repo state, [main.py](main.py) loads `whisper_tiny_en_decoder` YAML for both the encoder and decoder model description variables, which is suspicious and should be treated carefully before reusing the model-loading path.
 
 ## Related Examples
 
@@ -67,4 +66,4 @@ This is the repository reference for short-audio Whisper transcription on OAK4 w
 - `Run:` `python3 main.py`
 - `File mode:` `python3 main.py --audio_file <FILE>`
 - `Success looks like:` the Visualizer shows `Camera` and `Decoded Audio Message`, pressing `r` records a short clip in peripheral mode, and recognized color words drive the LED/tint output
-- `Common failure meaning:` the device is not RVC4, host audio dependencies are missing, standalone recording was attempted, or the current encoder/decoder model-loading path was assumed to be correct without verification
+- `Common failure meaning:` the device is not RVC4, host audio dependencies are missing, or standalone recording was attempted
