@@ -82,7 +82,6 @@ This is the strongest standalone reference for interactive 3D object measurement
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
-- [frontend/src/ImageUploader.tsx](frontend/src/ImageUploader.tsx) exists, but the backend does not register an `Image Upload Service`, so class updates are text-driven in the current implementation.
 - [backend/src/utils/arguments.py](backend/src/utils/arguments.py) parses `--ip` and `--port`, but the current backend runtime does not use those values.
 
 ## Non-Obvious Repo Conventions
