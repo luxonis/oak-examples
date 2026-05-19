@@ -1,11 +1,9 @@
 # Full FOV NN inferencing
 
-This example demonstrates how to run NN inferencing on full FOV frames. It uses a video stream with a different aspect ratio than the NN input. [YOLOv6](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) is used for object detection.
+This example demonstrates how to run NN inferencing on full FOV frames. It uses a video stream with a different aspect ratio than the NN input. [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) is used for object detection.
 See [Resolution Techniques for NNs](https://docs.luxonis.com/software-v3/depthai/tutorials/resolution-techniques) for more information.
 
-This example demonstrates how to run NN inferencing on full FOV frames. It uses a video stream with a different aspect ratio than the NN input. [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) is used for object detection.
-
-There are 3 options, how to match the NN input aspect ration:
+There are 3 options for how to match the NN input aspect ratio:
 
 1. Crop the original frame before inferencing and lose some FOV
 2. Apply letterboxing to the frame to get the correct aspect ratio and lose some accuracy
@@ -49,10 +47,10 @@ This is the main script that runs the example and lets you choose the resize mod
 | Key | Mode         |
 | --- | ------------ |
 | a   | Letterboxing |
-| s   | Crop         |
-| d   | Stretch      |
+| s   | Stretch      |
+| d   | Crop         |
 
-#### `letterboxing.py`, `cropping.py` and `stretch.py`
+#### `letterboxing.py`, `cropping.py` and `stretching.py`
 
 These scripts run only in the corresponding mode, which cannot be toggled during runtime.
 

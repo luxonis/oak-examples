@@ -1,6 +1,6 @@
 # Hub Snaps & Events
 
-This example demonstrates how to create a simple application that sends snaps to [Hub](https://hub.luxonis.com/). This is ideal for constant dataset collection based on some predefined conditions and thus preparing for further tunning of your model. The example is using [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) object detector. The frames where `person` is detected with confidence below 0.7 get sent to Hub as a new snap together with detection metadata. Currently new snap can be generated 1 minute or more after the previous one but this can be configured to better fit your needs. You can see new snaps under [Control/Collect/Snaps](https://hub.luxonis.com/control/collect?view=grid). The example works on both RVC2 and RVC4.
+This example demonstrates how to create a simple application that sends snaps to [Hub](https://hub.luxonis.com/). This is ideal for constant dataset collection based on some predefined conditions and thus preparing for further tuning of your model. The example is using [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) object detector. Frames where `person` is detected with confidence at or above `0.7` are sent to Hub as a new snap together with detection metadata. Currently a new snap can be generated 1 minute or more after the previous one, but this can be configured to better fit your needs. You can see new snaps under [Control/Collect/Snaps](https://hub.luxonis.com/control/collect?view=grid). The example works on both RVC2 and RVC4.
 
 ## Demo
 
@@ -26,7 +26,7 @@ Here is a list of all available parameters:
 -media MEDIA_PATH, --media_path MEDIA_PATH
                     Path to the media file you aim to run the model on. If not set, the model will run on the camera input. (default: None)
 -thr CONFIDENCE_THRESHOLD, --confidence_threshold CONFIDENCE_THRESHOLD
-                    If detection is higher then set confidence then we send the snap. (default: 0.7)
+                    If detection confidence is at or above this threshold then we send the snap. (default: 0.7)
 -c CLASS_NAMES [CLASS_NAMES ...], --class_names CLASS_NAMES [CLASS_NAMES ...]
                     Class names to consider. (default: ['person'])
 -ti TIME_INTERVAL, --time_interval TIME_INTERVAL

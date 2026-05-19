@@ -51,7 +51,6 @@ This is the repository reference for tiling-based QR detection with host-side de
 
 - The README explicitly treats this as OAK4-only due to missing RVC2 bindings, even though RVC2 YAMLs are present.
 - If `pyzbar` is unavailable, detections still exist but decoded labels remain empty in [utils/host_qr_scanner.py](utils/host_qr_scanner.py).
-- [oakapp.toml](oakapp.toml) hardcodes `python3 -u /app/main.py -fps 15`, which differs from the CLI default of `5`.
 - Tiling lowers throughput by design; this is the accuracy-for-speed tradeoff the tutorial is demonstrating.
 
 ## Related Examples

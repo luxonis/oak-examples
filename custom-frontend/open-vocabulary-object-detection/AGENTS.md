@@ -89,7 +89,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 - This example is intentionally RVC4 standalone only.
 - The backend only supports the CLI arguments defined in [backend/src/config/arguments.py](backend/src/config/arguments.py): `--fps_limit`, `--media_path`, `--model`, and `--semantic_seg`.
-- Despite the README, the current backend does not parse `--precision`, `--ip`, or `--port`.
+- The current backend does not parse `--precision`, `--ip`, or `--port`.
 - `config.yaml` currently fixes precision to `fp16`, and [backend/src/config/system_configuration.py](backend/src/config/system_configuration.py) only maps `yoloe` to an `fp16` YAML while `yolo-world` supports `fp16` and `int8`.
 - `max_image_prompts` is `5` in both prompt YAMLs, and the frontend assumes the same limit.
 - `--semantic_seg` only affects the YOLOE visualization branch.

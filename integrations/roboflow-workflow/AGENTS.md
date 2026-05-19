@@ -84,7 +84,7 @@ This is the strongest integration reference in the repository for running Robofl
 
 - This example is documented and packaged as RVC4 standalone only.
 - Workflow outputs whose names contain neither `visualization` nor `predictions` are ignored by the backend.
-- The current frontend/backend update path only supports `api_key`, `workspace_name`, `workflow_id`, and `workflow_parameters`; despite the README, it does not currently update `device`, `output_size`, or `fps`.
+- The current frontend/backend update path only supports `api_key`, `workspace_name`, `workflow_id`, and `workflow_parameters`; it does not update `device`, `output_size`, or `fps`.
 - The backend intentionally runs on Python `3.11`, as noted in the README, because of dependency constraints around the inference stack.
 
 ## Non-Obvious Repo Conventions

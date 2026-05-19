@@ -53,7 +53,6 @@ This is the repository reference for short-audio Whisper transcription on OAK4 w
 
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - The README notes that host recording crashes in standalone mode; standalone is effectively for pre-recorded audio only.
-- The current CLI uses `-d/--device`, not `--device_ip` as the README examples say.
 
 ## Related Examples
 

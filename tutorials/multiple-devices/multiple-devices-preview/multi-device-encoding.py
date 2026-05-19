@@ -15,11 +15,11 @@ _, args = initialize_argparser()
 HTTP_PORT = 8082
 
 
-def setup_mjpeg_pipeline(
+def setup_h264_pipeline(
     dev_info: dai.DeviceInfo, visualizer: dai.RemoteConnection
 ) -> Optional[Dict[str, Any]]:
     mxid = dev_info.getDeviceId()
-    print(f"\nAttempting to connect to device for MJPEG streaming: {mxid}...")
+    print(f"\nAttempting to connect to device for H264 streaming: {mxid}...")
     device_instance = None
 
     device_instance = dai.Device(dev_info)
@@ -47,9 +47,7 @@ def setup_mjpeg_pipeline(
         topicName=f"H264 Stream - {mxid}",
         output=video_encoder.out,
     )
-    print(
-        f"    Pipeline for MJPEG streaming on {mxid} configured. Ready to be started."
-    )
+    print(f"    Pipeline for H264 streaming on {mxid} configured. Ready to be started.")
     return {"device": device_instance, "pipeline": pipeline, "mxid": mxid}
 
 
@@ -70,7 +68,7 @@ def main():
     visualizer = dai.RemoteConnection(httpPort=HTTP_PORT)
 
     initialized_setups: List[Dict[str, Any]] = setup_devices(
-        available_devices_info, visualizer, setup_mjpeg_pipeline
+        available_devices_info, visualizer, setup_h264_pipeline
     )
     if not initialized_setups:
         print("No devices were successfully set up. Exiting.")

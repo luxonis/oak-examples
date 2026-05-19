@@ -2,11 +2,11 @@
 
 This example shows how you can play H264/H265/MJPEG encoded streams on the host computer. It showcases three different ways of playing the encoded stream.
 
-- `main.py` using Visualizer: This plays encoded stream by passing it directly to Visualizer. This is the most straightforward way of playing the encoded stream, however, it is currently not possible to play H265 encoded streams using Visualizer.
+- `main.py` using Visualizer: This plays encoded stream by passing it directly to Visualizer. This is the most straightforward way of playing the encoded stream, however, it is currently not possible to play H265 encoded streams using Visualizer, so requesting H265 in this path falls back to H264.
 
 - `pyav.py` using PyAv library: This decodes encoded stream using the PyAv library and then displays them using Visualizer. This supports H264, MJPEG and H265 encoded streams.
 
-- `mjpeg.py` with OpenCV decoding: This decodes encoded stream using OpenCV's [cv2.imdecode()](https://docs.opencv.org/3.4/d4/da8/group__imgcodecs.html#ga26a67788faa58ade337f8d28ba0eb19e) function and displays them using Visualizer. This example supports only MJPEG encoding. Note that MJPEG compression isn't as great compared to H.264/H.265.
+- `opencv.py` with OpenCV decoding: This decodes encoded stream using OpenCV's [cv2.imdecode()](https://docs.opencv.org/3.4/d4/da8/group__imgcodecs.html#ga26a67788faa58ade337f8d28ba0eb19e) function and displays them using Visualizer. This example supports only MJPEG encoding. Note that MJPEG compression isn't as great compared to H.264/H.265.
 
 ## Demo
 

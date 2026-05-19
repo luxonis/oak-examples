@@ -52,7 +52,6 @@ This is the repository reference for comparing three host-side ways to view enco
 
 - [main.py](main.py) silently downgrades requested `h265` playback to `h264`, because the Visualizer path does not support `h265` there.
 - [opencv.py](opencv.py) forces `mjpeg` even if the user requested another codec.
-- The README still refers to `mjpeg.py`, but the actual OpenCV entrypoint is [opencv.py](opencv.py).
 - [oakapp.toml](oakapp.toml) packages only [main.py](main.py), not the decode-alternative scripts.
 
 ## Related Examples
