@@ -73,7 +73,7 @@ KNOWN_FAILING = {
         "rules": {"and": [{"platform": ["rvc4"]}]},
     },
     "tutorials/multiple-devices/spatial-detection-fusion": {
-        "reason": "Not ported to latest DAI yet",
+        "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },
     "tutorials/multiple-devices/multiple-device-stitch-nn": {
