@@ -80,7 +80,6 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - The backend defaults to `15` FPS when no limit is provided.
 - Measurement quality depends on valid aligned depth for both points.
 - The frontend polls `Get Distance Service` at a high rate, so service responsiveness matters.
-- The frontend defaults to a `Distance Data` stream name in [frontend/src/App.tsx](frontend/src/App.tsx), but the backend currently publishes `Point Annotations` instead.
 
 ## Non-Obvious Repo Conventions
 

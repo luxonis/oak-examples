@@ -139,7 +139,7 @@ function App() {
             {/* Left: Stream Viewer */}
             <div ref={viewerRef} className={css({ flex: 1, position: "relative" })}>
                 <Streams
-                    defaultTopics={["Video", "Depth", "Distance Data"]}
+                    defaultTopics={["Video", "Depth", "Point Annotations"]}
                     topicGroups={{ images: "Images", data: "Data" }}
                 />
                 <ClickCatcher
