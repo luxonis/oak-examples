@@ -16,10 +16,27 @@ Guidance for agents that are adding, removing, moving, or materially changing ex
 
 - Add or update the example's `AGENTS.md` whenever creating a new example or materially changing an existing one.
 - Keep per-example `AGENTS.md` focused on example-specific purpose, architecture, constraints, safe modifications, and validation.
-- Start per-example `AGENTS.md` with a `## Summary` section. Its first paragraph is used by the generated [INDEX.md](INDEX.md), so keep it to one or two short sentences.
+- Start every per-example guide with `# AGENTS.md` as the only H1 heading in the file.
+- Use these required H2 sections exactly once and in this order:
+  `## Summary`, `## Use This Example When`, `## Do Not Use This Example When`, `## Quick Facts`, `## Read First`, `## Architecture`, `## Constraints`, `## Related Examples`, `## Validation`
+- The following H2 sections are optional, but when present they must appear in these positions:
+  `## Data Flow` after `## Architecture`
+  `## Modification Guide` after `## Data Flow` or `## Architecture`
+  `## Common Adaptations` after `## Modification Guide` or `## Architecture`
+  `## Non-Obvious Repo Conventions` after `## Constraints`
+- Do not add any other H1 or H2 sections. If you need extra structure, use bullets or H3 headings under the allowed sections.
+- Start the body with a `## Summary` section. Its first paragraph is used by the generated [INDEX.md](INDEX.md), so keep it to one or two short sentences.
 - Do not repeat shared vocabulary from [ESSENTIAL_KNOWLEDGE.md](ESSENTIAL_KNOWLEDGE.md) unless the example has an exception.
 - Treat `README.md` as human-facing documentation. Agent-critical details should live in `AGENTS.md`.
 - It is OK for `AGENTS.md` to duplicate important details from `README.md`; prefer duplication over forcing agents to read noisy human-facing docs.
+
+Validate per-example `AGENTS.md` coverage and structure locally from the repository root:
+
+```bash
+python3 scripts/validate_agents_docs.py
+```
+
+CI runs the same validation on pull requests.
 
 ## Testing
 
