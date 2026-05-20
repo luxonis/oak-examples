@@ -183,6 +183,8 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
     # ---- drawing (NN-normalized coords for AnnotationHelper) ----
     def _draw_mask(self, helper: AnnotationHelper, mask: np.ndarray, idx: int):
+        if idx == 255:  # background
+            return
         h, w = mask.shape
         binary = (mask == idx).astype(np.uint8)
         if not np.any(binary):

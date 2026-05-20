@@ -23,9 +23,16 @@ To retrieve the required values:
 - To get your `api_key`, go to `Settings` -> `API Keys` and copy your `Private API Key`
 - The `workflow_parameters` correspond to the inputs defined on the `Inputs` node in your workflow.
 
-Additionally you can also change some of the pipeline configurations: `device`, `output_size` and  `fps`
+At runtime, the custom frontend currently supports updating only:
 
-> **Note:** You can update any of these configuration values later while the app is running using the custom front-end form. But you need to start the app with some valid initial values.
+- `api_key`
+- `workspace_name`
+- `workflow_id`
+- `workflow_parameters`
+
+Pipeline settings such as `device`, `output_size`, and `fps` still come from [config.yaml](./backend/src/config/yaml_configs/config.yaml) at startup.
+
+> **Note:** You can update the supported Roboflow values later while the app is running using the custom front-end form. But you still need to start the app with some valid initial values.
 
 ## Workflow Visualization Rules & Limitations
 

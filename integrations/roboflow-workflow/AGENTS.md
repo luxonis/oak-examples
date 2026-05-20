@@ -16,7 +16,6 @@ This is the strongest integration reference in the repository for running Robofl
 - You need a peripheral-mode custom frontend example.
 - You need dataset export rather than live workflow inference.
 - You need a device-side NN baseline with repo-local models.
-- You need a finished frontend build path with no packaging caveats.
 
 ## Quick Facts
 
@@ -85,9 +84,8 @@ This is the strongest integration reference in the repository for running Robofl
 
 - This example is documented and packaged as RVC4 standalone only.
 - Workflow outputs whose names contain neither `visualization` nor `predictions` are ignored by the backend.
-- The current frontend/backend update path only supports `api_key`, `workspace_name`, `workflow_id`, and `workflow_parameters`; despite the README, it does not currently update `device`, `output_size`, or `fps`.
+- The current frontend/backend update path only supports `api_key`, `workspace_name`, `workflow_id`, and `workflow_parameters`; it does not update `device`, `output_size`, or `fps`.
 - The backend intentionally runs on Python `3.11`, as noted in the README, because of dependency constraints around the inference stack.
-- The frontend build path deserves review: [frontend/package.json](frontend/package.json) contains a `prepare` script of `panda coden`, and [oakapp.toml](oakapp.toml) runs `npm install` and `npm run build` from `/app/frontend/src` even though `package.json` lives in `/app/frontend`.
 
 ## Non-Obvious Repo Conventions
 

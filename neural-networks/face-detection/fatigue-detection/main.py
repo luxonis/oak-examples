@@ -100,7 +100,7 @@ with dai.Pipeline(device) as pipeline:
     # visualization
     visualizer.addTopic("Video", det_nn.passthrough, "images")
     visualizer.addTopic("Detections", det_nn.out, "images")
-    visualizer.addTopic("Fatique", annotation_node.out, "images")
+    visualizer.addTopic("Fatigue", annotation_node.out, "images")
 
     print("Pipeline created.")
 

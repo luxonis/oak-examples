@@ -25,13 +25,13 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - `Primary task:` detail-preserving face detection via high-res cropping and tiling
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
-- `Frontend:` frontend source exists in [frontend/src/App.tsx](frontend/src/App.tsx), but the packaged runtime path currently uses the default Visualizer topics instead
+- `Frontend:` static frontend packaged from [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` RVC4 standalone only
 - `Requires:` RVC4 device with RGB camera; high-resolution RGB throughput; bundled models in [backend/src/depthai_models/](backend/src/depthai_models/)
 - `Input:` one RGB camera stream split into high-resolution and low-resolution branches
 - `Output:` `640x640 RGB`, `NN detections`, `Non-Focus Head Crops`, `Focused Vision Head Crops`, and `Focused with Tiling`
 - `Models:` [scrfd-person-detection.yaml](backend/src/depthai_models/scrfd-person-detection.yaml) and [yunet.yaml](backend/src/depthai_models/yunet.yaml)
-- `Visualizer / UI:` default DepthAI Visualizer topics; custom frontend source is present but not the active packaged path
+- `Visualizer / UI:` packaged custom frontend backed by default DepthAI Visualizer topics
 
 ## Read First
 
@@ -43,7 +43,7 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - [backend/src/arguments.py](backend/src/arguments.py): CLI arguments
 - [frontend/src/App.tsx](frontend/src/App.tsx): intended comparison UI layout
 - [frontend/src/constants.ts](frontend/src/constants.ts): topic-group assumptions in the frontend source
-- [oakapp.toml](oakapp.toml): standalone runtime path and the currently commented-out static frontend build
+- [oakapp.toml](oakapp.toml): standalone runtime path and packaged static frontend build
 
 ## Architecture
 
@@ -71,19 +71,18 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - `To change the person or face detector:` swap the model YAMLs under [backend/src/depthai_models/](backend/src/depthai_models/) and keep the same branch structure
 - `To reuse only the 2-stage path:` keep the person-detection, crop, remap, and face-detection pieces from [backend/src/main.py](backend/src/main.py)
 - `To experiment with higher or lower throughput:` adjust `HIGH_RES_*`, `LOW_RES_*`, and `--fps_limit`
-- `To build a real custom UI:` start from [frontend/src/App.tsx](frontend/src/App.tsx), but re-enable static frontend build steps in [oakapp.toml](oakapp.toml) first
+- `To build a real custom UI:` start from [frontend/src/App.tsx](frontend/src/App.tsx) and keep its topic contracts aligned with the backend outputs
 
 ## Constraints
 
 - The backend exits on RVC2; this is intentionally RVC4-only.
 - The default FPS limit is forced to `13` if not provided.
 - [backend/src/arguments.py](backend/src/arguments.py) defines `--media_path` and `--api_key`, but the current backend does not use either argument.
-- The custom frontend is not active in the packaged app because the `static_frontend` section in [oakapp.toml](oakapp.toml) is commented out.
 - [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) still references a `Custom Service` that the backend does not register.
 
 ## Non-Obvious Repo Conventions
 
-- Although `INDEX.md` classifies this as a frontend app, the active runtime path is currently closer to a Visualizer-only standalone app with an unused frontend tree.
+- Although `INDEX.md` classifies this as a frontend app, most of the runtime state still flows through standard Visualizer topics rather than custom backend services.
 - The branch comparison uses custom host nodes heavily, so this is not a good "minimal on-device only" reference.
 - High-resolution cropping is the main idea to preserve object detail; the face detector input size stays small even when the source image is large.
 
@@ -98,4 +97,4 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 - `Run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows the RGB preview plus three comparison outputs for naive, 2-stage, and tiling approaches
-- `Common failure meaning:` the app is running on a non-RVC4 platform, the expected bundled models are missing, or the frontend source was assumed to be active when it is not
+- `Common failure meaning:` the app is running on a non-RVC4 platform, the expected bundled models are missing, or the frontend topic expectations no longer match the backend outputs

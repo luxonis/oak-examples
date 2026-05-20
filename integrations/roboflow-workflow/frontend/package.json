@@ -4,7 +4,7 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"prepare": "panda coden",
+		"prepare": "panda codegen",
 		"dev": "vite",
 		"build": "tsc -b && vite build",
 		"lint": "biome check .",

@@ -78,8 +78,8 @@ This is the repository reference for sending Hub snaps from detection-driven con
 
 ## Constraints
 
-- The current code uploads when detections are present at or above `minConfidence`; this is the opposite of the README sentence that describes “low-confidence” snaps.
-- [utils/snaps_producer.py](utils/snaps_producer.py) currently hardcodes `snap_name="test_snap"`, `tags=["test_tag"]`, and placeholder `extras`.
+- The uploader triggers when filtered detections are present at or above `minConfidence`.
+- [utils/snaps_producer.py](utils/snaps_producer.py) intentionally uses test metadata placeholders such as `snap_name="test_snap"`, `tags=["test_tag"]`, and simple `extras`.
 - The host node only checks “filtered detections exist and enough time has passed”; it does not implement richer per-detection or per-scene logic.
 - [oakapp.toml](oakapp.toml) hardcodes `--api_key <API_KEY>` in the standalone entrypoint, so packaged runs require manual editing before they are usable.
 
@@ -101,4 +101,4 @@ This is the repository reference for sending Hub snaps from detection-driven con
 - `Run:` `python3 main.py --api_key <API_KEY>`
 - `Standalone run:` edit [oakapp.toml](oakapp.toml), then run `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Video` and `Visualizations`, and new snaps appear in Hub after the configured time interval when filtered detections are present
-- `Common failure meaning:` API-key setup is wrong, the model bundle is unavailable, the configured class names are not produced by the model, or the README’s threshold description was followed instead of the actual current code
+- `Common failure meaning:` API-key setup is wrong, the model bundle is unavailable, or the configured class names are not produced by the model

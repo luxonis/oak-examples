@@ -50,7 +50,7 @@ This is the repository reference for matching mismatched camera and NN aspect ra
 
 ## Constraints
 
-- The current code keybindings in [utils/resize_controller.py](utils/resize_controller.py) are `a -> LETTERBOX`, `s -> STRETCH`, and `d -> CENTER_CROP`, which does not match the README’s mode descriptions.
+- The runtime keybindings in [utils/resize_controller.py](utils/resize_controller.py) are `a -> LETTERBOX`, `s -> STRETCH`, and `d -> CENTER_CROP`.
 - [oakapp.toml](oakapp.toml) only packages [main.py](main.py), not the fixed-mode scripts.
 - This tutorial is about resize tradeoffs, so some modes intentionally distort or crop the source frame.
 

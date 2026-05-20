@@ -42,9 +42,9 @@ You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rv
 Here is a list of all available parameters:
 
 ```
---device_ip DEVICE
+-d DEVICE, --device DEVICE
                     Optional name, DeviceID or IP of the camera to connect to. (default: None)
---audio_file
+-a AUDIO_FILE, --audio_file AUDIO_FILE
                     Optional mp4 audio file to use in the example.
 ```
 
@@ -70,13 +70,13 @@ Running in peripheral mode requires a host computer and there will be communicat
 Running without pre-recorded audio:
 
 ```bash
-python3 main.py --device_ip <device_ip>
+python3 main.py --device <device_ip>
 ```
 
 Using pre-recorded audio:
 
 ```bash
-python3 main.py --device_ip <device_ip> --audio_file <audio_file>
+python3 main.py --device <device_ip> --audio_file <audio_file>
 ```
 
 ## Standalone Mode

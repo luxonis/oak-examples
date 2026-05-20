@@ -51,7 +51,7 @@ This is the repository reference for the simplest host-side multi-device orchest
 
 - These are host-only examples; there is no `oakapp.toml` path here.
 - Every entrypoint uses `CAM_A` only.
-- Despite helper naming and some print strings, [multi-device-encoding.py](multi-device-encoding.py) actually builds `H264_MAIN` streams, not MJPEG.
+- [multi-device-encoding.py](multi-device-encoding.py) builds `H264_MAIN` streams.
 - [multi-device-yolov6.py](multi-device-yolov6.py) hardcodes the model slug `luxonis/yolov6-nano:r2-coco-512x288`.
 
 ## Related Examples

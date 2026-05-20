@@ -20,14 +20,16 @@ Here is a list of all available parameters:
                         FPS limit for the model runtime. (default: None)
   -media MEDIA_PATH, --media_path MEDIA_PATH
                         Path to the media file you aim to run the model on. If not set, the model will run on the camera input. (default: None)
-  -ip IP, --ip IP       IP address to serve the frontend on. (default: None)
-  -p PORT, --port PORT  Port to serve the frontend on. (default: None)
   -m {yolo-world,yoloe}, --model {yolo-world,yoloe}
                         Name of the model to use: yolo-world or yoloe (default: yoloe)
-  --precision {int8,fp16}
-                        Model precision for YOLOE models: int8 (faster) or fp16 (more accurate). (default: fp16)
   --semantic_seg        Display output as semantic segmentation otherwise use instance segmentation (only applicable for YOLOE). (default: False)
 ```
+
+Notes:
+
+- The backend CLI currently supports `--fps_limit`, `--media_path`, `--model`, and `--semantic_seg`.
+- Frontend serving is handled by the packaged oakapp container stack, so there are no active `--ip` or `--port` CLI options here.
+- Model precision is currently controlled by the backend configuration files, not by a CLI flag.
 
 ### Model Options
 
@@ -57,7 +59,7 @@ Once the app is built and running you can access the DepthAI Viewer locally by o
 This will run the example with default argument values (YOLOE model). If you want to change these values you need to edit the `backend-run.sh` file to pass the arguments to the backend. Example:
 
 ```bash
-python3.12 /app/backend/src/main.py --model yoloe --precision fp16 --fps_limit 10
+python3.12 /app/backend/src/main.py --model yoloe --fps_limit 10 --semantic_seg
 ```
 
 ### Remote access

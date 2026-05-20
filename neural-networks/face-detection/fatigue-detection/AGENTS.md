@@ -27,7 +27,7 @@ This is the repository reference for fatigue-style face state analysis using fac
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` YuNet and MediaPipe face-landmarker models
 - `Input:` camera frames by default or `ReplayVideo` via `--media_path`
-- `Output:` `Video`, `Detections`, and `Fatique`
+- `Output:` `Video`, `Detections`, and `Fatigue`
 - `Models:` YuNet and face-landmarker YAMLs in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
@@ -48,7 +48,6 @@ This is the repository reference for fatigue-style face state analysis using fac
 
 ## Constraints
 
-- The output topic is currently spelled `Fatique` in [main.py](main.py).
 - This is a host-logic example on top of landmarks; it is not just a generic face-landmark demo.
 - The fatigue result depends on the specific heuristic implemented in [utils/annotation_node.py](utils/annotation_node.py) and [utils/face_landmarks.py](utils/face_landmarks.py).
 
@@ -61,5 +60,5 @@ This is the repository reference for fatigue-style face state analysis using fac
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Success looks like:` the Visualizer shows `Video`, `Detections`, and `Fatique`, and face state overlays respond to visible faces
+- `Success looks like:` the Visualizer shows `Video`, `Detections`, and `Fatigue`, and face state overlays respond to visible faces
 - `Common failure meaning:` face detections are unstable, the landmark stage is not aligning with crops, or the operator expects a raw-landmarks example instead of heuristic fatigue logic
