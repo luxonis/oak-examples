@@ -156,3 +156,8 @@ Afterwards, navigate to desired application as listed below
     </td>
   </tr>
 </table>
+
+## License
+
+Unless otherwise noted in a subdirectory or file header, this repository is
+licensed under the Apache License 2.0. See [LICENSE](LICENSE).
