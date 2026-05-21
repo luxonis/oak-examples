@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 DEFAULT_REPO_URL = "https://github.com/luxonis/oak-examples.git"
@@ -35,6 +36,39 @@ IGNORED_PARTS = {
     "node_modules",
     "venv",
 }
+
+LICENSE_FILENAMES = {
+    "LICENSE",
+    "LICENSE.txt",
+    "LICENSE.md",
+    "COPYING",
+    "COPYING.txt",
+    "COPYING.md",
+    "NOTICE",
+    "NOTICE.txt",
+    "NOTICE.md",
+}
+
+
+@dataclass(frozen=True)
+class LicenseBootstrapResult:
+    """How bootstrap initialized licensing for the generated project.
+
+    There are three mutually exclusive outcomes:
+    - `preserved_top_level_files` is non-empty:
+      the copied example already had project-root license files, so bootstrap
+      keeps those and does not add the repo default license.
+    - `copied_default_license` is true:
+      the example had no project-root license file, so bootstrap copied the
+      oak-examples repo root `LICENSE*` file as a starting point.
+    - neither of the above:
+      no project-root license file existed in the example or repo, so bootstrap
+      leaves licensing for the generated project unresolved.
+    """
+
+    copied_default_license: bool
+    copied_license_name: str | None
+    preserved_top_level_files: tuple[str, ...]
 
 
 def is_ignored(path: Path) -> bool:
@@ -158,6 +192,43 @@ def build_start_here_section() -> str:
     )
 
 
+def build_licensing_section(result: LicenseBootstrapResult) -> str:
+    """Describe which license bootstrap path was used for the generated project.
+
+    The message has three modes:
+    - example-specific top-level license files were preserved;
+    - the repo root default license was copied in;
+    - no top-level license file was copied.
+    """
+
+    if result.preserved_top_level_files:
+        preserved = ", ".join(f"`{name}`" for name in result.preserved_top_level_files)
+        return (
+            "## Licensing\n\n"
+            "This project preserved example-specific licensing files during bootstrap: "
+            f"{preserved}. Do not assume the default `oak-examples` Apache-2.0 license "
+            "applies uniformly. Review those files, any copied SPDX identifiers, and any "
+            "vendored third-party file headers before redistributing or relicensing this project."
+        )
+
+    if result.copied_default_license and result.copied_license_name is not None:
+        return (
+            "## Licensing\n\n"
+            f"This project starts with the `oak-examples` root `{result.copied_license_name}` "
+            "copied into this directory as a default starting point. If the copied example "
+            "includes files with explicit SPDX identifiers, third-party copyright/license "
+            "headers, vendored dependencies, or submodules under different terms, update this "
+            "project's licensing files and package metadata before publishing or relicensing it."
+        )
+
+    return (
+        "## Licensing\n\n"
+        "No top-level license file was copied during bootstrap. Before publishing or relicensing "
+        "this project, add an explicit project license and review copied files for SPDX "
+        "identifiers, third-party copyright/license headers, vendored dependencies, and submodules."
+    )
+
+
 def rewrite_escaping_relative_links(markdown: str, source_dir: Path, repo: Path) -> str:
     def replace(match: re.Match[str]) -> str:
         href = match.group(1)
@@ -191,11 +262,21 @@ def rewrite_escaping_relative_links(markdown: str, source_dir: Path, repo: Path)
     return MARKDOWN_LINK_RE.sub(replace, markdown)
 
 
-def transform_agents(markdown: str, example: Path, source_dir: Path, repo: Path) -> str:
+def transform_agents(
+    markdown: str,
+    example: Path,
+    source_dir: Path,
+    repo: Path,
+    license_result: LicenseBootstrapResult,
+) -> str:
     markdown = rewrite_escaping_relative_links(markdown, source_dir, repo)
     return insert_after_title(
         markdown,
-        [build_project_origin_section(example), build_start_here_section()],
+        [
+            build_project_origin_section(example),
+            build_start_here_section(),
+            build_licensing_section(license_result),
+        ],
     )
 
 
@@ -239,6 +320,47 @@ def update_oakapp_identifier(output_dir: Path) -> None:
     if count == 0:
         updated = f'identifier = "{new_identifier}"\n' + content
     oakapp.write_text(updated, encoding="utf-8")
+
+
+def top_level_license_files(directory: Path) -> tuple[str, ...]:
+    """Return project-root license files from a single directory."""
+
+    files = [
+        child.name
+        for child in directory.iterdir()
+        if child.is_file() and child.name in LICENSE_FILENAMES
+    ]
+    return tuple(sorted(files))
+
+
+def carry_over_root_license(repo: Path, output_dir: Path) -> LicenseBootstrapResult:
+    """Initialize licensing for the generated project root."""
+
+    example_license_files = top_level_license_files(output_dir)
+    if example_license_files:
+        return LicenseBootstrapResult(
+            copied_default_license=False,
+            copied_license_name=None,
+            preserved_top_level_files=example_license_files,
+        )
+
+    # No example-level project-root license file was copied, so use the repo
+    # root license as the default starting point when one exists.
+    for candidate_name in ("LICENSE", "LICENSE.txt", "LICENSE.md"):
+        candidate = repo / candidate_name
+        if candidate.is_file():
+            shutil.copy2(candidate, output_dir / candidate_name)
+            return LicenseBootstrapResult(
+                copied_default_license=True,
+                copied_license_name=candidate_name,
+                preserved_top_level_files=(),
+            )
+
+    return LicenseBootstrapResult(
+        copied_default_license=False,
+        copied_license_name=None,
+        preserved_top_level_files=(),
+    )
 
 
 def copy_example(example_dir: Path, output_dir: Path) -> None:
@@ -301,12 +423,16 @@ def bootstrap(repo: Path, example: Path, output: Path) -> None:
 
     output_dir.mkdir(parents=True)
     copy_example(example_dir, output_dir)
+    # License detection runs after the example copy so `output_dir` represents
+    # the generated project's root, including any example-provided license files.
+    license_result = carry_over_root_license(repo, output_dir)
 
     transformed_agents = transform_agents(
         (example_dir / "AGENTS.md").read_text(encoding="utf-8"),
         example_ref,
         example_dir,
         repo,
+        license_result,
     )
     validate_standalone_markdown_links(transformed_agents)
     (output_dir / "AGENTS.md").write_text(transformed_agents, encoding="utf-8")
