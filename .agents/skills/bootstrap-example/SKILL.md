@@ -36,8 +36,9 @@ python3 scripts/bootstrap_from_example.py <example-path> ./<new-project-dir>
 python3 scripts/bootstrap_from_example.py --repo /tmp/oak-examples <example-path> ./<new-project-dir>
 ```
 
-7. Inspect the generated project's `AGENTS.md` and `CLAUDE.md`; confirm they link to `ESSENTIAL_KNOWLEDGE.md` and any `## Related Examples` links use GitHub `main` URLs.
-8. Tell the user where the project was created, that `oakapp.toml` identifier was changed if present, and that dependencies, hardware compatibility, and runtime validation still need to be handled separately.
+7. Inspect the generated project's `AGENTS.md`, `CLAUDE.md`, and `LICENSE`; confirm they link to `ESSENTIAL_KNOWLEDGE.md`, any `## Related Examples` links use GitHub `main` URLs, and whether bootstrap copied the repo root license or preserved example-specific license files.
+8. If the copied example includes its own top-level license files or explicit third-party headers, keep those terms instead of assuming Apache-2.0 applies uniformly.
+9. Tell the user where the project was created, that `oakapp.toml` identifier was changed if present, and that dependencies, hardware compatibility, runtime validation, and final license review still need to be handled separately.
 
 ## Example
 
@@ -47,7 +48,7 @@ python3 scripts/bootstrap_from_example.py custom-frontend/raw-stream ./raw-strea
 
 ## Available Scripts
 
-- `scripts/bootstrap_from_example.py`: finds or shallow-clones `oak-examples`, prints the local `INDEX.md` path with `--print-index`, copies an example into a new project, writes `AGENTS.md` and `CLAUDE.md`, copies `ESSENTIAL_KNOWLEDGE.md`, converts cross-example links to GitHub `main` URLs, and rewrites `oakapp.toml` identifiers.
+- `scripts/bootstrap_from_example.py`: finds or shallow-clones `oak-examples`, prints the local `INDEX.md` path with `--print-index`, copies an example into a new project, writes `AGENTS.md` and `CLAUDE.md`, copies `ESSENTIAL_KNOWLEDGE.md`, carries over the repo root `LICENSE` when the example does not already provide a top-level license file, converts cross-example links to GitHub `main` URLs, and rewrites `oakapp.toml` identifiers.
 
 ## Selection Checklist
 
