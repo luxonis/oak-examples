@@ -12,6 +12,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Validate per-example AGENTS docs
+      run: python3 scripts/validate_agents_docs.py
+
     - name: Check generated AGENTS index
       run: python3 scripts/generate_agents_index.py --check
 
