@@ -1,3 +1,5 @@
+import logging
+import signal
 from pathlib import Path
 
 import depthai as dai
@@ -33,6 +35,19 @@ from object_selection.FE_prompt_services.object_selection_prompt_service import 
     ObjectSelectionPrompt,
 )
 from object_selection.mask_selection_node import MaskSelection
+
+logger = logging.getLogger(__name__)
+shutdown_requested = False
+
+
+def _handle_shutdown_signal(_signum, _frame):
+    global shutdown_requested
+    logger.info("Application received a stop signal. Stopping the app...")
+    shutdown_requested = True
+
+
+signal.signal(signal.SIGINT, _handle_shutdown_signal)
+signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 load_dotenv(override=True)
 
@@ -168,6 +183,9 @@ def main():
         visualizer.registerPipeline(pipeline)
 
         while pipeline.isRunning():
+            if shutdown_requested:
+                pipeline.stop()
+                break
             key = visualizer.waitKey(1)
             if key == ord("q"):
                 print("Received q. Exiting...")

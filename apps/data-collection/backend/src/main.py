@@ -1,4 +1,5 @@
 import logging as log
+import signal
 
 import depthai as dai
 
@@ -12,6 +13,17 @@ from snapping import SnappingNode
 
 log.basicConfig(level=log.INFO)
 logger = log.getLogger(__name__)
+shutdown_requested = False
+
+
+def _handle_shutdown_signal(_signum, _frame):
+    global shutdown_requested
+    logger.info("Application received a stop signal. Stopping the app...")
+    shutdown_requested = True
+
+
+signal.signal(signal.SIGINT, _handle_shutdown_signal)
+signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 
 def main():
@@ -101,6 +113,9 @@ def main():
         logger.info("Pipeline running!")
 
         while pipeline.isRunning():
+            if shutdown_requested:
+                pipeline.stop()
+                break
             key = visualizer.waitKey(1)
             pipeline.processTasks()
             if key == ord("q"):

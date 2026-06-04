@@ -1,4 +1,5 @@
 import logging
+import signal
 
 import depthai as dai
 
@@ -18,6 +19,17 @@ import os
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+shutdown_requested = False
+
+
+def _handle_shutdown_signal(_signum, _frame):
+    global shutdown_requested
+    logger.info("Application received a stop signal. Stopping the app...")
+    shutdown_requested = True
+
+
+signal.signal(signal.SIGINT, _handle_shutdown_signal)
+signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 _, args = initialize_argparser()
 
@@ -241,6 +253,9 @@ with dai.Pipeline(device) as pipeline:
 
     counter = 0
     while pipeline.isRunning():
+        if shutdown_requested:
+            pipeline.stop()
+            break
         pipeline.processTasks()
         key = visualizer.waitKey(1)
         counter += 1

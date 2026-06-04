@@ -1,9 +1,25 @@
 #!/usr/bin/env python3
+import logging
+import signal
+from typing import Optional
+
 import cv2
 import depthai as dai
 from depthai_nodes.node import ApplyDepthColormap
-from typing import Optional
 from utils.arguments import initialize_argparser
+
+logger = logging.getLogger(__name__)
+shutdown_requested = False
+
+
+def _handle_shutdown_signal(_signum, _frame):
+    global shutdown_requested
+    logger.info("Application received a stop signal. Stopping the app...")
+    shutdown_requested = True
+
+
+signal.signal(signal.SIGINT, _handle_shutdown_signal)
+signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 _, args = initialize_argparser()
 
@@ -97,6 +113,9 @@ with dai.Pipeline(device) as pipeline:
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():
+        if shutdown_requested:
+            pipeline.stop()
+            break
         key = visualizer.waitKey(1)
         if key == ord("q"):
             print("Got q key from the remote connection!")
