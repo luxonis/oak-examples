@@ -4,3 +4,4 @@ numpy>=1.22
 opencv-python-headless~=4.10.0
 pyzbar==0.1.9
 Pillow==12.0.0
+zxing-cpp==3.0.0

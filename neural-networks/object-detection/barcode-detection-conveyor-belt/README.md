@@ -1,6 +1,6 @@
 # Barcode Detection on Conveyor Belt
 
-This example demonstrates how to detect and decode barcodes in real-time using computer vision. The application is designed for conveyor belt applications where barcodes need to be detected and decoded from video streams. It uses a [barcode detection model](https://models.luxonis.com/luxonis/barcode-detection/75edea0f-79c9-4091-a48c-f81424b3ccab) for detecting barcode regions and combines multiple decoding strategies (pyzbar and zxing-cpp) to ensure robust barcode recognition across various formats and conditions.
+This example demonstrates how to detect and decode barcodes in real-time using computer vision. The application is designed for conveyor belt applications where barcodes need to be detected and decoded from video streams. It uses a [barcode detection model](https://models.luxonis.com/luxonis/barcode-detection/75edea0f-79c9-4091-a48c-f81424b3ccab) for detecting barcode regions and tries `pyzbar` first with a `zxing-cpp` fallback to improve portability and decoding robustness across various formats and conditions.
 
 The system processes high-resolution camera input, intelligently crops detected barcode regions, and applies multiple fallback decoding strategies including rotation and color inversion to maximize recognition success rates.
 
@@ -45,7 +45,7 @@ Here is a list of all available parameters:
 
 ### Installation
 
-Install libraries:
+Install optional system libraries for the `pyzbar` backend:
 
 **Ubuntu:**
 
@@ -58,6 +58,10 @@ sudo apt-get update && apt-get install -y libzbar0 libzbar-dev
 ```bash
 brew install zbar
 ```
+
+**Windows:**
+
+No additional system package is required. If `pyzbar` cannot load its bundled `zbar` DLLs, the example automatically falls back to `zxing-cpp`.
 
 You need to first prepare a **Python >= 3.10** environment with the following packages installed:
 
