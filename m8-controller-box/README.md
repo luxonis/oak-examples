@@ -4,6 +4,8 @@ The **M8 Controller Box (PR1)** is a USB-connected expansion module designed for
 
 This document serves as the **primary usage reference** for the M8 Controller Box within `oak-examples`.
 
+> **Note:** The examples in this directory are intended to run on **OAK4 in standalone mode**. The M8 Controller Box connects directly to the OAK4 device, so these examples are not supported in host-driven peripheral mode.
+
 
 ## Key Features
 
@@ -33,7 +35,7 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 
 * **1× RS232 interface**
 
-> For more information look at the [library example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_serial.py).
+> See [simple-example](./simple-example/) and modify `main.py` with [library example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_serial.py).
 
 ### Isolated Strobe Driver
 
@@ -53,7 +55,7 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 
 * Total combined current must not exceed **50mA**
 
-> For more information look at the [library example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_gpio_irq.py).
+> For more information look at the [simple-example](./simple-example/)
 
 ### Power Relays
 
@@ -61,7 +63,7 @@ This document serves as the **primary usage reference** for the M8 Controller Bo
 * Up to **16A current**
 * Maximum **400VAC switching voltage**
 
-> For more information look at the [strobe-relay example](./strobe-relay-example/) (library example [example](https://github.com/luxonis/rp2040_u2if/blob/main/examples/ControllerBox/example_controller_box_relay.py)).
+> For relay control, see the [strobe-relay example](./strobe-relay-example/).
 
 ### User Interface
 
@@ -105,11 +107,45 @@ The repository includes reference applications demonstrating typical usage.
 * Detects barcodes using `pyzbar`
 * On barcode detection it switches relay
 
+## Running The Examples
+
+All examples in this directory should be run as OAK apps on the OAK4 device.
+
+1. Install `oakctl` by following the instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+2. Change into the example directory you want to run.
+3. Connect to the device and start the app:
+
+```bash
+oakctl connect <DEVICE_IP>
+oakctl app run .
+```
+
+If you have a locally connected device, `oakctl app run .` may be enough. Use `oakctl connect <DEVICE_IP>` when targeting a device over the network or when multiple devices are available.
+
 ## Notes
 
 * GPIO and peripheral control is exposed via the **u2if (USB-to-interfaces) protocol**
 * Example applications demonstrate recommended interaction patterns
-* Library repository: [rp2040_u2if](https://github.com/luxonis/rp2040_u2if)
+* Library repository: [rp2040_u2if](https://github.com/luxonis/rp2040_u2if) - Note, library must be used within OAK App, to run on the device - running these on Host will result in following error:
+```
+File "rp2040_u2if\examples\example_simple.py", line 5, in <module>
+
+    rp2040.open()
+
+    ~~~~~~~~~~~^^
+
+  File ".venv\Lib\site-packages\luxonis_u2if\rp2040_u2if.py", line 154, in open
+
+    self._hid.open(self._vid, self._pid, self._serial)
+
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "hid.pyx", line 143, in hid.device.open
+
+OSError: open failed
+
+Process finished with exit code 1
+```
 
 
 ## Support

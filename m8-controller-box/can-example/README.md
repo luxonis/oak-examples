@@ -4,6 +4,8 @@ This example demonstrates how to send data over the **CAN bus** from the M8 Cont
 
 The application runs inside a container directly on the device and uses `python-can` with the Linux SocketCAN interface.
 
+> **Note:** This example works only on OAK4 in standalone mode. It is not supported in host-driven peripheral mode because the M8 Controller Box is connected directly to the OAK4 device.
+
 ## Functionality
 
 This example performs the following actions:
@@ -12,6 +14,27 @@ This example performs the following actions:
 - When the button is pressed, a CAN frame is transmitted over the M8 CAN interface (`can0`).
 
 This provides a minimal, practical reference for sending CAN messages from a containerized application running on the OAK4 device.
+
+## Usage
+
+Running this example requires an OAK4 device with the M8 Controller Box attached.
+
+## Standalone Mode (RVC4 only)
+
+Install `oakctl` by following the instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+
+Then run the example from this directory:
+
+```bash
+oakctl connect <DEVICE_IP>
+oakctl app run .
+```
+
+This builds the app from the local `oakapp.toml`, deploys it to the OAK4 device, and starts it in standalone mode.
+
+## Peripheral Mode
+
+This mode is not supported for this example. The M8 Controller Box must be attached directly to the OAK4 device running the app.
 
 ## CAN Interface Setup (Required)
 

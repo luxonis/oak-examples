@@ -2,7 +2,7 @@
 
 This example demonstrates **real-time barcode detection and decoding** on a conveyor belt using DepthAI cameras. It uses a combination of **pyzbar** and multi-frame validation to ensure robust detection. Additionally, this version includes **temporal smoothing** of bounding boxes to reduce jitter and improve visual tracking.
 
-> ⚠️ **This example runs only on the camera using OakApp**. It cannot run purely on a host without the device.
+> **Note:** This example works only on OAK4 in standalone mode. It is not supported in host-driven peripheral mode because the M8 Controller Box is connected directly to the OAK4 device.
 
 ## Functionality
 
@@ -25,12 +25,10 @@ This example demonstrates **real-time barcode detection and decoding** on a conv
 
 ### Standalone Mode (RVC4 only)
 
-This app is designed to run **entirely on the device** via OakApp.
+This app is designed to run entirely on the device.
 
-1. Install the `oakctl` tool:
-   [OakApp CLI Installation](https://docs.luxonis.com/software-v3/oak-apps/oakctl)
-
-2. Connect and run the app:
+1. Install `oakctl` by following the instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+2. From this directory, connect to the device and run the app:
 
 ```bash
 oakctl connect <DEVICE_IP>
@@ -39,7 +37,7 @@ oakctl app run .
 
 ### Peripheral Mode (Host + Device)
 
-> Not recommended for this example, as m8 Controller box needs on camera USB.
+This mode is not supported for this example. The M8 Controller Box must be attached directly to the OAK4 device running the app.
 
 ### Configuration
 
