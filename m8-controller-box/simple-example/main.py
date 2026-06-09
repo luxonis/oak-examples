@@ -102,7 +102,7 @@ while True:
         if pin != BUTTON_PIN:
             continue
 
-            if event == box.IRQ_RISING:
+        if event == box.IRQ_RISING:
             # Button pressed
             button_pressed = True
             box.led_on(2)       # Turn on LED 2 while pressed
