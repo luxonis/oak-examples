@@ -1,0 +1,404 @@
+@import "@luxonis/depthai-viewer-common/styles";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f5f7;
+  color: #15171c;
+  font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.fatal-error {
+  min-height: 100vh;
+  padding: 32px;
+  background: #fff6dd;
+  color: #15171c;
+  font-family: ui-sans-serif, "Aptos", "Segoe UI", sans-serif;
+}
+
+.startup-screen {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  background: #f4f5f7;
+  color: #15171c;
+  text-align: center;
+}
+
+.startup-screen h1,
+.startup-screen p {
+  margin: 0;
+}
+
+.fatal-error pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+  border: 1px solid #efd38a;
+}
+
+.app-shell {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(720px, 1fr) 360px;
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.streams-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #d8dce3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.streams-panel > * {
+  width: 100%;
+  height: 100%;
+}
+
+.stream-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: #4f5a6b;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.stream-fallback strong {
+  color: #15171c;
+}
+
+.control-panel {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #d8dce3;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.control-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.control-panel h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.control-panel h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.stage-pill {
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #e9edf3;
+  color: #394150;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stage-calibrating {
+  background: #fff1c2;
+  color: #765300;
+}
+
+.stage-preview {
+  background: #dff6e9;
+  color: #17633b;
+}
+
+.status-text {
+  min-height: 38px;
+  margin: 14px 0 18px;
+  color: #4f5a6b;
+  line-height: 1.35;
+}
+
+.muted-text {
+  margin: 0 0 10px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.panel-section {
+  padding: 14px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.warning-panel {
+  border-top: 0;
+  border-radius: 8px;
+  background: #fff6dd;
+  border: 1px solid #efd38a;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.warning-panel p {
+  margin: 0 0 8px;
+  color: #5f4a12;
+}
+
+.panel-section.compact p {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.field-row input {
+  width: 100%;
+  border: 1px solid #c9ced8;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.path-section {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.path-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.path-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.path-list {
+  display: grid;
+  gap: 8px;
+}
+
+.path-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.path-row select {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #c9ced8;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 7px;
+}
+
+.text-button,
+.icon-button,
+.secondary-outline-button {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.text-button {
+  background: transparent;
+  color: #1f6f50;
+  padding: 0;
+  font-size: 12px;
+}
+
+.icon-button {
+  background: #f1f3f6;
+  border-color: #d8dce3;
+  color: #394150;
+  padding: 7px 8px;
+  font-size: 12px;
+}
+
+.secondary-outline-button {
+  width: 100%;
+  background: #ffffff;
+  border-color: #c9ced8;
+  color: #1d2430;
+  padding: 9px 10px;
+}
+
+.error-text {
+  margin: 0;
+  color: #a33a2b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.socket-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.socket-card {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 7px 10px;
+  align-items: start;
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.socket-card.selected {
+  border-color: #59a77d;
+  background: #eaf7f0;
+}
+
+.socket-card input {
+  margin-top: 2px;
+}
+
+.socket-main {
+  display: grid;
+  gap: 2px;
+}
+
+.socket-main span,
+.socket-detail,
+.socket-meta {
+  color: #4f5a6b;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.socket-meta {
+  justify-self: end;
+  font-weight: 700;
+}
+
+.socket-detail {
+  grid-column: 2 / 4;
+}
+
+.primary-button,
+.secondary-button,
+.pair-button {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.primary-button {
+  margin-top: 6px;
+  background: #1f6f50;
+  color: #ffffff;
+}
+
+.secondary-button {
+  background: #15171c;
+  color: #ffffff;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.primary-button:disabled {
+  background: #9ca3af;
+}
+
+.secondary-button:disabled {
+  background: #9ca3af;
+}
+
+.pair-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pair-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f7f8fa;
+  color: #1d2430;
+  border-color: #dce1e8;
+}
+
+.pair-button.selected {
+  background: #e4f3ec;
+  border-color: #59a77d;
+}
+
+code {
+  display: block;
+  overflow-wrap: anywhere;
+  border-radius: 6px;
+  background: #f4f5f7;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.flash-status {
+  margin: 10px 0 0;
+  color: #4f5a6b;
+  font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(640px, 1fr) auto;
+    overflow: auto;
+  }
+
+  .control-panel {
+    overflow: visible;
+  }
+}
