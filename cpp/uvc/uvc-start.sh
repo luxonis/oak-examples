@@ -118,7 +118,7 @@ create_uvc() {
     mkdir "functions/$FUNCTION"
 
     # write to fule function_name PRODUCT var
-    echo "Luxonis UVC Camera" > "functions/$FUNCTION/function_name"
+    echo $PRODUCT > "functions/$FUNCTION/function_name"
 
     # create_frame "$FUNCTION" 640 360 uncompressed u
     # create_frame "$FUNCTION" 1280 720 uncompressed u
@@ -150,6 +150,49 @@ create_uvc() {
     ln -s header/h class/fs
     ln -s header/h class/ss
     cd ../../../
+
+    if [ -w "functions/$FUNCTION/control/terminal/camera/default/bmControls" ]; then
+        # Advertise:
+        # - Auto-Exposure Mode (selector 0x02)
+        # - Auto-Exposure Priority (selector 0x03)
+        # - Exposure Time Absolute (selector 0x04)
+        # - Exposure Time Relative (selector 0x05)
+        echo '0x1e' > "functions/$FUNCTION/control/terminal/camera/default/bmControls"
+    else
+        log "    Camera terminal bmControls attribute not present, using kernel defaults"
+    fi
+
+    if [ -w "functions/$FUNCTION/control/processing/default/bmControls" ]; then
+        # Advertise Brightness and gain
+        cat << EOF > functions/$FUNCTION/control/processing/default/bmControls
+1
+2
+EOF
+    else
+        log "    Processing unit bmControls attribute not present, using kernel defaults"
+    fi
+
+	# Include an Extension Unit if the kernel supports that
+	if [ -d functions/$FUNCTION/control/extensions ]; then
+		mkdir functions/$FUNCTION/control/extensions/xu.0
+		pushd functions/$FUNCTION/control/extensions/xu.0
+
+		# Set the bUnitID of the Processing Unit as the XU's source
+		echo 2 > baSourceID
+
+		# Set this XU as the source for the default output terminal
+		cat bUnitID > ../../terminal/output/default/bSourceID
+
+		# Flag some arbitrary controls. This sets alternating bits of the
+		# first byte of bmControls active.
+		echo 0x01 > bmControls
+        echo 1 > bNumControls
+
+		# Set the GUID
+		echo -e -n "\x73\xa1\x9a\xdc\xb9\x77\x45\xa6\x96\x34\xdc\xbf\x2a\x7a\x8d\x2b" > guidExtensionCode
+
+		popd
+	fi
 
     echo 3072 > "functions/$FUNCTION/streaming_maxpacket"
 
