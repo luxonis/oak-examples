@@ -1,7 +1,7 @@
 # Generic Example
 
 We provide here an example for running inference with a **single model** on a **single-image input** with a **single-head output**.
-The example is generic and can be used for various single-image input models from the [Model ZOO](https://models.luxonis.com).
+The example is generic and can be used for various single-image input models from the [Model ZOO](https://models.luxonis.com)/HubAI, a model descriptor/YAML, or a local `.tar.xz` `NNArchive`.
 
 ## Usage
 
@@ -13,7 +13,7 @@ Here is a list of all available parameters:
 
 ```
 -m MODEL, --model MODEL
-                      HubAI model reference. (default: luxonis/yolov6-nano:r2-coco-512x288)
+                      Model Zoo/HubAI slug, model YAML/descriptor, or local .tar.xz NN archive. (default: luxonis/yolov6-nano:r2-coco-512x288)
 -d DEVICE, --device DEVICE
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
@@ -21,7 +21,7 @@ Here is a list of all available parameters:
 -media MEDIA_PATH, --media_path MEDIA_PATH
                       Path to the media file you aim to run the model on. If not set, the model will run on the camera input. (default: None)
 -api API_KEY, --api_key API_KEY
-                      HubAI API key to access private model. Can also use 'DEPTHAI_HUB_API_KEY' environment variable instead. (default: )
+                      HubAI API key for private HubAI access. Can also use 'DEPTHAI_HUB_API_KEY' environment variable instead. (default: )
 -overlay OVERLAY_MODE, --overlay_mode
                       If passed, overlays model output on the input image when the output is an array (e.g., depth maps, segmentation maps). Otherwise, displays outputs separately.
 ```
@@ -66,6 +66,13 @@ python3 main.py \
 ```
 
 And this will run an instance segmentation model.
+
+```bash
+python3 main.py \
+    --model /path/to/custom-model.tar.xz
+```
+
+This will run a local `NNArchive` directly instead of fetching a model from the Model Zoo.
 
 ## Standalone Mode (RVC4 only)
 
