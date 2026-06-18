@@ -7,7 +7,7 @@ def initialize_argparser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.description = (
-        "General example script to run a single-model DepthAI pipeline from a Model Zoo/HubAI slug, \
+        "General example script to run a single-model DepthAI pipeline from a Model Zoo/HubAI model identifier, \
         a model descriptor/YAML, or a local .tar.xz NN archive. The script creates the pipeline and visualizations \
         for a connected DepthAI device. \
         If using OAK-D Lite, please set the FPS limit to 28."
@@ -16,7 +16,7 @@ def initialize_argparser():
     parser.add_argument(
         "-m",
         "--model",
-        help="Model Zoo/HubAI slug, model YAML/descriptor, or local .tar.xz NN archive.",
+        help="Model Zoo/HubAI model identifier, model YAML/descriptor, or local .tar.xz NN archive.",
         default="luxonis/yolov6-nano:r2-coco-512x288",
         type=str,
     )

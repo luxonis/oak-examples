@@ -1,7 +1,7 @@
 # Generic Example
 
 We provide here an example for running inference with a **single model** on a **single-image input** with a **single-head output**.
-The example is generic and can be used for various single-image input models from the [Model ZOO](https://models.luxonis.com)/HubAI, a model descriptor/YAML, or a local `.tar.xz` `NNArchive`.
+The example is generic and can be used for various single-image input models from the [Model ZOO](https://models.luxonis.com) or HubAI, a model descriptor/YAML, or a local `.tar.xz` `NNArchive`.
 
 ## Usage
 
@@ -13,7 +13,7 @@ Here is a list of all available parameters:
 
 ```
 -m MODEL, --model MODEL
-                      Model Zoo/HubAI slug, model YAML/descriptor, or local .tar.xz NN archive. (default: luxonis/yolov6-nano:r2-coco-512x288)
+                      Model Zoo/HubAI model identifier, model YAML/descriptor, or local .tar.xz NN archive. (default: luxonis/yolov6-nano:r2-coco-512x288)
 -d DEVICE, --device DEVICE
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT

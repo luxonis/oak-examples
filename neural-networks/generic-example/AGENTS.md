@@ -25,8 +25,8 @@ Reusable single-model inference scaffold. It runs one Model Zoo model with one i
 - `Default RVC2 model:` [depthai_models/yolov6_nano_r2_coco.RVC2.yaml](depthai_models/yolov6_nano_r2_coco.RVC2.yaml)
 - `Default RVC4 model:` [depthai_models/yolov6_nano_r2_coco.RVC4.yaml](depthai_models/yolov6_nano_r2_coco.RVC4.yaml)
 - `Standalone config:` [oakapp.toml](oakapp.toml)
-- `Default model slug:` `luxonis/yolov6-nano:r2-coco-512x288`
-- `Accepted model inputs:` Model Zoo/HubAI slug, local model descriptor/YAML, or local `.tar.xz` `NNArchive`
+- `Default model identifier:` `luxonis/yolov6-nano:r2-coco-512x288`
+- `Accepted model inputs:` Model Zoo/HubAI model identifier, local model descriptor/YAML, or local `.tar.xz` `NNArchive`
 - `Input:` camera by default, or media file via `--media_path`
 - `Output:` `Video` passthrough plus parsed output on `Detections`
 
@@ -41,7 +41,7 @@ Reusable single-model inference scaffold. It runs one Model Zoo model with one i
 
 - [main.py](main.py) connects to a device, reads the platform string, and chooses `yolov6_nano_r2_coco.<platform>.yaml` as the default descriptor.
 - If `--model` ends with `.tar.xz`, [main.py](main.py) loads it directly as an `NNArchive`.
-- Otherwise, if `--model` differs from the YAML-backed default slug, [main.py](main.py) creates `dai.NNModelDescription(args.model, platform=platform)` and resolves it through the Model Zoo.
+- Otherwise, if `--model` differs from the YAML-backed default model identifier, [main.py](main.py) creates `dai.NNModelDescription(args.model, platform=platform)` and resolves it through the Model Zoo.
 - [utils/input.py](utils/input.py) returns either a camera node or a `ReplayVideo` node.
 - `ParsingNeuralNetwork` runs the model and emits parsed output.
 - `Video` shows `ParsingNeuralNetwork.passthrough` unless `--overlay_mode` is enabled.
@@ -63,7 +63,7 @@ Reusable single-model inference scaffold. It runs one Model Zoo model with one i
 
 ## Common Adaptations
 
-- `Swap the model:` pass `--model` first; this can be a Model Zoo/HubAI slug, a local YAML/descriptor, or a local `.tar.xz` archive. Edit YAMLs only if changing the default packaged baseline.
+- `Swap the model:` pass `--model` first; this can be a Model Zoo/HubAI model identifier, a local YAML/descriptor, or a local `.tar.xz` archive. Edit YAMLs only if changing the default packaged baseline.
 - `Run on media:` pass `--media_path`; [utils/input.py](utils/input.py) switches from `Camera` to `ReplayVideo`.
 - `Use a private model:` set `--api_key` or `DEPTHAI_HUB_API_KEY`.
 - `Create a task-specific example:` keep [main.py](main.py), [utils/input.py](utils/input.py), and [utils/arguments.py](utils/arguments.py), then replace parser/output handling as needed.
@@ -89,4 +89,4 @@ Reusable single-model inference scaffold. It runs one Model Zoo model with one i
 - `Alternative run:` `python3 main.py --model luxonis/mediapipe-selfie-segmentation:256x144 --overlay_mode`
 - `Archive run:` `python3 main.py --model /path/to/custom-model.tar.xz`
 - `Success looks like:` Visualizer exposes `Video` and `Detections`, and the pipeline runs until `q` is pressed
-- `Common failure meaning:` model slug unavailable for platform, private model auth missing, or selected model violates the single-input/single-output assumptions
+- `Common failure meaning:` model identifier unavailable for platform, private model auth missing, or selected model violates the single-input/single-output assumptions
