@@ -9,7 +9,7 @@ def initialize_argparser():
     parser.description = (
         "General example script to run a single-model DepthAI pipeline from a Model Zoo/HubAI model identifier, \
         a model descriptor/YAML, or a local .tar.xz NN archive. The script creates the pipeline and visualizations \
-        for a connected DepthAI device. \
+        for a connected OAK device. \
         If using OAK-D Lite, please set the FPS limit to 28."
     )
 
