@@ -7,16 +7,16 @@ def initialize_argparser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.description = (
-        "General example script to run any model available in HubAI on DepthAI device. \
-        All you need is a model slug of the model and the script will download the model from HubAI and create \
-        the whole pipeline with visualizations. You also need a DepthAI device connected to your computer. \
+        "General example script to run a single-model DepthAI pipeline from a Model Zoo/HubAI model identifier, \
+        a model descriptor/YAML, or a local .tar.xz NN archive. The script creates the pipeline and visualizations \
+        for a connected OAK device. \
         If using OAK-D Lite, please set the FPS limit to 28."
     )
 
     parser.add_argument(
         "-m",
         "--model",
-        help="HubAI model reference.",
+        help="Model Zoo/HubAI model identifier, model YAML/descriptor, or local .tar.xz NN archive.",
         default="luxonis/yolov6-nano:r2-coco-512x288",
         type=str,
     )
@@ -51,7 +51,7 @@ def initialize_argparser():
     parser.add_argument(
         "-api",
         "--api_key",
-        help="HubAI API key to access private model. Can also use 'DEPTHAI_HUB_API_KEY' environment variable instead.",
+        help="HubAI API key for private Model Zoo access. Can also use 'DEPTHAI_HUB_API_KEY' environment variable instead.",
         required=False,
         default="",
         type=str,

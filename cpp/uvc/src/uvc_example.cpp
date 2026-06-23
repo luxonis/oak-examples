@@ -15,6 +15,7 @@
 #include "depthai/pipeline/MessageQueue.hpp"
 #include "depthai/pipeline/datatype/ImgFrame.hpp"
 #include "depthai/pipeline/datatype/MessageGroup.hpp"
+#include "uvc_controls.hpp"
 #include "uvc_example.hpp"
 
 extern "C" {
@@ -128,23 +129,6 @@ int main() {
         return 1;
     }
 
-    stream = uvc_stream_new(fc->video);
-    if (!stream) {
-        std::cerr << "Failed to create UVC stream." << std::endl;
-        video_source_destroy(src);
-        return 1;
-    }
-
-    /* Register the callback to control the pipeline on UVC events:
-        * - UVC_EVENT_STREAMON
-        * - UVC_EVENT_STREAMOFF
-        * - UVC_EVENT_DISCONNECT 
-    */
-    uvc_events_register_cb(stream, depthai_control_pipeline_cb);
-
-	uvc_stream_set_event_handler(stream, &events);
-	uvc_stream_set_video_source(stream, src);
-
     // Create device
     std::shared_ptr<dai::Device> device = std::make_shared<dai::Device>();
 
@@ -173,14 +157,35 @@ int main() {
     stillSource->link(stillEncoder->input);
     stillBitstreamQueue = stillEncoder->bitstream.createOutputQueue(1, false);
 
+    stream = uvc_stream_new(fc->video);
+    if (!stream) {
+        std::cerr << "Failed to create UVC stream." << std::endl;
+        video_source_destroy(src);
+        return 1;
+    }
+
+    /* Register the callback to control the pipeline on UVC events:
+        * - UVC_EVENT_STREAMON
+        * - UVC_EVENT_STREAMOFF
+        * - UVC_EVENT_DISCONNECT 
+    */
+	uvc_events_register_cb(stream, depthai_control_pipeline_cb);
+
+	uvc_stream_set_event_handler(stream, &events);
+	uvc_stream_set_video_source(stream, src);
+    uvc_stream_init_uvc(stream, fc);
+
+    const int controlRet = registerExampleControls(stream, inputQueue);
+    if(controlRet < 0) {
+        std::cerr << "Failed to register example UVC controls: "
+                  << std::strerror(-controlRet) << " (" << -controlRet << ")." << std::endl;
+    }
+
     // Start pipeline
     pipeline.start();
     std::cout << "Started the pipeline" << std::endl;
     std::cout << "Press Ctrl+C to stop" << std::endl;
     depthai_control_pipeline_cb(0); // Pause the pipeline until UVC stream is started by the host
-
-    /* Register the UVC events and init it */
-    uvc_stream_init_uvc(stream, fc);
 
 	/* Main capture loop */
 	events_loop(&events);
@@ -190,6 +195,7 @@ int main() {
     pipeline.wait();
 
 	uvc_stream_delete(stream);
+    cleanupExampleControls();
 	video_source_destroy(src);
 	events_cleanup(&events);
 	configfs_free_uvc_function(fc);

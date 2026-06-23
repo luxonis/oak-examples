@@ -23,10 +23,17 @@ with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
     # model
-    model_description = dai.NNModelDescription(f"yolov6_nano_r2_coco.{platform}.yaml")
-    if model_description.model != args.model:
-        model_description = dai.NNModelDescription(args.model, platform=platform)
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
+    default_description = dai.NNModelDescription(f"yolov6_nano_r2_coco.{platform}.yaml")
+
+    if args.model.endswith(".tar.xz"):
+        nn_archive = dai.NNArchive(args.model)
+    else:
+        model_description = (
+            default_description
+            if default_description.model == args.model
+            else dai.NNModelDescription(args.model, platform=platform)
+        )
+        nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
 
     # media/camera input
     input_node = create_input_node(
