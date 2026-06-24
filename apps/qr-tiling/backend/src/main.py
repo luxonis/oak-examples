@@ -1,5 +1,6 @@
 from pathlib import Path
 import logging
+import signal
 
 import depthai as dai
 from depthai_nodes.node import (
@@ -29,7 +30,18 @@ DEFAULT_TILING_PARAMS = {
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+shutdown_requested = False
 MODEL_DIR = Path(__file__).resolve().parent / "depthai_models"
+
+
+def _handle_shutdown_signal(_signum, _frame):
+    global shutdown_requested
+    logger.info("Application received a stop signal. Stopping the app...")
+    shutdown_requested = True
+
+
+signal.signal(signal.SIGINT, _handle_shutdown_signal)
+signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device()
@@ -171,6 +183,9 @@ with dai.Pipeline(device) as pipeline:
     logger.info("Pipeline running!")
 
     while pipeline.isRunning():
+        if shutdown_requested:
+            pipeline.stop()
+            break
         pipeline.processTasks()
         key = visualizer.waitKey(1)
         if key == ord("q"):

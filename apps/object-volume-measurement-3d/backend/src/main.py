@@ -1,3 +1,6 @@
+import logging
+import signal
+
 import depthai as dai
 
 from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
@@ -7,6 +10,19 @@ from utils.helper_functions import extract_text_embeddings, read_intrinsics
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
 from utils.measurement_node import MeasurementNode
+
+logger = logging.getLogger(__name__)
+shutdown_requested = False
+
+
+def _handle_shutdown_signal(_signum, _frame):
+    global shutdown_requested
+    logger.info("Application received a stop signal. Stopping the app...")
+    shutdown_requested = True
+
+
+signal.signal(signal.SIGINT, _handle_shutdown_signal)
+signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 _, args = initialize_argparser()
 
@@ -229,6 +245,9 @@ with dai.Pipeline(device) as pipeline:
     print("Press 'q' to stop")
 
     while pipeline.isRunning():
+        if shutdown_requested:
+            pipeline.stop()
+            break
         pipeline.processTasks()
         key = visualizer.waitKey(1)
         if key == ord("q"):

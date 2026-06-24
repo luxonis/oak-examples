@@ -1,3 +1,6 @@
+import logging
+import signal
+
 import depthai as dai
 
 from config.arguments import initialize_argparser
@@ -17,6 +20,19 @@ from people.joiner.people_faces_join import PeopleJoinNode
 
 from visualization.monitor_node import MonitorFacesNode
 from visualization.annotation_node import AnnotationNode
+
+logger = logging.getLogger(__name__)
+shutdown_requested = False
+
+
+def _handle_shutdown_signal(_signum, _frame):
+    global shutdown_requested
+    logger.info("Application received a stop signal. Stopping the app...")
+    shutdown_requested = True
+
+
+signal.signal(signal.SIGINT, _handle_shutdown_signal)
+signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 
 def main():
@@ -109,6 +125,9 @@ def main():
         visualizer.registerPipeline(pipeline)
 
         while pipeline.isRunning():
+            if shutdown_requested:
+                pipeline.stop()
+                break
             key = visualizer.waitKey(1)
             pipeline.processTasks()
             if key == ord("q"):
