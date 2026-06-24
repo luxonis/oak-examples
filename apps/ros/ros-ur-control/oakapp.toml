@@ -1,0 +1,30 @@
+identifier = "example.apps.ros.ros-driver-basic"
+app_version = "0.9.0"
+
+prepare_container = [
+    { type = "COPY", source = "resolv.conf", target = "/etc/resolv.conf" },
+    { type = "RUN", command = "apt-get update" },
+    { type = "RUN", command = "apt-get install -y ros-kilted-depthai-ros ros-kilted-ros2controlcli ros-kilted-ur-client-library ros-kilted-ur ros-kilted-ur-moveit-config ros-kilted-moveit-py"},
+]
+
+prepare_build_container = [
+
+]
+
+build_steps = [
+    "mkdir -p /ws/src",
+    "cp -r /app/src/ /ws/",
+    'bash -c "cd /ws && source /opt/ros/kilted/setup.bash && colcon build"'
+]
+
+entrypoint = ["bash", "-c", "chmod +x /app/entrypoint.sh && /app/entrypoint.sh"]
+
+
+[base_image]
+api_url = "https://registry-1.docker.io" 
+service = "registry.docker.io" 
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository" 
+auth_name = "library/ros"
+image_name = "library/ros"
+image_tag = "kilted-ros-base"
