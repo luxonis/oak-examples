@@ -2,9 +2,13 @@ import cv2
 import numpy as np
 
 
-def draw_recalibration_message(image, values, angles):
+def _is_empty_sequence(value):
+    return np.asarray(value).size == 0
+
+
+def draw_recalibration_message(image, angles):
     width, height = image.shape[1], image.shape[0]
-    if values == []:
+    if _is_empty_sequence(angles):
         lines = []
         lines.append("Data is missing please load more images with 'l'.")
         lines.append("Press any key to continue ...")
@@ -28,9 +32,6 @@ def draw_recalibration_message(image, values, angles):
 
         lines.append(
             f"Euler angles (deg): Roll={angles[0]:.2f}, Pitch={angles[1]:.2f}, Yaw={angles[2]:.2f}"
-        )
-        lines.append(
-            f"Depth error @1m:{values[0]:.2f}%, 2m:{values[1]:.2f}%, 5m:{values[2]:.2f}%, 10m:{values[3]:.2f}%"
         )
         lines.append("Press any key to continue ...")
 
@@ -118,7 +119,7 @@ def display_text(image, text):
 
 
 def draw_health_bar(image, values, rotation, display_text=""):
-    if rotation == []:
+    if _is_empty_sequence(rotation):
         font_scale = 1.0
         width, height = image.shape[1], image.shape[0]
         text = "Data is missing please load more images with 'l'."

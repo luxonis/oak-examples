@@ -43,4 +43,28 @@ def initialize_argparser():
         type=int,
     )
 
+    parser.add_argument(
+        "--disable-dashboard",
+        help="Disable publishing the dashboard topic to the visualizer.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--disable-left",
+        help="Disable publishing the left preview topic to the visualizer.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--disable-right",
+        help="Disable publishing the right preview topic to the visualizer.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--disable-depth",
+        help="Disable publishing the depth preview topic to the visualizer.",
+        action="store_true",
+    )
+
     return parser, parser.parse_args()

@@ -110,44 +110,45 @@ def _run_dynamic_calibration(app: FfcCalibrationApp) -> dai.CalibrationHandler:
 def _pair_menu(app: FfcCalibrationApp, calibration: dai.CalibrationHandler) -> None:
     renderer = CoordinateFrameRenderer()
 
-    while True:
-        pairs = app.get_all_stereo_pairs(calibration)
-        if not pairs:
-            raise RuntimeError("No usable stereo pair could be derived from the calibration.")
+    with app.open_device():
+        while True:
+            pairs = app.get_all_stereo_pairs(calibration)
+            if not pairs:
+                raise RuntimeError("No usable stereo pair could be derived from the calibration.")
 
-        print("\nStereo pair menu:")
-        _print_calibration_stats(app, calibration, pairs)
-        print("\nCommands:")
-        print("  <number>  open that stereo pair preview")
-        print("  f         flash the current calibration to the device")
-        print("  q         quit")
+            print("\nStereo pair menu:")
+            _print_calibration_stats(app, calibration, pairs)
+            print("\nCommands:")
+            print("  <number>  open that stereo pair preview")
+            print("  f         flash the current calibration to the device")
+            print("  q         quit")
 
-        choice = input("Selection: ").strip().lower()
-        if choice in {"q", "quit", "exit"}:
-            return
-        if choice in {"f", "flash"}:
-            app.flash_calibration(calibration)
-            continue
-        if not choice.isdigit():
-            print("Enter a pair number, f, or q.")
-            continue
+            choice = input("Selection: ").strip().lower()
+            if choice in {"q", "quit", "exit"}:
+                return
+            if choice in {"f", "flash"}:
+                app.flash_calibration(calibration)
+                continue
+            if not choice.isdigit():
+                print("Enter a pair number, f, or q.")
+                continue
 
-        index = int(choice) - 1
-        if index < 0 or index >= len(pairs):
-            print("Selection out of range.")
-            continue
+            index = int(choice) - 1
+            if index < 0 or index >= len(pairs):
+                print("Selection out of range.")
+                continue
 
-        pair = pairs[index]
-        print(
-            f"\nOpening {pair.label()} preview. "
-            "Press q in the OpenCV window to return to the pair menu."
-        )
-        app.show_depth(
-            pair.left,
-            pair.right,
-            calibration=calibration,
-            live_renderer=renderer,
-        )
+            pair = pairs[index]
+            print(
+                f"\nOpening {pair.label()} preview. "
+                "Press q in the OpenCV window to return to the pair menu."
+            )
+            app.show_depth(
+                pair.left,
+                pair.right,
+                calibration=calibration,
+                live_renderer=renderer,
+            )
 
 
 def main() -> None:

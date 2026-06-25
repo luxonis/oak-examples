@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 from collections import deque
+import json
 import numpy as np
 import time
 
@@ -47,6 +48,8 @@ class DynamicCalibrationControler(dai.node.HostNode):
         # transient status banner (2s)
         self._status_text = None
         self._status_expire_ts = 0.0
+        self._last_flash_request = None
+        self._last_flash_executed = False
 
         # modal overlays (centered), auto-hide or dismiss on key
         self._modal_kind = None  # None | "recalib" | "quality"
@@ -447,6 +450,29 @@ class DynamicCalibrationControler(dai.node.HostNode):
             accent_colors=accents,
         )
 
+    def _push_calibration_json_modal(
+        self, img_annots: dai.ImgAnnotations, title: str, calibration
+    ):
+        if calibration is None:
+            lines = [f"{title}: unavailable", "Press any key to continue …"]
+        else:
+            try:
+                data = calibration.eepromToJson()
+                lines = [title]
+                lines.extend(json.dumps(data, indent=2).splitlines())
+                lines.append("Press any key to continue …")
+            except Exception as e:
+                lines = [f"{title}: failed to render JSON", str(e)]
+
+        self._push_center_panel(
+            img_annots,
+            lines[:24],
+            y_center=0.50,
+            width=0.92,
+            line_size=15,
+            line_gap=0.028,
+        )
+
     # --- help panel ---
     def _push_help_panel(self, img_annots: dai.ImgAnnotations, frame: dai.ImgFrame):
         """
@@ -464,6 +490,7 @@ class DynamicCalibrationControler(dai.node.HostNode):
             "[p] Flash new calibration",
             "[k] Flash old calibration",
             "[f] Flash factory calibration",
+            "[j] Display calibrationHandler JSON",
             "[g] Toggle depth HUD    [h] Toggle help",
             "[w]/[a]/[s] Move ROI    [z]/[x] ROI size",
             "",
@@ -542,6 +569,14 @@ class DynamicCalibrationControler(dai.node.HostNode):
             )
             y += dy
 
+        if self._last_flash_request:
+            flash_state = (
+                f"Flash requested: {self._last_flash_request}"
+                f" | executed: {'yes' if self._last_flash_executed else 'no'}"
+            )
+            hud.texts.append(self._create_text_annot(flash_state, (x, y)))
+            y += dy
+
         if self.last_quality and getattr(self.last_quality, "qualityData", None):
             q = self.last_quality.qualityData
             rotmag = float(
@@ -576,6 +611,8 @@ class DynamicCalibrationControler(dai.node.HostNode):
         # Always show help panel
         if self._show_help:
             self._push_help_panel(img_annots, frame)
+
+        self._push_status_overlay(img_annots, frame)
 
         now = time.time()
 
@@ -717,6 +754,12 @@ class DynamicCalibrationControler(dai.node.HostNode):
                     self._modal_payload.get("values"),
                     self._modal_payload.get("rotation"),
                     self._modal_payload.get("text", ""),
+                )
+            elif self._modal_kind == "calibration_json":
+                self._push_calibration_json_modal(
+                    img_annots,
+                    self._modal_payload.get("title", "CalibrationHandler JSON"),
+                    self._modal_payload.get("calibration"),
                 )
         elif self._modal_kind and now >= self._modal_expire_ts:
             self._modal_kind = None
@@ -986,6 +1029,20 @@ class DynamicCalibrationControler(dai.node.HostNode):
             self._show_help = not self._show_help
             return
 
+        if key == ord("j"):
+            calib_to_show = self.new_calibration or self.calibration
+            title = "CalibrationHandler JSON (new/current)"
+            if calib_to_show is None and self.old_calibration is not None:
+                calib_to_show = self.old_calibration
+                title = "CalibrationHandler JSON (previous)"
+            self._modal_kind = "calibration_json"
+            self._modal_payload = {
+                "title": title,
+                "calibration": calib_to_show,
+            }
+            self._modal_expire_ts = time.time() + 30.0
+            return
+
         # depth HUD controls
         if key in (ord("g"), ord("G")):
             self._hud_on = not self._hud_on
@@ -1016,6 +1073,8 @@ class DynamicCalibrationControler(dai.node.HostNode):
         # --- FLASH to EEPROM ---
         if key == ord("p"):
             # Flash NEW (or current) calibration
+            self._last_flash_request = "NEW/current"
+            self._last_flash_executed = False
             if self._device is None:
                 self._flash_status("No device bound — cannot flash.", 2.0)
                 return
@@ -1025,6 +1084,7 @@ class DynamicCalibrationControler(dai.node.HostNode):
                 return
             try:
                 self._device.flashCalibration(calib_to_flash)
+                self._last_flash_executed = True
                 self._flash_status("Flashed NEW/current calibration to EEPROM.", 2.0)
             except Exception as e:
                 self._flash_status(f"Flash failed: {e}", 2.5)
@@ -1032,6 +1092,8 @@ class DynamicCalibrationControler(dai.node.HostNode):
 
         if key == ord("k"):
             # Flash PREVIOUS calibration
+            self._last_flash_request = "PREVIOUS"
+            self._last_flash_executed = False
             if self._device is None:
                 self._flash_status("No device bound — cannot flash.", 2.0)
                 return
@@ -1040,6 +1102,7 @@ class DynamicCalibrationControler(dai.node.HostNode):
                 return
             try:
                 self._device.flashCalibration(self.old_calibration)
+                self._last_flash_executed = True
                 self._flash_status("Flashed PREVIOUS calibration to EEPROM.", 2.0)
             except Exception as e:
                 self._flash_status(f"Flash failed: {e}", 2.5)
@@ -1047,12 +1110,15 @@ class DynamicCalibrationControler(dai.node.HostNode):
 
         if key == ord("f"):
             # Flash FACTORY calibration
+            self._last_flash_request = "FACTORY"
+            self._last_flash_executed = False
             if self._device is None:
                 self._flash_status("No device bound — cannot flash.", 2.0)
                 return
             try:
                 factory = self._device.readFactoryCalibration()
                 self._device.flashCalibration(factory)
+                self._last_flash_executed = True
                 self._flash_status("Flashed FACTORY calibration to EEPROM.", 2.0)
             except Exception as e:
                 self._flash_status(f"Flash failed: {e}", 2.5)

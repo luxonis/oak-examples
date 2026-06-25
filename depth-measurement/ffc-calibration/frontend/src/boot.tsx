@@ -45,7 +45,6 @@ createRoot(document.getElementById("root")!).render(
             "FFC Set Sockets",
             "FFC Set Baselines",
             "FFC Select Pair",
-            "FFC Flash Calibration",
           ] as any}
         >
           <App />

@@ -1,5 +1,6 @@
 import os
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -72,7 +73,6 @@ class CoordinateFrameRenderer:
         self,
         ax,
         transform: np.ndarray,
-        label: str,
         color,
         linestyle: str,
         axis_scale: float,
@@ -96,15 +96,6 @@ class CoordinateFrameRenderer:
             linewidths=0.8,
             s=scatter_size,
             zorder=5,
-        )
-        ax.text(
-            origin_plot[0],
-            origin_plot[1],
-            origin_plot[2],
-            f"  {label}",
-            color=color,
-            fontsize=11,
-            fontweight="bold",
         )
 
         for axis_idx, axis_color in enumerate(axis_colors):
@@ -223,7 +214,6 @@ class CoordinateFrameRenderer:
             self._draw_camera_frame(
                 self.ax,
                 transforms[idx],
-                format_socket(socket),
                 color,
                 "-",
                 axis_scale,
@@ -260,17 +250,6 @@ class CoordinateFrameRenderer:
                 alpha=0.98,
             )
             self.ax.add_artist(arrow)
-            midpoint = (left_plot + right_plot) / 2.0
-            self.ax.text(
-                midpoint[0],
-                midpoint[1],
-                midpoint[2],
-                f"{format_socket(selected_pair.left)} -> {format_socket(selected_pair.right)}",
-                color="#c00000",
-                fontsize=10,
-                fontweight="bold",
-                zorder=25,
-            )
             self.fig.text(
                 0.50,
                 0.965,
@@ -290,6 +269,39 @@ class CoordinateFrameRenderer:
                 va="top",
                 fontsize=10,
                 color="black",
+            )
+
+        legend_lines = []
+        for idx, socket in enumerate(sockets):
+            rgb = colors[idx % len(colors)][:3]
+            hex_color = matplotlib.colors.to_hex(rgb)
+            label = format_socket(socket)
+            suffix = "  [selected]" if socket in selected_sockets else ""
+            legend_lines.append((hex_color, f"{label}{suffix}"))
+
+        legend_y = 0.965
+        self.fig.text(
+            0.02,
+            legend_y,
+            "Cameras",
+            ha="left",
+            va="top",
+            fontsize=12,
+            fontweight="bold",
+            color="black",
+            bbox=dict(facecolor="white", edgecolor="#cfd6df", boxstyle="round,pad=0.35"),
+        )
+        for idx, (hex_color, label) in enumerate(legend_lines, start=1):
+            self.fig.text(
+                0.03,
+                legend_y - idx * 0.034,
+                f"\u25A0 {label}",
+                ha="left",
+                va="top",
+                fontsize=11,
+                fontweight="bold",
+                color=hex_color,
+                bbox=dict(facecolor="white", edgecolor="none", alpha=0.88, pad=1.5),
             )
 
         self.ax.set_xlabel("X [cm]", fontsize=12, fontweight="bold", labelpad=12)
@@ -350,8 +362,9 @@ class CalibrationDashboardNode(dai.node.HostNode):
         self._progress_label = ""
         self._entered_baselines: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float] = {}
         self._cached_plot: np.ndarray | None = None
+        self._cached_dashboard: np.ndarray | None = None
         self._last_emit_monotonic = 0.0
-        self._min_emit_interval = 1.0 / 3.0
+        self._min_emit_interval = 0.5
         self.dashboard = self.createOutput(
             possibleDatatypes=[
                 dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
@@ -394,11 +407,18 @@ class CalibrationDashboardNode(dai.node.HostNode):
             self._selected_pair_idx = selected_pair_idx
         if entered_baselines is not None:
             self._entered_baselines = dict(entered_baselines)
-        self._cached_plot = None
+        self._invalidate_cache()
 
     def set_progress(self, pct: float | None, label: str = "") -> None:
-        self._progress_pct = None if pct is None else float(np.clip(pct, 0.0, 100.0))
-        self._progress_label = label
+        next_pct = None if pct is None else float(np.clip(pct, 0.0, 100.0))
+        if self._progress_pct != next_pct or self._progress_label != label:
+            self._progress_pct = next_pct
+            self._progress_label = label
+            self._cached_dashboard = None
+
+    def _invalidate_cache(self) -> None:
+        self._cached_plot = None
+        self._cached_dashboard = None
 
     def _make_canvas(self, width: int = 1280, height: int = 720) -> np.ndarray:
         canvas = np.zeros((height, width, 3), dtype=np.uint8)
@@ -429,15 +449,35 @@ class CalibrationDashboardNode(dai.node.HostNode):
             )
 
     def _draw_progress_bar(self, canvas: np.ndarray, pct: float, label: str) -> None:
-        x0, y0 = 40, 626
-        width, height = 1180, 28
+        panel_w, panel_h = 720, 120
+        x_panel = (canvas.shape[1] - panel_w) // 2
+        y_panel = (canvas.shape[0] - panel_h) // 2
+        overlay = canvas.copy()
+        cv.rectangle(
+            overlay,
+            (x_panel, y_panel),
+            (x_panel + panel_w, y_panel + panel_h),
+            (18, 22, 30),
+            -1,
+        )
+        cv.addWeighted(overlay, 0.78, canvas, 0.22, 0.0, dst=canvas)
+        cv.rectangle(
+            canvas,
+            (x_panel, y_panel),
+            (x_panel + panel_w, y_panel + panel_h),
+            (84, 92, 108),
+            2,
+        )
+
+        x0, y0 = x_panel + 36, y_panel + 70
+        width, height = panel_w - 72, 28
         filled = int(width * np.clip(pct, 0.0, 100.0) / 100.0)
         cv.putText(
             canvas,
             f"{label or 'Capturing calibration frames'}  {pct:5.1f}%",
-            (x0, y0 - 16),
+            (x0, y0 - 18),
             cv.FONT_HERSHEY_SIMPLEX,
-            0.66,
+            0.74,
             (245, 245, 245),
             2,
             cv.LINE_AA,
@@ -452,27 +492,34 @@ class CalibrationDashboardNode(dai.node.HostNode):
             return
         self._last_emit_monotonic = now
 
-        canvas = self._make_canvas()
-        if self._sockets and self._calibration is not None:
-            if self._cached_plot is None:
-                selected_pair = None
-                if self._pairs:
-                    selected_pair = self._pairs[self._selected_pair_idx]
-                plot = self._renderer.render(
-                    self._calibration,
-                    self._sockets,
-                    reference_socket=self._sockets[0],
-                    selected_pair=selected_pair,
-                    title="Camera Coordinate Frames",
-                    status_lines=[],
-                )
-                self._cached_plot = cv.resize(plot, (1280, 720), interpolation=cv.INTER_AREA)
-            plot = self._cached_plot
-            y0, x0 = 0, 0
-            canvas[y0 : y0 + plot.shape[0], x0 : x0 + plot.shape[1]] = plot
+        if self._cached_dashboard is None:
+            render_start = time.monotonic()
+            canvas = self._make_canvas()
+            if self._sockets and self._calibration is not None:
+                if self._cached_plot is None:
+                    selected_pair = None
+                    if self._pairs:
+                        selected_pair = self._pairs[self._selected_pair_idx]
+                    plot = self._renderer.render(
+                        self._calibration,
+                        self._sockets,
+                        reference_socket=self._sockets[0],
+                        selected_pair=selected_pair,
+                        title="Camera Coordinate Frames",
+                        status_lines=[],
+                    )
+                    self._cached_plot = cv.resize(plot, (1280, 720), interpolation=cv.INTER_AREA)
+                plot = self._cached_plot
+                y0, x0 = 0, 0
+                canvas[y0 : y0 + plot.shape[0], x0 : x0 + plot.shape[1]] = plot
 
-        if self._progress_pct is not None:
-            self._draw_progress_bar(canvas, self._progress_pct, self._progress_label)
+            if self._progress_pct is not None:
+                self._draw_progress_bar(canvas, self._progress_pct, self._progress_label)
+            self._cached_dashboard = canvas
+            render_ms = (time.monotonic() - render_start) * 1000.0
+            print(f"[dashboard] rebuilt cached frame in {render_ms:.1f} ms", flush=True)
+
+        canvas = self._cached_dashboard
 
         out_frame = dai.ImgFrame()
         out_frame.setCvFrame(canvas, dai.ImgFrame.Type.BGR888p)
@@ -488,6 +535,203 @@ class CalibrationDashboardNode(dai.node.HostNode):
             return
 
 
+class CoverageOverlayNode(dai.node.HostNode):
+    def __init__(self) -> None:
+        super().__init__()
+        self._coverage_cells: np.ndarray | None = None
+        self._progress_pct = 0.0
+        self._label = "Capturing calibration frames"
+        self.output = self.createOutput(
+            possibleDatatypes=[
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
+            ]
+        )
+
+    def build(self, preview: dai.Node.Output) -> "CoverageOverlayNode":
+        self.link_args(preview)
+        return self
+
+    def set_coverage(
+        self,
+        coverage_cells,
+        progress_pct: float,
+        label: str = "Capturing calibration frames",
+    ) -> None:
+        cells = None
+        if coverage_cells is not None:
+            arr = np.asarray(coverage_cells, dtype=np.float32)
+            if arr.size > 0:
+                if arr.ndim == 1:
+                    side = int(round(np.sqrt(arr.size)))
+                    if side * side == arr.size:
+                        arr = arr.reshape(side, side)
+                if arr.ndim == 2:
+                    cells = np.clip(arr, 0.0, 1.0)
+        self._coverage_cells = cells
+        self._progress_pct = float(np.clip(progress_pct, 0.0, 100.0))
+        self._label = label
+
+    def _overlay_coverage(self, image: np.ndarray) -> np.ndarray:
+        if len(image.shape) != 3:
+            color_image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
+        else:
+            color_image = image.copy()
+
+        cells = self._coverage_cells
+        if cells is not None and cells.ndim == 2 and cells.shape[0] > 0 and cells.shape[1] > 0:
+            rows, cols = cells.shape
+            cell_width = max(1, color_image.shape[1] // cols)
+            cell_height = max(1, color_image.shape[0] // rows)
+            overlay = color_image.copy()
+            for y in range(rows):
+                for x in range(cols):
+                    coverage = float(cells[y, x])
+                    if coverage <= 0.0:
+                        continue
+                    alpha = 0.55 * coverage
+                    x0 = x * cell_width
+                    y0 = y * cell_height
+                    x1 = color_image.shape[1] if x == cols - 1 else (x0 + cell_width)
+                    y1 = color_image.shape[0] if y == rows - 1 else (y0 + cell_height)
+                    cv.rectangle(overlay, (x0, y0), (x1, y1), (0, 220, 0), thickness=cv.FILLED)
+                    color_image[y0:y1, x0:x1] = cv.addWeighted(
+                        overlay[y0:y1, x0:x1], alpha, color_image[y0:y1, x0:x1], 1.0 - alpha, 0
+                    )
+
+        self._draw_progress(color_image)
+        return color_image
+
+    def _draw_progress(self, image: np.ndarray) -> None:
+        text = f"{self._label}  {self._progress_pct:5.1f}%"
+        x0 = 18
+        y0 = image.shape[0] - 38
+        width = max(120, image.shape[1] - 36)
+        height = 18
+        filled = int(width * self._progress_pct / 100.0)
+        overlay = image.copy()
+        cv.rectangle(overlay, (12, y0 - 34), (image.shape[1] - 12, image.shape[0] - 12), (15, 18, 24), -1)
+        cv.addWeighted(overlay, 0.42, image, 0.58, 0.0, dst=image)
+        cv.putText(image, text, (x0, y0 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.58, (245, 245, 245), 2, cv.LINE_AA)
+        cv.rectangle(image, (x0, y0), (x0 + width, y0 + height), (80, 88, 102), 2)
+        if filled > 0:
+            cv.rectangle(image, (x0 + 2, y0 + 2), (x0 + filled - 2, y0 + height - 2), (92, 208, 116), -1)
+
+    def process(self, frame: dai.ImgFrame) -> None:
+        image = frame.getCvFrame()
+        output = self._overlay_coverage(image)
+        out_frame = dai.ImgFrame()
+        out_frame.setCvFrame(output, dai.ImgFrame.Type.BGR888p)
+        out_frame.setTimestamp(frame.getTimestamp())
+        out_frame.setSequenceNum(frame.getSequenceNum())
+        out_frame.setTimestampDevice(frame.getTimestampDevice())
+        try:
+            self.output.send(out_frame)
+        except Exception:
+            return
+
+
+class DepthPreviewNode(dai.node.HostNode):
+    def __init__(self) -> None:
+        super().__init__()
+        self._max_distance_mm = 5000
+        self._min_distance_mm = 300
+        self._state: dict | None = None
+        self.output = self.createOutput(
+            possibleDatatypes=[
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
+            ]
+        )
+
+    def build(
+        self,
+        preview: dai.Node.Output,
+        min_distance_mm: int = 300,
+        max_distance_mm: int = 5000,
+        state: dict | None = None,
+    ) -> "DepthPreviewNode":
+        self.link_args(preview)
+        self._min_distance_mm = int(min_distance_mm)
+        self._max_distance_mm = int(max_distance_mm)
+        self._state = state
+        return self
+
+    def process(self, frame: dai.ImgFrame) -> None:
+        depth_frame = frame.getCvFrame()
+        min_distance_mm = self._min_distance_mm
+        max_distance_mm = self._max_distance_mm
+        hover_x = None
+        hover_y = None
+        if self._state is not None:
+            lock = self._state["lock"]
+            with lock:
+                min_distance_mm = int(self._state["min_distance_mm"])
+                max_distance_mm = int(self._state["max_distance_mm"])
+                hover_x = self._state["hover_x"]
+                hover_y = self._state["hover_y"]
+        depth_color = FfcCalibrationApp._render_depth(
+            depth_frame,
+            min_distance=min_distance_mm,
+            max_distance=max_distance_mm,
+            colormap=cv.COLORMAP_TURBO,
+        )
+        label = (
+            f"Depth range: {min_distance_mm / 1000.0:.1f}m"
+            f" - {max_distance_mm / 1000.0:.1f}m"
+        )
+        cv.putText(
+            depth_color,
+            label,
+            (18, 30),
+            cv.FONT_HERSHEY_SIMPLEX,
+            0.72,
+            (255, 255, 255),
+            2,
+            cv.LINE_AA,
+        )
+        if hover_x is not None and hover_y is not None:
+            x = int(np.clip(hover_x, 0, depth_frame.shape[1] - 1))
+            y = int(np.clip(hover_y, 0, depth_frame.shape[0] - 1))
+            x0 = max(0, x - 1)
+            x1 = min(depth_frame.shape[1], x + 2)
+            y0 = max(0, y - 1)
+            y1 = min(depth_frame.shape[0], y + 2)
+            roi = depth_frame[y0:y1, x0:x1]
+            valid = roi[roi > 0]
+            avg_mm = float(np.mean(valid)) if valid.size > 0 else None
+            annotated = depth_color.copy()
+            cv.rectangle(annotated, (x0, y0), (x1 - 1, y1 - 1), (255, 255, 255), 1)
+            cv.drawMarker(annotated, (x, y), (255, 255, 255), cv.MARKER_CROSS, 10, 1, cv.LINE_AA)
+            probe_label = f"3x3 ROI: invalid @ ({x}, {y})"
+            if avg_mm is not None:
+                probe_label = f"3x3 ROI: {avg_mm / 1000.0:.3f} m ({avg_mm:.0f} mm) @ ({x}, {y})"
+            cv.putText(
+                annotated,
+                probe_label,
+                (18, 58),
+                cv.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (255, 255, 255),
+                2,
+                cv.LINE_AA,
+            )
+            depth_color = annotated
+            if self._state is not None:
+                lock = self._state["lock"]
+                with lock:
+                    self._state["probe_mm"] = avg_mm
+                    self._state["frame_width"] = int(depth_frame.shape[1])
+                    self._state["frame_height"] = int(depth_frame.shape[0])
+        out_frame = dai.ImgFrame()
+        out_frame.setCvFrame(depth_color, dai.ImgFrame.Type.BGR888p)
+        out_frame.setTimestamp(frame.getTimestamp())
+        out_frame.setSequenceNum(frame.getSequenceNum())
+        out_frame.setTimestampDevice(frame.getTimestampDevice())
+        try:
+            self.output.send(out_frame)
+        except Exception:
+            return
+
+
 class FfcCalibrationApp:
     def __init__(
         self,
@@ -500,10 +744,14 @@ class FfcCalibrationApp:
         self.fps = fps
         self._device_info = dai.DeviceInfo(ip) if ip else None
         self._renderer = CoordinateFrameRenderer()
+        self.device: dai.Device | None = None
 
         with self._open_device() as device:
             self.deviceId = device.getDeviceId()
             self.camera_features = list(device.getConnectedCameraFeatures())
+            self._camera_features_by_socket = {
+                feature.socket: feature for feature in self.camera_features
+            }
             self.all_sockets = [feature.socket for feature in self.camera_features]
             self.sockets = list(self.all_sockets)
             self.baseline_pairs = self._recommended_baseline_pairs(self.sockets)
@@ -516,11 +764,52 @@ class FfcCalibrationApp:
     def _open_device(self):
         return dai.Device(self._device_info) if self._device_info is not None else dai.Device()
 
+    def preview_resolution_for_socket(
+        self, socket: dai.CameraBoardSocket
+    ) -> tuple[int, int]:
+        feature = self._camera_features_by_socket.get(socket)
+        width = int(getattr(feature, "width", 0) or 0)
+        height = int(getattr(feature, "height", 0) or 0)
+        calibration_resolution = getattr(feature, "calibrationResolution", None)
+        calib_width = int(getattr(calibration_resolution, "width", 0) or 0)
+        calib_height = int(getattr(calibration_resolution, "height", 0) or 0)
+        sensor_type = str(getattr(feature, "supportedTypes", "")).upper()
+
+        if (width, height) == (3840, 2160) or (calib_width, calib_height) == (4056, 3040):
+            return (1920, 1080)
+        if "MONO" in sensor_type and (width, height) == (1280, 800):
+            return (640, 400)
+        return self.resolution
+
+    def preview_resolution_for_pair(
+        self,
+        left_socket: dai.CameraBoardSocket,
+        right_socket: dai.CameraBoardSocket,
+    ) -> tuple[int, int]:
+        left_resolution = self.preview_resolution_for_socket(left_socket)
+        right_resolution = self.preview_resolution_for_socket(right_socket)
+        return (
+            min(left_resolution[0], right_resolution[0]),
+            min(left_resolution[1], right_resolution[1]),
+        )
+
+    @contextmanager
     def open_device(self):
-        return self._open_device()
+        if self.device is not None:
+            yield self.device
+            return
+
+        with self._open_device() as device:
+            self.device = device
+            try:
+                yield device
+            finally:
+                self.device = None
 
     def close(self):
-        pass
+        if self.device is not None:
+            self.device.close()
+            self.device = None
 
     def select_sockets(self, sockets: list[dai.CameraBoardSocket]) -> None:
         available = set(self.all_sockets)
@@ -657,12 +946,113 @@ class FfcCalibrationApp:
         )
         return annotated
 
-    def create_eeprom(self, use_device_calibration: bool = True) -> dai.CalibrationHandler:
-        with self._open_device() as device:
-            if use_device_calibration:
-                return device.readCalibration()
+    def _apply_entered_baselines(
+        self,
+        calibration: dai.CalibrationHandler,
+        entered_baselines_cm: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float],
+    ) -> dai.CalibrationHandler:
+        for (src, dest), baseline_cm in entered_baselines_cm.items():
+            rotation = np.asarray(
+                calibration.getCameraRotationMatrix(src, dest),
+                dtype=np.float64,
+            )
+            translation = np.asarray(
+                calibration.getCameraTranslationVector(src, dest, False),
+                dtype=np.float64,
+            ).reshape(-1)
+            current_norm = float(np.linalg.norm(translation))
+            if current_norm <= 1e-9:
+                raise RuntimeError(
+                    f"Cannot constrain {format_socket(src)} -> {format_socket(dest)} "
+                    "because its current translation vector has zero length."
+                )
 
+            direction = translation / current_norm
+            # Preserve the existing src->dest direction from the calibration and
+            # only constrain its magnitude to the entered baseline.
+            constrained_translation = direction * float(baseline_cm)
+            constrained_list = constrained_translation.tolist()
+            calibration.setCameraExtrinsics(
+                src,
+                dest,
+                rotation.tolist(),
+                constrained_list,
+                constrained_list,
+            )
+
+        return calibration
+
+    def _copy_calibration(
+        self, calibration: dai.CalibrationHandler
+    ) -> dai.CalibrationHandler:
+        return dai.CalibrationHandler.fromJson(calibration.eepromToJson())
+
+    def validate_entered_baselines(
+        self,
+        calibration: dai.CalibrationHandler,
+        entered_baselines_cm: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float],
+    ) -> None:
+        if not entered_baselines_cm:
+            return
+
+        try:
+            self._apply_entered_baselines(
+                self._copy_calibration(calibration),
+                entered_baselines_cm,
+            )
+        except RuntimeError as exc:
+            raise ValueError(
+                "Invalid baseline selection. The entered links create an inconsistent "
+                f"calibration topology: {exc}"
+            ) from exc
+
+    def constrain_calibration_to_entered_baselines(
+        self,
+        calibration: dai.CalibrationHandler,
+        entered_baselines_cm: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float],
+    ) -> dai.CalibrationHandler:
+        self.validate_entered_baselines(calibration, entered_baselines_cm)
+        return self._apply_entered_baselines(calibration, entered_baselines_cm)
+
+    def _log_entered_baseline_readback(
+        self,
+        calibration: dai.CalibrationHandler,
+        entered_baselines_cm: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float],
+        header: str = "Entered baseline readback",
+    ) -> None:
+        if not entered_baselines_cm:
+            return
+
+        print(f"\n{header}:")
+        for (src, dest), entered_baseline_cm in entered_baselines_cm.items():
+            tvec = np.asarray(
+                calibration.getCameraTranslationVector(src, dest, False),
+                dtype=np.float64,
+            ).reshape(-1)
+            print(
+                f"  {format_socket(src)} -> {format_socket(dest)} "
+                f"entered={entered_baseline_cm:.3f} cm "
+                f"applied={np.round(tvec, 3).tolist()} "
+                f"norm={float(np.linalg.norm(tvec)):.3f} cm"
+            )
+
+    def create_eeprom(self, use_device_calibration: bool = True) -> dai.CalibrationHandler:
+        with self.open_device() as device:
             source_calibration = device.readCalibration()
+
+            if use_device_calibration:
+                entered = getattr(self, "entered_baselines_cm", {})
+                if entered:
+                    self.validate_entered_baselines(source_calibration, entered)
+                    constrained = self._apply_entered_baselines(source_calibration, entered)
+                    self._log_entered_baseline_readback(
+                        constrained,
+                        entered,
+                        header="Applied entered baselines to device calibration",
+                    )
+                    return constrained
+                return source_calibration
+
             self.entered_baselines_cm = {}
 
             for src, dest in self.baseline_pairs:
@@ -673,11 +1063,25 @@ class FfcCalibrationApp:
                 )
                 self.entered_baselines_cm[(src, dest)] = baseline_cm
 
-            return source_calibration
+            self.validate_entered_baselines(
+                source_calibration,
+                self.entered_baselines_cm,
+            )
+            constrained = self._apply_entered_baselines(
+                source_calibration,
+                self.entered_baselines_cm,
+            )
+            self._log_entered_baseline_readback(
+                constrained,
+                self.entered_baselines_cm,
+                header="Applied entered baselines to initial calibration",
+            )
+            return constrained
 
     def flash_calibration(self, calibration: dai.CalibrationHandler):
-        with self._open_device() as device:
-            device.flashCalibration(calibration)
+        if self.device is None:
+            raise RuntimeError("flash_calibration requires an active device context")
+        self.device.flashCalibration(calibration)
         print("Calibration flashed to device.")
 
     def visualize_cameras(
@@ -717,7 +1121,7 @@ class FfcCalibrationApp:
         initial_calibration: dai.CalibrationHandler,
         status_label: str = "Dynamic calibration",
     ) -> dai.CalibrationHandler:
-        with self._open_device() as device:
+        with self.open_device() as device:
             with dai.Pipeline(device) as pipeline:
                 pipeline.setAutoCalibrationMode(dai.Pipeline.AutoCalibrationMode.OFF)
                 device.setCalibration(initial_calibration)
@@ -728,7 +1132,9 @@ class FfcCalibrationApp:
                 preview_windows = {}
                 for socket in self.sockets:
                     camera = pipeline.create(dai.node.Camera).build(socket)
-                    output = camera.requestOutput(self.resolution, fps=self.fps)
+                    output = camera.requestOutput(
+                        self.preview_resolution_for_socket(socket), fps=self.fps
+                    )
                     output.link(dynamic_calibration.inputs[f"input_{int(socket)}"])
                     preview_queues[socket] = output.createOutputQueue(
                         maxSize=1, blocking=False
@@ -846,7 +1252,7 @@ class FfcCalibrationApp:
         calibration: dai.CalibrationHandler | None = None,
         live_renderer: CoordinateFrameRenderer | None = None,
     ):
-        with self._open_device() as device:
+        with self.open_device() as device:
             with dai.Pipeline(device) as pipeline:
                 pipeline.setAutoCalibrationMode(dai.Pipeline.AutoCalibrationMode.OFF)
                 stereo = pipeline.create(dai.node.StereoDepth)
@@ -859,8 +1265,11 @@ class FfcCalibrationApp:
                 left_cam = pipeline.create(dai.node.Camera).build(left_socket)
                 right_cam = pipeline.create(dai.node.Camera).build(right_socket)
 
-                left_output = left_cam.requestOutput(self.resolution, fps=self.fps)
-                right_output = right_cam.requestOutput(self.resolution, fps=self.fps)
+                shared_resolution = self.preview_resolution_for_pair(
+                    left_socket, right_socket
+                )
+                left_output = left_cam.requestOutput(shared_resolution, fps=self.fps)
+                right_output = right_cam.requestOutput(shared_resolution, fps=self.fps)
                 left_output.link(stereo.left)
                 right_output.link(stereo.right)
 
@@ -869,6 +1278,7 @@ class FfcCalibrationApp:
                 depth_queue = stereo.depth.createOutputQueue()
                 depth_window = "depth_heatmap"
                 depth_pick = {"x": None, "y": None}
+                device.setCalibration(calibration)
 
                 def on_depth_mouse(event, x, y, flags, param):
                     if event == cv.EVENT_LBUTTONDOWN:

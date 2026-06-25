@@ -100,56 +100,57 @@ def main():
     cv.namedWindow(plot_window, cv.WINDOW_NORMAL)
     cv.resizeWindow(dashboard_window, 1280, 720)
 
-    while True:
-        selected_pair = pairs[selected_pair_idx]
-        dashboard = render_dashboard(app, calibration, selected_pair)
-        plot = plot_renderer.render(
-            calibration,
-            app.sockets,
-            reference_socket=app.sockets[0],
-            selected_pair=selected_pair,
-            title="Camera Coordinate Frames",
-            status_lines=[
-                "OpenCV interactive mode",
-                "Press c to start calibration and keep this plot live.",
-                "Press d to inspect the current pair with stereo depth.",
-            ],
-        )
+    with app.open_device():
+        while True:
+            selected_pair = pairs[selected_pair_idx]
+            dashboard = render_dashboard(app, calibration, selected_pair)
+            plot = plot_renderer.render(
+                calibration,
+                app.sockets,
+                reference_socket=app.sockets[0],
+                selected_pair=selected_pair,
+                title="Camera Coordinate Frames",
+                status_lines=[
+                    "OpenCV interactive mode",
+                    "Press c to start calibration and keep this plot live.",
+                    "Press d to inspect the current pair with stereo depth.",
+                ],
+            )
 
-        cv.imshow(dashboard_window, dashboard)
-        cv.imshow(plot_window, plot)
+            cv.imshow(dashboard_window, dashboard)
+            cv.imshow(plot_window, plot)
 
-        key = cv.waitKey(1)
-        if key == ord("q"):
-            break
-        if key == ord("n"):
-            selected_pair_idx = (selected_pair_idx + 1) % len(pairs)
-        elif key == ord("p"):
-            selected_pair_idx = (selected_pair_idx - 1) % len(pairs)
-        elif key == ord("v"):
-            app.visualize_cameras(calibration, selected_pair=selected_pair)
-        elif key == ord("f"):
-            app.flash_calibration(calibration)
-        elif key == ord("c"):
-            try:
-                calibration = app.calibrate(
-                    calibration,
-                    status_label=f"Calibrating {selected_pair.label()}",
-                )
-                pairs = app.get_all_stereo_pairs(calibration)
-                selected_pair_idx = min(selected_pair_idx, len(pairs) - 1)
-            except RuntimeError as exc:
-                print(f"Calibration aborted: {exc}")
-        elif key == ord("d"):
-            try:
-                app.show_depth(
-                    selected_pair.left,
-                    selected_pair.right,
-                    calibration=calibration,
-                    live_renderer=plot_renderer,
-                )
-            except RuntimeError as exc:
-                print(f"Depth preview failed: {exc}")
+            key = cv.waitKey(1)
+            if key == ord("q"):
+                break
+            if key == ord("n"):
+                selected_pair_idx = (selected_pair_idx + 1) % len(pairs)
+            elif key == ord("p"):
+                selected_pair_idx = (selected_pair_idx - 1) % len(pairs)
+            elif key == ord("v"):
+                app.visualize_cameras(calibration, selected_pair=selected_pair)
+            elif key == ord("f"):
+                app.flash_calibration(calibration)
+            elif key == ord("c"):
+                try:
+                    calibration = app.calibrate(
+                        calibration,
+                        status_label=f"Calibrating {selected_pair.label()}",
+                    )
+                    pairs = app.get_all_stereo_pairs(calibration)
+                    selected_pair_idx = min(selected_pair_idx, len(pairs) - 1)
+                except RuntimeError as exc:
+                    print(f"Calibration aborted: {exc}")
+            elif key == ord("d"):
+                try:
+                    app.show_depth(
+                        selected_pair.left,
+                        selected_pair.right,
+                        calibration=calibration,
+                        live_renderer=plot_renderer,
+                    )
+                except RuntimeError as exc:
+                    print(f"Depth preview failed: {exc}")
 
     cv.destroyAllWindows()
 

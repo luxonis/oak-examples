@@ -180,13 +180,20 @@ with pipeline:
         if calibration_result and calibration_result.calibrationData:
             state = "Recalibration"
             finalDisplay = True
-            rotationDiff = np.array(
-                getattr(
-                    calibration_result.calibrationData.calibrationDifference,
-                    "rotationChange",
-                    [],
-                ).copy()
-            )
+            diff = calibration_result.calibrationData.calibrationDifference
+
+            pairwise_rotation = getattr(diff, "pairwiseRotationDifference", {}) or {}
+            cam_pair = (dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C)
+
+            if cam_pair in pairwise_rotation:
+                rotationDiff = np.array(pairwise_rotation[cam_pair], dtype=np.float32)
+            elif pairwise_rotation:
+                rotationDiff = np.array(next(iter(pairwise_rotation.values())), dtype=np.float32)
+            else:
+                rotationDiff = np.array(
+                    getattr(diff, "rotationChange", []) or [],
+                    dtype=np.float32,
+                )
             depthDiff = getattr(
                 calibration_result.calibrationData.calibrationDifference,
                 "depthErrorDifference",
@@ -221,10 +228,10 @@ with pipeline:
             )
 
         elif state == "Recalibration" and finalDisplay:
-            leftFrame = draw_recalibration_message(leftFrame, depthDiff, rotationDiff)
-            rightFrame = draw_recalibration_message(rightFrame, depthDiff, rotationDiff)
+            leftFrame = draw_recalibration_message(leftFrame,rotationDiff)
+            rightFrame = draw_recalibration_message(rightFrame, rotationDiff)
             fourthFrame = draw_recalibration_message(
-                fourthFrame, depthDiff, rotationDiff
+                fourthFrame, rotationDiff
             )
             masterFrame = update_master_frame(
                 leftFrame, rightFrame, disp_vis, fourthFrame

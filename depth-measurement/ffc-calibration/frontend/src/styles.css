@@ -91,6 +91,54 @@ select {
   color: #15171c;
 }
 
+.depth-overlay-hitbox {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+}
+
+.depth-overlay-readout {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(15, 18, 24, 0.72);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.depth-range-panel {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 220px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(15, 18, 24, 0.78);
+  color: #ffffff;
+  display: grid;
+  gap: 8px;
+}
+
+.depth-range-panel label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.depth-range-panel input[type="range"] {
+  width: 100%;
+}
+
+.depth-range-title {
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .control-panel {
   min-height: 0;
   overflow: auto;
@@ -359,6 +407,12 @@ select {
 .pair-list {
   display: grid;
   gap: 8px;
+}
+
+.action-stack {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .pair-button {
