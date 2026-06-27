@@ -952,30 +952,11 @@ class FfcCalibrationApp:
         entered_baselines_cm: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float],
     ) -> dai.CalibrationHandler:
         for (src, dest), baseline_cm in entered_baselines_cm.items():
-            rotation = np.asarray(
-                calibration.getCameraRotationMatrix(src, dest),
-                dtype=np.float64,
-            )
-            translation = np.asarray(
-                calibration.getCameraTranslationVector(src, dest, False),
-                dtype=np.float64,
-            ).reshape(-1)
-            current_norm = float(np.linalg.norm(translation))
-            if current_norm <= 1e-9:
-                raise RuntimeError(
-                    f"Cannot constrain {format_socket(src)} -> {format_socket(dest)} "
-                    "because its current translation vector has zero length."
-                )
-
-            direction = translation / current_norm
-            # Preserve the existing src->dest direction from the calibration and
-            # only constrain its magnitude to the entered baseline.
-            constrained_translation = direction * float(baseline_cm)
-            constrained_list = constrained_translation.tolist()
+            constrained_list = np.array([baseline_cm, 0, 0]).tolist()
             calibration.setCameraExtrinsics(
                 src,
                 dest,
-                rotation.tolist(),
+                np.eye(3),
                 constrained_list,
                 constrained_list,
             )
@@ -1006,13 +987,10 @@ class FfcCalibrationApp:
                 f"calibration topology: {exc}"
             ) from exc
 
-    def constrain_calibration_to_entered_baselines(
-        self,
-        calibration: dai.CalibrationHandler,
-        entered_baselines_cm: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float],
-    ) -> dai.CalibrationHandler:
-        self.validate_entered_baselines(calibration, entered_baselines_cm)
-        return self._apply_entered_baselines(calibration, entered_baselines_cm)
+    def create_empty_handler(self, calibration: dai.CalibrationHandler):
+        for src in self.all_sockets:
+            calibration.setCameraExtrinsics(srcCameraId= src, destCameraId=dai.CameraBoardSocket.AUTO, rotationMatrix=np.eye(3), translation=[0,0,0], specTranslation=[0, 0, 0])
+
 
     def _log_entered_baseline_readback(
         self,
@@ -1043,6 +1021,7 @@ class FfcCalibrationApp:
             if use_device_calibration:
                 entered = getattr(self, "entered_baselines_cm", {})
                 if entered:
+                    self.create_empty_handler(source_calibration)
                     self.validate_entered_baselines(source_calibration, entered)
                     constrained = self._apply_entered_baselines(source_calibration, entered)
                     self._log_entered_baseline_readback(

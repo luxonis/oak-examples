@@ -712,18 +712,6 @@ def _run_dynamic_calibration(
             if new_calibration is None:
                 raise RuntimeError("DynamicCalibration did not return calibration data")
 
-            entered_baselines = getattr(app, "entered_baselines_cm", {})
-            if entered_baselines:
-                new_calibration = app.constrain_calibration_to_entered_baselines(
-                    new_calibration,
-                    entered_baselines,
-                )
-                app._log_entered_baseline_readback(
-                    new_calibration,
-                    entered_baselines,
-                    header="Re-applied entered baselines after dynamic calibration",
-                )
-
             print("Calibration complete.")
             return new_calibration, None
 
@@ -747,10 +735,22 @@ def _pair_menu(
     while True:
         selected_pair = pairs[selected_idx]
         with app.open_device() as device:
+            device.setCalibration(calibration)
             with dai.Pipeline(device) as pipeline:
                 _disable_pipeline_auto_calibration(pipeline)
-                cam_left = pipeline.create(dai.node.Camera).build(selected_pair.left)
-                cam_right = pipeline.create(dai.node.Camera).build(selected_pair.right)
+                shared_resolution = app.preview_resolution_for_pair(
+                    selected_pair.left, selected_pair.right
+                )
+                cam_left = (
+                    pipeline.create(dai.node.Camera)
+                    .setSensorType(dai.CameraSensorType.MONO)
+                    .build(selected_pair.left)
+                )
+                cam_right = (
+                    pipeline.create(dai.node.Camera)
+                    .setSensorType(dai.CameraSensorType.MONO)
+                    .build(selected_pair.right)
+                )
                 sync = pipeline.create(dai.node.Sync)
                 sync.setSyncThreshold(timedelta(milliseconds=50))
                 stereo = pipeline.create(dai.node.StereoDepth)
@@ -761,16 +761,20 @@ def _pair_menu(
                     max_distance_mm=5000,
                     state=frontend_state._depth_preview,
                 )
-                shared_resolution = app.preview_resolution_for_pair(
-                    selected_pair.left, selected_pair.right
+                left_raw = cam_left.requestOutput(
+                    shared_resolution,
+                    type=dai.ImgFrame.Type.GRAY8,
+                    fps=app.fps,
                 )
-                left_raw = cam_left.requestOutput(shared_resolution, fps=app.fps)
-                right_raw = cam_right.requestOutput(shared_resolution, fps=app.fps)
+                right_raw = cam_right.requestOutput(
+                    shared_resolution,
+                    type=dai.ImgFrame.Type.GRAY8,
+                    fps=app.fps,
+                )
                 left_raw.link(sync.inputs["left"])
                 right_raw.link(sync.inputs["right"])
                 left_raw.link(stereo.left)
                 right_raw.link(stereo.right)
-                device.setCalibration(calibration)
 
                 left_out = stereo.syncedLeft
                 right_out = stereo.syncedRight
