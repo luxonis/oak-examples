@@ -1,6 +1,5 @@
 import cv2
 import depthai as dai
-from depthai_nodes.message import SegmentationMask
 
 
 class BlurBackground(dai.node.HostNode):
@@ -34,12 +33,11 @@ class BlurBackground(dai.node.HostNode):
         """Blurs the background of the input frame based on the segmentation mask."""
 
         assert isinstance(frame_msg, dai.ImgFrame)
-        assert isinstance(mask_msg, SegmentationMask)
+        assert isinstance(mask_msg, dai.SegmentationMask)
 
         frame = frame_msg.getCvFrame()
-        person_mask = (
-            mask_msg.mask == 15
-        )  # person is class 15 in the output of the model
+        mask = mask_msg.getCvMask()
+        person_mask = mask == 15  # person is class 15 in the output of the model
 
         bg = frame.copy()
         blurred_bg = cv2.blur(bg, (10, 10))
