@@ -27,7 +27,7 @@ This is the repository reference for ADAS-style YOLO-P output: detections plus r
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` YOLO-P model and input resized to model dimensions
 - `Input:` camera frames by default or `ReplayVideo` via `--media_path`
-- `Output:` `Road Segmentation` and `Detections`
+- `Output:` `Video`, `Detections`, `Road Segmentation`, and `Lane Segmentation`
 - `Models:` YOLO-P YAMLs in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
@@ -35,17 +35,16 @@ This is the repository reference for ADAS-style YOLO-P output: detections plus r
 
 - [README.md](README.md)
 - [main.py](main.py)
-- [utils/annotation_node.py](utils/annotation_node.py)
 - [utils/arguments.py](utils/arguments.py)
 
 ## Architecture
 
 - `ParsingNeuralNetwork` runs the YOLO-P multi-head model on camera or replay input.
-- [utils/annotation_node.py](utils/annotation_node.py) consumes three outputs:
+- [main.py](main.py) sends the model outputs to Visualizer topics:
   - detections
   - road segmentation
   - lane segmentation
-- The Visualizer exposes the segmentation composite and detection overlay separately.
+- The Visualizer renders the input video, detections, road segmentation, and lane segmentation topics.
 
 ## Constraints
 
@@ -62,5 +61,5 @@ This is the repository reference for ADAS-style YOLO-P output: detections plus r
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Success looks like:` the Visualizer shows `Road Segmentation` and `Detections`, with lane/road overlays and detected vehicles
+- `Success looks like:` the Visualizer shows `Video`, `Detections`, `Road Segmentation`, and `Lane Segmentation`, with road/lane segmentation and detected vehicles
 - `Common failure meaning:` the model output ordering changed, the replay input was resized incorrectly, or the operator expected a generic single-output detector
