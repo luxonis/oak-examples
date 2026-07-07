@@ -23,7 +23,7 @@ Here is a list of all available parameters:
 -api API_KEY, --api_key API_KEY
                       HubAI API key for private HubAI access. Can also use 'DEPTHAI_HUB_API_KEY' environment variable instead. (default: )
 -overlay OVERLAY_MODE, --overlay_mode
-                      If passed, overlays model output on the input image when the output is an array (e.g., depth maps, segmentation maps). Otherwise, displays outputs separately.
+                      If passed, overlays model output on the input image when the output is an array (e.g., depth maps, instance segmentation masks). Otherwise, displays outputs separately.
 ```
 
 ## Peripheral Mode
@@ -53,8 +53,7 @@ This will run a simple YOLOv6 object detection model (`luxonis/yolov6-nano:r2-co
 
 ```bash
 python3 main.py \
-    --model luxonis/mediapipe-selfie-segmentation:256x144 \
-    --overlay_mode
+    --model luxonis/mediapipe-selfie-segmentation:256x144
 ```
 
 This will run a selfie segmentation model.

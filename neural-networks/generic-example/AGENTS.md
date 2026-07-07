@@ -86,7 +86,7 @@ Reusable single-model inference scaffold. It runs one Model Zoo model with one i
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Alternative run:` `python3 main.py --model luxonis/mediapipe-selfie-segmentation:256x144 --overlay_mode`
+- `Alternative run:` `python3 main.py --model luxonis/mediapipe-selfie-segmentation:256x144`
 - `Archive run:` `python3 main.py --model /path/to/custom-model.tar.xz`
 - `Success looks like:` Visualizer exposes `Video` and `Detections`, and the pipeline runs until `q` is pressed
 - `Common failure meaning:` model identifier unavailable for platform, private model auth missing, or selected model violates the single-input/single-output assumptions
