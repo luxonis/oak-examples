@@ -163,6 +163,7 @@ def main() -> None:
         print(f"Connected to device: {app.deviceId}")
 
         calibration = _run_dynamic_calibration(app)
+        app.reconnect_device()
         _pair_menu(app, calibration)
     finally:
         app.close()

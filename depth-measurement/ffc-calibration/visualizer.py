@@ -21,6 +21,7 @@ from utils.ffc_calibration import (
     CoverageOverlayNode,
     DepthPreviewNode,
     FfcCalibrationApp,
+    MonoPreviewNode,
     StereoPair,
     format_socket,
 )
@@ -54,6 +55,18 @@ class FfcPairStats:
     entered_baseline_cm: float | None = None
 
 
+@dataclass
+class FfcLinkStats:
+    label: str
+    left: str
+    right: str
+    baseline_cm: float
+    translation: list[float]
+    entered_baseline_cm: float | None = None
+    supports_stereo_preview: bool = False
+    reason: str = ""
+
+
 @dataclass(frozen=True)
 class NavigationAction:
     stage: str
@@ -70,6 +83,7 @@ class FfcFrontendState:
         self._baseline_ready = False
         self._baselines: dict[str, float] = {}
         self._pairs: list[FfcPairStats] = []
+        self._links: list[FfcLinkStats] = []
         self._selected_pair_idx = 0
         self._requested_pair_idx: int | None = None
         self._flash_requested = False
@@ -144,8 +158,11 @@ class FfcFrontendState:
     def handle_set_sockets(self, req=None) -> dict:
         payload = req if isinstance(req, dict) else {}
         labels = payload.get("sockets", [])
+        sensor_types_payload = payload.get("sensorTypes", {})
         if not isinstance(labels, list):
             return {"ok": False, "error": "Expected sockets list"}
+        if not isinstance(sensor_types_payload, dict):
+            return {"ok": False, "error": "Expected sensorTypes object"}
 
         sockets_by_label = {
             format_socket(socket): socket
@@ -154,6 +171,11 @@ class FfcFrontendState:
         try:
             sockets = [sockets_by_label[str(label)] for label in labels]
             self._app.select_sockets(sockets)
+            sensor_types = {
+                socket: sensor_types_payload.get(format_socket(socket))
+                for socket in sockets
+            }
+            self._app.select_sensor_types(sensor_types)
         except KeyError as exc:
             return {"ok": False, "error": f"Unknown socket {exc}"}
         except ValueError as exc:
@@ -220,11 +242,75 @@ class FfcFrontendState:
                     entered_baseline_cm=entered,
                 )
             )
+        links = self._build_link_stats(calibration, entered_baselines)
         with self._lock:
             self._pairs = stats
+            self._links = links
             self._selected_pair_idx = selected_idx
             self._stage = "preview"
-            self._status = "Select a stereo pair in the browser."
+            self._status = (
+                "Calibration applied to all selected baseline links. "
+                "Stereo preview only lists compatible same-sensor pairs."
+            )
+
+    def _build_link_stats(
+        self,
+        calibration: dai.CalibrationHandler,
+        entered_baselines: dict[tuple[dai.CameraBoardSocket, dai.CameraBoardSocket], float],
+    ) -> list[FfcLinkStats]:
+        stereo_keys = {
+            (pair.left, pair.right) for pair in self._app.get_all_stereo_pairs(calibration)
+        }
+        stats: list[FfcLinkStats] = []
+        for left, right in self._app.baseline_pairs:
+            tvec = np.asarray(
+                calibration.getCameraTranslationVector(left, right, False)
+            ).reshape(-1)
+            left_feature = self._app._camera_features_by_socket.get(left)
+            right_feature = self._app._camera_features_by_socket.get(right)
+            left_sensor = str(getattr(left_feature, "sensorName", "") or "")
+            right_sensor = str(getattr(right_feature, "sensorName", "") or "")
+            left_type = self._app.sensor_type_name_for_socket(left)
+            right_type = self._app.sensor_type_name_for_socket(right)
+            left_resolution = self._app.preview_resolution_for_socket(left)
+            right_resolution = self._app.preview_resolution_for_socket(right)
+            supports_stereo_preview = (left, right) in stereo_keys or (right, left) in stereo_keys
+            reason = "Compatible stereo preview pair"
+            if not supports_stereo_preview:
+                if (
+                    left_type is not None
+                    and right_type is not None
+                    and left_type != right_type
+                ):
+                    reason = (
+                        "Not shown in stereo preview: selected sensor type mismatch "
+                        f"({left_type} vs {right_type})"
+                    )
+                elif left_sensor != right_sensor:
+                    reason = f"Not shown in stereo preview: sensor mismatch ({left_sensor} vs {right_sensor})"
+                elif left_resolution != right_resolution:
+                    reason = (
+                        "Not shown in stereo preview: preview resolution mismatch "
+                        f"({left_resolution[0]}x{left_resolution[1]} vs {right_resolution[0]}x{right_resolution[1]})"
+                    )
+                else:
+                    reason = "Not shown in stereo preview: pair is not in the derived stereo set"
+            entered = entered_baselines.get((left, right))
+            if entered is None:
+                entered = entered_baselines.get((right, left))
+            stats.append(
+                FfcLinkStats(
+                    label=f"{format_socket(left)} -> {format_socket(right)}",
+                    left=format_socket(left),
+                    right=format_socket(right),
+                    baseline_cm=float(np.linalg.norm(tvec)),
+                    translation=[float(v) for v in tvec[:3]],
+                    entered_baseline_cm=entered,
+                    supports_stereo_preview=supports_stereo_preview,
+                    reason=reason,
+                )
+            )
+        return stats
 
     def handle_select_pair(self, req=None) -> dict:
         payload = req if isinstance(req, dict) else {}
@@ -257,10 +343,12 @@ class FfcFrontendState:
     def handle_navigate(self, req=None) -> dict:
         payload = req if isinstance(req, dict) else {}
         stage = str(payload.get("stage", "")).strip()
-        if stage not in {"socket_select", "baseline"}:
+        if stage not in {"socket_select", "baseline", "calibrating"}:
             return {"ok": False, "error": "Unsupported navigation stage"}
 
         with self._lock:
+            if stage == "calibrating" and not self._baselines:
+                return {"ok": False, "error": "No saved baselines available to restart calibration"}
             self._navigation_request = NavigationAction(stage=stage)
             self._requested_pair_idx = None
             self._flash_requested = False
@@ -270,18 +358,29 @@ class FfcFrontendState:
                 self._baseline_ready = False
                 self._baselines = {}
                 self._pairs = []
+                self._links = []
                 self._selected_pair_idx = 0
                 self._flash_status = ""
                 self._app.select_sockets(self._app.all_sockets)
                 self._stage = "socket_select"
                 self._status = "Select sockets to include."
-            else:
+            elif stage == "baseline":
                 self._baseline_ready = False
                 self._pairs = []
+                self._links = []
                 self._selected_pair_idx = 0
                 self._flash_status = ""
                 self._stage = "baseline"
                 self._status = "Choose baseline links, then enter distances."
+            else:
+                self._pairs = []
+                self._links = []
+                self._selected_pair_idx = 0
+                self._flash_status = ""
+                self._socket_ready = True
+                self._baseline_ready = True
+                self._stage = "calibrating"
+                self._status = "Restarting calibration with the current sockets and baselines."
         return {"ok": True}
 
     def consume_flash_request(self) -> bool:
@@ -323,6 +422,7 @@ class FfcFrontendState:
                 "baselineFields": self.baseline_fields(),
                 "recommendedBaselineFields": self.recommended_baseline_fields(),
                 "baselines": dict(self._baselines),
+                "links": [link.__dict__ for link in self._links],
                 "pairs": [pair.__dict__ for pair in self._pairs],
                 "selectedPairIndex": self._selected_pair_idx,
                 "flashStatus": self._flash_status,
@@ -453,6 +553,8 @@ class FfcFrontendState:
             "name": value("name", ""),
             "additionalNames": value("additionalNames", []),
             "calibrationResolution": value("calibrationResolution", None),
+            "sensorTypeOptions": self._app.sensor_type_options_for_socket(feature.socket),
+            "selectedSensorType": self._app.sensor_type_name_for_socket(feature.socket),
         }
 
 
@@ -584,8 +686,12 @@ def _run_dynamic_calibration(
             _disable_pipeline_auto_calibration(pipeline)
             preview_outs = {}
             for socket in app.sockets:
-                cam = pipeline.create(dai.node.Camera).build(socket)
-                out = cam.requestOutput(app.resolution, fps=app.fps)
+                cam = pipeline.create(dai.node.Camera)
+                sensor_type = app.sensor_type_for_socket(socket)
+                if sensor_type is not None:
+                    cam.setSensorType(sensor_type)
+                cam = cam.build(socket)
+                out = cam.requestOutput(app.preview_resolution_for_socket(socket), fps=app.fps)
                 preview_outs[socket] = out
 
             first_pair = _selected_pair(app, calibration, 0)
@@ -593,6 +699,8 @@ def _run_dynamic_calibration(
             preview_outs[first_pair.left].link(stereo.left)
             preview_outs[first_pair.right].link(stereo.right)
             dyn_calib = pipeline.create(dai.node.DynamicCalibration)
+            # Mixed mono/color capture can drift by more than one mono frame interval.
+            dyn_calib.sync.setSyncThreshold(timedelta(milliseconds=120))
             for socket, out in preview_outs.items():
                 out.link(dyn_calib.inputs[f"input_{int(socket)}"])
 
@@ -662,6 +770,8 @@ def _run_dynamic_calibration(
                 coverage = dashboard_coverage_output.tryGet()
                 if coverage is not None:
                     pct = 0.0
+                    coverage_acquired_pct = None
+                    data_acquired_pct = None
                     coverage_map = getattr(coverage, "coveragePerCell", None)
                     left_cells = None
                     right_cells = None
@@ -682,13 +792,40 @@ def _run_dynamic_calibration(
                         if arr.size > 0:
                             mx = float(np.max(arr))
                             pct = float(np.mean(arr) * (100.0 if mx <= 1.01 else 1.0))
+                    coverage_acquired = getattr(coverage, "coverageAcquired", None)
+                    if coverage_acquired is not None:
+                        value = float(coverage_acquired)
+                        if np.isfinite(value):
+                            coverage_acquired_pct = value * 100.0 if 0.0 <= value <= 1.0 else value
+                            pct = max(pct, coverage_acquired_pct)
                     data_acquired = getattr(coverage, "dataAcquired", None)
                     if data_acquired is not None:
                         value = float(data_acquired)
                         if np.isfinite(value):
-                            pct = max(pct, value * 100.0 if 0.0 <= value <= 1.0 else value)
-                    left_overlay.set_coverage(left_cells, pct, "Capturing calibration frames")
-                    right_overlay.set_coverage(right_cells, pct, "Capturing calibration frames")
+                            data_acquired_pct = value * 100.0 if 0.0 <= value <= 1.0 else value
+                            pct = max(pct, data_acquired_pct)
+                    progress_label = "Capturing calibration frames"
+                    if coverage_acquired_pct is not None or data_acquired_pct is not None:
+                        metrics = []
+                        if coverage_acquired_pct is not None:
+                            metrics.append(f"coverage {coverage_acquired_pct:.1f}%")
+                        if data_acquired_pct is not None:
+                            metrics.append(f"data {data_acquired_pct:.1f}%")
+                        progress_label = f"{progress_label} ({', '.join(metrics)})"
+                    left_overlay.set_coverage(
+                        left_cells,
+                        pct,
+                        progress_label,
+                        coverage_pct=coverage_acquired_pct,
+                        data_pct=data_acquired_pct,
+                    )
+                    right_overlay.set_coverage(
+                        right_cells,
+                        pct,
+                        progress_label,
+                        coverage_pct=coverage_acquired_pct,
+                        data_pct=data_acquired_pct,
+                    )
 
                 result = calibration_output.tryGet()
                 if result is not None:
@@ -706,6 +843,7 @@ def _run_dynamic_calibration(
                                 flash=False,
                             )
                         )
+                        app.mark_runtime_calibration_loaded(new_calibration)
                         dashboard.set_progress(100.0, "Calibration complete")
                         break
 
@@ -735,7 +873,7 @@ def _pair_menu(
     while True:
         selected_pair = pairs[selected_idx]
         with app.open_device() as device:
-            device.setCalibration(calibration)
+            app.ensure_runtime_calibration(calibration)
             with dai.Pipeline(device) as pipeline:
                 _disable_pipeline_auto_calibration(pipeline)
                 shared_resolution = app.preview_resolution_for_pair(
@@ -743,16 +881,20 @@ def _pair_menu(
                 )
                 cam_left = (
                     pipeline.create(dai.node.Camera)
-                    .setSensorType(dai.CameraSensorType.MONO)
+                    .setSensorType(
+                        app.sensor_type_for_socket(selected_pair.left)
+                        or dai.CameraSensorType.MONO
+                    )
                     .build(selected_pair.left)
                 )
                 cam_right = (
                     pipeline.create(dai.node.Camera)
-                    .setSensorType(dai.CameraSensorType.MONO)
+                    .setSensorType(
+                        app.sensor_type_for_socket(selected_pair.right)
+                        or dai.CameraSensorType.MONO
+                    )
                     .build(selected_pair.right)
                 )
-                sync = pipeline.create(dai.node.Sync)
-                sync.setSyncThreshold(timedelta(milliseconds=50))
                 stereo = pipeline.create(dai.node.StereoDepth)
                 stereo.setRectification(True)
                 depth_preview = pipeline.create(DepthPreviewNode).build(
@@ -771,16 +913,14 @@ def _pair_menu(
                     type=dai.ImgFrame.Type.GRAY8,
                     fps=app.fps,
                 )
-                left_raw.link(sync.inputs["left"])
-                right_raw.link(sync.inputs["right"])
                 left_raw.link(stereo.left)
                 right_raw.link(stereo.right)
 
-                left_out = stereo.syncedLeft
-                right_out = stereo.syncedRight
+                left_out = pipeline.create(MonoPreviewNode).build(stereo.syncedLeft).output
+                right_out = pipeline.create(MonoPreviewNode).build(stereo.syncedRight).output
 
                 dashboard = pipeline.create(CalibrationDashboardNode).build(
-                    preview=left_out,
+                    preview=stereo.syncedLeft,
                     calibration=calibration,
                     sockets=app.sockets,
                     pairs=pairs,
@@ -875,65 +1015,71 @@ def main() -> None:
         return
 
     app = FfcCalibrationApp(device_id, fps=args.fps_limit)
-    topic_toggles = TopicToggles(
-        dashboard=not args.disable_dashboard,
-        left=not args.disable_left,
-        right=not args.disable_right,
-        depth=not args.disable_depth,
-    )
-    visualizer, ws_port = _make_visualizer(args.http_port, args.ws_port)
-    frontend_state = FfcFrontendState(app, topic_toggles)
-    visualizer.registerService(STATE_SERVICE, frontend_state.handle_get_state)
-    visualizer.registerService(SOCKET_SERVICE, frontend_state.handle_set_sockets)
-    visualizer.registerService(BASELINE_SERVICE, frontend_state.handle_set_baselines)
-    visualizer.registerService(PAIR_SERVICE, frontend_state.handle_select_pair)
-    visualizer.registerService(FLASH_SERVICE, frontend_state.handle_flash_request)
-    visualizer.registerService(NAVIGATE_SERVICE, frontend_state.handle_navigate)
-    visualizer.registerService(DEPTH_CURSOR_SERVICE, frontend_state.handle_set_depth_cursor)
-    visualizer.registerService(DEPTH_RANGE_SERVICE, frontend_state.handle_set_depth_range)
-    visualizer.registerService(DEPTH_STATE_SERVICE, frontend_state.handle_get_depth_state)
-    print(f"Connected to device: {app.deviceId}")
+    try:
+        topic_toggles = TopicToggles(
+            dashboard=not args.disable_dashboard,
+            left=not args.disable_left,
+            right=not args.disable_right,
+            depth=not args.disable_depth,
+        )
+        visualizer, ws_port = _make_visualizer(args.http_port, args.ws_port)
+        frontend_state = FfcFrontendState(app, topic_toggles)
+        visualizer.registerService(STATE_SERVICE, frontend_state.handle_get_state)
+        visualizer.registerService(SOCKET_SERVICE, frontend_state.handle_set_sockets)
+        visualizer.registerService(BASELINE_SERVICE, frontend_state.handle_set_baselines)
+        visualizer.registerService(PAIR_SERVICE, frontend_state.handle_select_pair)
+        visualizer.registerService(FLASH_SERVICE, frontend_state.handle_flash_request)
+        visualizer.registerService(NAVIGATE_SERVICE, frontend_state.handle_navigate)
+        visualizer.registerService(DEPTH_CURSOR_SERVICE, frontend_state.handle_set_depth_cursor)
+        visualizer.registerService(DEPTH_RANGE_SERVICE, frontend_state.handle_set_depth_range)
+        visualizer.registerService(DEPTH_STATE_SERVICE, frontend_state.handle_get_depth_state)
+        print(f"Connected to device: {app.deviceId}")
 
-    print(
-        "Open the FFC frontend and select sockets/baselines. "
-        f"WebSocket URL: ws://localhost:{ws_port}"
-    )
-    print(
-        "Enabled topics: "
-        f"dashboard={topic_toggles.dashboard} "
-        f"left={topic_toggles.left} "
-        f"right={topic_toggles.right} "
-        f"depth={topic_toggles.depth}"
-    )
-    while True:
-        try:
-            frontend_state.wait_for_socket_selection()
-            entered_baselines = frontend_state.wait_for_baselines()
-        except RuntimeError as exc:
-            if str(exc).startswith("NAVIGATE:"):
+        print(
+            "Open the FFC frontend and select sockets/baselines. "
+            f"WebSocket URL: ws://localhost:{ws_port}"
+        )
+        print(
+            "Enabled topics: "
+            f"dashboard={topic_toggles.dashboard} "
+            f"left={topic_toggles.left} "
+            f"right={topic_toggles.right} "
+            f"depth={topic_toggles.depth}"
+        )
+        while True:
+            try:
+                frontend_state.wait_for_socket_selection()
+                entered_baselines = frontend_state.wait_for_baselines()
+            except RuntimeError as exc:
+                if str(exc).startswith("NAVIGATE:"):
+                    continue
+                raise
+
+            app.entered_baselines_cm = entered_baselines
+            try:
+                calibration = app.create_eeprom(use_device_calibration=True)
+            except ValueError as exc:
+                frontend_state.reject_baselines(str(exc))
                 continue
-            raise
+            calibration, navigation_stage = _run_dynamic_calibration(
+                app, calibration, visualizer, frontend_state, topic_toggles
+            )
+            if navigation_stage is not None:
+                app.reconnect_device()
+                continue
+            if calibration is None:
+                continue
 
-        app.entered_baselines_cm = entered_baselines
-        try:
-            calibration = app.create_eeprom(use_device_calibration=True)
-        except ValueError as exc:
-            frontend_state.reject_baselines(str(exc))
-            continue
-        calibration, navigation_stage = _run_dynamic_calibration(
-            app, calibration, visualizer, frontend_state, topic_toggles
-        )
-        if navigation_stage is not None:
-            continue
-        if calibration is None:
-            continue
-
-        frontend_state.set_stage("preview", "Dynamic calibration complete.")
-        navigation_stage = _pair_menu(
-            app, calibration, visualizer, frontend_state, topic_toggles
-        )
-        if navigation_stage is not None:
-            continue
+            app.reconnect_device()
+            frontend_state.set_stage("preview", "Dynamic calibration complete.")
+            navigation_stage = _pair_menu(
+                app, calibration, visualizer, frontend_state, topic_toggles
+            )
+            if navigation_stage is not None:
+                app.reconnect_device()
+                continue
+    finally:
+        app.close()
 
 
 if __name__ == "__main__":

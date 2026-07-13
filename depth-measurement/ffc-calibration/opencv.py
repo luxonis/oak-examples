@@ -137,6 +137,7 @@ def main():
                         calibration,
                         status_label=f"Calibrating {selected_pair.label()}",
                     )
+                    app.reconnect_device()
                     pairs = app.get_all_stereo_pairs(calibration)
                     selected_pair_idx = min(selected_pair_idx, len(pairs) - 1)
                 except RuntimeError as exc:

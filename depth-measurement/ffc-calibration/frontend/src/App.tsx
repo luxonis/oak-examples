@@ -32,6 +32,8 @@ type SocketOption = {
   hasAutofocusIC?: boolean;
   name?: string;
   calibrationResolution?: string | null;
+  sensorTypeOptions?: string[];
+  selectedSensorType?: string | null;
 };
 
 type PairStats = {
@@ -43,6 +45,17 @@ type PairStats = {
   entered_baseline_cm?: number | null;
 };
 
+type LinkStats = {
+  label: string;
+  left: string;
+  right: string;
+  baseline_cm: number;
+  translation: number[];
+  entered_baseline_cm?: number | null;
+  supports_stereo_preview: boolean;
+  reason: string;
+};
+
 type FfcState = {
   ok: boolean;
   stage: "socket_select" | "baseline" | "calibrating" | "preview" | string;
@@ -52,6 +65,7 @@ type FfcState = {
   baselineFields: BaselineField[];
   recommendedBaselineFields: BaselineField[];
   baselines: Record<string, number>;
+  links: LinkStats[];
   pairs: PairStats[];
   selectedPairIndex: number;
   flashStatus: string;
@@ -89,6 +103,7 @@ const emptyState: FfcState = {
   baselineFields: [],
   recommendedBaselineFields: [],
   baselines: {},
+  links: [],
   pairs: [],
   selectedPairIndex: 0,
   flashStatus: "",
@@ -489,6 +504,7 @@ export default function App() {
   const connection = useDaiConnection();
   const [state, setState] = useState<FfcState>(emptyState);
   const [selectedSockets, setSelectedSockets] = useState<string[]>([]);
+  const [selectedSensorTypes, setSelectedSensorTypes] = useState<Record<string, string>>({});
   const [baselinePaths, setBaselinePaths] = useState<BaselinePath[]>([]);
   const [baselineValues, setBaselineValues] = useState<Record<string, string>>({});
   const [showBaselineScene, setShowBaselineScene] = useState(false);
@@ -549,6 +565,25 @@ export default function App() {
           return nextState.selectedSockets;
         }
         return nextState.socketOptions.map((socket) => socket.socket);
+      });
+      setSelectedSensorTypes((current) => {
+        const nextSelected: Record<string, string> = {};
+        for (const socket of nextState.socketOptions) {
+          const options = socket.sensorTypeOptions ?? [];
+          const currentValue = current[socket.socket];
+          if (currentValue && options.includes(currentValue)) {
+            nextSelected[socket.socket] = currentValue;
+            continue;
+          }
+          if (socket.selectedSensorType && options.includes(socket.selectedSensorType)) {
+            nextSelected[socket.socket] = socket.selectedSensorType;
+            continue;
+          }
+          if (options.length > 0) {
+            nextSelected[socket.socket] = options[0];
+          }
+        }
+        return nextSelected;
       });
       setBaselineValues((current) => {
         const merged = { ...current };
@@ -658,7 +693,12 @@ export default function App() {
       }));
       return;
     }
-    dai?.postToService("FFC Set Sockets", { sockets: selectedSockets }, refreshState);
+    const sensorTypes = Object.fromEntries(
+      selectedSockets
+        .map((socket) => [socket, selectedSensorTypes[socket]])
+        .filter((entry): entry is [string, string] => Boolean(entry[1])),
+    );
+    dai?.postToService("FFC Set Sockets", { sockets: selectedSockets, sensorTypes }, refreshState);
   };
 
   const resetRecommendedBaselines = () => {
@@ -709,7 +749,7 @@ export default function App() {
     dai?.postToService("FFC Flash Calibration", { confirm: true }, refreshState);
   };
 
-  const navigateToStage = (stage: "socket_select" | "baseline") => {
+  const navigateToStage = (stage: "socket_select" | "baseline" | "calibrating") => {
     dai?.postToService("FFC Navigate", { stage }, refreshState);
   };
 
@@ -751,6 +791,12 @@ export default function App() {
         {state.stage === "socket_select" && (
           <div className="panel-section">
             <h2>Detected Sockets</h2>
+            <p className="muted-text">
+              Select every camera socket that should be part of this calibration session. You need at least two.
+            </p>
+            <p className="muted-text">
+              Include RGB sockets only if you want their extrinsics calibrated too, even if they are not used later for stereo depth preview.
+            </p>
             {connection.connected && state.socketOptions.length === 0 && (
               <p>Waiting for connected camera sockets from backend.</p>
             )}
@@ -760,6 +806,12 @@ export default function App() {
                 const supportedTypes = Array.isArray(socket.supportedTypes)
                   ? socket.supportedTypes.join(", ")
                   : socket.supportedTypes;
+                const sensorTypeOptions = socket.sensorTypeOptions ?? [];
+                const selectedSensorType =
+                  selectedSensorTypes[socket.socket] ??
+                  socket.selectedSensorType ??
+                  sensorTypeOptions[0] ??
+                  "";
                 return (
                   <label className={checked ? "socket-card selected" : "socket-card"} key={socket.socket}>
                     <input
@@ -776,6 +828,30 @@ export default function App() {
                     </span>
                     {socket.orientation && <span className="socket-detail">Orientation: {socket.orientation}</span>}
                     {supportedTypes && <span className="socket-detail">Types: {supportedTypes}</span>}
+                    {sensorTypeOptions.length > 1 ? (
+                      <span className="socket-detail socket-select-detail">
+                        <span>Sensor type</span>
+                        <select
+                          value={selectedSensorType}
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) =>
+                            setSelectedSensorTypes((current) => ({
+                              ...current,
+                              [socket.socket]: event.target.value,
+                            }))
+                          }
+                        >
+                          {sensorTypeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </span>
+                    ) : sensorTypeOptions.length === 1 ? (
+                      <span className="socket-detail">Sensor type: {sensorTypeOptions[0]}</span>
+                    ) : null}
                     <span className="socket-detail">
                       AF: {socket.hasAutofocus ? "yes" : "no"} | AF IC: {socket.hasAutofocusIC ? "yes" : "no"}
                     </span>
@@ -805,6 +881,12 @@ export default function App() {
         {state.stage === "baseline" && (
           <form className="panel-section" onSubmit={submitBaselines}>
             <h2>Baselines</h2>
+            <p className="muted-text">
+              Build a connected calibration graph between the selected sockets, then enter the measured distance for each link in centimeters.
+            </p>
+            <p className="muted-text">
+              Use a negative value when the destination camera is physically on the opposite side of the source camera from your chosen reference direction.
+            </p>
             {connection.connected && state.selectedSockets.length < 2 && (
               <p>Waiting for connected camera sockets from backend.</p>
             )}
@@ -819,7 +901,10 @@ export default function App() {
                 </button>
               </div>
               <p className="muted-text">
-                Recommended: {state.recommendedBaselineFields.map((field) => `${field.left} -> ${field.right}`).join(", ")}
+                Recommended chain: {state.recommendedBaselineFields.map((field) => `${field.left} -> ${field.right}`).join(", ")}
+              </p>
+              <p className="muted-text">
+                Every selected socket must be reachable through these links. The links define which camera-to-camera extrinsics will be solved together.
               </p>
               <div className="path-list">
                 {baselinePaths.map((path, index) => (
@@ -858,11 +943,12 @@ export default function App() {
             </div>
             {baselineFields.map((field) => (
               <label className="field-row" key={field.key}>
-                <span>{field.left} to {field.right}</span>
+                <span>{field.left} to {field.right} distance [cm]</span>
                 <input
                   type="number"
                   min={undefined}
                   step="0.001"
+                  placeholder="7.500"
                   value={baselineValues[field.key] ?? ""}
                   onChange={(event) =>
                     setBaselineValues((current) => ({
@@ -879,7 +965,7 @@ export default function App() {
               onClick={() => setShowBaselineScene((current) => !current)}
               disabled={baselineFields.length === 0}
             >
-              {showBaselineScene ? "Hide 3D Scenery" : "Generate 3D Scenery"}
+              {showBaselineScene ? "Hide 3D Preview" : "Show 3D Preview"}
             </button>
             {showBaselineScene && baselineScene && <BaselineScenePreview scene={baselineScene} />}
             <div className="action-stack">
@@ -931,6 +1017,7 @@ export default function App() {
         {state.pairs.length > 0 && (
           <div className="panel-section">
             <h2>Stereo Pairs</h2>
+            <p className="muted-text">Only compatible same-sensor pairs are shown here for stereo/depth preview.</p>
             <div className="pair-list">
               {state.pairs.map((pair, index) => (
                 <button
@@ -947,6 +1034,31 @@ export default function App() {
           </div>
         )}
 
+        {state.links.length > 0 && (
+          <div className="panel-section">
+            <h2>Calibrated Links</h2>
+            <p className="muted-text">
+              These are the links calibrated from your selected baseline graph, including RGB or mixed-sensor links.
+            </p>
+            <div className="calibrated-link-list">
+              {state.links.map((link) => (
+                <div className="calibrated-link-card" key={link.label}>
+                  <div className="calibrated-link-header">
+                    <strong>{link.label}</strong>
+                    <span>{link.baseline_cm.toFixed(3)} cm</span>
+                  </div>
+                  <div className="calibrated-link-meta">
+                    <span>Translation</span>
+                    <code>
+                      [{link.translation.map((value) => value.toFixed(3)).join(", ")}]
+                    </code>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {selectedPair && (
           <div className="panel-section compact">
             <h2>Displayed Pair</h2>
@@ -954,6 +1066,9 @@ export default function App() {
             <code>
               [{selectedPair.translation.map((value) => value.toFixed(3)).join(", ")}]
             </code>
+            <p className="muted-text">
+              This section controls the live stereo/depth preview only. It does not limit which links were calibrated.
+            </p>
           </div>
         )}
 
@@ -963,6 +1078,14 @@ export default function App() {
               <>
                 <button className="secondary-button" type="button" onClick={flashCalibration}>
                   Flash Calibration
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => navigateToStage("calibrating")}
+                  disabled={!connection.connected}
+                >
+                  Restart Calibration
                 </button>
                 <button
                   className="secondary-button"

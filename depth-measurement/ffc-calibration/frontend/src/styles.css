@@ -225,15 +225,20 @@ select {
 
 .field-row {
   display: grid;
-  grid-template-columns: 1fr 120px;
-  align-items: center;
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 6px;
   margin-bottom: 10px;
   font-size: 14px;
 }
 
+.field-row span {
+  line-height: 1.3;
+}
+
 .field-row input {
   width: 100%;
+  max-width: none;
+  justify-self: stretch;
   border: 1px solid #c9ced8;
   border-radius: 6px;
   padding: 8px;
@@ -368,6 +373,20 @@ select {
   grid-column: 2 / 4;
 }
 
+.socket-select-detail {
+  display: grid;
+  gap: 6px;
+}
+
+.socket-select-detail select {
+  width: 100%;
+  max-width: 180px;
+  border: 1px solid #c9ced8;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 7px;
+}
+
 .primary-button,
 .secondary-button,
 .pair-button {
@@ -409,6 +428,11 @@ select {
   gap: 8px;
 }
 
+.calibrated-link-list {
+  display: grid;
+  gap: 10px;
+}
+
 .action-stack {
   display: grid;
   gap: 6px;
@@ -428,6 +452,51 @@ select {
 .pair-button.selected {
   background: #e4f3ec;
   border-color: #59a77d;
+}
+
+.calibrated-link-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #59a77d;
+  border-radius: 10px;
+  background: #e4f3ec;
+  padding: 12px;
+}
+
+.calibrated-link-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calibrated-link-header strong {
+  font-size: 16px;
+  color: #1d2430;
+}
+
+.calibrated-link-header span {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1d2430;
+  white-space: nowrap;
+}
+
+.calibrated-link-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.calibrated-link-meta span {
+  color: #4f5a6b;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.calibrated-link-meta code {
+  margin: 0;
 }
 
 code {
@@ -454,5 +523,34 @@ code {
 
   .control-panel {
     overflow: visible;
+  }
+}
+
+@media (max-width: 420px) {
+  .path-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .path-row select:first-child {
+    grid-column: 1 / 2;
+    grid-row: 1;
+  }
+
+  .path-row span {
+    grid-column: 2 / 3;
+    grid-row: 1;
+    align-self: center;
+  }
+
+  .path-row select:nth-of-type(2) {
+    grid-column: 1 / 2;
+    grid-row: 2;
+  }
+
+  .path-row .icon-button {
+    grid-column: 2 / 3;
+    grid-row: 2;
+    align-self: stretch;
   }
 }

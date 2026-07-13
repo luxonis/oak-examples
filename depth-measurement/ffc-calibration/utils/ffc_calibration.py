@@ -540,6 +540,8 @@ class CoverageOverlayNode(dai.node.HostNode):
         super().__init__()
         self._coverage_cells: np.ndarray | None = None
         self._progress_pct = 0.0
+        self._coverage_pct: float | None = None
+        self._data_pct: float | None = None
         self._label = "Capturing calibration frames"
         self.output = self.createOutput(
             possibleDatatypes=[
@@ -556,6 +558,8 @@ class CoverageOverlayNode(dai.node.HostNode):
         coverage_cells,
         progress_pct: float,
         label: str = "Capturing calibration frames",
+        coverage_pct: float | None = None,
+        data_pct: float | None = None,
     ) -> None:
         cells = None
         if coverage_cells is not None:
@@ -569,6 +573,8 @@ class CoverageOverlayNode(dai.node.HostNode):
                     cells = np.clip(arr, 0.0, 1.0)
         self._coverage_cells = cells
         self._progress_pct = float(np.clip(progress_pct, 0.0, 100.0))
+        self._coverage_pct = None if coverage_pct is None else float(np.clip(coverage_pct, 0.0, 100.0))
+        self._data_pct = None if data_pct is None else float(np.clip(data_pct, 0.0, 100.0))
         self._label = label
 
     def _overlay_coverage(self, image: np.ndarray) -> np.ndarray:
@@ -609,9 +615,34 @@ class CoverageOverlayNode(dai.node.HostNode):
         height = 18
         filled = int(width * self._progress_pct / 100.0)
         overlay = image.copy()
-        cv.rectangle(overlay, (12, y0 - 34), (image.shape[1] - 12, image.shape[0] - 12), (15, 18, 24), -1)
+        panel_top = y0 - (72 if self._coverage_pct is not None or self._data_pct is not None else 34)
+        cv.rectangle(overlay, (12, panel_top), (image.shape[1] - 12, image.shape[0] - 12), (15, 18, 24), -1)
         cv.addWeighted(overlay, 0.42, image, 0.58, 0.0, dst=image)
         cv.putText(image, text, (x0, y0 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.58, (245, 245, 245), 2, cv.LINE_AA)
+        metric_y = y0 - 38
+        if self._coverage_pct is not None:
+            cv.putText(
+                image,
+                f"Spatial coverage: {self._coverage_pct:5.1f}%",
+                (x0, metric_y),
+                cv.FONT_HERSHEY_SIMPLEX,
+                0.52,
+                (210, 230, 255),
+                1,
+                cv.LINE_AA,
+            )
+            metric_y -= 22
+        if self._data_pct is not None:
+            cv.putText(
+                image,
+                f"Frame data: {self._data_pct:5.1f}%",
+                (x0, metric_y),
+                cv.FONT_HERSHEY_SIMPLEX,
+                0.52,
+                (210, 230, 255),
+                1,
+                cv.LINE_AA,
+            )
         cv.rectangle(image, (x0, y0), (x0 + width, y0 + height), (80, 88, 102), 2)
         if filled > 0:
             cv.rectangle(image, (x0 + 2, y0 + 2), (x0 + filled - 2, y0 + height - 2), (92, 208, 116), -1)
@@ -619,6 +650,36 @@ class CoverageOverlayNode(dai.node.HostNode):
     def process(self, frame: dai.ImgFrame) -> None:
         image = frame.getCvFrame()
         output = self._overlay_coverage(image)
+        out_frame = dai.ImgFrame()
+        out_frame.setCvFrame(output, dai.ImgFrame.Type.BGR888p)
+        out_frame.setTimestamp(frame.getTimestamp())
+        out_frame.setSequenceNum(frame.getSequenceNum())
+        out_frame.setTimestampDevice(frame.getTimestampDevice())
+        try:
+            self.output.send(out_frame)
+        except Exception:
+            return
+
+
+class MonoPreviewNode(dai.node.HostNode):
+    def __init__(self) -> None:
+        super().__init__()
+        self.output = self.createOutput(
+            possibleDatatypes=[
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
+            ]
+        )
+
+    def build(self, preview: dai.Node.Output) -> "MonoPreviewNode":
+        self.link_args(preview)
+        return self
+
+    def process(self, frame: dai.ImgFrame) -> None:
+        image = frame.getCvFrame()
+        if len(image.shape) == 2:
+            output = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
+        else:
+            output = image
         out_frame = dai.ImgFrame()
         out_frame.setCvFrame(output, dai.ImgFrame.Type.BGR888p)
         out_frame.setTimestamp(frame.getTimestamp())
@@ -745,24 +806,44 @@ class FfcCalibrationApp:
         self._device_info = dai.DeviceInfo(ip) if ip else None
         self._renderer = CoordinateFrameRenderer()
         self.device: dai.Device | None = None
+        self._loaded_calibration_json: str | None = None
+        self._cached_calibration_json: str | None = None
 
-        with self._open_device() as device:
+        device = self._ensure_device()
+        try:
             self.deviceId = device.getDeviceId()
             self.camera_features = list(device.getConnectedCameraFeatures())
             self._camera_features_by_socket = {
                 feature.socket: feature for feature in self.camera_features
             }
             self.all_sockets = [feature.socket for feature in self.camera_features]
+            self._sensor_type_options_by_socket = {
+                feature.socket: self._sensor_type_options_for_feature(feature)
+                for feature in self.camera_features
+            }
+            self._selected_sensor_type_names = {
+                socket: self._auto_sensor_type_name(socket) for socket in self.all_sockets
+            }
             self.sockets = list(self.all_sockets)
             self.baseline_pairs = self._recommended_baseline_pairs(self.sockets)
+            self._cached_calibration_json = device.readCalibration().eepromToJson()
+        except Exception:
+            self.close()
+            raise
 
         if len(self.sockets) < 2:
+            self.close()
             raise RuntimeError(
                 f"Dynamic calibration needs at least 2 connected cameras, got {len(self.sockets)}"
             )
 
     def _open_device(self):
         return dai.Device(self._device_info) if self._device_info is not None else dai.Device()
+
+    def _ensure_device(self) -> dai.Device:
+        if self.device is None:
+            self.device = self._open_device()
+        return self.device
 
     def preview_resolution_for_socket(
         self, socket: dai.CameraBoardSocket
@@ -773,13 +854,89 @@ class FfcCalibrationApp:
         calibration_resolution = getattr(feature, "calibrationResolution", None)
         calib_width = int(getattr(calibration_resolution, "width", 0) or 0)
         calib_height = int(getattr(calibration_resolution, "height", 0) or 0)
-        sensor_type = str(getattr(feature, "supportedTypes", "")).upper()
+        sensor_type = self.sensor_type_name_for_socket(socket) or ""
 
         if (width, height) == (3840, 2160) or (calib_width, calib_height) == (4056, 3040):
             return (1920, 1080)
         if "MONO" in sensor_type and (width, height) == (1280, 800):
             return (640, 400)
         return self.resolution
+
+    @staticmethod
+    def _normalize_sensor_type_name(value) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip().upper()
+        if not text:
+            return None
+        if text.endswith(".MONO") or text == "MONO":
+            return "MONO"
+        if text.endswith(".COLOR") or text == "COLOR":
+            return "COLOR"
+        return None
+
+    @classmethod
+    def _sensor_type_options_for_feature(cls, feature) -> list[str]:
+        raw_types = getattr(feature, "supportedTypes", None)
+        if isinstance(raw_types, (list, tuple)):
+            candidates = raw_types
+        elif raw_types is None:
+            candidates = []
+        else:
+            candidates = [raw_types]
+
+        options: list[str] = []
+        for candidate in candidates:
+            normalized = cls._normalize_sensor_type_name(candidate)
+            if normalized is not None and normalized not in options:
+                options.append(normalized)
+        return options
+
+    def _auto_sensor_type_name(self, socket: dai.CameraBoardSocket) -> str | None:
+        options = self._sensor_type_options_by_socket.get(socket, [])
+        if not options:
+            return None
+        return options[0]
+
+    def sensor_type_options_for_socket(
+        self, socket: dai.CameraBoardSocket
+    ) -> list[str]:
+        return list(self._sensor_type_options_by_socket.get(socket, []))
+
+    def sensor_type_name_for_socket(
+        self, socket: dai.CameraBoardSocket
+    ) -> str | None:
+        selected = self._selected_sensor_type_names.get(socket)
+        if selected is not None:
+            return selected
+        return self._auto_sensor_type_name(socket)
+
+    def sensor_type_for_socket(
+        self, socket: dai.CameraBoardSocket
+    ) -> dai.CameraSensorType | None:
+        sensor_type_name = self.sensor_type_name_for_socket(socket)
+        if sensor_type_name == "MONO":
+            return dai.CameraSensorType.MONO
+        if sensor_type_name == "COLOR":
+            return dai.CameraSensorType.COLOR
+        return None
+
+    def select_sensor_types(
+        self, sensor_types: dict[dai.CameraBoardSocket, str | None]
+    ) -> None:
+        updated = dict(self._selected_sensor_type_names)
+        for socket, value in sensor_types.items():
+            options = self.sensor_type_options_for_socket(socket)
+            normalized = self._normalize_sensor_type_name(value)
+            if normalized is None:
+                updated[socket] = self._auto_sensor_type_name(socket)
+                continue
+            if options and normalized not in options:
+                raise ValueError(
+                    f"Unsupported sensor type {normalized} for {format_socket(socket)}"
+                )
+            updated[socket] = normalized
+        self._selected_sensor_type_names = updated
 
     def preview_resolution_for_pair(
         self,
@@ -795,21 +952,44 @@ class FfcCalibrationApp:
 
     @contextmanager
     def open_device(self):
-        if self.device is not None:
-            yield self.device
-            return
-
-        with self._open_device() as device:
-            self.device = device
-            try:
-                yield device
-            finally:
-                self.device = None
+        yield self._ensure_device()
 
     def close(self):
         if self.device is not None:
             self.device.close()
             self.device = None
+            self._loaded_calibration_json = None
+
+    def reconnect_device(self) -> dai.Device:
+        self.close()
+        return self._ensure_device()
+
+    def _base_calibration_copy(self) -> dai.CalibrationHandler:
+        if self._cached_calibration_json is None:
+            with self.open_device() as device:
+                self._cached_calibration_json = device.readCalibration().eepromToJson()
+        return dai.CalibrationHandler.fromJson(self._cached_calibration_json)
+
+    def ensure_runtime_calibration(self, calibration: dai.CalibrationHandler | None) -> None:
+        if calibration is None:
+            return
+        if self.device is None:
+            raise RuntimeError("ensure_runtime_calibration requires an active device context")
+
+        calibration_json = calibration.eepromToJson()
+        if self._loaded_calibration_json == calibration_json:
+            return
+
+        self.device.setCalibration(calibration)
+        self._loaded_calibration_json = calibration_json
+
+    def mark_runtime_calibration_loaded(
+        self, calibration: dai.CalibrationHandler | None
+    ) -> None:
+        calibration_json = None if calibration is None else calibration.eepromToJson()
+        self._loaded_calibration_json = calibration_json
+        if calibration_json is not None:
+            self._cached_calibration_json = calibration_json
 
     def select_sockets(self, sockets: list[dai.CameraBoardSocket]) -> None:
         available = set(self.all_sockets)
@@ -871,6 +1051,20 @@ class FfcCalibrationApp:
         pairs: list[StereoPair] = []
         for i in range(len(self.sockets)):
             for j in range(i + 1, len(self.sockets)):
+                left_feature = self._camera_features_by_socket.get(self.sockets[i])
+                right_feature = self._camera_features_by_socket.get(self.sockets[j])
+                left_sensor = str(getattr(left_feature, "sensorName", "") or "")
+                right_sensor = str(getattr(right_feature, "sensorName", "") or "")
+                if not left_sensor or left_sensor != right_sensor:
+                    continue
+                left_type = self.sensor_type_name_for_socket(self.sockets[i])
+                right_type = self.sensor_type_name_for_socket(self.sockets[j])
+                if (
+                    left_type is not None
+                    and right_type is not None
+                    and left_type != right_type
+                ):
+                    continue
                 tvec = np.asarray(
                     calibration.getCameraTranslationVector(
                         self.sockets[i], self.sockets[j], False
@@ -1015,52 +1209,52 @@ class FfcCalibrationApp:
             )
 
     def create_eeprom(self, use_device_calibration: bool = True) -> dai.CalibrationHandler:
-        with self.open_device() as device:
-            source_calibration = device.readCalibration()
+        source_calibration = self._base_calibration_copy()
 
-            if use_device_calibration:
-                entered = getattr(self, "entered_baselines_cm", {})
-                if entered:
-                    self.create_empty_handler(source_calibration)
-                    self.validate_entered_baselines(source_calibration, entered)
-                    constrained = self._apply_entered_baselines(source_calibration, entered)
-                    self._log_entered_baseline_readback(
-                        constrained,
-                        entered,
-                        header="Applied entered baselines to device calibration",
-                    )
-                    return constrained
-                return source_calibration
-
-            self.entered_baselines_cm = {}
-
-            for src, dest in self.baseline_pairs:
-                baseline_cm = float(
-                    input(
-                        f"Baseline distance between sockets {format_socket(src)} and {format_socket(dest)} (cm): "
-                    )
+        if use_device_calibration:
+            entered = getattr(self, "entered_baselines_cm", {})
+            if entered:
+                self.create_empty_handler(source_calibration)
+                self.validate_entered_baselines(source_calibration, entered)
+                constrained = self._apply_entered_baselines(source_calibration, entered)
+                self._log_entered_baseline_readback(
+                    constrained,
+                    entered,
+                    header="Applied entered baselines to device calibration",
                 )
-                self.entered_baselines_cm[(src, dest)] = baseline_cm
+                return constrained
+            return source_calibration
 
-            self.validate_entered_baselines(
-                source_calibration,
-                self.entered_baselines_cm,
+        self.entered_baselines_cm = {}
+
+        for src, dest in self.baseline_pairs:
+            baseline_cm = float(
+                input(
+                    f"Baseline distance between sockets {format_socket(src)} and {format_socket(dest)} (cm): "
+                )
             )
-            constrained = self._apply_entered_baselines(
-                source_calibration,
-                self.entered_baselines_cm,
-            )
-            self._log_entered_baseline_readback(
-                constrained,
-                self.entered_baselines_cm,
-                header="Applied entered baselines to initial calibration",
-            )
-            return constrained
+            self.entered_baselines_cm[(src, dest)] = baseline_cm
+
+        self.validate_entered_baselines(
+            source_calibration,
+            self.entered_baselines_cm,
+        )
+        constrained = self._apply_entered_baselines(
+            source_calibration,
+            self.entered_baselines_cm,
+        )
+        self._log_entered_baseline_readback(
+            constrained,
+            self.entered_baselines_cm,
+            header="Applied entered baselines to initial calibration",
+        )
+        return constrained
 
     def flash_calibration(self, calibration: dai.CalibrationHandler):
         if self.device is None:
             raise RuntimeError("flash_calibration requires an active device context")
         self.device.flashCalibration(calibration)
+        self._cached_calibration_json = calibration.eepromToJson()
         print("Calibration flashed to device.")
 
     def visualize_cameras(
@@ -1103,14 +1297,19 @@ class FfcCalibrationApp:
         with self.open_device() as device:
             with dai.Pipeline(device) as pipeline:
                 pipeline.setAutoCalibrationMode(dai.Pipeline.AutoCalibrationMode.OFF)
-                device.setCalibration(initial_calibration)
+                self.ensure_runtime_calibration(initial_calibration)
                 dynamic_calibration = pipeline.create(dai.node.DynamicCalibration)
-                dynamic_calibration.sync.setSyncThreshold(timedelta(milliseconds=20))
+                # Mixed mono/color capture can drift by more than one mono frame interval.
+                dynamic_calibration.sync.setSyncThreshold(timedelta(milliseconds=120))
 
                 preview_queues = {}
                 preview_windows = {}
                 for socket in self.sockets:
-                    camera = pipeline.create(dai.node.Camera).build(socket)
+                    camera = pipeline.create(dai.node.Camera)
+                    sensor_type = self.sensor_type_for_socket(socket)
+                    if sensor_type is not None:
+                        camera.setSensorType(sensor_type)
+                    camera = camera.build(socket)
                     output = camera.requestOutput(
                         self.preview_resolution_for_socket(socket), fps=self.fps
                     )
@@ -1211,6 +1410,7 @@ class FfcCalibrationApp:
                                 )
                             )
                         )
+                        self.mark_runtime_calibration_loaded(new_calibration)
                         break
 
                     if cv.waitKey(1) == ord("q"):
@@ -1241,8 +1441,16 @@ class FfcCalibrationApp:
                 stereo.setDepthAlignmentUseSpecTranslation(False)
                 stereo.setDisparityToDepthUseSpecTranslation(False)
 
-                left_cam = pipeline.create(dai.node.Camera).build(left_socket)
-                right_cam = pipeline.create(dai.node.Camera).build(right_socket)
+                left_cam = pipeline.create(dai.node.Camera)
+                left_sensor_type = self.sensor_type_for_socket(left_socket)
+                if left_sensor_type is not None:
+                    left_cam.setSensorType(left_sensor_type)
+                left_cam = left_cam.build(left_socket)
+                right_cam = pipeline.create(dai.node.Camera)
+                right_sensor_type = self.sensor_type_for_socket(right_socket)
+                if right_sensor_type is not None:
+                    right_cam.setSensorType(right_sensor_type)
+                right_cam = right_cam.build(right_socket)
 
                 shared_resolution = self.preview_resolution_for_pair(
                     left_socket, right_socket
@@ -1257,7 +1465,7 @@ class FfcCalibrationApp:
                 depth_queue = stereo.depth.createOutputQueue()
                 depth_window = "depth_heatmap"
                 depth_pick = {"x": None, "y": None}
-                device.setCalibration(calibration)
+                self.ensure_runtime_calibration(calibration)
 
                 def on_depth_mouse(event, x, y, flags, param):
                     if event == cv.EVENT_LBUTTONDOWN:
