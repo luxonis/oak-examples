@@ -60,7 +60,7 @@ def initialize_argparser():
     parser.add_argument(
         "-overlay",
         "--overlay_mode",
-        help="If passed, overlays model output on the input image when the output is an array (e.g., depth maps, instance segmentation masks). Otherwise, displays outputs separately.",
+        help="If passed, overlays model output on the input image when the output is an array (e.g., depth maps). Otherwise, displays outputs separately.",
         required=False,
         action="store_true",
     )
