@@ -67,6 +67,14 @@ And this will run an instance segmentation model.
 
 ```bash
 python3 main.py \
+    --model luxonis/midas-v2-1:small-512x288 \
+    --overlay_mode
+```
+
+This will run a MiDaS depth estimation model and overlay the depth map on the input image.
+
+```bash
+python3 main.py \
     --model /path/to/custom-model.tar.xz
 ```
 
