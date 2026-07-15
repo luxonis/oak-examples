@@ -3,6 +3,8 @@ from pathlib import Path
 import os
 import logging
 
+from constants import BUILD_TIMEOUT_SECONDS
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -105,6 +107,19 @@ def test_args(request):
     }
 
     logger.info(f"Test arguments: {args}")
+    return args
+
+
+@pytest.fixture
+def example_test_args(test_args, example_dir):
+    args = dict(test_args)
+
+    for example_path, timeout in BUILD_TIMEOUT_SECONDS.items():
+        if example_path in example_dir.as_posix():
+            args["timeout"] = timeout
+            logger.info(f"timeout argument changed to: {timeout}")
+            break
+
     return args
 
 
