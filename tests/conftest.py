@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 import logging
 
-from constants import BUILD_TIMEOUT_SECONDS
+from constants import STARTUP_TIMEOUT_SECONDS
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -114,10 +114,10 @@ def test_args(request):
 def example_test_args(test_args, example_dir):
     args = dict(test_args)
 
-    for example_path, timeout in BUILD_TIMEOUT_SECONDS.items():
+    for example_path, timeout in STARTUP_TIMEOUT_SECONDS.items():
         if example_path in example_dir.as_posix():
-            args["timeout"] = timeout
-            logger.info(f"timeout argument changed to: {timeout}")
+            args["startup_timeout"] = timeout
+            logger.info(f"startup_timeout argument changed to: {timeout}")
             break
 
     return args

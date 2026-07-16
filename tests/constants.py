@@ -192,7 +192,6 @@ IGNORED_WARNINGS = [
     "Sync node has been trying to sync for",
 ]
 
-# default is 5 minutes
-BUILD_TIMEOUT_SECONDS = {
+STARTUP_TIMEOUT_SECONDS = {
     "neural-networks/speech-recognition/whisper-tiny-en": 900,
 }

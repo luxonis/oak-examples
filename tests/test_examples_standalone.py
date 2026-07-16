@@ -151,9 +151,8 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         return False
 
     run_duration = args.get("timeout")
-    startup_timeout = (
-        60 * 5
-    )  # if it takes more than 5min to setup the app then fail the test
+    # If setup takes too long, fail the test. Some apps can override this.
+    startup_timeout = args.get("startup_timeout", 60 * 5)
     try:
         logger.debug(f"Installing {example_dir} app")
 
