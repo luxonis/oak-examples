@@ -1,2 +1,2 @@
 depthai==3.8.0
-depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@main
+depthai-nodes==0.6.0
