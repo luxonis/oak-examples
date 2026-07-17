@@ -1,6 +1,5 @@
 import depthai as dai
 import numpy as np
-from depthai_nodes.message import SegmentationMask
 from depthai_nodes.node import BaseHostNode
 
 
@@ -31,10 +30,8 @@ class MaskSelection(BaseHostNode):
         self._pending_click = None
         self._selected_mask = None
 
-    def process(self, segmentation: dai.Buffer):
-        assert isinstance(segmentation, SegmentationMask)
-
-        segmentation_mask = segmentation.mask.astype(np.int32)
+    def process(self, segmentation: dai.SegmentationMask):
+        segmentation_mask = segmentation.getCvMask().astype(np.int32)
 
         if self._pending_click:
             segment_id = self._map_click_to_segment(
@@ -78,10 +75,17 @@ class MaskSelection(BaseHostNode):
         if patch.size == 0:
             return None
 
-        values, counts = np.unique(patch, return_counts=True)
+        # Native dai.SegmentationMask uses 255 as background/unassigned.
+        # Do not select the background as an object, while keeping class/instance
+        # id 0 valid.
+        foreground_patch = patch[patch != 255]
+        if foreground_patch.size == 0:
+            return None
+
+        values, counts = np.unique(foreground_patch, return_counts=True)
         return int(values[np.argmax(counts)])
 
-    def _send_mask(self, segmentation: SegmentationMask, mask: np.ndarray):
+    def _send_mask(self, segmentation: dai.SegmentationMask, mask: np.ndarray):
         mask_u8 = mask.astype(np.uint8) * 255
 
         out = dai.ImgFrame()

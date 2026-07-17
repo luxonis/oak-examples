@@ -4,7 +4,6 @@ import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
-from utils.annotation_node import AnnotationNode
 
 _, args = initialize_argparser()
 
@@ -54,19 +53,11 @@ with dai.Pipeline(device) as pipeline:
         input_node_out, nn_archive
     )
 
-    # annotation
-    annotation_node = pipeline.create(AnnotationNode).build(
-        frame=input_node_out,
-        detections=nn.getOutput(0),
-        road_segmentations=nn.getOutput(1),
-        lane_segmentations=nn.getOutput(2),
-    )
-
     # visualization
-    visualizer.addTopic(
-        "Road Segmentation", annotation_node.out_segmentations, "images"
-    )
-    visualizer.addTopic("Detections", annotation_node.out_detections, "images")
+    visualizer.addTopic("Video", nn.passthrough, "images")
+    visualizer.addTopic("Detections", nn.getOutput(0), "images")
+    visualizer.addTopic("Road Segmentation", nn.getOutput(1), "images")
+    visualizer.addTopic("Lane Segmentation", nn.getOutput(2), "images")
 
     print("Pipeline created.")
 

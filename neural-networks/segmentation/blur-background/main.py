@@ -44,6 +44,7 @@ with dai.Pipeline(device) as pipeline:
     seg_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         input_node, seg_model_description, fps=args.fps_limit
     )
+    seg_nn.getParser(dai.node.SegmentationParser).setBackgroundClass(False)
 
     blur_background = pipeline.create(BlurBackground).build(
         seg_nn.passthrough, seg_nn.out
