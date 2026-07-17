@@ -191,3 +191,7 @@ IGNORED_WARNINGS = [
     "UserWarning: Specified provider 'CUDAExecutionProvider' is not in available",
     "Sync node has been trying to sync for",
 ]
+
+STARTUP_TIMEOUT_SECONDS = {
+    "neural-networks/speech-recognition/whisper-tiny-en": 900,
+}

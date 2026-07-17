@@ -34,7 +34,7 @@ def skip_if_not_rvc4(test_args):
         pytest.skip("Skipping test_standalone.py: requires RVC4 platform")
 
 
-def test_example_runs_in_standalone(example_dir, test_args):
+def test_example_runs_in_standalone(example_dir, example_test_args):
     """Tests if the example runs in standalone mode for at least N seconds without errors."""
     # Time that device is waiting before timing out, set for RVC4 tests
     os.environ["DEPTHAI_SEARCH_TIMEOUT"] = "30000"
@@ -45,9 +45,9 @@ def test_example_runs_in_standalone(example_dir, test_args):
         example_dir=example_dir,
         known_failing_examples=KNOWN_FAILING,
         desired_mode="standalone",
-        desired_platform=test_args["platform"],
-        desired_py=test_args["python_version"],
-        desired_dai=test_args["depthai_version"],
+        desired_platform=example_test_args["platform"],
+        desired_py=example_test_args["python_version"],
+        desired_dai=example_test_args["depthai_version"],
     )
     if not success:
         pytest.skip(f"Skipping {example_dir}: {reason}")
@@ -87,15 +87,15 @@ def test_example_runs_in_standalone(example_dir, test_args):
     setup_env(
         base_dir=example_dir,
         requirements_path=requirements_path,
-        depthai_version=test_args["depthai_version"],
-        depthai_nodes_version=test_args["depthai_nodes_version"],
+        depthai_version=example_test_args["depthai_version"],
+        depthai_nodes_version=example_test_args["depthai_nodes_version"],
         oakapp_toml_path=oakapp_toml,
-        local_static_registry=test_args["local_static_registry"],
+        local_static_registry=example_test_args["local_static_registry"],
     )
 
     with change_and_restore_dir(example_dir):
         time.sleep(10)  # to stabilize device
-        success = run_example(example_dir=example_dir, args=test_args)
+        success = run_example(example_dir=example_dir, args=example_test_args)
         teardown()
 
     assert success, f"Test failed for {example_dir}"
@@ -151,9 +151,8 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         return False
 
     run_duration = args.get("timeout")
-    startup_timeout = (
-        60 * 5
-    )  # if it takes more than 5min to setup the app then fail the test
+    # If setup takes too long, fail the test. Some apps can override this.
+    startup_timeout = args.get("startup_timeout", 60 * 5)
     try:
         logger.debug(f"Installing {example_dir} app")
 
