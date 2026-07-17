@@ -64,6 +64,7 @@ with dai.Pipeline(device) as pipeline:
     nn = pipeline.create(ParsingNeuralNetwork).build(
         nnSource=nn_archive, input=manip.out
     )
+    nn.getParser(dai.node.SegmentationParser).setBackgroundClass(False)
 
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(

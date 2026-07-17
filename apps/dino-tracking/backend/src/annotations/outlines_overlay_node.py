@@ -1,7 +1,6 @@
 import cv2
 import depthai as dai
 import numpy as np
-from depthai_nodes.message import SegmentationMask
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
@@ -31,12 +30,8 @@ class OutlinesOverlay(BaseHostNode):
             self.out.send(frame_msg)
             return
 
-        assert isinstance(segmentation, SegmentationMask)
-        mask = getattr(segmentation, "mask", None)
-
-        if mask is None:
-            self.out.send(frame_msg)
-            return
+        assert isinstance(segmentation, dai.SegmentationMask)
+        mask = segmentation.getCvMask()
 
         frame = frame_msg.getCvFrame()
         H, W = frame.shape[:2]
