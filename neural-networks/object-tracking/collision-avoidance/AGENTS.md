@@ -25,7 +25,7 @@ This is the repository reference for tracking objects moving toward the camera a
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` devices with `CAM_A`, `CAM_B`, and `CAM_C`; RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
-- `Requires:` stereo depth, person detections, tracking, and calibration
+- `Requires:` metric depth, person detections, tracking, and calibration
 - `Input:` live color plus stereo pair
 - `Output:` `Video`, `Tracklets`, `Direction`, and `Bird Frame`
 - `Models:` YOLOv6 YAMLs in [depthai_models/](depthai_models/)
@@ -41,7 +41,7 @@ This is the repository reference for tracking objects moving toward the camera a
 
 ## Architecture
 
-- A `SpatialDetectionNetwork` runs on `CAM_A` with stereo depth from `CAM_B/C`.
+- A `SpatialDetectionNetwork` runs on `CAM_A` with metric depth from `Depth`.
 - `ImgDetectionsFilter` keeps only the `person` label.
 - `ObjectTracker` produces tracklets from the filtered spatial detections.
 - [utils/collision_avoidance_node.py](utils/collision_avoidance_node.py) derives the “approaching camera” direction/alert stream.
@@ -50,7 +50,7 @@ This is the repository reference for tracking objects moving toward the camera a
 ## Constraints
 
 - The current repo state is person-only because `person_label` is selected explicitly in [main.py](main.py).
-- The example requires three cameras and aligned stereo depth.
+- The example requires three cameras and aligned metric depth.
 - Alert quality depends on tracklet stability and Z-motion estimation, not just 2D motion.
 
 ## Related Examples

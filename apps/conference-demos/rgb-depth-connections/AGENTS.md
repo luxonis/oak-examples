@@ -28,7 +28,7 @@ This is the best app-shaped reference for composing RGB, depth, and spatial dete
 - `Frontend:` none
 - `Runs on:` stereo-capable devices in peripheral mode; RVC4 standalone packaging also exists
 - `Requires:` color camera on `CAM_A`, mono stereo cameras on `CAM_B` and `CAM_C`
-- `Input:` RGB, stereo depth, and YOLOv6 Nano spatial detections
+- `Input:` RGB, unified depth, and YOLOv6 Nano spatial detections
 - `Output:` `Combined View` and `Detections`
 - `Models:` platform-specific YOLOv6 Nano descriptors in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
@@ -45,15 +45,15 @@ This is the best app-shaped reference for composing RGB, depth, and spatial dete
 ## Architecture
 
 - `CAM_A` provides RGB frames for preview and spatial detection.
-- `CAM_B` and `CAM_C` feed `StereoDepth`.
-- A `SpatialDetectionNetwork` consumes RGB and stereo depth.
+- `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
+- A `SpatialDetectionNetwork` consumes RGB and unified depth.
 - An on-device `Sync` node keeps color, depth, and detections aligned before they reach host nodes.
 - [utils/host_bird_eye_view.py](utils/host_bird_eye_view.py) converts spatial coordinates into a top-down inset.
 - [utils/host_rgb_conference_node.py](utils/host_rgb_conference_node.py) merges RGB, colorized depth, the bird's-eye view, annotations, and logo art into one final frame.
 
 ## Data Flow
 
-- `CAM_A + StereoDepth -> SpatialDetectionNetwork -> spatial detections`
+- `CAM_A + Depth -> SpatialDetectionNetwork -> spatial detections`
 - `color + depth + detections -> Sync -> MessageDemux`
 - `detections -> BirdsEyeView host node -> bird's-eye inset`
 - `color + depth + bird's-eye + detections -> CombineOutputs host node -> Combined View + Detections`
@@ -89,7 +89,7 @@ This is the best app-shaped reference for composing RGB, depth, and spatial dete
 
 - [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): use this when you want a simpler packaged baseline
 - [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the spatial detection scaffold more than the polished composed output
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler stereo baseline
+- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler depth baseline
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial measurement matters more than presentation
 
 ## Validation

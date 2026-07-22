@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the baseline packaged application in the repository. It is the best reference when you need one app-shaped example that combines RGB video, encoded streaming, object detections, and optional stereo depth without introducing a custom frontend.
+This is the baseline packaged application in the repository. It is the best reference when you need one app-shaped example that combines RGB video, encoded streaming, object detections, and optional unified depth without introducing a custom frontend.
 
 ## Use This Example When
 
@@ -22,12 +22,12 @@ This is the baseline packaged application in the repository. It is the best refe
 
 - `Category:` `apps/default-app`
 - `Shape:` `script+standalone`
-- `Primary task:` packaged RGB + detections + optional stereo depth baseline
+- `Primary task:` packaged RGB + detections + optional unified depth baseline
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
-- `Requires:` a Luxonis device; stereo depth branch only appears on devices with two mono cameras
+- `Requires:` a Luxonis device; unified depth branch only appears on devices with two mono cameras
 - `Input:` RGB camera on `CAM_A`; optional mono stereo pair discovered from connected camera features
 - `Output:` `Raw video`, `Video H264`, `Detections`, and optional `Depth`
 - `Models:` platform-specific YOLOv6 Nano descriptors in [depthai_models/](depthai_models/)
@@ -48,20 +48,20 @@ This is the baseline packaged application in the repository. It is the best refe
 - It resolves a platform-specific YOLOv6 Nano YAML and builds a `DetectionNetwork`.
 - `CAM_A` provides RGB frames for inference, preview, and encoding.
 - A `VideoEncoder` publishes an H.264 stream.
-- If two mono cameras are present, the script builds a `StereoDepth` branch and publishes a colorized depth output.
-- RVC4 uses `ImageAlign` for RGB-depth alignment; RVC2 uses `StereoDepth.setDepthAlign(...)`.
+- If two mono cameras are present, the script builds a `Depth` branch and publishes a colorized metric-depth output.
+- `Depth.setAlignTo(...)` aligns the depth output to the RGB stream before visualization.
 
 ## Data Flow
 
 - `CAM_A -> DetectionNetwork -> Detections`
 - `CAM_A -> NV12 output -> VideoEncoder -> Video H264`
 - `CAM_A -> NV12 output -> Raw video`
-- `mono pair -> StereoDepth -> ApplyDepthColormap -> Depth` when stereo cameras are available
+- `mono pair -> Depth -> ApplyDepthColormap -> Depth` when stereo cameras are available
 
 ## Modification Guide
 
 - `Safe to change:` encoder profile, topic names, IR projector usage, RGB output sizes, model YAML defaults
-- `Requires care:` platform-specific RVC2 versus RVC4 NN wiring, stereo alignment logic, mono camera discovery, encoded stream size assumptions
+- `Requires care:` platform-specific RVC2 versus RVC4 NN wiring, depth alignment logic, mono camera discovery, encoded stream size assumptions
 - `Likely to break if changed blindly:` removing the platform branch, assuming every device has stereo cameras, changing model filenames without updating `main.py`
 
 ## Common Adaptations

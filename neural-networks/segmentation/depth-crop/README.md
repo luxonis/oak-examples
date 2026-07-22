@@ -1,8 +1,8 @@
 # Depth Cropping with Deeplabv3+
 
-This example shows how to run the [Deeplabv3+](https://models.luxonis.com/luxonis/deeplab-v3-plus/1189a661-fd0a-44fd-bc9e-64b94d60cb49) model from our HubAI along with the [StereoDepth](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/stereo_depth/) node and crop the depth image based on the models output.
+This example shows how to run the [Deeplabv3+](https://models.luxonis.com/luxonis/deeplab-v3-plus/1189a661-fd0a-44fd-bc9e-64b94d60cb49) model from our HubAI along with the unified `Depth` node and crop the depth image based on the model output.
 
-> **Note:** This example requires a device with at least 3 cameras (color, left and right) since it utilizes the `StereoDepth` node.
+> **Note:** This example requires a device with at least 3 cameras (color, left and right) for the default stereo-backed `Depth` path.
 
 ## Demo
 

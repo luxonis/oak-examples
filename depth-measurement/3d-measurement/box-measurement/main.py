@@ -38,32 +38,14 @@ with dai.Pipeline(device) as p:
         CAMERA_RESOLUTION, dai.ImgFrame.Type.RGB888i, fps=args.fps_limit
     )
 
-    left = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-
-    stereo = p.create(dai.node.StereoDepth).build(
-        left=left.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
-        right=right.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
-    )
-
-    # Medain filter is only supported on RVC4
-    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.DEFAULT)
-    stereo.enableDistortionCorrection(True)
-    stereo.setExtendedDisparity(True)
-    stereo.setLeftRightCheck(True)
-    if platform == dai.Platform.RVC2:  # RVC2 does not support median filter
-        stereo.initialConfig.setMedianFilter(dai.MedianFilter.MEDIAN_OFF)
-
     rgbd = p.create(dai.node.RGBD).build()
 
-    if platform == dai.Platform.RVC4:
-        align = p.create(dai.node.ImageAlign)
-        stereo.depth.link(align.input)
-        color_output.link(align.inputAlignTo)
-        align.outputAligned.link(rgbd.inDepth)
-    else:
-        stereo.depth.link(rgbd.inDepth)
-        color_output.link(stereo.inputAlignTo)
+    depth = p.create(dai.node.Depth)
+    depth.build(
+        dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=CAMERA_RESOLUTION
+    )
+    depth.setAlignTo(color_output)
+    depth.depth.link(rgbd.inDepth)
 
     color_output.link(rgbd.inColor)
 

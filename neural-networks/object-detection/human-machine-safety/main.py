@@ -56,26 +56,18 @@ with dai.Pipeline(device) as pipeline:
 
     # camera input
     color_camera = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
-    left_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_cam.requestOutput(
-            obj_det_nn_archive.getInputSize(), fps=args.fps_limit
-        ),
-        right=right_cam.requestOutput(
-            obj_det_nn_archive.getInputSize(), fps=args.fps_limit
-        ),
-        presetMode=dai.node.StereoDepth.PresetMode.HIGH_DETAIL,
-    )
-    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-    if platform == "RVC2":
-        stereo.setOutputSize(*obj_det_nn_archive.getInputSize())
-    stereo.setLeftRightCheck(True)
-    stereo.setRectification(True)
 
     camera_output = color_camera.requestOutput(
         (800, 600), dai.ImgFrame.Type.NV12, fps=args.fps_limit
     )
+
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(
+        dai.node.Depth.Algorithm.AUTO,
+        fps=args.fps_limit,
+        size=obj_det_nn_archive.getInputSize(),
+    )
+    depth.setAlignTo(camera_output)
 
     obj_det_manip = pipeline.create(dai.node.ImageManip)
     obj_det_manip.initialConfig.setOutputSize(
@@ -114,14 +106,14 @@ with dai.Pipeline(device) as pipeline:
 
     detection_depth_merger = pipeline.create(DepthMerger).build(
         output2d=obj_det_nn.out,
-        outputDepth=stereo.depth,
+        outputDepth=depth.depth,
         calibData=device.readCalibration2(),
         depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
         shrinkingFactor=0.1,
     )
     palm_depth_merger = pipeline.create(DepthMerger).build(
         output2d=palm_det_nn.out,
-        outputDepth=stereo.depth,
+        outputDepth=depth.depth,
         calibData=device.readCalibration2(),
         depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
         shrinkingFactor=0.1,
@@ -160,7 +152,7 @@ with dai.Pipeline(device) as pipeline:
     annotation_node = pipeline.create(AnnotationNode).build(
         detections=detection_filter.out,
         video=camera_output,
-        depth=stereo.depth,
+        depth=depth.depth,
     )
 
     # visualization

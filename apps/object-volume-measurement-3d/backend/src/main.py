@@ -33,7 +33,7 @@ CLASS_NAMES = ["person", "chair", "TV"]
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.15
 
-visualizer = dai.RemoteConnection(serveFrontend=False)
+visualizer = dai.RemoteConnection(serveFrontend=True)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
 platform = device.getPlatformAsString()
@@ -75,20 +75,9 @@ with dai.Pipeline(device) as pipeline:
         enableUndistortion=True,
     )
 
-    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-    left_out = left.requestOutput(
-        (640, 400), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-    )
-    right_out = right.requestOutput(
-        (640, 400), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-    )
-
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_out,
-        right=right_out,
-        presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
-    )
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=(640, 400))
+    depth.setAlignTo(cam_out)
 
     imu = pipeline.create(dai.node.IMU)
     imu.enableIMUSensor(dai.IMUSensor.ACCELEROMETER_RAW, 100)
@@ -102,10 +91,6 @@ with dai.Pipeline(device) as pipeline:
     manip.initialConfig.setFrameType(frame_type)
     manip.setMaxOutputFrameSize(model_w * model_h * 3)
 
-    align = pipeline.create(dai.node.ImageAlign)
-
-    stereo.depth.link(align.input)
-    cam_out.link(align.inputAlignTo)
     cam_out.link(manip.inputImage)
 
     input_node = manip.out
@@ -131,7 +116,7 @@ with dai.Pipeline(device) as pipeline:
     annotation_node = pipeline.create(AnnotationNode).build(
         det_process_filter.out,
         cam_out,
-        align.outputAligned,
+        depth.depth,
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
 

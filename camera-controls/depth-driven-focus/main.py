@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, ApplyColormap, DepthMerger
+from depthai_nodes.node import ParsingNeuralNetwork, ApplyDepthColormap, DepthMerger
 from utils.arguments import initialize_argparser
 from utils.depth_driven_focus import DepthDrivenFocus
 
@@ -27,29 +27,21 @@ with dai.Pipeline(device) as pipeline:
         nn_archive.getInputSize(), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
     )
 
-    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    left_out = left.requestOutput(
-        nn_archive.getInputSize(), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(
+        dai.node.Depth.Algorithm.AUTO,
+        fps=args.fps_limit,
+        size=nn_archive.getInputSize(),
     )
-    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-    right_out = right.requestOutput(
-        nn_archive.getInputSize(), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-    )
-
-    stereo = pipeline.create(dai.node.StereoDepth).build(left=left_out, right=right_out)
-    stereo.setDepthAlign(align=dai.StereoDepthConfig.AlgorithmControl.DepthAlign.CENTER)
-    stereo.setLeftRightCheck(True)
-    stereo.setRectification(True)
-    stereo.setExtendedDisparity(True)
+    depth.setAlignTo(color_out)
 
     face_det_nn = pipeline.create(ParsingNeuralNetwork).build(cam, nn_archive)
     if platform == dai.Platform.RVC2:
         face_det_nn.setNNArchive(nn_archive, numShaves=7)
     depth_merger = pipeline.create(DepthMerger).build(
-        face_det_nn.out, stereo.depth, device.readCalibration2()
+        face_det_nn.out, depth.depth, device.readCalibration2()
     )
-    depth_color_transform = pipeline.create(ApplyColormap).build(stereo.disparity)
-    depth_color_transform.setMaxValue(int(stereo.initialConfig.getMaxDisparity()))
+    depth_color_transform = pipeline.create(ApplyDepthColormap).build(depth.depth)
 
     depth_driven_focus = pipeline.create(DepthDrivenFocus).build(
         control_queue=cam.inputControl.createInputQueue(),

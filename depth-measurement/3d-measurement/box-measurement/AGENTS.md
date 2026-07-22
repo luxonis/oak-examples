@@ -14,7 +14,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 ## Do Not Use This Example When
 
 - You need a minimal point cloud baseline without neural inference.
-- You need ToF rather than stereo depth.
+- You need a ToF-specific tuning example rather than unified depth.
 - You need a browser frontend or backend/frontend service split.
 - You need production-grade stable metrology without cuboid-fit jitter.
 
@@ -46,7 +46,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 ## Architecture
 
 - `CAM_A` provides the RGB stream used for display and inference.
-- `CAM_B` and `CAM_C` feed `StereoDepth`, which is then aligned to RGB through `RGBD`.
+- `Depth` owns depth-source selection and aligns its metric depth output to RGB before `RGBD`.
 - A platform-specific box instance-segmentation archive is loaded from [depthai_models/](depthai_models/).
 - `ImageManip` resizes RGB frames to the model input size before `ParsingNeuralNetwork`.
 - The custom [utils/box_processing_node.py](utils/box_processing_node.py) threaded host node receives:
@@ -58,7 +58,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 ## Data Flow
 
 - `CAM_A -> ImageManip -> ParsingNeuralNetwork -> detections + segmentation mask`
-- `CAM_B/C -> StereoDepth -> RGBD -> Pointcloud`
+- `Depth -> RGBD -> Pointcloud`
 - `pointcloud + NN passthrough + detections -> BoxProcessingNode -> Box Detections + Cuboid Fit`
 - `CAM_A preview -> Video Stream`
 

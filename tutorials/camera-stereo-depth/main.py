@@ -30,17 +30,10 @@ with dai.Pipeline(device) as pipeline:
         size=(640, 480), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
     )
 
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_output,
-        right=right_output,
-    )
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=(640, 480))
 
-    stereo.initialConfig.setMedianFilter(dai.MedianFilter.MEDIAN_OFF)
-    stereo.setRectification(True)
-    stereo.setExtendedDisparity(True)
-    stereo.setLeftRightCheck(True)
-
-    depth_parser = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
+    depth_parser = pipeline.create(ApplyDepthColormap).build(depth.depth)
     depth_parser.setColormap(cv2.COLORMAP_JET)
 
     encoder = pipeline.create(dai.node.VideoEncoder)
