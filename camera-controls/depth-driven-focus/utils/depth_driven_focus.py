@@ -35,8 +35,8 @@ class DepthDrivenFocus(dai.node.HostNode):
                 dist = int(calculate_distance(detection.spatialCoordinates))
                 if closest_dist is None or dist < closest_dist:
                     closest_dist = dist
-            except ValueError:
-                print("Invalid depth value")
+            except ValueError as e:
+                print(f"Invalid depth value: {repr(e)}")
 
         if closest_dist is not None:
             new_lens_pos = max(

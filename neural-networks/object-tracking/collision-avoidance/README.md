@@ -4,7 +4,7 @@ This example's goal is to detect the objects moving towards the camera and alert
 
 You can see the visualization of the object's trajectory in the `Direction` topic. We also visualize the bird's eye view of the scene.
 
-> **Note:** This example requires a device with at least 3 cameras (color, left and right) since it utilizes the `StereoDepth` node.
+> **Note:** This example requires a device with at least 3 cameras (color, left and right) for the default stereo-backed `Depth` path.
 
 ## Demo
 

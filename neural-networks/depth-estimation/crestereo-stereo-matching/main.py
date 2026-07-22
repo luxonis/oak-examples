@@ -1,7 +1,8 @@
 import cv2
 import depthai as dai
-from depthai_nodes.node import ApplyColormap, ApplyDepthColormap, ParsingNeuralNetwork
+from depthai_nodes.node import ApplyDepthColormap, ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
+from utils.disparity_to_depth import DisparityToDepth
 
 _, args = initialize_argparser()
 
@@ -50,14 +51,11 @@ with dai.Pipeline(device) as pipeline:
     left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
     right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
 
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left.requestOutput(
-            model_input_shape, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-        ),
-        right=right.requestOutput(
-            model_input_shape, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-        ),
-        presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(
+        dai.node.Depth.Algorithm.AUTO,
+        fps=args.fps_limit,
+        size=model_input_shape,
     )
 
     lr_sync = pipeline.create(dai.node.Sync)
@@ -87,17 +85,28 @@ with dai.Pipeline(device) as pipeline:
     demux.outputs["left"].link(nn.inputs["left"])
     demux.outputs["right"].link(nn.inputs["right"])
 
-    # color stereo disparity
-    disparity_coloring = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
-    disparity_coloring.setColormap(cv2.COLORMAP_PLASMA)
+    # color Depth node metric depth
+    depth_coloring = pipeline.create(ApplyDepthColormap).build(depth.depth)
+    depth_coloring.setColormap(cv2.COLORMAP_PLASMA)
 
-    # color nn output
-    nn_coloring = pipeline.create(ApplyColormap).build(nn.out)
+    calibration = device.readCalibration()
+    baseline_mm = calibration.getBaselineDistance() * 10
+    focal_length_px = calibration.getCameraIntrinsics(
+        dai.CameraBoardSocket.CAM_C, *model_input_shape
+    )[0][0]
+    nn_depth = pipeline.create(DisparityToDepth).build(
+        disparity=nn.out,
+        baseline_mm=baseline_mm,
+        focal_length_px=focal_length_px,
+    )
+
+    # color CREStereo output converted from disparity to metric depth
+    nn_coloring = pipeline.create(ApplyDepthColormap).build(nn_depth.output)
     nn_coloring.setColormap(cv2.COLORMAP_PLASMA)
 
     # visualization
-    visualizer.addTopic("Stereo Disparity", disparity_coloring.out)
-    visualizer.addTopic("NN", nn_coloring.out)
+    visualizer.addTopic("Depth", depth_coloring.out)
+    visualizer.addTopic("CREStereo Depth", nn_coloring.out)
 
     print("Pipeline created.")
 

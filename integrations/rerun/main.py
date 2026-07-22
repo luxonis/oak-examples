@@ -23,26 +23,22 @@ def main():
         left_out = None
         right_out = None
         pcl_out = None
-        if args.left or args.pointcloud:
+        if args.left:
             left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
             left_out = left.requestOutput(resolution, fps=args.fps_limit)
-        if args.right or args.pointcloud:
+        if args.right:
             right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
             right_out = right.requestOutput(resolution, fps=args.fps_limit)
 
         if args.pointcloud:
-            stereo = pipeline.create(dai.node.StereoDepth).build(
-                left=left_out,
-                right=right_out,
-                presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
+            depth = pipeline.create(dai.node.Depth)
+            depth.build(
+                dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=resolution
             )
-
-            img_align = pipeline.create(dai.node.ImageAlign)
-            rgb_out.link(img_align.inputAlignTo)
-            stereo.depth.link(img_align.input)
+            depth.setAlignTo(rgb_out)
 
             pcl = pipeline.create(dai.node.PointCloud)
-            img_align.outputAligned.link(pcl.inputDepth)
+            depth.depth.link(pcl.inputDepth)
             pcl_out = pcl.outputPointCloud
 
         pipeline.create(Rerun).build(

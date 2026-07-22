@@ -39,17 +39,11 @@ with dai.Pipeline(device) as pipeline:
         CAMERA_RESOLUTION, dai.ImgFrame.Type.NV12, fps=args.fps_limit
     )
 
-    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
-        right=right.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(
+        dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=CAMERA_RESOLUTION
     )
-    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.DEFAULT)
-    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-    if platform == "RVC2":
-        stereo.setOutputSize(*CAMERA_RESOLUTION)
+    depth.setAlignTo(color_output)
 
     manip = pipeline.create(dai.node.ImageManip)
     manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
@@ -69,9 +63,8 @@ with dai.Pipeline(device) as pipeline:
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(
         preview=color_output,
-        disparity=stereo.disparity,
+        depth=depth.depth,
         mask=nn.out,
-        max_disparity=stereo.initialConfig.getMaxDisparity(),
     )
 
     output_segmentation_encoder = pipeline.create(dai.node.VideoEncoder).build(

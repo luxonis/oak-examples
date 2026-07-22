@@ -2,11 +2,11 @@
 
 ## Summary
 
-This is the minimal RGBD point-cloud reference in the repo. Use it when you need the smallest example that aligns stereo depth to a color stream and publishes a point cloud without adding custom host processing or neural inference.
+This is the minimal RGBD point-cloud reference in the repo. Use it when you need the smallest example that aligns unified depth to a color stream and publishes a point cloud without adding custom host processing or neural inference.
 
 ## Use This Example When
 
-- You need a clean baseline for `StereoDepth + RGBD + pcl`.
+- You need a clean baseline for `Depth + RGBD + pcl`.
 - You want to align depth to RGB or optionally colorize the point cloud from the right mono camera.
 - You need a point-cloud reference that still works with the Visualizer rather than Open3D.
 - You want a simple starting point before moving to measurement or frontend-heavy examples.
@@ -22,13 +22,13 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 - `Category:` `depth-measurement/3d-measurement/rgbd-pointcloud`
 - `Shape:` `script+standalone`
-- `Primary task:` align stereo depth to a color source and publish a point cloud
+- `Primary task:` align unified depth to a color source and publish a point cloud
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` stereo-capable devices with `CAM_B/C` and either `CAM_A` or the right mono camera
 - `Requires:` stereo mono pair, calibration, and optionally RGB camera if `--mono` is not used
-- `Input:` stereo depth from `CAM_B/C`; color from `CAM_A` by default or right mono with `--mono`
+- `Input:` unified depth from `dai.node.Depth`; color from `CAM_A` by default or right mono with `--mono`
 - `Output:` `preview` and `pointcloud`
 - `Models:` none
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
@@ -42,7 +42,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 ## Architecture
 
-- `CAM_B` and `CAM_C` feed `StereoDepth`.
+- `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
 - `RGBD` is used to fuse depth with a selected color source.
 - The color source is either:
   - `CAM_A` in RGB mode
@@ -53,7 +53,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 ## Data Flow
 
-- `CAM_B/C -> StereoDepth -> aligned depth`
+- `Depth -> aligned depth`
 - `CAM_A or right mono -> RGBD.inColor`
 - `aligned depth + color -> RGBD -> pointcloud`
 - `selected color stream -> preview`
@@ -67,7 +67,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 ## Common Adaptations
 
 - `To colorize from mono by default:` start from the `--mono` branch in [main.py](main.py)
-- `To reuse this as a point-cloud baseline for another task:` keep the `StereoDepth` and `RGBD` branch and replace the Visualizer topics
+- `To reuse this as a point-cloud baseline for another task:` keep the `Depth` and `RGBD` branch and replace the Visualizer topics
 - `To add host-side geometry processing:` compare against [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement) after this baseline is working
 - `To move to ToF:` use [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud) instead
 
@@ -89,7 +89,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 - [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement): use this when you need segmentation-driven measurements on top of RGBD point clouds
 - [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud): use this when the point cloud should come from a ToF sensor
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host-side stereo comparison rather than a point cloud
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler stereo depth baseline before RGBD fusion
+- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler depth baseline before RGBD fusion
 
 ## Validation
 

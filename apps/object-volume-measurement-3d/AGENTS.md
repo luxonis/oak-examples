@@ -28,7 +28,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` RVC4 standalone only
 - `Requires:` RVC4 device with RGB, stereo, and IMU; static frontend build; bundled YOLOE model
-- `Input:` RGB camera, stereo depth, IMU, frontend object clicks, class labels, confidence threshold, and measurement-method selection
+- `Input:` RGB camera, unified metric depth, IMU, frontend object clicks, class labels, confidence threshold, and measurement-method selection
 - `Output:` `Video`, `Detections`, `Pointclouds`, `Measurement Overlay`, and `Plane Status`
 - `Models:` [yoloe_v8_l.RVC4.yaml](backend/src/depthai_models/yoloe_v8_l.RVC4.yaml)
 - `Visualizer / UI:` custom static frontend
@@ -49,7 +49,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Architecture
 
-- RGB from `CAM_A` is resized and aligned with stereo depth from `CAM_B` and `CAM_C`.
+- RGB from `CAM_A` is resized and aligned with metric depth from `dai.node.Depth`.
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
 - Detection filtering keeps only the currently active class labels.
 - The annotation node handles segmentation, selection, and display overlays.

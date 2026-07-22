@@ -26,7 +26,7 @@ This is the repository reference for browser-based WebRTC streaming with runtime
 - `Frontend:` static browser client under [client/](client/)
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging, with extra caveats around frontend assets
 - `Requires:` built frontend bundle, `aiohttp`, `aiortc`, and either RGB or stereo-capable hardware depending on selected mode
-- `Input:` RGB camera with optional NN model, or stereo disparity when `camera_type=depth`
+- `Input:` RGB camera with optional NN model, or metric depth when `camera_type=depth`
 - `Output:` WebRTC video stream and a small control datachannel
 - `Models:` optional runtime-selected model slugs from the browser UI
 - `Visualizer / UI:` browser on `http://<host-or-device>:8080`
@@ -52,7 +52,7 @@ This is the repository reference for browser-based WebRTC streaming with runtime
 
 - The current repo state does not include the built `client/build/client.js` bundle; you must build the frontend before running or packaging this example.
 - [main.py](main.py) uses a single global `pipeline`, so new peer connections restart the pipeline rather than supporting multiple independent active sessions.
-- Depth mode requires stereo cameras and streams disparity, not RGB.
+- Depth mode streams colorized metric depth, not RGB.
 - This is a local-dev WebRTC example; HTTPS, TURN, and broader production networking concerns are outside the current implementation.
 
 ## Related Examples

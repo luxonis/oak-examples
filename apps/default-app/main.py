@@ -81,29 +81,14 @@ with dai.Pipeline(device) as pipeline:
                 break
     if cam_mono_1 and cam_mono_2:
         device.setIrLaserDotProjectorIntensity(1)
-        left_cam = pipeline.create(dai.node.Camera).build(cam_mono_1)
-        right_cam = pipeline.create(dai.node.Camera).build(cam_mono_2)
-        stereo = pipeline.create(dai.node.StereoDepth).build(
-            left=left_cam.requestFullResolutionOutput(dai.ImgFrame.Type.NV12),
-            right=right_cam.requestFullResolutionOutput(dai.ImgFrame.Type.NV12),
-            presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
+        cam_out = cameraNode.requestOutput(
+            (640, 480), type=dai.ImgFrame.Type.NV12, enableUndistortion=True
         )
 
-        # RVC4 does not support stereo.setDepthAlign, ImageAlign node used instead
-        if platform == dai.Platform.RVC4:
-            cam_out = cameraNode.requestOutput(
-                (640, 480), type=dai.ImgFrame.Type.NV12, enableUndistortion=True
-            )
-            align = pipeline.create(dai.node.ImageAlign)
-            stereo.depth.link(align.input)
-            cam_out.link(align.inputAlignTo)
-            coloredDepth = pipeline.create(ApplyDepthColormap).build(
-                align.outputAligned
-            )
-        else:
-            stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-            stereo.setOutputSize(800, 600)
-            coloredDepth = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
+        depth = pipeline.create(dai.node.Depth)
+        depth.build(dai.node.Depth.Algorithm.AUTO, fps=30, size=(640, 480))
+        depth.setAlignTo(cam_out)
+        coloredDepth = pipeline.create(ApplyDepthColormap).build(depth.depth)
         coloredDepth.setColormap(cv2.COLORMAP_JET)
         visualizer.addTopic("Depth", coloredDepth.out)
 
