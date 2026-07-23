@@ -22,7 +22,9 @@ with dai.Pipeline(device) as pipeline:
     else:
         cam_node = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
 
-    cam_out = cam_node.requestOutput(IMG_SHAPE, type=dai.ImgFrame.Type.RGB888i)
+    cam_out = cam_node.requestOutput(
+        IMG_SHAPE, type=dai.ImgFrame.Type.RGB888i, enableUndistortion=True
+    )
     cam_out.link(rgbd.inColor)
 
     depth = pipeline.create(dai.node.Depth)
