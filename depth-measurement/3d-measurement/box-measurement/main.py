@@ -35,7 +35,10 @@ with dai.Pipeline(device) as p:
 
     color = p.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
     color_output = color.requestOutput(
-        CAMERA_RESOLUTION, dai.ImgFrame.Type.RGB888i, fps=args.fps_limit
+        CAMERA_RESOLUTION,
+        dai.ImgFrame.Type.RGB888i,
+        fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
     rgbd = p.create(dai.node.RGBD).build()
