@@ -36,7 +36,10 @@ with dai.Pipeline(device) as pipeline:
     # camera input
     color = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
     color_output = color.requestOutput(
-        CAMERA_RESOLUTION, dai.ImgFrame.Type.NV12, fps=args.fps_limit
+        size=CAMERA_RESOLUTION,
+        type=dai.ImgFrame.Type.NV12,
+        fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
     depth = pipeline.create(dai.node.Depth)

@@ -66,17 +66,17 @@ class ROIControl(dai.node.HostNode):
         y = self._roi.ymin
 
         text_x = (
-            f"X: {depth.spatials.x / 1000:.1f}m"
+            f"X: {depth.spatials.x / 1000:.2f}m"
             if not math.isnan(depth.spatials.x)
             else "X: --"
         )
         text_y = (
-            f"Y: {depth.spatials.y / 1000:.1f}m"
+            f"Y: {depth.spatials.y / 1000:.2f}m"
             if not math.isnan(depth.spatials.y)
             else "Y: --"
         )
         text_z = (
-            f"Z: {depth.spatials.z / 1000:.1f}m"
+            f"Z: {depth.spatials.z / 1000:.2f}m"
             if not math.isnan(depth.spatials.z)
             else "Z: --"
         )

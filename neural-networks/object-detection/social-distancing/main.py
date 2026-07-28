@@ -46,6 +46,7 @@ with dai.Pipeline(device) as pipeline:
         size=det_model_nn_archive.getInputSize(),
         type=frame_type,
         fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
     depth = pipeline.create(dai.node.Depth)
