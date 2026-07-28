@@ -56,7 +56,7 @@ class AnnotationNode(dai.node.HostNode):
             )
 
             annotation_helper.draw_text(
-                text=f"{self.labels[detection.label]} {int(detection.confidence * 100)}% \nx: {detection.spatialCoordinates.x:.2f}mm \ny: {detection.spatialCoordinates.y:.2f}mm \nz:{detection.spatialCoordinates.z:.2f}mm",
+                text=f"{self.labels[detection.label]} {int(detection.confidence * 100)}% \nx: {detection.spatialCoordinates.x:.0f}mm \ny: {detection.spatialCoordinates.y:.0f}mm \nz:{detection.spatialCoordinates.z:.0f}mm",
                 position=(xmin + 0.01, ymin + 0.2),
                 size=12,
                 color=SECONDARY_COLOR,
