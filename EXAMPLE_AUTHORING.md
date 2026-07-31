@@ -94,3 +94,5 @@ python3 scripts/generate_agents_index.py --check
 ```
 
 CI runs the same check on pull requests.
+
+[EXAMPLE_SELECTION.md](EXAMPLE_SELECTION.md) is curated rather than generated. Update it when a change introduces a new high-value product starting point, changes a deterministic selection rule, or turns an existing example into or out of a technique showcase. Do not mirror every `INDEX.md` entry into the selection guide.

@@ -78,6 +78,7 @@ def is_ignored(path: Path) -> bool:
 def looks_like_oak_examples(path: Path) -> bool:
     return (
         (path / "INDEX.md").is_file()
+        and (path / "EXAMPLE_SELECTION.md").is_file()
         and (path / "ESSENTIAL_KNOWLEDGE.md").is_file()
         and (path / "AGENTS.md").is_file()
     )
@@ -470,20 +471,24 @@ def main() -> int:
         help=f"Repository branch to shallow clone. Default: {DEFAULT_REPO_BRANCH}",
     )
     parser.add_argument(
-        "--print-index",
+        "--print-selection-context",
         action="store_true",
-        help="Find or shallow-clone oak-examples and print the local INDEX.md path for example selection.",
+        help="Find or shallow-clone oak-examples and print the local EXAMPLE_SELECTION.md and INDEX.md paths.",
     )
     args = parser.parse_args()
 
     try:
         repo = find_repo(args.repo, args.repo_url, args.branch)
-        if args.print_index:
+        if args.print_selection_context:
             print(f"repo: {repo}")
+            selection_guide = repo / "EXAMPLE_SELECTION.md"
+            print(f"selection_guide: {selection_guide}")
             print(f"index: {repo / 'INDEX.md'}")
             return 0
         if args.example is None or args.output is None:
-            parser.error("example and output are required unless --print-index is used")
+            parser.error(
+                "example and output are required unless --print-selection-context is used"
+            )
         bootstrap(repo, args.example, args.output)
     except Exception as exc:
         print(f"error: {exc}", file=sys.stderr)

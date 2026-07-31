@@ -13,6 +13,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Do Not Use This Example When
 
+- You only need instance segmentation without interactive 3D measurement.
 - You only need point-to-point distance measurement.
 - You need a lightweight pointcloud example without segmentation and measurement logic.
 - You need host/peripheral support rather than standalone-only RVC4 packaging.

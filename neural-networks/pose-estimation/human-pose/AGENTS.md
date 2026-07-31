@@ -2,25 +2,27 @@
 
 ## Summary
 
-This is the repository reference for person detection plus human pose estimation with Lite-HRNet. Use it when you need body keypoints on detected people rather than a generic detector.
+This is a technique reference for two-stage person detection plus human pose estimation with Lite-HRNet. Before using it as a product base, compare it with a supported end-to-end pose model in `neural-networks/generic-example`.
 
 ## Use This Example When
 
-- You need human pose estimation.
+- You specifically need a detect-crop-pose pipeline rather than end-to-end pose estimation.
 - You want a person-detection first stage with a swappable pose model.
+- Representative testing shows that normalized person crops or Lite-HRNet provide a required quality advantage over a one-stage model.
 - You need camera or replay input with packaged standalone support.
 
 ## Do Not Use This Example When
 
+- You only need person boxes and body keypoints and an end-to-end pose model meets the requirements.
 - You need hand or animal pose instead of human pose.
-- You need a single-stage detector.
+- A supported one-stage pose model satisfies the accuracy and throughput requirements.
 - You need multi-person tracking rather than per-frame pose overlays.
 
 ## Quick Facts
 
 - `Category:` `neural-networks/pose-estimation/human-pose`
 - `Shape:` `script+standalone`
-- `Primary task:` person detection plus human pose estimation
+- `Primary task:` demonstrate two-stage person detection, crop generation, and pose estimation
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
@@ -47,12 +49,14 @@ This is the repository reference for person detection plus human pose estimation
 
 ## Constraints
 
+- This example exists to demonstrate a two-stage pattern; keep both stages only when their separation or crop behavior is required.
 - The current code path is person-specific, even though the detector could emit other classes.
 - The pose parser threshold is intentionally set to `0.0` so the overlay node can do the filtering instead.
 - Replay sizing and crop padding affect downstream pose quality.
 
 ## Related Examples
 
+- [neural-networks/generic-example](https://github.com/luxonis/oak-examples/tree/main/neural-networks/generic-example): preferred starting point for human pose when a one-stage YOLO pose model is sufficient
 - [neural-networks/pose-estimation/hand-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/hand-pose): use this when you need hand landmarks and gesture logic
 - [neural-networks/pose-estimation/animal-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/animal-pose): use this when you need animal pose
 - [neural-networks/reidentification/human-reidentification](https://github.com/luxonis/oak-examples/tree/main/neural-networks/reidentification/human-reidentification): use this when you need to identify tracked people or faces rather than estimate pose

@@ -13,6 +13,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 ## Do Not Use This Example When
 
+- You only need instance masks and boxes; choose a single-model inference base instead.
 - You need a minimal point cloud baseline without neural inference.
 - You need ToF rather than stereo depth.
 - You need a browser frontend or backend/frontend service split.

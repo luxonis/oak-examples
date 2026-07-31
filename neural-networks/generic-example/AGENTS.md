@@ -2,19 +2,21 @@
 
 ## Summary
 
-Reusable single-model inference scaffold. It runs one Model Zoo model with one image-like input and one parsed output stream, using either camera input or a replayed media file.
+Reusable single-model inference scaffold for parser-supported classification, detection, pose, segmentation, line detection, monocular depth, and image-to-image tasks. It maps one image-like input to one parsed output stream.
 
 ## Use This Example When
 
 - You need a simple starting point for one Model Zoo model.
+- A supported model already returns the complete perception result.
+- You need classification, detection, pose, segmentation, line/lane detection, monocular depth, or image-to-image inference without additional pipeline behavior.
 - You want to switch between camera input and media-file input with minimal code changes.
-- You need a baseline for object detection or array-like single-output models.
+- You need a baseline for any parser-supported single-model result.
 - You want a compact example that already has default RVC2/RVC4 model descriptors.
 
 ## Do Not Use This Example When
 
 - You need multi-stage inference such as detect-then-crop-then-classify.
-- You need multi-input, multi-head, host-decoded, or task-specific postprocessing logic.
+- You need multiple pipeline inputs, manually wired tensor inputs, host-decoded raw output, or substantial task-specific postprocessing.
 - You need stereo depth, point clouds, ROS, C++, a custom frontend, or multi-device logic.
 
 ## Quick Facts
