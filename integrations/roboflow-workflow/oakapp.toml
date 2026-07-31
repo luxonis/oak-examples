@@ -1,17 +1,41 @@
 identifier = "com.example.integrations.roboflow-workflow"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.1.0"
+app_version = "3.1.0"
+
+# --- NPU (Hexagon DSP) passthrough for the ONNX Runtime QNN EP --------------
+# Lets `inference` run its ONNX models on the DSP (see backend/src/core/
+# qnn_patch.py). Optional, so a CPU-only run (EP=cpu) never fails.
+# NOTE: these are top-level keys and must stay above the [table] sections.
+optional_devices = [
+    "/dev/adsprpc-smd",
+    "/dev/dma_heap/qcom,system",
+    "/dev/dma_heap/system",
+]
+# Device-OS FastRPC user-space libraries (libcdsprpc.so + its deps), preloaded
+# at runtime by backend/src/oak4ort/bootstrap.py.
+optional_mounts = ["/usr/lib:/host_usr_lib:ro,rbind"]
+# oak-agent mounts optional_devices into the container but does not add
+# device-cgroup allow rules for them, so opening the nodes would fail with
+# EPERM (FastRPC transport error 1002 -> silent CPU fallback). "m" is needed
+# for the /dev/fastrpc-cdsp alias mknod in bootstrap.py.
+allowed_devices = [{ allow = true, access = "rwm" }]
 
 prepare_container = [
-    # --- Build tools for source-built wheels (zxing-cpp has no aarch64 wheels) ---
-    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y --no-install-recommends build-essential cmake ninja-build && rm -rf /var/lib/apt/lists/*'" },
+    # --- Build tools for source-built wheels (zxing-cpp has no aarch64 wheels);
+    # libatomic1 is needed by the QNN EP's CPU-side libraries ---
+    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y --no-install-recommends build-essential cmake ninja-build libatomic1 && rm -rf /var/lib/apt/lists/*'" },
 
     # --- Copy and install requirements ---
     { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
     { type = "RUN", command = "bash -lc 'python3.11 -m pip install --upgrade pip setuptools wheel'" },
     # torch/torchvision from the CPU index first - the regular PyPI aarch64 wheels pull in the full CUDA stack (~3 GB of useless deps on RVC4)
     { type = "RUN", command = "bash -lc 'python3.11 -m pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu'" },
-    { type = "RUN", command = "bash -lc 'python3.11 -m pip install --no-cache-dir -r /app/backend/src/requirements.txt'" }
+    { type = "RUN", command = "bash -lc 'python3.11 -m pip install --no-cache-dir -r /app/backend/src/requirements.txt'" },
+    # ONNX Runtime with the QNN plugin EP (Hexagon DSP). Deliberately overrides
+    # `inference`'s `onnxruntime<1.22` pin: the plugin-EP API needs >=1.28, and
+    # the runtime API surface `inference` uses is unchanged. `onnx` is used by
+    # core/qnn_patch.py to fix dynamic batch dims before HTP compilation.
+    { type = "RUN", command = "bash -lc 'python3.11 -m pip install --no-cache-dir onnx onnxruntime==1.28.0 onnxruntime-qnn==2.4.0'" }
 ]
 
 prepare_build_container = [
@@ -23,6 +47,13 @@ build_steps = [
     "cp /app/backend-run.sh /etc/service/backend/run",
     "chmod +x /etc/service/backend/run"
 ]
+
+[env]
+# EP=dsp routes the workflow's ONNX models to the DSP, EP=cpu keeps the
+# previous CPU-only behavior. STRICT=1 fails instead of falling back to the
+# CPU EP (debugging aid). Override per run: oakctl app run --env EP=cpu .
+EP = "dsp"
+STRICT = "0"
 
 [static_frontend]
 dist_path = "./frontend/dist"

@@ -2,6 +2,10 @@ import logging
 import time
 
 from config.config import load_config
+
+# Must be imported before any module that imports `inference` (it sets the
+# ONNX Runtime provider env default the router relies on).
+from core import qnn_patch
 from core.depthai_pipeline import DepthAIPipeline
 from core.manager import RoboflowManager
 from core.roboflow_runner import (
@@ -16,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    # Route the ONNX sessions `inference` creates to the DSP (QNN EP) when
+    # available; a no-op on non-RVC4 hosts or with EP=cpu.
+    qnn_patch.install()
+
     config = load_config()
     logger.info(f"Init config: {config}")
 
