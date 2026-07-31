@@ -1,6 +1,6 @@
-"""oak4ort: run ONNX models on the OAK4 Hexagon DSP with one function call.
+"""oak4ort_slim: run ONNX models on the OAK4 Hexagon DSP with one function call.
 
-    from oak4ort import qnn_session
+    from oak4ort_slim import qnn_session
     sess = qnn_session("model.onnx")
     out = sess.run(None, {"input": x})
 

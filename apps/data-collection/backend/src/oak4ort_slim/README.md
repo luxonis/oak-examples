@@ -1,10 +1,10 @@
-# oak4ort — run any ONNX model on the OAK4 DSP
+# oak4ort_slim — run any ONNX model on the OAK4 DSP
 
 Wraps everything needed to run ONNX Runtime inference on the OAK4's Hexagon
 HTP inside a standalone OAK App:
 
 ```python
-from oak4ort import qnn_session
+from oak4ort_slim import qnn_session
 
 sess = qnn_session("model.onnx")          # fp32 model -> fp16 on the DSP
 out = sess.run(None, {"input": x})

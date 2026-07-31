@@ -21,13 +21,15 @@ build_steps = [
 depthai_models = { yaml_path = "./backend/src/depthai_models" }
 
 # NPU (Hexagon HTP) passthrough so the prompt encoders run on the DSP via
-# the ONNX Runtime QNN EP. FastRPC libs, the /dev/fastrpc-cdsp alias and
-# onnxruntime(-qnn) come preinstalled in the base image below.
+# the ONNX Runtime QNN EP. The /dev/fastrpc-cdsp alias and onnxruntime(-qnn)
+# come from the base image below; its NPU setup hook links the device-OS
+# FastRPC user-space libraries from the /usr/lib mount at container start.
 optional_devices = [
     "/dev/adsprpc-smd",
     "/dev/dma_heap/qcom,system",
     "/dev/dma_heap/system",
 ]
+optional_mounts = ["/usr/lib:/host_usr_lib:ro,rbind"]
 # oak-agent mounts optional_devices but does not add device-cgroup allow
 # rules for them (adsprpc-smd is char 496:*, dma_heap is char 248:*):
 allowed_devices = [
