@@ -1,6 +1,7 @@
 from tokenizers import Tokenizer
 from tqdm import tqdm
 import os
+import time
 import requests
 import onnxruntime
 import numpy as np
@@ -30,14 +31,8 @@ def extract_text_embeddings(class_names, max_num_classes=80):
         local_filename=textual_onnx_model_path,
     )
 
-    session_textual = onnxruntime.InferenceSession(
-        textual_onnx_model_path,
-        providers=[
-            "TensorrtExecutionProvider",
-            "CUDAExecutionProvider",
-            "CPUExecutionProvider",
-        ],
-    )
+    t0 = time.perf_counter()
+    session_textual = _make_textual_session(textual_onnx_model_path, *text_onnx.shape)
     textual_output = session_textual.run(
         None,
         {
@@ -45,6 +40,10 @@ def extract_text_embeddings(class_names, max_num_classes=80):
             "attention_mask": attention_mask,
         },
     )[0]
+    print(
+        f"[yolo-world] text encoder session+run: {time.perf_counter() - t0:.2f}s "
+        f"(providers={session_textual.get_providers()})"
+    )
 
     num_padding = max_num_classes - len(class_names)
     text_features = np.pad(
@@ -56,6 +55,38 @@ def extract_text_embeddings(class_names, max_num_classes=80):
     del session_textual
 
     return text_features
+
+
+def _make_textual_session(model_path, batch_size, seq_len):
+    """NPU (QNN EP) session when running on the onnxruntime oakapp-base image,
+    otherwise the original provider list."""
+    try:
+        import onnxruntime_qnn  # noqa: F401  # preinstalled in the NPU base image
+        from oak4ort import qnn_session
+    except ImportError:
+        return onnxruntime.InferenceSession(
+            model_path,
+            providers=[
+                "TensorrtExecutionProvider",
+                "CUDAExecutionProvider",
+                "CPUExecutionProvider",
+            ],
+        )
+    return qnn_session(_fix_input_shapes(model_path, batch_size, seq_len), fp16=True)
+
+
+def _fix_input_shapes(model_path, batch_size, seq_len):
+    """The QNN EP needs static shapes; pin the dynamic dims (cached on disk)."""
+    import onnx
+    from onnxruntime.tools.onnx_model_utils import make_dim_param_fixed
+
+    fixed_path = f"{os.path.splitext(model_path)[0]}_{batch_size}x{seq_len}.onnx"
+    if not os.path.exists(fixed_path):
+        model = onnx.load(model_path)
+        make_dim_param_fixed(model.graph, "batch_size", batch_size)
+        make_dim_param_fixed(model.graph, "sequence_length", seq_len)
+        onnx.save(model, fixed_path)
+    return fixed_path
 
 
 def download_tokenizer(url, save_path):

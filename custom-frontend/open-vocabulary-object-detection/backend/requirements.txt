@@ -5,6 +5,7 @@ numpy>=1.22
 tokenizers~=0.21.0
 onnxruntime
 # onnxruntime-gpu # if you want to use CUDAExecutionProvider
+onnx # to pin dynamic input shapes for the NPU (QNN EP) path
 requests
 python-box
 pydantic

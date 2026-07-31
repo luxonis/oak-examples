@@ -1,6 +1,8 @@
+import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional
 
 from box import Box
 from onnxruntime import InferenceSession
@@ -10,6 +12,8 @@ import requests
 
 
 HUBAI_API_BASE = "https://easyml.cloud.luxonis.com/models/api/v1"
+
+log = logging.getLogger(__name__)
 
 
 class BasePromptEncoder(ABC):
@@ -34,13 +38,78 @@ class BasePromptEncoder(ABC):
         self._quant_key: str = quant_key or model_name
         self._session: InferenceSession = None
         self._offset: int = None
+        self._on_npu: bool = False
+        self._batch_bucket: Optional[int] = None
 
     def _load_model(self) -> None:
         """Download from HubAI and initialize the ONNX model."""
         path = self._download_from_hubai(
             self._encoder_model_slug, self._encoder_model_path
         )
-        self._session = InferenceSession(path)
+        self._session = self._make_session(str(path))
+
+    def _make_session(self, path: str) -> InferenceSession:
+        """NPU (QNN EP) session when running on the onnxruntime oakapp-base
+        image, otherwise the original CPU session."""
+        try:
+            import onnxruntime_qnn  # noqa: F401  # preinstalled in the NPU base image
+            from oak4ort import qnn_session
+        except ImportError:
+            self._on_npu = False
+            return InferenceSession(path)
+        session = qnn_session(self._pin_input_shapes(path), fp16=True)
+        # shapes are pinned even if qnn_session fell back to CPU, so the
+        # static-batch padding in _pad_batch must stay on either way
+        self._on_npu = True
+        log.info(f"{type(self).__name__}: providers={session.get_providers()}")
+        return session
+
+    def _npu_input_shape(self) -> Optional[tuple]:
+        """Static shape applied to every model input on the NPU path.
+        None pins each remaining dynamic dim to 1 instead."""
+        return None
+
+    def _pin_input_shapes(self, path: str) -> str:
+        """The QNN EP needs static shapes; pin dynamic dims (cached on disk)."""
+        import onnx
+        from onnxruntime.tools.onnx_model_utils import make_dim_param_fixed
+
+        shape = self._npu_input_shape()
+        tag = "x".join(map(str, shape)) if shape else "b1"
+        fixed_path = f"{os.path.splitext(path)[0]}_npu_{tag}.onnx"
+        if not os.path.exists(fixed_path):
+            model = onnx.load(path)
+            for inp in model.graph.input:
+                dims = inp.type.tensor_type.shape.dim
+                for i, dim in enumerate(dims):
+                    if dim.dim_value > 0 and not dim.dim_param:
+                        continue  # already static
+                    target = shape[i] if shape else 1
+                    if dim.dim_param:
+                        make_dim_param_fixed(model.graph, dim.dim_param, target)
+                    else:
+                        dim.dim_value = target
+            onnx.save(model, fixed_path)
+        return fixed_path
+
+    #: batch sizes the NPU model gets compiled for (compiled once per bucket,
+    #: cached on disk); anything larger falls back to max_num_classes
+    _BATCH_BUCKETS = (8, 16, 32)
+
+    def _pick_bucket(self, n: int) -> int:
+        for bucket in self._BATCH_BUCKETS:
+            if n <= bucket:
+                return bucket
+        return self._config.max_num_classes
+
+    def _pad_batch(self, arr: np.ndarray) -> tuple[np.ndarray, int]:
+        """Pad the batch dim to the current bucket on the NPU path (static
+        shape); callers slice the output back to the original batch size."""
+        n = arr.shape[0]
+        target = self._batch_bucket or self._config.max_num_classes
+        if not self._on_npu or n >= target:
+            return arr, n
+        return np.pad(arr, ((0, target - n), (0, 0)), mode="constant"), n
 
     @abstractmethod
     def extract_embeddings(self, *args, **kwargs) -> np.ndarray:

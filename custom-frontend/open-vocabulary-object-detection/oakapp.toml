@@ -1,10 +1,14 @@
 identifier = "com.luxonis.custom-frontend.open-vocabulary-object-detection"
-entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+# This app runs runsvdir itself (instead of routing through /entrypoint.sh,
+# which would start a second supervisor on /etc/service), so it only invokes
+# the base image's NPU setup hook (/dev/fastrpc-cdsp alias) beforehand.
+entrypoint = ["bash", "-c", "/etc/entrypoint.d/10-npu-setup.sh || true; exec /usr/bin/runsvdir -P /etc/service"]
 app_version = "1.0.3"
 
 prepare_container = [
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
-    { type = "RUN", command = "python3.12 -m pip install -r /app/backend/requirements.txt --break-system-packages"},
+    # default python3: the NPU base image ships onnxruntime(-qnn) for it
+    { type = "RUN", command = "python3 -m pip install -r /app/backend/requirements.txt --break-system-packages"},
 ]
 
 prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
@@ -16,6 +20,21 @@ build_steps = [
 
 depthai_models = { yaml_path = "./backend/src/depthai_models" }
 
+# NPU (Hexagon HTP) passthrough so the prompt encoders run on the DSP via
+# the ONNX Runtime QNN EP. FastRPC libs, the /dev/fastrpc-cdsp alias and
+# onnxruntime(-qnn) come preinstalled in the base image below.
+optional_devices = [
+    "/dev/adsprpc-smd",
+    "/dev/dma_heap/qcom,system",
+    "/dev/dma_heap/system",
+]
+# oak-agent mounts optional_devices but does not add device-cgroup allow
+# rules for them (adsprpc-smd is char 496:*, dma_heap is char 248:*):
+allowed_devices = [
+    { allow = true, type = "c", major = 496, access = "rwm" },
+    { allow = true, type = "c", major = 248, access = "rw" },
+]
+
 [static_frontend]
 dist_path = "./frontend/dist"
 
@@ -23,11 +42,9 @@ dist_path = "./frontend/dist"
 source_path = "./frontend"
 steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
 
+# ONNX Runtime (NPU) oakapp-base variant, served from the registry running
+# on the device itself (oakapp-base branch: onnxruntime-base).
 [base_image]
-api_url = "https://registry-1.docker.io"
-service = "registry.docker.io"
-oauth_url = "https://auth.docker.io/token"
-auth_type = "repository"
-auth_name = "luxonis/oakapp-base"
-image_name = "luxonis/oakapp-base"
-image_tag = "1.2.6"
+api_url = "http://127.0.0.1:5555"
+image_name = "oakapp-base"
+image_tag = "onnxruntime"
