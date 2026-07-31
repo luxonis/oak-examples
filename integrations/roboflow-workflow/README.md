@@ -1,6 +1,6 @@
 # Roboflow Workflow
 
-This application integrates a DepthAI device with `Roboflow Workflow` through `inference` package. The Roboflow Inference package captures frames directly from the DepthAI device, processes them through its detection models, and sends the results to the DepthAI visualizer for real-time viewing. You can change the parameters of the inference pipeline through the interactive UI.
+This application integrates a DepthAI device with `Roboflow Workflow` through `inference` package. Camera frames are handed to Roboflow's `InferencePipeline` through a custom `VideoFrameProducer`, processed by the workflow's models directly on the device, and the results are sent to the DepthAI visualizer for real-time viewing. You can change the parameters of the inference pipeline through the interactive UI.
 
 ## Demo
 
@@ -75,4 +75,4 @@ oakctl app run .
 
 Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
-Note: This is running with `python3.11` because of the `zxing-cpp` package (part of the `inference` package dependencies) which is not available for `python3.12`
+Note: The app runs on the `python3.11` variant of the OakApp base image (`inference` supports Python `>=3.10,<3.13`). The backend sets `USE_INFERENCE_MODELS=False` so models are executed through the classic ONNX Runtime path of the `inference` package, which is considerably faster than the default torch-based backend on the device's ARM CPU.

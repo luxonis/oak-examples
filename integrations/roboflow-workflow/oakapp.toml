@@ -1,21 +1,17 @@
 identifier = "com.example.integrations.roboflow-workflow"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.0"
+app_version = "1.1.0"
 
 prepare_container = [
-    # --- Install Python 3.11, dev headers, and build tools ---
-    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-distutils python3.11-dev build-essential cmake ninja-build curl'" },
-
-    # --- Remove Debian’s PEP 668 marker ---
-    { type = "RUN", command = "bash -lc 'rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED || true'" },
-
-    # --- Install pip for Python 3.11 ---
-    { type = "RUN", command = "bash -lc 'curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11'" },
+    # --- Build tools for source-built wheels (zxing-cpp has no aarch64 wheels) ---
+    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y --no-install-recommends build-essential cmake ninja-build && rm -rf /var/lib/apt/lists/*'" },
 
     # --- Copy and install requirements ---
     { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
     { type = "RUN", command = "bash -lc 'python3.11 -m pip install --upgrade pip setuptools wheel'" },
-    { type = "RUN", command = "bash -lc 'python3.11 -m pip install -r /app/backend/src/requirements.txt'" }
+    # torch/torchvision from the CPU index first - the regular PyPI aarch64 wheels pull in the full CUDA stack (~3 GB of useless deps on RVC4)
+    { type = "RUN", command = "bash -lc 'python3.11 -m pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu'" },
+    { type = "RUN", command = "bash -lc 'python3.11 -m pip install --no-cache-dir -r /app/backend/src/requirements.txt'" }
 ]
 
 prepare_build_container = [
@@ -44,4 +40,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.2.6"
+image_tag = "1.2.9-py311"

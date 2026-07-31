@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the strongest integration reference in the repository for running Roboflow Workflows against live DepthAI camera frames with a custom frontend. Use it when you need a standalone-only frontend/backend app where external inference owns the detections and the local backend owns stream delivery, schema probing, and frontend parameter updates.
+This is the strongest integration reference in the repository for running Roboflow Workflows against live DepthAI camera frames with a custom frontend. Use it when you need a standalone-only frontend/backend app where external inference owns the detections and the local backend owns stream delivery, workflow-output discovery, and frontend parameter updates.
 
 ## Use This Example When
 
@@ -26,7 +26,7 @@ This is the strongest integration reference in the repository for running Robofl
 - `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` documented as RVC4 standalone only
-- `Requires:` valid Roboflow workflow config in [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml), Python 3.11 runtime, the `inference` package, and static frontend assets
+- `Requires:` valid Roboflow workflow config in [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml), the `py311` OakApp base image, the `inference` package (pinned in [backend/src/requirements.txt](backend/src/requirements.txt)), and static frontend assets
 - `Input:` live camera frames from the device plus optional parameter-update payloads from the frontend
 - `Output:` `passthrough` plus any workflow-derived `*visualization*` or `*predictions*` topics that the schema exposes
 - `Models:` external Roboflow Workflow models, not repo-local model YAMLs
@@ -38,10 +38,11 @@ This is the strongest integration reference in the repository for running Robofl
 - [backend/src/main.py](backend/src/main.py): startup order, service registration, and shutdown flow
 - [backend/src/config/config.py](backend/src/config/config.py): config schema and load path
 - [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml): initial Roboflow and pipeline configuration
-- [backend/src/core/depthai_pipeline.py](backend/src/core/depthai_pipeline.py): local camera pipeline and generator-backed capture bridge
+- [backend/src/core/depthai_pipeline.py](backend/src/core/depthai_pipeline.py): local camera pipeline and `VideoFrameProducer` factory
+- [backend/src/core/frame_producer.py](backend/src/core/frame_producer.py): `VideoFrameProducer` implementation bridging the DepthAI output queue into `InferencePipeline`
 - [backend/src/core/annotation_node.py](backend/src/core/annotation_node.py): workflow-output parsing and topic creation
 - [backend/src/core/manager.py](backend/src/core/manager.py): runtime update service and rebuild logic
-- [backend/src/core/roboflow_runner.py](backend/src/core/roboflow_runner.py): Roboflow `InferencePipeline` wrapper and schema probe
+- [backend/src/core/roboflow_runner.py](backend/src/core/roboflow_runner.py): Roboflow `InferencePipeline` wrapper and workflow-output discovery via the Roboflow API
 - [backend/src/core/visualizer_wrapper.py](backend/src/core/visualizer_wrapper.py): topic/service wrapper around `dai.RemoteConnection`
 - [frontend/src/App.tsx](frontend/src/App.tsx): UI shell and stream layout
 - [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx): runtime parameter update form
@@ -50,9 +51,9 @@ This is the strongest integration reference in the repository for running Robofl
 ## Architecture
 
 - Backend startup loads [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml) into a Pydantic config object.
-- `RoboflowRunner` wraps `InferencePipeline.init_with_workflow(...)`.
-- Before the live app starts, `probe_workflow_schema()` runs the workflow once on dummy frames to discover the output schema.
-- `DepthAIPipeline` creates a local camera pipeline, registers topics based on the probed schema, and monkey-patches `cv2.VideoCapture` so Roboflow reads frames from a generator backed by DepthAI.
+- `RoboflowRunner` wraps `InferencePipeline.init_with_workflow(...)` and drives it with `start(use_main_thread=False)` / `terminate()` / `join()`.
+- Before the live app starts, `fetch_workflow_output_names()` downloads the workflow definition through the Roboflow API (`get_workflow_specification`) to discover the output names.
+- `DepthAIPipeline` creates a local camera pipeline, registers topics based on the discovered output names, and exposes `create_frame_producer()` - a `VideoFrameProducer` factory passed to `InferencePipeline` as `video_reference` (no `cv2.VideoCapture` patching).
 - `AnnotationNode` classifies Roboflow outputs by name:
   - keys containing `visualization` become image topics
   - keys containing `predictions` become detection topics
@@ -62,7 +63,7 @@ This is the strongest integration reference in the repository for running Robofl
 
 ## Data Flow
 
-- `DepthAI camera -> DepthAIPipeline queue -> generator-backed cv2.VideoCapture -> Roboflow InferencePipeline`
+- `DepthAI camera -> DepthAIPipeline queue -> DepthAIFrameProducer -> Roboflow InferencePipeline`
 - `Roboflow prediction callback -> AnnotationNode.on_prediction() -> passthrough/image/detection topics`
 - `topics -> VisualizerWrapper -> frontend Streams view`
 - `frontend form -> Roboflow Parameter Update Service -> RoboflowManager -> runner restart or full pipeline rebuild`
@@ -70,7 +71,7 @@ This is the strongest integration reference in the repository for running Robofl
 ## Modification Guide
 
 - `Safe to change:` frontend copy/layout, service success/error UX, initial config values, topic labels exposed from the backend
-- `Requires care:` schema-probe behavior, monkey-patched `cv2.VideoCapture`, naming-based output parsing, and the restart-versus-rebuild distinction in [backend/src/core/manager.py](backend/src/core/manager.py)
+- `Requires care:` workflow-output discovery, the `VideoFrameProducer` lifecycle (`grab()` timeout vs. runner stop order), naming-based output parsing, and the restart-versus-rebuild distinction in [backend/src/core/manager.py](backend/src/core/manager.py)
 - `Likely to break if changed blindly:` workflow output naming, service payload shape between [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) and [backend/src/core/manager.py](backend/src/core/manager.py), or the static frontend build path in [oakapp.toml](oakapp.toml)
 
 ## Common Adaptations
@@ -89,7 +90,9 @@ This is the strongest integration reference in the repository for running Robofl
 
 ## Non-Obvious Repo Conventions
 
-- `DepthAIPipeline.start()` temporarily monkey-patches `cv2.VideoCapture` so the Roboflow inference package reads DepthAI frames as if they were a normal video source.
+- Frames flow into Roboflow through the official `VideoFrameProducer` interface (`video_reference` accepts a producer factory), so no global state is patched.
+- The backend exports `USE_INFERENCE_MODELS=False` (see [backend-run.sh](backend-run.sh)) to run models through the classic ONNX Runtime path instead of the torch-based `inference-models` backend, which is markedly slower on the device's ARM CPU.
+- `dai.ImgDetections.detections` returns a copy; the parsed detection list must be assigned back to the property, appending to it is silently ignored.
 - If only workflow parameters change, [backend/src/core/manager.py](backend/src/core/manager.py) restarts just the Roboflow runner; if the workflow identity or credentials change, it rebuilds the full DepthAI topic surface.
 - `passthrough` is always present as a local topic because [backend/src/core/annotation_node.py](backend/src/core/annotation_node.py) seeds `output_frames` with that key.
 - The frontend’s service name must stay aligned with the backend registration string `Roboflow Parameter Update Service`.
