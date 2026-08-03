@@ -2,10 +2,9 @@ identifier = "com.example.object-detection.yolo-world"
 app_version = "1.0.0"
 
 prepare_container = [
-    { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3-pip" },
     { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
-    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
+    # the base image ships python3 + pip (and onnxruntime/-qnn preinstalled)
+    { type = "RUN", command = "python3 -m pip install -r /app/requirements.txt --break-system-packages" },
 ]
 
 prepare_build_container = []
