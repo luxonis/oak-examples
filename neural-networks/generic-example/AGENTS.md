@@ -2,7 +2,7 @@
 
 ## Summary
 
-Reusable single-model inference scaffold for parser-supported classification, detection, pose, segmentation, line detection, monocular depth, and image-to-image tasks. It maps one image-like input to one parsed output stream.
+Single-model scaffold for parser-supported image tasks. Maps an image-like input to a parsed output for classification, detection, pose, segmentation, line detection, monocular depth, and image-to-image tasks.
 
 ## Use This Example When
 

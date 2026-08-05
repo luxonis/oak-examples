@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is a technique reference for two-stage person detection plus human pose estimation with Lite-HRNet. Before using it as a product base, compare it with a supported end-to-end pose model in `neural-networks/generic-example`.
+Technique reference for two-stage person detection and Lite-HRNet pose estimation. Prefer `generic-example` with a supported end-to-end pose model unless crop-based stages are required.
 
 ## Use This Example When
 
