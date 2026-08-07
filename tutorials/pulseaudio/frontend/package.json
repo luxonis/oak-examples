@@ -1,0 +1,35 @@
+{
+	"name": "frontend",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "npm run styleGen && tsc -b && vite build",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"preview": "vite preview",
+		"styleGen": "panda codegen"
+	},
+	"dependencies": {
+		"@formatjs/icu-messageformat-parser": "^2.11.2",
+		"@formatjs/intl-localematcher": "^0.8.1",
+		"@luxonis/depthai-viewer-common": "2.0.10",
+		"d3-drag": "^3.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"react-router": "^7.5.0",
+		"react-router-dom": "^7.5.0",
+		"tslib": "^2.8.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@pandacss/dev": "0.53.0",
+		"@types/react": "^18.3.20",
+		"@types/react-dom": "^18.3.6",
+		"@vitejs/plugin-react": "^4.3.4",
+		"globals": "^16.0.0",
+		"typescript": "~5.7.2",
+		"vite": "^6.3.1"
+	}
+}
