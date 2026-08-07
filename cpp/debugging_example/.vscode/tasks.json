@@ -1,0 +1,159 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "oakctl: ensure placeholder",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && mkdir -p .build && touch .build/main_device"
+      ],
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "App run",
+      "dependsOn": [
+        "oakctl: ensure placeholder",
+        "oakctl: prep",
+        "oakctl: connect",
+        "oakctl: select config (run)",
+        "oakctl: app run (fg)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "App debug (start)",
+      "dependsOn": [
+        "oakctl: ensure placeholder",
+        "oakctl: prep",
+        "oakctl: connect",
+        "oakctl: select config (debug)",
+        "oakctl: app debug",
+        "oakctl: wait"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: prep",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && mkdir -p .build && BOARD_IP_INPUT=\"${input:boardIP}\" && if [ -n \"$BOARD_IP_INPUT\" ]; then BOARD_IP=\"$BOARD_IP_INPUT\"; else echo \"No IP provided; running oakctl list...\"; OAK_LIST=$(oakctl list 2>&1); echo \"$OAK_LIST\"; IPS=$(echo \"$OAK_LIST\" | grep -Eo \"([0-9]{1,3}\\.){3}[0-9]{1,3}\" | sort -u); COUNT=$(echo \"$IPS\" | grep -c . || true); if [ \"$COUNT\" = \"0\" ]; then echo \"No OAK devices found via oakctl list and no IP provided.\" 1>&2; exit 1; fi; if [ \"$COUNT\" = \"1\" ]; then BOARD_IP=$(echo \"$IPS\" | head -n 1); echo \"Auto-selected BOARD_IP=$BOARD_IP\"; else echo \"Multiple devices found. Select IP by number:\"; echo \"$IPS\" | nl -w2 -s\": \"; printf \"#? \"; read -r SEL; BOARD_IP=$(echo \"$IPS\" | sed -n \"${SEL}p\"); if [ -z \"$BOARD_IP\" ]; then echo \"Invalid selection.\" 1>&2; exit 1; fi; fi; fi && printf \"BOARD_IP=%s\\n\" \"$BOARD_IP\" > .build/oak.env && printf \"set pagination off\\ntarget extended-remote %s:5678\\nremote get /app/build/main \\\"%s/.build/main_device\\\"\\nset substitute-path /app %s\\nexec-file \\\"%s/.build/main_device\\\"\\n\" \"$BOARD_IP\" \"${workspaceFolder}\" \"${workspaceFolder}\" \"${workspaceFolder}\" > .build/oak.gdb && touch .build/main_device && chmod +x .build/main_device && echo \"Using BOARD_IP=$BOARD_IP\""
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: connect",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && source .build/oak.env && echo \"Trying oakctl connect without password (will prompt only if needed)...\" && if oakctl connect \"$BOARD_IP\"; then echo \"Connected to $BOARD_IP (cached auth or no auth needed).\"; else echo \"Connect failed; prompting for password...\"; printf \"OAK password: \"; stty -echo; read -r OAK_PASS; stty echo; echo; oakctl -p \"$OAK_PASS\" connect \"$BOARD_IP\"; fi"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: select config (run)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && if [ -f .vscode/oakapp.run.toml ]; then cp -f .vscode/oakapp.run.toml oakapp.toml; echo \"Selected .vscode/oakapp.run.toml -> oakapp.toml\"; else echo \".vscode/oakapp.run.toml not found; using existing oakapp.toml\"; fi && printf \"#!/bin/sh\\necho \\\"Starting Backend\\\"\\n/app/build/main\\n\" > backend-run.sh && chmod +x backend-run.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: select config (debug)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && if [ -f .vscode/oakapp.debug.toml ]; then cp -f .vscode/oakapp.debug.toml oakapp.toml; echo \"Selected .vscode/oakapp.debug.toml -> oakapp.toml\"; else echo \".vscode/oakapp.debug.toml not found; using existing oakapp.toml\"; fi && printf \"#!/bin/sh\\necho \\\"Starting Backend\\\"\\ngdbserver 0.0.0.0:5678 /app/build/main\\n\" > backend-run.sh && chmod +x backend-run.sh"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: app run (fg)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && source .build/oak.env && oakctl app run . -d \"$BOARD_IP\""
+      ],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: app debug",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && source .build/oak.env && echo \"=== Building and deploying app ===\" && for i in 1 2; do echo \"Debug start attempt $i...\"; if oakctl app run . -d \"$BOARD_IP\" -b; then echo \"=== Build complete, waiting for debugger ===\"; exit 0; fi; echo \"oakctl app run failed on attempt $i, retrying in 2s...\"; sleep 2; done; echo \"Failed to start app after 2 attempts.\" 1>&2; exit 1"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: app logs",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && source .build/oak.env && until oakctl app logs 00000000-0000-0000-0000-000000000000 -d \"$BOARD_IP\"; do echo \"Waiting for app logs...\"; sleep 1; done"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: wait",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && source .build/oak.env && echo \"Waiting for gdbserver on ${BOARD_IP}:5678...\" && sleep 2 && for i in $(seq 1 120); do (echo > /dev/tcp/${BOARD_IP}/5678) >/dev/null 2>&1 && echo \"gdbserver is up.\" && exit 0; sleep 1; done; echo \"Timeout waiting for gdbserver.\" 1>&2; exit 1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "oakctl: app stop",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "cd \"${workspaceFolder}\" && if [ -f .build/oak.env ]; then source .build/oak.env && oakctl app stop 00000000-0000-0000-0000-000000000000 -d \"$BOARD_IP\"; else echo \".build/oak.env not found, nothing to stop\"; fi"
+      ],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "boardIP",
+      "type": "promptString",
+      "description": "Enter OAK board IP address (or leave empty to auto-detect via oakctl list)",
+      "default": ""
+    }
+  ]
+}

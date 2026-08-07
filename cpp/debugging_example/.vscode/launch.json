@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to OAK (gdbserver)",
+      "type": "cppdbg",
+      "request": "launch",
+      "preLaunchTask": "App debug (start)",
+      "postDebugTask": "oakctl: app stop",
+      "program": "${workspaceFolder}/.build/main_device",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb-multiarch",
+      "targetArchitecture": "arm64",
+      "miDebuggerArgs": "-x ${workspaceFolder}/.build/oak.gdb",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "sourceFileMap": {
+        "/app": "${workspaceFolder}"
+      }
+    },
+    {
+      "name": "Run on OAK (no debug)",
+      "type": "cppdbg",
+      "request": "launch",
+      "preLaunchTask": "App run",
+      "postDebugTask": "oakctl: app stop",
+      "program": "${workspaceFolder}/.build/main_device",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
