@@ -39,12 +39,22 @@ with dai.Pipeline(device) as pipeline:
     FPS = 10 if platform == dai.Platform.RVC2 else 30
 
     cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
+    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
+    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
 
     cam.initialControl.setManualFocus(130)
     cam_output = cam.requestOutput(OUTPUT_SHAPE, type=dai.ImgFrame.Type.NV12, fps=FPS)
 
-    depth = pipeline.create(dai.node.Depth)
-    depth.build(dai.node.Depth.Algorithm.AUTO, fps=FPS, size=OUTPUT_SHAPE)
+    stereo = pipeline.create(dai.node.StereoDepth).build(
+        left=left.requestOutput(OUTPUT_SHAPE, type=dai.ImgFrame.Type.NV12, fps=FPS),
+        right=right.requestOutput(OUTPUT_SHAPE, type=dai.ImgFrame.Type.NV12, fps=FPS),
+        presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
+    )
+    stereo.setLeftRightCheck(True)
+    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
+    stereo.setSubpixel(False)
+    if platform == dai.Platform.RVC2:
+        stereo.setOutputSize(*OUTPUT_SHAPE)
 
     model_description = dai.NNModelDescription.fromYamlFile(
         f"yolov6_nano_r2_coco.{platform.name}.yaml"
@@ -53,7 +63,7 @@ with dai.Pipeline(device) as pipeline:
 
     spatialDetectionNetwork = pipeline.create(dai.node.SpatialDetectionNetwork).build(
         cam,
-        depth,
+        stereo,
         nn_archive,
         fps=FPS,
     )

@@ -46,16 +46,32 @@ with dai.Pipeline(device) as pipeline:
         size=det_model_nn_archive.getInputSize(),
         type=frame_type,
         fps=args.fps_limit,
-        enableUndistortion=True,
     )
 
-    depth = pipeline.create(dai.node.Depth)
-    depth.build(
-        dai.node.Depth.Algorithm.AUTO,
-        fps=args.fps_limit,
-        size=det_model_nn_archive.getInputSize(),
+    left = pipeline.create(dai.node.Camera).build(
+        boardSocket=dai.CameraBoardSocket.CAM_B
     )
-    depth.setAlignTo(rgb)
+    right = pipeline.create(dai.node.Camera).build(
+        boardSocket=dai.CameraBoardSocket.CAM_C
+    )
+
+    stereo = pipeline.create(dai.node.StereoDepth).build(
+        left=left.requestOutput(
+            det_model_nn_archive.getInputSize(), fps=args.fps_limit
+        ),
+        right=right.requestOutput(
+            det_model_nn_archive.getInputSize(), fps=args.fps_limit
+        ),
+    )
+    stereo.initialConfig.setConfidenceThreshold(255)
+    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
+    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.DEFAULT)
+    stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
+    stereo.setLeftRightCheck(True)
+    stereo.setExtendedDisparity(True)
+    stereo.setSubpixel(False)
+    if platform == "RVC2":
+        stereo.setOutputSize(*det_model_nn_archive.getInputSize())
 
     nn_parser: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         input=rgb,
@@ -65,7 +81,7 @@ with dai.Pipeline(device) as pipeline:
     # produce spatial detections
     depth_merger = pipeline.create(DepthMerger).build(
         output2d=nn_parser.out,
-        outputDepth=depth.depth,
+        outputDepth=stereo.depth,
         calibData=device.readCalibration2(),
         depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
         shrinkingFactor=0.1,
