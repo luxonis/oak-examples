@@ -33,7 +33,7 @@ CLASS_NAMES = ["person", "chair", "TV"]
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.15
 
-visualizer = dai.RemoteConnection(serveFrontend=True)
+visualizer = dai.RemoteConnection(serveFrontend=False)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
 platform = device.getPlatformAsString()

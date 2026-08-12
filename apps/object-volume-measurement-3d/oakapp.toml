@@ -26,7 +26,6 @@ steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-s
 
 [env]
 PYTHONUNBUFFERED = "1"
-DEPTHAI_PIPELINE_DEBUGGING = "1"
 
 [base_image]
 api_url = "https://registry-1.docker.io"
