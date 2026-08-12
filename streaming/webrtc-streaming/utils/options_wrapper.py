@@ -17,7 +17,3 @@ class OptionsWrapper:
     @property
     def nn(self):
         return self.raw_options.get("nn_model", "")
-
-    @property
-    def preset_mode(self):
-        return self.raw_options.get("preset_mode", "HIGH_ACCURACY")
