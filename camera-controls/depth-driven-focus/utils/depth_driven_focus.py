@@ -80,7 +80,7 @@ def get_lens_position(dist):
 
 
 def valid_depth(coords: dai.Point3f):
-    return math.isfinite(coords.z) or coords.z > 0.0
+    return math.isfinite(coords.z) and coords.z > 0.0
 
 
 def calculate_distance(coords: dai.Point3f):
