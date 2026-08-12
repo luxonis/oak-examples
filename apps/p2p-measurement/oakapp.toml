@@ -24,6 +24,9 @@ steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-s
 
 [env]
 PYTHONUNBUFFERED = "1"
+WEBRTC__DC_MESSAGE__ORDERED = "false"
+WEBRTC__DC_MESSAGE__MAX_RETRANSMITS = "0"
+WEBRTC__DC_MESSAGE__QUEUE_POLICY = "lossy_drop_new"
 
 [base_image]
 api_url = "https://registry-1.docker.io"
@@ -32,4 +35,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.2.6-py311"
+image_tag = "1.3.0-py311"

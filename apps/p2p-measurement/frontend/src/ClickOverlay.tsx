@@ -13,7 +13,7 @@ export function ClickCatcher({
   allowedPanelTitle,
   onPointAdded,
 }: {
-  containerRef: React.RefObject<HTMLElement>;
+  containerRef: React.RefObject<HTMLElement | null>;
   frameWidth?: number;
   frameHeight?: number;
   serviceName?: string;
