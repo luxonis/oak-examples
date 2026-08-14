@@ -14,8 +14,8 @@
 	"dependencies": {
 		"@floating-ui/dom": "1.8.0",
 		"@luxonis/common-fe-components": "1.26.3",
-		"@luxonis/depthai-pipeline-lib": "3.7.6",
-		"@luxonis/depthai-viewer-common": "3.7.6",
+		"@luxonis/depthai-pipeline-lib": "3.8.3",
+		"@luxonis/depthai-viewer-common": "3.8.3",
 		"@sentry/browser": "8.55.2",
 		"date-fns": "2.30.0",
 		"react": "19.2.5",

@@ -13,8 +13,8 @@
 	},
 	"dependencies": {
 		"@luxonis/common-fe-components": "1.26.3",
-		"@luxonis/depthai-pipeline-lib": "3.7.6",
-		"@luxonis/depthai-viewer-common": "3.7.6",
+		"@luxonis/depthai-pipeline-lib": "3.8.3",
+		"@luxonis/depthai-viewer-common": "3.8.3",
 		"react": "19.2.5",
 		"react-dom": "19.2.5",
 		"react-router": "^7.5.0",
