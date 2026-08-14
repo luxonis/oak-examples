@@ -17,8 +17,7 @@ with dai.Pipeline(device) as pipeline:
     rgbd = pipeline.create(dai.node.RGBD).build()
 
     if args.mono:
-        right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-        cam_node = right
+        cam_node = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     else:
         cam_node = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
 
