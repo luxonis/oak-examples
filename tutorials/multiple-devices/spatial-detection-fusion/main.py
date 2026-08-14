@@ -68,6 +68,7 @@ def setup_device_pipeline(
 
     depth = pipeline.create(dai.node.Depth)
     depth.build(dai.node.Depth.Algorithm.AUTO, fps=fps_limit, size=nn_input_size)
+    # SpatialDetectionNetwork handles depth alignment; no depth.setAlignTo(...) call is needed.
 
     detector = pipeline.create(dai.node.SpatialDetectionNetwork).build(
         input=cam, stereo=depth, nnArchive=nn_archive
