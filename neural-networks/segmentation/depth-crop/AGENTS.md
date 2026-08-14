@@ -2,11 +2,11 @@
 
 ## Summary
 
-This is the repository reference for combining segmentation with unified metric depth and cropping the depth image by mask. Use it when you need segmentation-aware depth visualization rather than a plain segmentation effect.
+This is the repository reference for combining segmentation with unified depth and cropping the depth image by mask. Use it when you need segmentation-aware depth visualization rather than a plain segmentation effect.
 
 ## Use This Example When
 
-- You need segmentation fused with metric depth.
+- You need segmentation fused with depth.
 - You want one example that outputs segmentation, cutout, and depth views together.
 - You need a packaged stereo-plus-segmentation baseline.
 
@@ -20,12 +20,12 @@ This is the repository reference for combining segmentation with unified metric 
 
 - `Category:` `neural-networks/segmentation/depth-crop`
 - `Shape:` `script+standalone`
-- `Primary task:` crop metric depth by semantic segmentation mask
+- `Primary task:` crop depth by semantic segmentation mask
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` devices with `CAM_A`, `CAM_B`, and `CAM_C`; RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
-- `Requires:` metric depth, calibration, and DeepLabV3+ segmentation model
+- `Requires:` depth, calibration, and DeepLabV3+ segmentation model
 - `Input:` live color plus stereo pair
 - `Output:` `Segmentation`, `Cutout`, and `Depth`
 - `Models:` DeepLabV3+ YAMLs in [depthai_models/](depthai_models/)
@@ -41,13 +41,13 @@ This is the repository reference for combining segmentation with unified metric 
 ## Architecture
 
 - `CAM_A` provides the RGB source.
-- `Depth` owns depth-source selection and aligns metric depth back to the color stream.
+- `Depth` owns depth-source selection and aligns depth back to the color stream.
 - The color stream is resized into the segmentation model input shape.
-- [utils/annotation_node.py](utils/annotation_node.py) consumes the preview, metric depth, and segmentation mask and emits three derived output frames, each encoded before visualization.
+- [utils/annotation_node.py](utils/annotation_node.py) consumes the preview, depth, and segmentation mask and emits three derived output frames, each encoded before visualization.
 
 ## Constraints
 
-- The example requires three cameras and aligned metric depth.
+- The example requires three cameras and aligned depth.
 - Output streams are encoded views, not raw tensors.
 - This is semantic segmentation plus depth masking, not object-instance-aware 3D measurement.
 

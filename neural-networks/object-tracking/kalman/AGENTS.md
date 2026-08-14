@@ -14,7 +14,7 @@ This is the repository reference for Kalman-filtered spatial tracking. Use it wh
 
 - You need embedding-based tracking.
 - You need directional flow counting rather than smoothing.
-- You need a generic 2D tracker without metric depth.
+- You need a generic 2D tracker without depth.
 
 ## Quick Facts
 
@@ -25,7 +25,7 @@ This is the repository reference for Kalman-filtered spatial tracking. Use it wh
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` devices with `CAM_A`, `CAM_B`, and `CAM_C`; RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
-- `Requires:` metric depth, calibration, and person detections
+- `Requires:` depth, calibration, and person detections
 - `Input:` live color plus stereo pair
 - `Output:` `Video` and `Tracklets`
 - `Models:` YOLOv6 YAMLs in [depthai_models/](depthai_models/)
@@ -41,7 +41,7 @@ This is the repository reference for Kalman-filtered spatial tracking. Use it wh
 
 ## Architecture
 
-- A `SpatialDetectionNetwork` runs on `CAM_A` with metric depth from `Depth`.
+- A `SpatialDetectionNetwork` runs on `CAM_A` with depth from `Depth`.
 - `ObjectTracker` produces person tracklets.
 - `main.py` reads calibration to compute baseline and focal length.
 - [utils/kalman_filter_node.py](utils/kalman_filter_node.py) uses that geometry plus tracklets to smooth the reported state.

@@ -85,7 +85,7 @@ with dai.Pipeline(device) as pipeline:
     demux.outputs["left"].link(nn.inputs["left"])
     demux.outputs["right"].link(nn.inputs["right"])
 
-    # color Depth node metric depth
+    # color Depth node depth
     depth_coloring = pipeline.create(ApplyDepthColormap).build(depth.depth)
     depth_coloring.setColormap(cv2.COLORMAP_PLASMA)
 
@@ -100,7 +100,7 @@ with dai.Pipeline(device) as pipeline:
         focal_length_px=focal_length_px,
     )
 
-    # color CREStereo output converted from disparity to metric depth
+    # color CREStereo output converted from disparity to depth
     nn_coloring = pipeline.create(ApplyDepthColormap).build(nn_depth.output)
     nn_coloring.setColormap(cv2.COLORMAP_PLASMA)
 

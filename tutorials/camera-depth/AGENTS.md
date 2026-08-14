@@ -43,7 +43,7 @@ This is the repository reference for the most minimal unified-depth tutorial in 
 
 - [main.py](main.py) creates `CAM_A` for color and `CAM_B/C` for stereo.
 - `dai.node.Depth` is built with `AUTO` backend selection and a `640x480` size request.
-- `ApplyDepthColormap` colorizes metric depth for display.
+- `ApplyDepthColormap` colorizes depth for display.
 - The color preview is H.264 encoded before being published to the Visualizer.
 
 ## Constraints

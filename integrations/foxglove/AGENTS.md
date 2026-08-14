@@ -49,8 +49,8 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
   - left from `CAM_B` when `--left` or `--pointcloud`
   - right from `CAM_C` when `--right` or `--pointcloud`
 - Point-cloud mode builds `Depth` and then:
-  - aligns metric depth to RGB with `Depth.setAlignTo(...)` when color is enabled
-  - uses unaligned metric depth when color is disabled
+  - aligns depth to RGB with `Depth.setAlignTo(...)` when color is enabled
+  - uses unaligned depth when color is disabled
 - `FoxgloveServer` listens on `0.0.0.0:8765`.
 - [utils/foxglove_utils.py](utils/foxglove_utils.py) declares ROS-style JSON schemas and serializes frames/point clouds into base64 payloads.
 

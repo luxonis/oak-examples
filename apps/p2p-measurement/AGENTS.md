@@ -28,7 +28,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` RVC4 standalone only
 - `Requires:` RVC4 device with RGB and stereo; calibration on device; static frontend build
-- `Input:` RGB camera, unified metric depth, and frontend point clicks
+- `Input:` RGB camera, unified depth, and frontend point clicks
 - `Output:` `Video`, `Depth`, `Point Annotations`, and service-based distance/tracking state
 - `Models:` none
 - `Visualizer / UI:` custom static frontend
@@ -48,14 +48,14 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 - `CAM_A` provides RGB frames.
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
-- `Depth.setAlignTo(...)` aligns metric depth to RGB.
+- `Depth.setAlignTo(...)` aligns depth to RGB.
 - A colorized depth stream is published for viewing.
 - The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using calibration intrinsics, and emits overlay annotations.
 - The frontend interacts with backend services for point selection, clearing, distance polling, and tracking-mode toggling.
 
 ## Data Flow
 
-- `RGB + Depth -> aligned metric depth`
+- `RGB + Depth -> aligned depth`
 - `aligned depth -> ApplyDepthColormap -> Depth`
 - `RGB + aligned depth -> PointTracker host node -> Point Annotations`
 - `frontend clicks -> Selection Service -> PointTracker state`

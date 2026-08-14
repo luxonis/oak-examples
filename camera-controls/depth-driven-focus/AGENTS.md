@@ -7,7 +7,7 @@ This is the best reference in the repo for autofocus driven by metric face dista
 ## Use This Example When
 
 - You need to focus on detected faces instead of using manual focus.
-- You want a reference for combining a face detector with unified metric depth.
+- You want a reference for combining a face detector with unified depth.
 - You need a host node that converts 3D distance into `CameraControl.setManualFocus(...)`.
 - You want a camera-controls example that still runs in peripheral mode and has an RVC4 standalone path.
 
@@ -22,13 +22,13 @@ This is the best reference in the repo for autofocus driven by metric face dista
 
 - `Category:` `camera-controls/depth-driven-focus`
 - `Shape:` `script+standalone`
-- `Primary task:` automatic face focus from metric depth
+- `Primary task:` automatic face focus from depth
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` stereo-capable RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` autofocus color camera on `CAM_A`, stereo mono cameras on `CAM_B` and `CAM_C`, and calibration
-- `Input:` RGB frames for face detection and metric depth for face distance
+- `Input:` RGB frames for face detection and depth for face distance
 - `Output:` `Video`, `Visualizations`, `Depth`, and `Focus distance`
 - `Models:` platform-specific YuNet descriptors in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
@@ -47,15 +47,15 @@ This is the best reference in the repo for autofocus driven by metric face dista
 - `CAM_A` provides RGB frames for face detection.
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
 - A `ParsingNeuralNetwork` runs YuNet face detection.
-- `DepthMerger` from `depthai_nodes` enriches face detections with metric depth.
+- `DepthMerger` from `depthai_nodes` enriches face detections with depth.
 - The custom [utils/depth_driven_focus.py](utils/depth_driven_focus.py) host node finds the closest detected face, converts the 3D distance to a lens position, and sends manual-focus commands back into the camera control queue.
 - The host node also publishes annotation text showing the current face distance and current lens position.
 
 ## Data Flow
 
 - `CAM_A -> YuNet face detector -> Visualizations`
-- `Depth -> metric depth`
-- `face detections + metric depth -> DepthMerger -> spatial face detections`
+- `Depth -> depth`
+- `face detections + depth -> DepthMerger -> spatial face detections`
 - `spatial face detections -> DepthDrivenFocus host node -> camera inputControl queue + Focus distance`
 
 ## Modification Guide

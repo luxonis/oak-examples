@@ -25,7 +25,7 @@ This is the repository’s standard reference for real-time object detections wi
 - `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` devices with `CAM_A`, `CAM_B`, and `CAM_C`; RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
-- `Requires:` metric depth, calibration, and a compatible detection model
+- `Requires:` depth, calibration, and a compatible detection model
 - `Input:` live color plus stereo pair
 - `Output:` `Camera`, `Detections`, and `Depth`
 - `Models:` default YOLOv6 YAMLs in [depthai_models/](depthai_models/)
@@ -48,7 +48,7 @@ This is the repository’s standard reference for real-time object detections wi
 
 ## Constraints
 
-- The example requires three cameras and aligned metric depth.
+- The example requires three cameras and aligned depth.
 - RVC2 has a special `numShaves` path and output-size adjustment in [main.py](main.py).
 - This is the baseline reference, so avoid adding specialized task logic here when a closer example already exists.
 

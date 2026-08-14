@@ -83,7 +83,7 @@ This is the simplest runtime stereo-parameter tuning example in the repo. Use it
 
 - `Stereo config` is an annotation layer placed on the color stream.
 - The controller mutates and resends one `StereoDepthConfig` instance rather than rebuilding configuration from scratch each time.
-- The depth view is based on colorized disparity, not raw metric depth.
+- The depth view is based on colorized disparity, not raw depth.
 
 ## Related Examples
 
