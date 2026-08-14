@@ -91,7 +91,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 - [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need segmented object measurement instead of two-point distance
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial ROI measurement is enough
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler depth baseline
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a simpler depth baseline
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when the main goal is host-side stereo processing, not an interactive measurement UI
 
 ## Validation

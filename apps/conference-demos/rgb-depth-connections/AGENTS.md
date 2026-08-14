@@ -89,7 +89,7 @@ This is the best app-shaped reference for composing RGB, depth, and spatial dete
 
 - [apps/default-app](https://github.com/luxonis/oak-examples/tree/main/apps/default-app): use this when you want a simpler packaged baseline
 - [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the spatial detection scaffold more than the polished composed output
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler depth baseline
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a simpler depth baseline
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial measurement matters more than presentation
 
 ## Validation

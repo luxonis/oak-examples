@@ -54,7 +54,7 @@ This is the repository reference for the simplest multi-sensor camera preview tu
 
 ## Related Examples
 
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need stereo depth instead of plain previews
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need stereo depth instead of plain previews
 - [tutorials/play-encoded-stream](https://github.com/luxonis/oak-examples/tree/main/tutorials/play-encoded-stream): use this when you want to focus on encoded video playback paths
 - [streaming/on-device-encoding](https://github.com/luxonis/oak-examples/tree/main/streaming/on-device-encoding): use this when you need encoded recording rather than live preview topics
 

@@ -89,7 +89,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 - [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement): use this when you need segmentation-driven measurements on top of RGBD point clouds
 - [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud): use this when the point cloud should come from a ToF sensor
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host-side stereo comparison rather than a point cloud
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler depth baseline before RGBD fusion
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a simpler depth baseline before RGBD fusion
 
 ## Validation
 

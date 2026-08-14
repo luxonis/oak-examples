@@ -18,7 +18,7 @@ This is the repository reference for the most minimal unified-depth tutorial in 
 
 ## Quick Facts
 
-- `Category:` `tutorials/camera-stereo-depth`
+- `Category:` `tutorials/camera-depth`
 - `Shape:` `script+standalone-service`
 - `Primary task:` build a minimal unified-depth pipeline with visual outputs
 - `Entrypoint:` [main.py](main.py)
