@@ -3,7 +3,7 @@ import depthai as dai
 import numpy as np
 from aiortc import VideoStreamTrack
 from av import VideoFrame
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ParsingNeuralNetwork, ApplyDepthColormap
 
 
 class VideoTransform(VideoStreamTrack):
@@ -36,10 +36,6 @@ class VideoTransform(VideoStreamTrack):
             else self.preview.get().getCvFrame()
         )
         dets = self.nn.get().detections if self.nn is not None else []
-
-        if self.depth_flag:
-            frame = colorize_depth(frame)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         for detection in dets:
             if isinstance(detection, dai.ImgDetection):
@@ -110,8 +106,11 @@ def start_pipeline(pipeline: dai.Pipeline, options):
             fps=fps,
             size=(options.width, options.height),
         )
+        depth_colored = pipeline.create(ApplyDepthColormap).build(
+            frame=depth.depth,
+        )
 
-        preview_q = depth.depth.createOutputQueue(blocking=False, maxSize=4)
+        preview_q = depth_colored.out.createOutputQueue(blocking=False, maxSize=4)
 
     else:
         cam = pipeline.create(dai.node.Camera).build()
@@ -152,28 +151,3 @@ def frameNorm(frame, bbox):
     normVals = np.full(len(bbox), frame.shape[0])
     normVals[::2] = frame.shape[1]
     return (np.clip(np.array(bbox), 0, 1) * normVals).astype(int)
-
-
-def colorize_depth(frame_depth: np.ndarray) -> np.ndarray:
-    invalid_mask = frame_depth == 0
-    valid_depth = frame_depth[~invalid_mask]
-    if valid_depth.size == 0:
-        return np.zeros((*frame_depth.shape, 3), dtype=np.uint8)
-
-    min_depth = np.percentile(valid_depth, 3)
-    max_depth = np.percentile(valid_depth, 95)
-    if min_depth <= 0 or max_depth <= min_depth:
-        return np.zeros((*frame_depth.shape, 3), dtype=np.uint8)
-
-    log_min_depth = np.log(min_depth)
-    log_max_depth = np.log(max_depth)
-    log_depth = np.full(frame_depth.shape, log_min_depth, dtype=np.float32)
-    np.log(frame_depth, out=log_depth, where=~invalid_mask)
-    np.nan_to_num(log_depth, copy=False, nan=log_min_depth)
-    log_depth = np.clip(log_depth, log_min_depth, log_max_depth)
-
-    depth_frame = np.interp(log_depth, (log_min_depth, log_max_depth), (0, 255))
-    depth_frame = np.nan_to_num(depth_frame).astype(np.uint8)
-    depth_color = cv2.applyColorMap(depth_frame, cv2.COLORMAP_JET)
-    depth_color[invalid_mask] = 0
-    return depth_color
