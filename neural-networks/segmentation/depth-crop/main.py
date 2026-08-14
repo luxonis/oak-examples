@@ -1,10 +1,11 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ApplyDepthColormap, ParsingNeuralNetwork
 from utils.annotation_node import AnnotationNode
 
 from utils.arguments import initialize_argparser
 
 CAMERA_RESOLUTION = (640, 400)
+BENCHMARK_REPORT_INTERVAL_SECONDS = 1
 
 _, args = initialize_argparser()
 
@@ -26,6 +27,7 @@ if len(device.getConnectedCameras()) < 3:
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
+    pipeline.enablePipelineDebugging(True)
 
     # depth estimation model
     model_description = dai.NNModelDescription.fromYamlFile(
@@ -48,6 +50,10 @@ with dai.Pipeline(device) as pipeline:
     )
     depth.setAlignTo(color_output)
 
+    depth_colored = pipeline.create(ApplyDepthColormap).build(
+        frame=depth.depth,
+    )
+
     manip = pipeline.create(dai.node.ImageManip)
     manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
     manip.initialConfig.setFrameType(
@@ -66,7 +72,7 @@ with dai.Pipeline(device) as pipeline:
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(
         preview=color_output,
-        depth=depth.depth,
+        depth=depth_colored.out,
         mask=nn.out,
     )
 
