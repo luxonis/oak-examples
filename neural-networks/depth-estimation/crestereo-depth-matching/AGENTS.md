@@ -18,7 +18,7 @@ This is the repository reference for comparing CREStereo neural stereo matching 
 
 ## Quick Facts
 
-- `Category:` `neural-networks/depth-estimation/crestereo-stereo-matching`
+- `Category:` `neural-networks/depth-estimation/crestereo-depth-matching`
 - `Shape:` `script+standalone`
 - `Primary task:` compare CREStereo-derived depth with `Depth`
 - `Entrypoint:` [main.py](main.py)
