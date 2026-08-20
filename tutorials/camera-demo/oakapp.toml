@@ -14,10 +14,6 @@ build_steps = [
     "chmod +x /etc/service/backend/run",
 ]
 
-[env]
-WEBRTC__DC_MESSAGE__ORDERED = "false"
-WEBRTC__DC_MESSAGE__MAX_RETRANSMITS = "0"
-WEBRTC__DC_MESSAGE__QUEUE_POLICY = "lossy_drop_new"
 
 [base_image]
 api_url = "https://registry-1.docker.io"

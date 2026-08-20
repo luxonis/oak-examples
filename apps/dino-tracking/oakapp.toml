@@ -21,10 +21,6 @@ dist_path = "./frontend/dist"
 source_path = "./frontend"
 steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
 
-[env]
-WEBRTC__DC_MESSAGE__ORDERED = "false"
-WEBRTC__DC_MESSAGE__MAX_RETRANSMITS = "0"
-WEBRTC__DC_MESSAGE__QUEUE_POLICY = "lossy_drop_new"
 
 [base_image]
 api_url = "https://registry-1.docker.io"
