@@ -1,6 +1,6 @@
 identifier = "com.example.apps.p2p-measurement"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.0"
+app_version = "1.1.0"
 
 storage_dir_name = "storage"
 prepare_container = [

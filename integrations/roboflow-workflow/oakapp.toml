@@ -1,6 +1,6 @@
 identifier = "com.example.integrations.roboflow-workflow"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.0"
+app_version = "1.1.0"
 
 prepare_container = [
     # --- Install Python 3.11, dev headers, and build tools ---

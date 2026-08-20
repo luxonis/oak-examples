@@ -1,6 +1,6 @@
 identifier = "com.example.apps.qr-tiling"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.1"
+app_version = "1.1.0"
 
 prepare_container = [
     { type = "RUN", command = "apt-get update" },

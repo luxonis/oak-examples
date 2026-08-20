@@ -1,6 +1,6 @@
 identifier = "com.example.cpp.camera_stream"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.0"
+app_version = "1.1.0"
 
 build_steps = [
     "mkdir -p /etc/service/backend",
