@@ -12,6 +12,9 @@ _, args = initialize_argparser()
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 platform = device.getPlatform().name
+frame_type = (
+    dai.ImgFrame.Type.BGR888p if platform == "RVC2" else dai.ImgFrame.Type.BGR888i
+)
 print(f"Platform: {platform}")
 
 if not args.fps_limit:
@@ -56,9 +59,7 @@ with dai.Pipeline(device) as pipeline:
 
     manip = pipeline.create(dai.node.ImageManip)
     manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
-    manip.initialConfig.setFrameType(
-        dai.ImgFrame.Type.BGR888p if platform == "RVC2" else dai.ImgFrame.Type.BGR888i
-    )
+    manip.initialConfig.setFrameType(frame_type)
     manip.setMaxOutputFrameSize(
         nn_archive.getInputSize()[0] * nn_archive.getInputSize()[1] * 3
     )

@@ -58,7 +58,7 @@ class AnnotationNode(dai.node.HostNode):
 
         mask_overlay = cv2.addWeighted(frame, 1, mask, 0.5, 0)
 
-        depth_frame = depth.getFrame()
+        depth_frame = depth.getCvFrame()
         depth_frame = cv2.resize(depth_frame, (frame.shape[1], frame.shape[0]))
 
         # cut out the mask from the depth frame
