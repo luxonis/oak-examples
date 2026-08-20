@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { css } from "../styled-system/css/css.mjs";
 import { useNotifications } from "./Notifications";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { Button } from "@luxonis/common-fe-components";
 
 // Adjust to match the backend service registered in your pipeline
@@ -17,7 +17,7 @@ type Payload = {
 
 export function MessageInput() {
   const { notify } = useNotifications();
-  const connection = useConnection();
+  const connection = useDaiConnection();
   const initialFormState = {
     api_key: "",
     workspace_name: "",

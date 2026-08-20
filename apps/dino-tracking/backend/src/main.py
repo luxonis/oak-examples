@@ -3,7 +3,7 @@ import signal
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ParsingNeuralNetwork, FastSAMParser
 from dotenv import load_dotenv
 
 from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
@@ -100,8 +100,9 @@ def main():
             ),
         )
 
+        segmentation_masks = segmentation_nn.getParser(FastSAMParser).out
         mask_selection = pipeline.create(MaskSelection).build(
-            segmentations=segmentation_nn.out,
+            segmentations=segmentation_masks,
         )
 
         object_selection_prompt_service = ObjectSelectionPrompt(mask_selection)
@@ -149,7 +150,7 @@ def main():
 
         outlines_overlay = pipeline.create(OutlinesOverlay).build(
             frame=rgb_sensor,
-            segmentation=segmentation_nn.out,
+            segmentation=segmentation_masks,
         )
         outlines_service = OutlinesTrigger(outlines_overlay)
         visualizer.registerService(outlines_service.NAME, outlines_service)
