@@ -26,7 +26,7 @@ This is the strongest integration reference in the repository for running Robofl
 - `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` documented as RVC4 standalone only
-- `Requires:` valid Roboflow workflow config in [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml), the `py311` OakApp base image, the `inference` package (pinned in [backend/src/requirements.txt](backend/src/requirements.txt)), and static frontend assets
+- `Requires:` valid Roboflow workflow config in [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml), the Python 3.12 ONNX Runtime OakApp base image, `depthai-nodes==0.6.1`, the `inference` package (pinned in [backend/src/requirements.txt](backend/src/requirements.txt)), and static frontend assets
 - `Input:` live camera frames from the device plus optional parameter-update payloads from the frontend
 - `Output:` `passthrough` plus any workflow-derived `*visualization*` or `*predictions*` topics that the schema exposes
 - `Models:` external Roboflow Workflow models, not repo-local model YAMLs
@@ -86,12 +86,13 @@ This is the strongest integration reference in the repository for running Robofl
 - This example is documented and packaged as RVC4 standalone only.
 - Workflow outputs whose names contain neither `visualization` nor `predictions` are ignored by the backend.
 - The current frontend/backend update path only supports `api_key`, `workspace_name`, `workflow_id`, and `workflow_parameters`; it does not update `device`, `output_size`, or `fps`.
-- The backend intentionally runs on Python `3.11`, as noted in the README, because of dependency constraints around the inference stack.
+- The backend runs on Python `3.12`, supplied by the ONNX Runtime OakApp base image.
 
 ## Non-Obvious Repo Conventions
 
 - Frames flow into Roboflow through the official `VideoFrameProducer` interface (`video_reference` accepts a producer factory), so no global state is patched.
 - The backend exports `USE_INFERENCE_MODELS=False` (see [backend-run.sh](backend-run.sh)) to run models through the classic ONNX Runtime path instead of the torch-based `inference-models` backend, which is markedly slower on the device's ARM CPU.
+- `core/qnn_patch.py` routes that ONNX Runtime path through `depthai_nodes.runtime.qnn_session`; retain the NPU devices and `/opt/luxonis/npu-runtime` mount in [oakapp.toml](oakapp.toml).
 - `dai.ImgDetections.detections` returns a copy; the parsed detection list must be assigned back to the property, appending to it is silently ignored.
 - If only workflow parameters change, [backend/src/core/manager.py](backend/src/core/manager.py) restarts just the Roboflow runner; if the workflow identity or credentials change, it rebuilds the full DepthAI topic surface.
 - `passthrough` is always present as a local topic because [backend/src/core/annotation_node.py](backend/src/core/annotation_node.py) seeds `output_frames` with that key.

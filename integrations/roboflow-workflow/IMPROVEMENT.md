@@ -49,19 +49,15 @@ with every frame.
   the `onnxruntime.InferenceSession` module attribute (resolved at call time
   by every model class in `inference`) with a router that:
   1. fixes dynamic batch dims to 1 (the QNN EP needs fully static shapes),
-  2. builds the session on the DSP via
-     [backend/src/oak4ort](./backend/src/oak4ort/) — fp32 weights run as
-     fp16 on the HTP,
+  2. builds the session on the DSP through `depthai_nodes.runtime.qnn_session`
+     — fp32 weights run as fp16 on the HTP,
   3. falls back to the original CPU session if anything goes wrong.
-- [backend/src/oak4ort](./backend/src/oak4ort/) bootstraps the DSP inside
-  the app container at runtime (FastRPC device alias, device-OS
-  `libcdsprpc.so` preload, `ADSP_LIBRARY_PATH`) — the stock OakApp base
-  image is enough.
-- [oakapp.toml](./oakapp.toml) passes the NPU through to the container
-  (`optional_devices` / `optional_mounts` / `allowed_devices`) and installs
-  `onnxruntime==1.28.0` + `onnxruntime-qnn==2.4.0` on top of `inference`
-  (deliberately overriding its `onnxruntime<1.22` pin — the plugin-EP API
-  needs >= 1.28).
+- The ONNX Runtime OakApp base image provides the QNN plugin and FastRPC
+  runtime. [oakapp.toml](./oakapp.toml) passes the NPU devices and the
+  scoped `/opt/luxonis/npu-runtime` package through to the container.
+- `depthai-nodes==0.6.1` supplies the shared QNN runtime. The app reinstalls
+  the base image's ONNX Runtime QNN versions after `inference` resolves its
+  older ONNX Runtime constraint.
 
 ## Toggles
 

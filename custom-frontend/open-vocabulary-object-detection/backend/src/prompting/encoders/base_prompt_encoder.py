@@ -53,7 +53,7 @@ class BasePromptEncoder(ABC):
         image, otherwise the original CPU session."""
         try:
             import onnxruntime_qnn  # noqa: F401  # preinstalled in the NPU base image
-            from oak4ort_slim import qnn_session
+            from depthai_nodes.runtime import qnn_session
         except ImportError:
             self._on_npu = False
             return InferenceSession(path)

@@ -27,7 +27,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` RVC4 standalone only
-- `Requires:` RVC4 device; static frontend build; prompt encoder dependencies from [backend/requirements.txt](backend/requirements.txt)
+- `Requires:` RVC4 device; static frontend build; prompt encoder dependencies from [backend/requirements.txt](backend/requirements.txt), including `depthai-nodes==0.6.1`; the ONNX Runtime OakApp base image
 - `Input:` live camera by default, or media file via `--media_path`; text classes, uploaded images, or drawn bounding boxes from the frontend
 - `Output:` `Video` and `Detections`
 - `Models:` YOLOE and YOLO-World model descriptors under [backend/src/depthai_models/](backend/src/depthai_models/)
@@ -88,6 +88,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 ## Constraints
 
 - This example is intentionally RVC4 standalone only.
+- Prompt encoders use `depthai_nodes.runtime.qnn_session` on the ONNX Runtime base image; the app must retain the NPU devices and `/opt/luxonis/npu-runtime` mount declared in [oakapp.toml](oakapp.toml).
 - The backend only supports the CLI arguments defined in [backend/src/config/arguments.py](backend/src/config/arguments.py): `--fps_limit`, `--media_path`, `--model`, and `--semantic_seg`.
 - The current backend does not parse `--precision`, `--ip`, or `--port`.
 - `config.yaml` currently fixes precision to `fp16`, and [backend/src/config/system_configuration.py](backend/src/config/system_configuration.py) only maps `yoloe` to an `fp16` YAML while `yolo-world` supports `fp16` and `int8`.

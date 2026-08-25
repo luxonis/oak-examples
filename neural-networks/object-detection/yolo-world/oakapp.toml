@@ -13,28 +13,23 @@ build_steps = []
 
 depthai_models = { yaml_path = "./depthai_models" }
 
-entrypoint = ["/entrypoint.sh", "bash", "-c", "python3 -u /app/main.py"]
+entrypoint = ["/entrypoint.sh", "python3.12", "-u", "/app/main.py"]
 
-# NPU (Hexagon HTP) passthrough so the CLIP text encoder runs on the DSP via
-# the ONNX Runtime QNN EP. The /dev/fastrpc-cdsp alias and onnxruntime(-qnn)
-# come from the base image below; its NPU setup hook links the device-OS
-# FastRPC user-space libraries from the /usr/lib mount at container start.
+# NPU (Hexagon HTP) passthrough for the ONNX Runtime QNN EP.
 optional_devices = [
+    "/dev/fastrpc-cdsp",
     "/dev/adsprpc-smd",
     "/dev/dma_heap/qcom,system",
     "/dev/dma_heap/system",
 ]
-optional_mounts = ["/usr/lib:/host_usr_lib:ro,rbind"]
-# oak-agent mounts optional_devices but does not add device-cgroup allow
-# rules for them (adsprpc-smd is char 496:*, dma_heap is char 248:*):
-allowed_devices = [
-    { allow = true, type = "c", major = 496, access = "rwm" },
-    { allow = true, type = "c", major = 248, access = "rw" },
-]
+optional_mounts = ["/opt/luxonis/npu-runtime:/opt/luxonis/npu-runtime:ro,rbind"]
+allowed_devices = [{ allow = true, access = "rw" }]
 
-# ONNX Runtime (NPU) oakapp-base variant, served from the registry running
-# on the device itself (oakapp-base branch: onnxruntime-base).
 [base_image]
-api_url = "http://127.0.0.1:5555"
-image_name = "oakapp-base"
-image_tag = "onnxruntime"
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.9-onnxruntime"
