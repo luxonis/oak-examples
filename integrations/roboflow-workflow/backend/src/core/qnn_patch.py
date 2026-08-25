@@ -6,7 +6,7 @@ call time. `install()` swaps that attribute for a router that:
 
 1. copies the downloaded weights with the dynamic batch dim fixed to 1
    (the QNN EP requires fully static shapes),
-2. creates the session on the DSP via `depthai_nodes.runtime.qnn_session()` — fp32 weights
+2. creates the session on the DSP via `depthai_nodes.runtime.onnx_qnn_session()` — fp32 weights
    run as fp16 on the HTP, and the compiled graph is cached (EPContext) so
    only the first load of a given model pays HTP compilation,
 3. falls back to the original CPU session if anything goes wrong.
@@ -24,7 +24,7 @@ from time import perf_counter
 
 import onnxruntime
 
-from depthai_nodes.runtime import qnn_session
+from depthai_nodes.runtime import onnx_qnn_session
 
 # Must be set before `inference.core.env` is imported (this module is imported
 # first in main.py): the stock default lists CUDA/OpenVINO/CoreML, which only
@@ -103,7 +103,7 @@ def _try_qnn(path_or_bytes, providers):
     t0 = perf_counter()
     _in_router.active = True
     try:
-        session = qnn_session(static_path, fallback_to_cpu=not _strict())
+        session = onnx_qnn_session(static_path, fallback_to_cpu=not _strict())
     finally:
         _in_router.active = False
     logger.info(

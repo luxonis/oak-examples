@@ -53,12 +53,12 @@ class BasePromptEncoder(ABC):
         image, otherwise the original CPU session."""
         try:
             import onnxruntime_qnn  # noqa: F401  # preinstalled in the NPU base image
-            from depthai_nodes.runtime import qnn_session
+            from depthai_nodes.runtime import onnx_qnn_session
         except ImportError:
             self._on_npu = False
             return InferenceSession(path)
-        session = qnn_session(self._pin_input_shapes(path), fp16=True)
-        # shapes are pinned even if qnn_session fell back to CPU, so the
+        session = onnx_qnn_session(self._pin_input_shapes(path), fp16=True)
+        # shapes are pinned even if onnx_qnn_session fell back to CPU, so the
         # static-batch padding in _pad_batch must stay on either way
         self._on_npu = True
         log.info(f"{type(self).__name__}: providers={session.get_providers()}")

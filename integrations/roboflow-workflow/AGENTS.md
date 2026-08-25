@@ -92,7 +92,7 @@ This is the strongest integration reference in the repository for running Robofl
 
 - Frames flow into Roboflow through the official `VideoFrameProducer` interface (`video_reference` accepts a producer factory), so no global state is patched.
 - The backend exports `USE_INFERENCE_MODELS=False` (see [backend-run.sh](backend-run.sh)) to run models through the classic ONNX Runtime path instead of the torch-based `inference-models` backend, which is markedly slower on the device's ARM CPU.
-- `core/qnn_patch.py` routes that ONNX Runtime path through `depthai_nodes.runtime.qnn_session`; retain the NPU devices and `/opt/luxonis/npu-runtime` mount in [oakapp.toml](oakapp.toml).
+- `core/qnn_patch.py` routes that ONNX Runtime path through `depthai_nodes.runtime.onnx_qnn_session`; retain the NPU devices and `/opt/luxonis/npu-runtime` mount in [oakapp.toml](oakapp.toml).
 - `dai.ImgDetections.detections` returns a copy; the parsed detection list must be assigned back to the property, appending to it is silently ignored.
 - If only workflow parameters change, [backend/src/core/manager.py](backend/src/core/manager.py) restarts just the Roboflow runner; if the workflow identity or credentials change, it rebuilds the full DepthAI topic surface.
 - `passthrough` is always present as a local topic because [backend/src/core/annotation_node.py](backend/src/core/annotation_node.py) seeds `output_frames` with that key.

@@ -82,7 +82,7 @@ This is the best standalone reference for open-vocabulary detection plus configu
 ## Constraints
 
 - This example is intentionally RVC4 standalone only.
-- Prompt encoders use `depthai_nodes.runtime.qnn_session` on the ONNX Runtime base image; the app must retain the NPU devices and `/opt/luxonis/npu-runtime` mount declared in [oakapp.toml](oakapp.toml).
+- Prompt encoders use `depthai_nodes.runtime.onnx_qnn_session` on the ONNX Runtime base image; the app must retain the NPU devices and `/opt/luxonis/npu-runtime` mount declared in [oakapp.toml](oakapp.toml).
 - The backend uses `serveFrontend=False`, so the app depends on the static frontend build declared in [oakapp.toml](oakapp.toml).
 - Runtime behavior is split across CLI args and YAML config files, so changing only one side may not do what you expect.
 - The frontend expects the backend to be the source of truth and rehydrates local UI state from `Get App Config Service`.

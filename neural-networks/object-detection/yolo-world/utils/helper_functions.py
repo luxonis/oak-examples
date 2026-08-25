@@ -62,7 +62,7 @@ def _make_textual_session(model_path, batch_size, seq_len):
     otherwise the original provider list."""
     try:
         import onnxruntime_qnn  # noqa: F401  # preinstalled in the NPU base image
-        from depthai_nodes.runtime import qnn_session
+        from depthai_nodes.runtime import onnx_qnn_session
     except ImportError:
         return onnxruntime.InferenceSession(
             model_path,
@@ -72,7 +72,9 @@ def _make_textual_session(model_path, batch_size, seq_len):
                 "CPUExecutionProvider",
             ],
         )
-    return qnn_session(_fix_input_shapes(model_path, batch_size, seq_len), fp16=True)
+    return onnx_qnn_session(
+        _fix_input_shapes(model_path, batch_size, seq_len), fp16=True
+    )
 
 
 def _fix_input_shapes(model_path, batch_size, seq_len):

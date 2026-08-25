@@ -81,7 +81,7 @@ Note: The app runs on the Python 3.12 ONNX Runtime variant of the OakApp base im
 
 In standalone mode the workflow's ONNX models run on the OAK4's Hexagon DSP by default, through the ONNX Runtime QNN execution provider:
 
-- [backend/src/core/qnn_patch.py](./backend/src/core/qnn_patch.py) reroutes the ONNX sessions created inside the `inference` package through `depthai_nodes.runtime.qnn_session`, using the QNN runtime provided by `depthai-nodes`.
+- [backend/src/core/qnn_patch.py](./backend/src/core/qnn_patch.py) reroutes the ONNX sessions created inside the `inference` package through `depthai_nodes.runtime.onnx_qnn_session`, using the QNN runtime provided by `depthai-nodes`.
 - fp32 weights served by Roboflow run as **fp16 on the HTP** — no quantization or model changes needed. Dynamic batch dimensions are fixed to 1 automatically.
 - The first load of a model compiles it for the HTP (can take tens of seconds); the compiled graph is cached (EPContext), so subsequent loads of the same downloaded weights are fast.
 - Anything that cannot run on the DSP (unsupported ops, in-memory models, non-batch dynamic dims) transparently falls back to the CPU EP.

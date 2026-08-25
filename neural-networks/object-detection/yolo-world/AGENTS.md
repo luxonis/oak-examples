@@ -42,7 +42,7 @@ This is the repository reference for open-vocabulary YOLO-World inference with s
 ## Architecture
 
 - [utils/helper_functions.py](utils/helper_functions.py) converts the configured class names into text embeddings before the pipeline starts.
-- The CLIP text-encoder session uses `depthai_nodes.runtime.qnn_session` on the OAK4 DSP when packaged with the ONNX Runtime base image.
+- The CLIP text-encoder session uses `depthai_nodes.runtime.onnx_qnn_session` on the OAK4 DSP when packaged with the ONNX Runtime base image.
 - `ParsingNeuralNetwork` is wired manually as a multi-input model with image and text inputs.
 - The text tensor is sent once through `inputs["texts"]` and then reused.
 - `ImgDetectionsFilter` and [utils/detections_label_mapper.py](utils/detections_label_mapper.py) keep only the configured prompt labels and map them back to their class names.
