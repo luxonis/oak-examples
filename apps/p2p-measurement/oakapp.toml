@@ -1,6 +1,6 @@
 identifier = "com.example.apps.p2p-measurement"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.0.0"
+app_version = "1.1.0"
 
 storage_dir_name = "storage"
 prepare_container = [
@@ -32,4 +32,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.2.6-py311"
+image_tag = "1.3.0-py311"

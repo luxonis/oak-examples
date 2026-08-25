@@ -1,5 +1,5 @@
 depthai==3.8.0
-depthai-nodes==0.5.0
+depthai-nodes==0.6.0
 opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0

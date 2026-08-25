@@ -64,6 +64,7 @@ steps = [
     "bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"
 ]
 
+
 [base_image]
 api_url = "https://registry-1.docker.io"
 service = "registry.docker.io"

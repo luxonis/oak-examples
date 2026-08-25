@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { css } from "../styled-system/css/css.mjs";
 import { useNotifications } from "./Notifications";
-import { useConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { Button } from "@luxonis/common-fe-components";
 
 // Backend services registered in the pipeline
@@ -111,8 +111,7 @@ function textToValue(raw: string, defaultValue: unknown): unknown {
 
 export function MessageInput() {
   const { notify } = useNotifications();
-  const connection = useConnection();
-
+  const connection = useDaiConnection();
   const [credentials, setCredentials] = useState({
     api_key: "",
     workspace_name: "",

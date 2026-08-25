@@ -30,7 +30,10 @@ class MaskSelection(BaseHostNode):
         self._pending_click = None
         self._selected_mask = None
 
-    def process(self, segmentation: dai.SegmentationMask):
+    def process(self, segmentation: dai.Buffer):
+        # FastSAM's parser is typed as Buffer at pipeline-build time, while its
+        # runtime payload is a native SegmentationMask.
+        assert isinstance(segmentation, dai.SegmentationMask)
         segmentation_mask = segmentation.getCvMask().astype(np.int32)
 
         if self._pending_click:

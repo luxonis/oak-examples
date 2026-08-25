@@ -1,9 +1,9 @@
 import { css } from "../styled-system/css/css.mjs";
-import { Streams, useConnection } from "@luxonis/depthai-viewer-common";
+import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
 import { MessageInput } from "./MessageInput.tsx";
 
 function App() {
-  const connection = useConnection();
+  const connection = useDaiConnection();
 
   return (
     <main

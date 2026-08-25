@@ -12,20 +12,29 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@luxonis/depthai-viewer-common": "2.0.10",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0",
+		"@floating-ui/dom": "1.8.0",
+		"@luxonis/common-fe-components": "1.26.3",
+		"@luxonis/depthai-pipeline-lib": "3.8.3",
+		"@luxonis/depthai-viewer-common": "3.8.3",
+		"@sentry/browser": "8.55.2",
+		"date-fns": "2.30.0",
+		"react": "19.2.5",
+		"react-dom": "19.2.5",
 		"react-router": "^7.5.0",
 		"react-router-dom": "^7.5.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
 		"@pandacss/dev": "0.53.0",
-		"@types/react": "^19.0.0",
-		"@types/react-dom": "^19.0.0",
-		"@vitejs/plugin-react": "^4.3.4",
+		"@types/react": "^19.2.0",
+		"@types/react-dom": "^19.2.0",
+		"@vitejs/plugin-react": "^5.0.0",
 		"globals": "^16.0.0",
 		"typescript": "~5.7.2",
 		"vite": "^6.3.1"
+	},
+	"overrides": {
+		"react": "$react",
+		"react-dom": "$react-dom"
 	}
 }

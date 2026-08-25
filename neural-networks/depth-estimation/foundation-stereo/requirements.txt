@@ -1,5 +1,5 @@
 depthai==3.8.0
-depthai-nodes==0.5.0
+depthai-nodes==0.6.0
 onnxruntime>=1.19.0
 onnxruntime-gpu>=1.19.0
 numpy>=1.22
