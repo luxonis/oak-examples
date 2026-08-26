@@ -1,6 +1,6 @@
 # Roboflow Workflow
 
-This application integrates a DepthAI device with `Roboflow Workflow` through `inference` package. Camera frames are handed to Roboflow's `InferencePipeline` through a custom `VideoFrameProducer`, processed by the workflow's models directly on the device, and the results are sent to the DepthAI visualizer for real-time viewing. You can change the parameters of the inference pipeline through the interactive UI.
+This application integrates a DepthAI device with `Roboflow Workflow` through `inference` package. The Roboflow Inference package captures frames directly from the DepthAI device, processes them through its detection models, and sends the results to the DepthAI visualizer for real-time viewing. You can change the parameters of the inference pipeline through the interactive UI.
 
 ## Demo
 
@@ -75,20 +75,4 @@ oakctl app run .
 
 Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
-> **Note:** Requires Luxonis OS 1.40 or newer. The backend sets `USE_INFERENCE_MODELS=False` so models are executed through the classic ONNX Runtime path of the `inference` package, which is considerably faster than the default torch-based backend on the device's ARM CPU.
-
-## NPU (DSP) Inference
-
-In standalone mode the workflow's ONNX models run on the OAK4's Hexagon DSP by default, through the ONNX Runtime QNN execution provider:
-
-- [backend/src/core/qnn_patch.py](./backend/src/core/qnn_patch.py) reroutes the ONNX sessions created inside the `inference` package through the shared `onnx_qnn_session` helper.
-- fp32 weights served by Roboflow run as **fp16 on the HTP** — no quantization or model changes needed. Dynamic batch dimensions are fixed to 1 automatically.
-- The first load of a model compiles it for the HTP (can take tens of seconds); the compiled graph is cached (EPContext), so subsequent loads of the same downloaded weights are fast.
-- Anything that cannot run on the DSP (unsupported ops, in-memory models, non-batch dynamic dims) transparently falls back to the CPU EP.
-
-Environment toggles (see `[env]` in [oakapp.toml](./oakapp.toml)):
-
-- `EP=dsp|cpu` — where to run the workflow's models (default `dsp`; `cpu` restores the previous behavior), e.g. `oakctl app run --env EP=cpu .`
-- `STRICT=1` — fail instead of silently falling back to the CPU EP (useful to verify the DSP is actually used).
-
-The DSP access is declared via the `optional_devices` / `optional_mounts` / `allowed_devices` block in [oakapp.toml](./oakapp.toml); on hosts without the DSP (e.g. running the backend locally) the app automatically stays on the CPU.
+Note: This is running with `python3.11` because of the `zxing-cpp` package (part of the `inference` package dependencies) which is not available for `python3.12`

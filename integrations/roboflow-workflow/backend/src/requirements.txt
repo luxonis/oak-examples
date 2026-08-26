@@ -1,4 +1,4 @@
 depthai==3.8.0
-depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@3fa02fbe9d7c8212c6e9739614e87234503893d2
+depthai-nodes==0.6.0
 opencv-python~=4.10.0
-inference==1.3.7
+inference

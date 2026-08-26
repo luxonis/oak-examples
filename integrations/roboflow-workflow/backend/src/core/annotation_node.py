@@ -1,9 +1,6 @@
 import logging
-import time
-from enum import Enum
-from typing import List
-
 import depthai as dai
+from enum import Enum
 
 
 class OutputType(Enum):
@@ -17,7 +14,7 @@ class AnnotationNode(dai.node.HostNode):
         self,
     ):
         super().__init__()
-        self.output_names = []
+        self.schema_keys = []
 
         self.frames = {}  # key -> ImgFrame
         self.output_frames = {"passthrough": self.createOutput()}
@@ -25,17 +22,14 @@ class AnnotationNode(dai.node.HostNode):
         self.detections = {}  # key -> dai.ImgDetections
         self.output_detections = {}
 
-        self._pred_count = 0
-        self._pred_window_start = None
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def build(self, cam, output_names: List[str]):
+    def build(self, cam, schema):
         self.link_args(cam)
-        self.output_names = list(output_names)
+        self.schema_keys = list(schema.keys())
 
         log_output = []
-        for key in self.output_names:
+        for key in self.schema_keys:
             output_type = self._parse_key(key)
             log_output.append((key, output_type))
             if output_type == OutputType.FRAME:
@@ -43,14 +37,14 @@ class AnnotationNode(dai.node.HostNode):
             elif output_type == OutputType.DETECTION:
                 self.output_detections[key] = self.createOutput()
 
-        self._logger.info(f"Workflow outputs: {log_output}")
+        self._logger.info(f"Schema keys: {log_output}")
 
         return self
 
     def process(self, cam):
         transformation = cam.getTransformation()
 
-        # send the latest stored data for each workflow output
+        # send the latest stored data for each schema key
         for key in self.frames.keys():
             self.frames[key].setTransformation(transformation)
             self.output_frames[key].send(self.frames[key])
@@ -61,8 +55,6 @@ class AnnotationNode(dai.node.HostNode):
 
     def on_prediction(self, result, frame):
         """Process Roboflow output to DAI output"""
-
-        self._log_throughput()
 
         dai_frame = dai.ImgFrame()
         dai_frame.setCvFrame(frame.image, dai.ImgFrame.Type.NV12)
@@ -89,7 +81,6 @@ class AnnotationNode(dai.node.HostNode):
             elif output_type == OutputType.DETECTION:
                 dets = dai.ImgDetections()
                 try:
-                    parsed_dets = []
                     for det in value:
                         # Roboflow prediction output: xyxy, mask, conf, class_id, tracker, extra
                         xyxy, _, conf, class_id, _, extra = det
@@ -115,11 +106,7 @@ class AnnotationNode(dai.node.HostNode):
                         new_det.label = int(class_id)
                         new_det.labelName = str(class_label)
 
-                        parsed_dets.append(new_det)
-
-                    # NOTE: `dets.detections` returns a copy - appending to it
-                    # directly would be silently ignored, assign the full list.
-                    dets.detections = parsed_dets
+                        dets.detections.append(new_det)
                 except Exception:
                     self._logger.info(
                         f"Failed to parse output `{key}` as ImgDetection. "
@@ -129,19 +116,6 @@ class AnnotationNode(dai.node.HostNode):
                     )
 
                 self.detections[key] = dets
-
-    def _log_throughput(self, every: int = 100):
-        """Periodically log the end-to-end workflow prediction rate"""
-        if self._pred_window_start is None:
-            self._pred_window_start = time.monotonic()
-            return
-        self._pred_count += 1
-        if self._pred_count % every == 0:
-            elapsed = time.monotonic() - self._pred_window_start
-            self._logger.info(
-                f"Roboflow workflow throughput: {every / elapsed:.2f} predictions/s"
-            )
-            self._pred_window_start = time.monotonic()
 
     def _parse_key(self, key: str):
         """Parse the key to a output type"""

@@ -1,11 +1,12 @@
-import logging
-from typing import List
-
 import depthai as dai
+import cv2
+import threading
+import logging
+from typing import Dict
 
-from config.config import PipelineConfig
 from core.annotation_node import AnnotationNode
-from core.frame_producer import DepthAIFrameProducer
+from core.generator_capture import GeneratorCapture
+from config.config import PipelineConfig
 from core.visualizer_wrapper import VisualizerWrapper
 
 
@@ -14,13 +15,15 @@ class DepthAIPipeline:
         self,
         pipeline_config: PipelineConfig,
         visualizer: VisualizerWrapper,
-        workflow_output_names: List[str],
+        workflow_schema: Dict,
     ):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self._stop_event = threading.Event()
+        self._orig_capture = cv2.VideoCapture
         self._pipeline_config = pipeline_config
         self._visualizer = visualizer
-        self.workflow_output_names = workflow_output_names
+        self.workflow_schema = workflow_schema
 
         device_ip = self._pipeline_config.device
         self._device = (
@@ -40,7 +43,7 @@ class DepthAIPipeline:
 
             # Annotation node
             self.annotation = p.create(AnnotationNode).build(
-                cam=frames, output_names=workflow_output_names
+                cam=frames, schema=workflow_schema
             )
 
             # Visualization
@@ -59,20 +62,24 @@ class DepthAIPipeline:
 
             self._pipeline = p
 
-    def create_frame_producer(self) -> DepthAIFrameProducer:
-        """Factory passed to InferencePipeline as `video_reference`"""
-        width, height = self._pipeline_config.output_size
-        return DepthAIFrameProducer(
-            queue=self._queue,
-            width=width,
-            height=height,
-            fps=self._pipeline_config.fps,
-        )
+    def _frame_gen(self):
+        """Generator of DAI input frames"""
+        while self._pipeline.isRunning() and not self._stop_event.is_set():
+            try:
+                frame = self._queue.get().getCvFrame()
+            except Exception:
+                break
+
+            if frame is not None:
+                yield frame
 
     def start(self):
+        cv2.VideoCapture = lambda _: GeneratorCapture(self._frame_gen())
         self._pipeline.start()
         self._logger.info("DepthAI pipeline started")
 
     def stop(self):
+        self._stop_event.set()
+        cv2.VideoCapture = self._orig_capture
         self._pipeline.stop()
         self._logger.info("DepthAI pipeline stopped")
