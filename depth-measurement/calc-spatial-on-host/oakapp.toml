@@ -1,4 +1,4 @@
-identifier = "com.example.depth-measurement.spatial-calculation"
+identifier = "com.example.depth-measurement.calc-spatial-on-host"
 app_version = "1.1.0"
 
 prepare_container = [

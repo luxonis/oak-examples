@@ -1,4 +1,4 @@
-identifier = "com.example.depth-estimation.neural-depth"
+identifier = "com.example.neural-networks.depth-estimation.neural-depth"
 app_version="1.1.0"
 
 prepare_container = [

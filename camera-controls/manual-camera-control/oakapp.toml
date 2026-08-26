@@ -1,4 +1,4 @@
-identifier = "com.example.camere-controls.manual-camera-control"
+identifier = "com.example.camera-controls.manual-camera-control"
 app_version = "1.0.0"
 
 prepare_container = [
