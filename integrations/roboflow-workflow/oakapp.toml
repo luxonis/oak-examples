@@ -1,32 +1,46 @@
 identifier = "com.example.integrations.roboflow-workflow"
-entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.1.0"
+entrypoint = ["/entrypoint.sh", "bash", "/app/backend-run.sh"]
+app_version = "3.1.0"
+
+# --- NPU (Hexagon DSP) passthrough for the ONNX Runtime QNN EP --------------
+# Lets `inference` run its ONNX models on the DSP through depthai-nodes.
+optional_devices = [
+    "/dev/fastrpc-cdsp",
+    "/dev/adsprpc-smd",
+    "/dev/dma_heap/qcom,system",
+    "/dev/dma_heap/system",
+]
+optional_mounts = ["/opt/luxonis/npu-runtime:/opt/luxonis/npu-runtime:ro,rbind"]
+allowed_devices = [{ allow = true, access = "rw" }]
 
 prepare_container = [
-    # --- Install Python 3.11, dev headers, and build tools ---
-    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y python3.11 python3.11-venv python3.11-distutils python3.11-dev build-essential cmake ninja-build curl'" },
-
-    # --- Remove Debian’s PEP 668 marker ---
-    { type = "RUN", command = "bash -lc 'rm -f /usr/lib/python3.11/EXTERNALLY-MANAGED || true'" },
-
-    # --- Install pip for Python 3.11 ---
-    { type = "RUN", command = "bash -lc 'curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11'" },
+    # --- Build tools for source-built wheels (zxing-cpp has no aarch64 wheels) ---
+    { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y --no-install-recommends build-essential cmake ninja-build && rm -rf /var/lib/apt/lists/*'" },
 
     # --- Copy and install requirements ---
     { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
-    { type = "RUN", command = "bash -lc 'python3.11 -m pip install --upgrade pip setuptools wheel'" },
-    { type = "RUN", command = "bash -lc 'python3.11 -m pip install -r /app/backend/src/requirements.txt'" }
+    { type = "RUN", command = "bash -lc 'python3.12 -m pip install --upgrade pip setuptools wheel'" },
+    # torch/torchvision from the CPU index first - the regular PyPI aarch64 wheels pull in the full CUDA stack (~3 GB of useless deps on RVC4)
+    { type = "RUN", command = "bash -lc 'python3.12 -m pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu'" },
+    { type = "RUN", command = "bash -lc 'python3.12 -m pip install --no-cache-dir -r /app/backend/src/requirements.txt'" },
+    # Restore the ONNX Runtime versions included by the QNN base image after
+    # `inference` resolves its older onnxruntime constraint. `onnx` is used by
+    # core/qnn_patch.py to fix dynamic batch dims before HTP compilation.
+    { type = "RUN", command = "bash -lc 'python3.12 -m pip install --no-cache-dir onnx onnxruntime==1.28.0 onnxruntime-qnn==2.4.0'" }
 ]
 
 prepare_build_container = [
     { type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'" }
 ]
 
-build_steps = [
-    "mkdir -p /etc/service/backend",
-    "cp /app/backend-run.sh /etc/service/backend/run",
-    "chmod +x /etc/service/backend/run"
-]
+build_steps = []
+
+[env]
+# EP=dsp routes the workflow's ONNX models to the DSP, EP=cpu keeps the
+# previous CPU-only behavior. STRICT=1 fails instead of falling back to the
+# CPU EP (debugging aid). Override per run: oakctl app run --env EP=cpu .
+EP = "dsp"
+STRICT = "0"
 
 [static_frontend]
 dist_path = "./frontend/dist"
@@ -45,4 +59,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.3.0"
+image_tag = "1.4.0-onnxruntime"
