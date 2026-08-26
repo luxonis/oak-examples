@@ -22,7 +22,7 @@ This is the repository reference for comparing three host-side ways to view enco
 - `Shape:` `multi-entrypoint+standalone-service`
 - `Primary task:` play encoded camera or replay streams through different host decode paths
 - `Entrypoints:` [main.py](main.py), [pyav.py](pyav.py), and [opencv.py](opencv.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml), both running [main.py](main.py)
+- `Standalone path:` [oakapp.toml](oakapp.toml), running [main.py](main.py)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` camera or replay media, and for the alternate paths, PyAV or OpenCV decode support

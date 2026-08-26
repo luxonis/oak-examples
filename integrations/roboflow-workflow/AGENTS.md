@@ -23,7 +23,7 @@ This is the strongest integration reference in the repository for running Robofl
 - `Shape:` `frontend`
 - `Primary task:` run Roboflow Workflow inference on live DepthAI frames and surface outputs in a custom frontend
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` documented as RVC4 standalone only
 - `Requires:` RVC4 device running Luxonis OS 1.40 or newer; valid Roboflow workflow config in [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml); the `inference` package; and static frontend assets

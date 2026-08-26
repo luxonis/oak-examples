@@ -1,5 +1,5 @@
 identifier = "com.example.streaming.rtsp"
-entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/main.py"]
 app_version = "1.1.0"
 assign_frontend_port = true
 
@@ -9,13 +9,6 @@ prepare_container = [
     { type = "COPY", source = "./requirements.txt", target = "./requirements.txt" },
     { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages"}
 ]
-
-build_steps = [
-    "mkdir -p /etc/service/backend",
-    "cp /app/backend-run.sh /etc/service/backend/run",
-    "chmod +x /etc/service/backend/run",
-]
-
 
 [base_image]
 api_url = "https://registry-1.docker.io"

@@ -22,7 +22,7 @@ This is the repository’s standard reference for real-time object detections wi
 - `Shape:` `script+standalone`
 - `Primary task:` object detection with stereo spatial coordinates
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` devices with `CAM_A`, `CAM_B`, and `CAM_C`; RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` depth, calibration, and a compatible detection model
