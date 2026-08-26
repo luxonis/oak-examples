@@ -4,7 +4,7 @@
 # Contact: <support@luxonis.com>
 
 # Application metadata
-identifier = "com.example.streaming.uvc"
+identifier = "com.example.cpp.uvc"
 app_version = "4.0.0"
 
 # Command to run when the container starts

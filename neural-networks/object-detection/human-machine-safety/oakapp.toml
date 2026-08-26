@@ -1,4 +1,4 @@
-identifier = "com.example.object-detection.human-machine-safety"
+identifier = "com.example.neural-networks.object-detection.human-machine-safety"
 app_version = "1.0.0"
 
 prepare_container = [

@@ -1,4 +1,4 @@
-identifier = "example.apps.ros.ros-driver-basic"
+identifier = "com.example.apps.ros.ros-driver-basic"
 app_version = "0.9.0"
 
 prepare_container = [

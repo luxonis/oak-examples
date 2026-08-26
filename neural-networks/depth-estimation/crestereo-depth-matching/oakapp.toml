@@ -1,4 +1,4 @@
-identifier = "com.example.depth-estimation.crestereo-depth-matching"
+identifier = "com.example.neural-networks.depth-estimation.crestereo-stereo-matching"
 app_version="1.1.0"
 
 prepare_container = [

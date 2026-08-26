@@ -1,4 +1,4 @@
-identifier = "com.example.counting.crowdcounting"
+identifier = "com.example.neural-networks.counting.crowdcounting"
 app_version = "1.0.0"
 
 prepare_container = [
