@@ -27,7 +27,7 @@ This is the best standalone reference for open-vocabulary detection plus configu
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` RVC4 standalone only
-- `Requires:` RVC4 device; static frontend build; bundled YOLOE model; `depthai-nodes==0.6.1`; the ONNX Runtime OakApp base image; backend YAML configs in [backend/src/config/yaml_configs/](backend/src/config/yaml_configs/)
+- `Requires:` RVC4 device running Luxonis OS 1.40 or newer; static frontend build; bundled YOLOE model; backend YAML configs in [backend/src/config/yaml_configs/](backend/src/config/yaml_configs/)
 - `Input:` live RGB camera by default, or media input via `--media_path`; text prompt, image prompt, or bbox prompt from the frontend
 - `Output:` encoded `Video`, `Annotations`, and saved snaps with metadata controlled by backend snapping logic
 - `Models:` [yoloe_v8_l_fp16.RVC4.yaml](backend/src/depthai_models/yoloe_v8_l_fp16.RVC4.yaml)
@@ -82,7 +82,7 @@ This is the best standalone reference for open-vocabulary detection plus configu
 ## Constraints
 
 - This example is intentionally RVC4 standalone only.
-- Prompt encoders use `depthai_nodes.runtime.onnx_qnn_session` on the ONNX Runtime base image; the app must retain the NPU devices and `/opt/luxonis/npu-runtime` mount declared in [oakapp.toml](oakapp.toml).
+- Luxonis OS 1.40 or newer is required for the device NPU runtime.
 - The backend uses `serveFrontend=False`, so the app depends on the static frontend build declared in [oakapp.toml](oakapp.toml).
 - Runtime behavior is split across CLI args and YAML config files, so changing only one side may not do what you expect.
 - The frontend expects the backend to be the source of truth and rehydrates local UI state from `Get App Config Service`.
