@@ -1,0 +1,16 @@
+# Curated set of OAK Apps published by the bulk release workflow.
+# Paths are relative to the repository root. Keep one app per line.
+apps/object-volume-measurement-3d
+apps/people-demographics-and-sentiment-analysis
+apps/qr-tiling
+apps/dino-tracking
+apps/data-collection
+apps/focused-vision
+apps/p2p-measurement
+custom-frontend/open-vocabulary-object-detection
+camera-controls/lossless-zooming
+neural-networks/ocr/general-ocr
+neural-networks/face-detection/age-gender
+neural-networks/segmentation/depth-crop
+neural-networks/pose-estimation/hand-pose
+neural-networks/object-detection/spatial-detections
