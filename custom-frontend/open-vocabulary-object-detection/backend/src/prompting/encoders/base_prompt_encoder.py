@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from box import Box
+from depthai_nodes.runtime import onnx_qnn_session
 from onnxruntime import InferenceSession
 from tqdm import tqdm
 import numpy as np
@@ -38,7 +39,6 @@ class BasePromptEncoder(ABC):
         self._quant_key = quant_key or model_name
         self._session: InferenceSession = None
         self._offset: int = None
-        self._on_npu: bool = False
         self._batch_bucket: Optional[int] = None
 
     def _load_model(self) -> None:
@@ -49,18 +49,8 @@ class BasePromptEncoder(ABC):
         self._session = self._make_session(str(path))
 
     def _make_session(self, path: str) -> InferenceSession:
-        """NPU (QNN EP) session when running on the onnxruntime oakapp-base
-        image, otherwise the original CPU session."""
-        try:
-            import onnxruntime_qnn  # noqa: F401  # preinstalled in the NPU base image
-            from depthai_nodes.runtime import onnx_qnn_session
-        except ImportError:
-            self._on_npu = False
-            return InferenceSession(path)
+        """Create a QNN session using the standalone app's NPU runtime."""
         session = onnx_qnn_session(self._pin_input_shapes(path), fp16=True)
-        # shapes are pinned even if onnx_qnn_session fell back to CPU, so the
-        # static-batch padding in _pad_batch must stay on either way
-        self._on_npu = True
         log.info(f"{type(self).__name__}: providers={session.get_providers()}")
         return session
 
@@ -103,11 +93,10 @@ class BasePromptEncoder(ABC):
         return self._config.max_num_classes
 
     def _pad_batch(self, arr: np.ndarray) -> tuple[np.ndarray, int]:
-        """Pad the batch dim to the current bucket on the NPU path (static
-        shape); callers slice the output back to the original batch size."""
+        """Pad to the static batch bucket; callers slice the output back."""
         n = arr.shape[0]
         target = self._batch_bucket or self._config.max_num_classes
-        if not self._on_npu or n >= target:
+        if n >= target:
             return arr, n
         return np.pad(arr, ((0, target - n), (0, 0)), mode="constant"), n
 

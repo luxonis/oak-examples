@@ -1,15 +1,21 @@
 identifier = "com.luxonis.custom-frontend.open-vocabulary-object-detection"
-entrypoint = ["/entrypoint.sh", "bash", "/app/backend-run.sh"]
+# /entrypoint.sh starts runsvdir for /etc/service, including our backend service.
+# Keep PID 1 alive without starting a competing supervisor.
+entrypoint = ["/entrypoint.sh", "tail", "-f", "/dev/null"]
 app_version = "1.0.3"
 
 prepare_container = [
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
     # default python3: the NPU base image ships onnxruntime(-qnn) for it
-    { type = "RUN", command = "python3 -m pip install -r /app/backend/requirements.txt --break-system-packages"},
+    { type = "RUN", command = "python3 -m pip install --use-deprecated=legacy-resolver -r /app/backend/requirements.txt --break-system-packages"},
 ]
 
 prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
-build_steps = []
+build_steps = [
+    "mkdir -p /etc/service/backend",
+    "cp /app/backend-run.sh /etc/service/backend/run",
+    "chmod +x /etc/service/backend/run",
+]
 
 depthai_models = { yaml_path = "./backend/src/depthai_models" }
 
@@ -28,7 +34,7 @@ dist_path = "./frontend/dist"
 
 [static_frontend.build]
 source_path = "./frontend"
-steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
+steps = ["bash -c 'ulimit -n $(ulimit -Hn); cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
 
 [base_image]
 api_url = "https://registry-1.docker.io"
