@@ -1,4 +1,4 @@
-depthai==3.8.0
+depthai==3.9.0
 depthai-nodes @ git+https://github.com/luxonis/depthai-nodes.git@3fa02fbe9d7c8212c6e9739614e87234503893d2
 opencv-python-headless~=4.10.0
 tokenizers~=0.21.0
