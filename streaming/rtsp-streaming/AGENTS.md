@@ -22,7 +22,7 @@ This is the repository reference for serving a live H265 RTSP stream from an OAK
 - `Shape:` `script+standalone-service`
 - `Primary task:` expose a live camera feed as `rtsp://.../preview`
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` GStreamer RTSP server dependencies and live `CAM_A` input
@@ -38,7 +38,6 @@ This is the repository reference for serving a live H265 RTSP stream from an OAK
 - [utils/host_stream_output.py](utils/host_stream_output.py)
 - [utils/rtsp_server.py](utils/rtsp_server.py)
 - [utils/arguments.py](utils/arguments.py)
-- [backend-run.sh](backend-run.sh)
 - [oakapp.toml](oakapp.toml)
 
 ## Architecture

@@ -40,7 +40,6 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 - [utils/arguments.py](utils/arguments.py): CLI surface
 - [depthai_models/yunet.RVC2.yaml](depthai_models/yunet.RVC2.yaml): RVC2 model descriptor
 - [depthai_models/yunet.RVC4.yaml](depthai_models/yunet.RVC4.yaml): RVC4 model descriptor
-- [backend-run.sh](backend-run.sh): standalone backend command
 - [oakapp.toml](oakapp.toml): standalone packaging path
 
 ## Architecture

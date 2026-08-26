@@ -10,11 +10,9 @@ prepare_container = [
 
 prepare_build_container = []
 
-build_steps = []
-
 depthai_models = { yaml_path = "./depthai_models" }
 
-entrypoint = ["bash", "-c", "python3 -u /app/main.py"]
+entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/main.py"]
 
 [base_image]
 api_url = "https://registry-1.docker.io"

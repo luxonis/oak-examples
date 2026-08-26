@@ -1,17 +1,13 @@
 identifier = "com.example.cpp.camera_stream"
-entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+entrypoint = ["/entrypoint.sh", "/app/build/main"]
 app_version = "1.1.0"
 
 build_steps = [
-    "mkdir -p /etc/service/backend",
-    "cp /app/backend-run.sh /etc/service/backend/run",
-    "chmod +x /etc/service/backend/run",
     "cmake -S /app -B /app/build",
     "cmake --build /app/build",
 ]
 
 assign_frontend_port = true
-
 
 [base_image]
 api_url = "https://registry-1.docker.io"

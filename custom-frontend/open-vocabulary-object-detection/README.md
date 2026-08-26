@@ -56,10 +56,10 @@ oakctl app run .
 
 Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
-This will run the example with default argument values (YOLOE model). If you want to change these values you need to edit the `backend-run.sh` file to pass the arguments to the backend. Example:
+This will run the example with default argument values (YOLOE model). If you want to change these values, edit the `entrypoint` in `oakapp.toml` to pass the arguments to the backend. Example:
 
-```bash
-python3.12 /app/backend/src/main.py --model yoloe --fps_limit 10 --semantic_seg
+```toml
+entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/backend/src/main.py", "--model", "yoloe", "--fps_limit", "10", "--semantic_seg"]
 ```
 
 ### Remote access
