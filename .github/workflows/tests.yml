@@ -145,7 +145,7 @@ jobs:
 
       - name: Install HIL
         run: |
-          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+          pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Set model variable
         run: |
@@ -213,7 +213,7 @@ jobs:
 
       - name: Install HIL
         run: |
-          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+          pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Set model variable
         run: |
@@ -269,7 +269,7 @@ jobs:
 
       - name: Install HIL
         run: |
-          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+          pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Set model variable
         run: |
@@ -318,7 +318,7 @@ jobs:
 
       - name: Install HIL
         run: |
-          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+          pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
         run: |
@@ -372,7 +372,7 @@ jobs:
 
       - name: Install HIL
         run: |
-          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+          pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
         run: |
@@ -412,7 +412,7 @@ jobs:
 
       - name: Install HIL
         run: |
-          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+          pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
         run: |
