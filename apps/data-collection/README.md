@@ -7,7 +7,7 @@ It runs **YOLOE** on the DepthAI backend, and exposes controls in the UI for:
 - Adjusting **confidence threshold**
 - Enabling **snap conditions** (timed, no detections, low confidence, lost-in-middle)
 
-> **Note:** RVC4 standalone mode only.
+> **Note:** RVC4 standalone mode only. Requires Luxonis OS 1.40 or newer.
 
 ![](media/data_collection_app_demo.gif)
 

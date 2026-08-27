@@ -1,10 +1,12 @@
 identifier = "com.example.apps.data-collection"
-entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
-app_version = "1.1.0"
+# /entrypoint.sh starts runsvdir for /etc/service, including our backend service.
+# Keep PID 1 alive without starting a competing supervisor.
+entrypoint = ["/entrypoint.sh", "tail", "-f", "/dev/null"]
+app_version = "1.0.0"
 
 prepare_container = [
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
-    { type = "RUN", command = "python3.12 -m pip install --use-deprecated=legacy-resolver -r /app/backend/requirements.txt --break-system-packages"},
+    { type = "RUN", command = "python3 -m pip install -r /app/backend/requirements.txt --break-system-packages"},
 ]
 
 prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
@@ -16,13 +18,22 @@ build_steps = [
 
 depthai_models = { yaml_path = "./backend/src/depthai_models" }
 
+# NPU (Hexagon HTP) passthrough for the ONNX Runtime QNN EP.
+optional_devices = [
+    "/dev/fastrpc-cdsp",
+    "/dev/adsprpc-smd",
+    "/dev/dma_heap/qcom,system",
+    "/dev/dma_heap/system",
+]
+optional_mounts = ["/opt/luxonis/npu-runtime:/opt/luxonis/npu-runtime:ro,rbind"]
+allowed_devices = [{ allow = true, access = "rw" }]
+
 [static_frontend]
 dist_path = "./frontend/dist"
 
 [static_frontend.build]
 source_path = "./frontend"
-steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
-
+steps = ["bash -c 'ulimit -n $(ulimit -Hn); cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
 
 [base_image]
 api_url = "https://registry-1.docker.io"
@@ -31,4 +42,4 @@ oauth_url = "https://auth.docker.io/token"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.3.0"
+image_tag = "1.4.0-onnxruntime"

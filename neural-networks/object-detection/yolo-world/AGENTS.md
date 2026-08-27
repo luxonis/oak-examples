@@ -25,7 +25,7 @@ This is the repository reference for open-vocabulary YOLO-World inference with s
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC4 peripheral and RVC4 standalone packaging
-- `Requires:` YOLO-World model, text embeddings generated from class names, and RVC4 `snpe` backend support
+- `Requires:` RVC4 device running Luxonis OS 1.40 or newer; YOLO-World model; text embeddings generated from class names; and RVC4 `snpe` backend support for the detector
 - `Input:` camera frames by default or `ReplayVideo` via `--media_path`
 - `Output:` `Detections` and `Video`
 - `Models:` [depthai_models/yolo_world_l.RVC4.yaml](depthai_models/yolo_world_l.RVC4.yaml)
@@ -42,6 +42,7 @@ This is the repository reference for open-vocabulary YOLO-World inference with s
 ## Architecture
 
 - [utils/helper_functions.py](utils/helper_functions.py) converts the configured class names into text embeddings before the pipeline starts.
+- The CLIP text-encoder session runs on the OAK4 DSP in standalone mode.
 - `ParsingNeuralNetwork` is wired manually as a multi-input model with image and text inputs.
 - The text tensor is sent once through `inputs["texts"]` and then reused.
 - `ImgDetectionsFilter` and [utils/detections_label_mapper.py](utils/detections_label_mapper.py) keep only the configured prompt labels and map them back to their class names.
@@ -50,6 +51,7 @@ This is the repository reference for open-vocabulary YOLO-World inference with s
 
 - [main.py](main.py) enforces `MAX_NUM_CLASSES = 80`.
 - This example is effectively RVC4-only and uses the `snpe` DSP backend explicitly.
+- Luxonis OS 1.40 or newer is required for the device NPU runtime.
 - Text prompts are static for the lifetime of the run; there is no service/UI layer to update them dynamically.
 
 ## Related Examples

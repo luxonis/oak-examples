@@ -1,9 +1,10 @@
-depthai==3.8.0
-depthai-nodes==0.6.0
+depthai==3.9.0
+depthai-nodes==0.6.1
 opencv-python-headless~=4.10.0
 numpy>=1.22
 onnxruntime
 # onnxruntime-gpu # if you want to use CUDAExecutionProvider
+onnx # to pin dynamic input shapes for the NPU (QNN EP) path
 requests
 
 # tokenizers: pick depending on Python version

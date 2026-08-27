@@ -12,9 +12,12 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@floating-ui/dom": "1.8.0",
 		"@luxonis/common-fe-components": "1.26.3",
 		"@luxonis/depthai-pipeline-lib": "3.8.3",
 		"@luxonis/depthai-viewer-common": "3.8.3",
+		"@sentry/browser": "8.55.2",
+		"date-fns": "2.30.0",
 		"react": "19.2.5",
 		"react-dom": "19.2.5",
 		"react-router": "^7.5.0",
@@ -29,5 +32,9 @@
 		"globals": "^16.0.0",
 		"typescript": "~5.7.2",
 		"vite": "^6.3.1"
+	},
+	"overrides": {
+		"react": "$react",
+		"react-dom": "$react-dom"
 	}
 }
