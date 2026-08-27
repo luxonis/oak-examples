@@ -111,12 +111,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # Pull request runs compare GitHub's merge commit with its base parent.
+          # Two commits are sufficient for that comparison; manual runs retain the
+          # full history required for an arbitrary branch-to-main comparison.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
 
       - id: detect
         run: |
-          git fetch origin main
-          changed_files=$(git diff --name-only origin/main...HEAD)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            changed_files=$(git diff --name-only HEAD^1 HEAD)
+          else
+            git fetch origin main
+            changed_files=$(git diff --name-only origin/main...HEAD)
+          fi
 
           example_dirs=""
           while read -r file; do
