@@ -14,7 +14,8 @@ export default defineConfig({
 	},
 	build: {
 		rollupOptions: {
-			maxParallelFileOps: 4,
+			// OAK's build container has a low file-descriptor limit.
+			maxParallelFileOps: 8,
 			output: {
 				format: "esm",
 			},
