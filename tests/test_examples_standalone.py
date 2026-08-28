@@ -36,9 +36,6 @@ def skip_if_not_rvc4(test_args):
 
 def test_example_runs_in_standalone(example_dir, example_test_args):
     """Tests if the example runs in standalone mode for at least N seconds without errors."""
-    # Time that device is waiting before timing out, set for RVC4 tests
-    os.environ["DEPTHAI_SEARCH_TIMEOUT"] = "30000"
-
     example_dir = example_dir.resolve()
 
     success, reason = is_valid(
@@ -52,31 +49,45 @@ def test_example_runs_in_standalone(example_dir, example_test_args):
     if not success:
         pytest.skip(f"Skipping {example_dir}: {reason}")
 
+    # Time that device is waiting before timing out, set for RVC4 tests
+    os.environ["DEPTHAI_SEARCH_TIMEOUT"] = "30000"
+
     main_script = example_dir / "main.py"
     requirements_path = example_dir / "requirements.txt"
     oakapp_toml = example_dir / "oakapp.toml"
 
-    if not oakapp_toml.exists():
+    if not (
+        oakapp_toml.exists() and main_script.exists() and requirements_path.exists()
+    ):
         logger.debug(
-            "Checking for oakapp.toml in fallback location. Expected example structure: <root>/oakapp.toml and <root>/backend/src/."
+            "Checking for a frontend/backend standalone app layout. Expected layout: "
+            "<root>/oakapp.toml, <root>/backend/requirements.txt, and "
+            "<root>/backend/src/main.py."
         )
-        # try fallback: oakapp.toml two levels up
-        candidate_root = example_dir.parents[1]
+        candidate_root = example_dir if oakapp_toml.exists() else example_dir.parents[1]
         fallback_oak = candidate_root / "oakapp.toml"
-
-        # expect structure: <root>/oakapp.toml and <root>/backend/src/
         fallback_main = candidate_root / "backend" / "src" / "main.py"
-        fallback_req = candidate_root / "backend" / "src" / "requirements.txt"
+        fallback_requirements = next(
+            (
+                path
+                for path in (
+                    candidate_root / "backend" / "requirements.txt",
+                    candidate_root / "backend" / "src" / "requirements.txt",
+                )
+                if path.exists()
+            ),
+            None,
+        )
 
-        if fallback_oak.exists() and fallback_main.exists() and fallback_req.exists():
-            logger.debug("Fallback example structure confirmed.")
+        if fallback_oak.exists() and fallback_main.exists() and fallback_requirements:
+            logger.debug("Frontend/backend standalone app layout confirmed.")
             oakapp_toml = fallback_oak
             main_script = fallback_main
-            requirements_path = fallback_req
+            requirements_path = fallback_requirements
             example_dir = candidate_root
         else:
             pytest.skip(
-                f"Skipping {example_dir}, no oakapp.toml found in expected locations."
+                f"Skipping {example_dir}, no compatible standalone app layout found."
             )
 
     if not main_script.exists():

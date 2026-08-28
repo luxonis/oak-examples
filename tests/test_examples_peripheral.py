@@ -20,12 +20,6 @@ logging.basicConfig(level=logging.INFO)
 
 def test_example_runs_in_peripheral(example_dir, test_args):
     """Tests if the example runs in peripheral mode for at least N seconds without errors."""
-    # Time that device is waiting before timing out, set for RVC4 tests
-    os.environ["DEPTHAI_SEARCH_TIMEOUT"] = "30000"
-
-    if test_args["virtual_display"]:
-        setup_virtual_display()
-
     example_dir = example_dir.resolve()
 
     success, reason = is_valid(
@@ -38,6 +32,12 @@ def test_example_runs_in_peripheral(example_dir, test_args):
     )
     if not success:
         pytest.skip(f"Skipping {example_dir}: {reason}")
+
+    # Time that device is waiting before timing out, set for RVC4 tests
+    os.environ["DEPTHAI_SEARCH_TIMEOUT"] = "30000"
+
+    if test_args["virtual_display"]:
+        setup_virtual_display()
 
     main_script = example_dir / "main.py"
     requirements_path = example_dir / "requirements.txt"
