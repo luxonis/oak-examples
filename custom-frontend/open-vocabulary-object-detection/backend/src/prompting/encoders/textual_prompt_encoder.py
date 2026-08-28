@@ -25,6 +25,11 @@ class TextualPromptEncoder(BasePromptEncoder):
         self.tokenizer_path: str = config.paths.tokenizer.path
         self.tokenizer: Tokenizer = None
 
+    def _npu_input_shape(self) -> tuple:
+        """Static shape per batch bucket: batch padded to the bucket picked in
+        extract_embeddings, sequence padded to CLIP's 77 (already done below)."""
+        return (self._batch_bucket or self._config.max_num_classes, 77)
+
     def _load_tokenizer(self):
         path = self._download_file(self.tokenizer_url, self.tokenizer_path)
         self.tokenizer = Tokenizer.from_file(str(path))
@@ -35,6 +40,7 @@ class TextualPromptEncoder(BasePromptEncoder):
 
     def extract_embeddings(self, class_names: list[str]) -> np.ndarray:
         """Extract text embeddings for the given class names."""
+        self._batch_bucket = self._pick_bucket(len(class_names))
         self._load_tokenizer()
         self._load_model()
 
@@ -55,11 +61,12 @@ class TextualPromptEncoder(BasePromptEncoder):
             text_ids = np.pad(
                 text_ids, ((0, 0), (0, 77 - text_ids.shape[1])), mode="constant"
             )
+        text_ids, n_classes = self._pad_batch(text_ids)
 
         outputs = self._session.run(
             None, {self._session.get_inputs()[0].name: text_ids}
         )
-        embeddings = outputs[0]
+        embeddings = outputs[0][:n_classes]
         embeddings /= np.linalg.norm(embeddings, ord=2, axis=-1, keepdims=True)
 
         return embeddings
@@ -74,6 +81,8 @@ class TextualPromptEncoder(BasePromptEncoder):
             pad = 77 - text_ids.shape[1]
             text_ids = np.pad(text_ids, ((0, 0), (0, pad)), mode="constant")
             attention_mask = np.pad(attention_mask, ((0, 0), (0, pad)), mode="constant")
+        text_ids, n_classes = self._pad_batch(text_ids)
+        attention_mask, _ = self._pad_batch(attention_mask)
 
         outputs = self._session.run(
             None,
@@ -82,5 +91,5 @@ class TextualPromptEncoder(BasePromptEncoder):
                 "attention_mask": attention_mask,
             },
         )
-        embeddings = outputs[0]
+        embeddings = outputs[0][:n_classes]
         return embeddings

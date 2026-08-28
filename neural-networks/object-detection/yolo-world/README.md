@@ -2,7 +2,7 @@
 
 This example demonstrates the implementation of multi-input [YOLO-World](https://models.luxonis.com/luxonis/yolo-world-l/6684e96f-11fc-4d92-8657-12a5fd8e532a) object detection pipeline on DepthAI. It can detect objects in real-time using YOLO, has support for video files and live camera input, and is customizable with class names and confidence threshold.
 
-> **NOTE:** This example works only on `RVC4` devices.
+> **NOTE:** This example works only on `RVC4` devices and requires Luxonis OS 1.40 or newer.
 
 ## Demo
 
@@ -33,12 +33,8 @@ Here is a list of all available parameters:
 
 ### Installation
 
-You need to first prepare a **Python >= 3.10** environment with the following packages installed:
-
-- [DepthAI](https://pypi.org/project/depthai/),
-- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
-
-You can simply install them by running:
+You need to first prepare a **Python >= 3.10** environment and install the
+required packages:
 
 ```bash
 pip install -r requirements.txt

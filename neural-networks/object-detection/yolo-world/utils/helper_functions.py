@@ -2,8 +2,8 @@ from tokenizers import Tokenizer
 from tqdm import tqdm
 import os
 import requests
-import onnxruntime
 import numpy as np
+from depthai_nodes.runtime import onnx_qnn_session
 
 QUANT_ZERO_POINT = 90.0
 QUANT_SCALE = 0.003925696481
@@ -30,14 +30,7 @@ def extract_text_embeddings(class_names, max_num_classes=80):
         local_filename=textual_onnx_model_path,
     )
 
-    session_textual = onnxruntime.InferenceSession(
-        textual_onnx_model_path,
-        providers=[
-            "TensorrtExecutionProvider",
-            "CUDAExecutionProvider",
-            "CPUExecutionProvider",
-        ],
-    )
+    session_textual = _make_textual_session(textual_onnx_model_path, *text_onnx.shape)
     textual_output = session_textual.run(
         None,
         {
@@ -56,6 +49,27 @@ def extract_text_embeddings(class_names, max_num_classes=80):
     del session_textual
 
     return text_features
+
+
+def _make_textual_session(model_path, batch_size, seq_len):
+    """Create a QNN session using the standalone app's NPU runtime."""
+    return onnx_qnn_session(
+        _fix_input_shapes(model_path, batch_size, seq_len), fp16=True
+    )
+
+
+def _fix_input_shapes(model_path, batch_size, seq_len):
+    """The QNN EP needs static shapes; pin the dynamic dims (cached on disk)."""
+    import onnx
+    from onnxruntime.tools.onnx_model_utils import make_dim_param_fixed
+
+    fixed_path = f"{os.path.splitext(model_path)[0]}_{batch_size}x{seq_len}.onnx"
+    if not os.path.exists(fixed_path):
+        model = onnx.load(model_path)
+        make_dim_param_fixed(model.graph, "batch_size", batch_size)
+        make_dim_param_fixed(model.graph, "sequence_length", seq_len)
+        onnx.save(model, fixed_path)
+    return fixed_path
 
 
 def download_tokenizer(url, save_path):

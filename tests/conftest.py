@@ -127,11 +127,29 @@ def pytest_generate_tests(metafunc):
     if "example_dir" in metafunc.fixturenames:
         root_dirs = metafunc.config.getoption("--root-dir")
         exp_dirs = set()  # Use a set to avoid duplicates
+        is_standalone_test = metafunc.module.__name__ == "test_examples_standalone"
 
         for root_dir in root_dirs:
             for dirpath, dirnames, filenames in os.walk(root_dir):
+                example_dir = Path(dirpath)
+                backend_dir = example_dir / "backend"
+                backend_requirements = (
+                    backend_dir / "requirements.txt",
+                    backend_dir / "src" / "requirements.txt",
+                )
+                if (
+                    is_standalone_test
+                    and "oakapp.toml" in filenames
+                    and any(path.is_file() for path in backend_requirements)
+                    and (backend_dir / "src" / "main.py").is_file()
+                ):
+                    exp_dirs.add(example_dir)
+                    if "backend" in dirnames:
+                        dirnames.remove("backend")
+                    continue
+
                 if "main.py" in filenames and "requirements.txt" in filenames:
-                    exp_dirs.add(Path(dirpath))
+                    exp_dirs.add(example_dir)
                 elif "main.py" in filenames and "requirements.txt" not in filenames:
                     logger.info(
                         f"Skipping {dirpath} because it has no requirements.txt"
