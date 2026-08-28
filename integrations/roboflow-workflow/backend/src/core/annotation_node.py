@@ -1,6 +1,5 @@
 import logging
 import threading
-import time
 from enum import Enum
 from typing import List
 
@@ -26,8 +25,6 @@ class AnnotationNode(dai.node.HostNode):
         self.detections = {}  # key -> dai.ImgDetections
         self.output_detections = {}
 
-        self._pred_count = 0
-        self._pred_window_start = None
         self._stopping = threading.Event()
         self._state_lock = threading.Lock()
 
@@ -85,8 +82,6 @@ class AnnotationNode(dai.node.HostNode):
 
     def on_prediction(self, result, frame):
         """Process Roboflow output to DAI output"""
-
-        self._log_throughput()
 
         dai_frame = dai.ImgFrame()
         dai_frame.setCvFrame(frame.image, dai.ImgFrame.Type.NV12)
@@ -156,19 +151,6 @@ class AnnotationNode(dai.node.HostNode):
 
                 with self._state_lock:
                     self.detections[key] = dets
-
-    def _log_throughput(self, every: int = 100):
-        """Periodically log the end-to-end workflow prediction rate"""
-        if self._pred_window_start is None:
-            self._pred_window_start = time.monotonic()
-            return
-        self._pred_count += 1
-        if self._pred_count % every == 0:
-            elapsed = time.monotonic() - self._pred_window_start
-            self._logger.info(
-                f"Roboflow workflow throughput: {every / elapsed:.2f} predictions/s"
-            )
-            self._pred_window_start = time.monotonic()
 
     def _parse_key(self, key: str):
         """Parse the key to a output type"""
