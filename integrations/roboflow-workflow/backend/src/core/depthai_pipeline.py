@@ -74,5 +74,8 @@ class DepthAIPipeline:
         self._logger.info("DepthAI pipeline started")
 
     def stop(self):
+        # HostNode callbacks can race pipeline teardown.  Quiesce annotation
+        # publishing first so a closed message queue cannot abort the process.
+        self.annotation.stop_processing()
         self._pipeline.stop()
         self._logger.info("DepthAI pipeline stopped")

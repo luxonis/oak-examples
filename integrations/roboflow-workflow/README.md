@@ -34,6 +34,14 @@ Pipeline settings such as `device`, `output_size`, and `fps` still come from [co
 
 > **Note:** You can update the supported Roboflow values later while the app is running using the custom front-end form. But you still need to start the app with some valid initial values.
 
+### Runtime workflow controls
+
+The custom frontend supports the following while the app is running:
+
+- Switch to another workflow by entering its workspace and workflow ID, then submitting the form. The app rebuilds the visualizer topics when the new workflow has different outputs; parameters from the previous workflow are discarded and the new workflow starts with its defaults.
+- Click the ↻ button to re-fetch the active workflow definition after editing it in the Roboflow builder. This updates the parameter form and restarts inference without redeploying the app.
+- View inference pipeline errors directly in the form. Correct the workflow or parameters, then use ↻ or submit updated values to retry.
+
 ## Workflow Visualization Rules & Limitations
 
 Our system applies a few naming-based rules to determine how workflow outputs are visualized. Keep the following guidelines in mind:
@@ -77,18 +85,8 @@ Once the app is built and running you can access the DepthAI Viewer locally by o
 
 > **Note:** Requires Luxonis OS 1.40 or newer. The backend sets `USE_INFERENCE_MODELS=False` so models are executed through the classic ONNX Runtime path of the `inference` package, which is considerably faster than the default torch-based backend on the device's ARM CPU.
 
-## NPU (DSP) Inference
+## NPU acceleration
 
-In standalone mode the workflow's ONNX models run on the OAK4's Hexagon DSP by default, through the ONNX Runtime QNN execution provider:
+On OAK4, workflow ONNX models run on the Hexagon DSP through the  `onnx_qnn_session` helper. The session router fixes dynamic batch dimensions, runs fp32 weights as fp16 on the HTP, and reuses the cached compiled graph. Unsupported models fall back to the CPU unless `STRICT=1` is set.
 
-- [backend/src/core/qnn_patch.py](./backend/src/core/qnn_patch.py) reroutes the ONNX sessions created inside the `inference` package through the shared `onnx_qnn_session` helper.
-- fp32 weights served by Roboflow run as **fp16 on the HTP** — no quantization or model changes needed. Dynamic batch dimensions are fixed to 1 automatically.
-- The first load of a model compiles it for the HTP (can take tens of seconds); the compiled graph is cached (EPContext), so subsequent loads of the same downloaded weights are fast.
-- Anything that cannot run on the DSP (unsupported ops, in-memory models, non-batch dynamic dims) transparently falls back to the CPU EP.
-
-Environment toggles (see `[env]` in [oakapp.toml](./oakapp.toml)):
-
-- `EP=dsp|cpu` — where to run the workflow's models (default `dsp`; `cpu` restores the previous behavior), e.g. `oakctl app run --env EP=cpu .`
-- `STRICT=1` — fail instead of silently falling back to the CPU EP (useful to verify the DSP is actually used).
-
-The DSP access is declared via the `optional_devices` / `optional_mounts` / `allowed_devices` block in [oakapp.toml](./oakapp.toml); on hosts without the DSP (e.g. running the backend locally) the app automatically stays on the CPU.
+The default is `EP=dsp`; use `EP=cpu` only to disable DSP acceleration for debugging.

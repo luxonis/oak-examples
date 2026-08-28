@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from enum import Enum
 from typing import List
@@ -27,6 +28,8 @@ class AnnotationNode(dai.node.HostNode):
 
         self._pred_count = 0
         self._pred_window_start = None
+        self._stopping = threading.Event()
+        self._state_lock = threading.Lock()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -48,16 +51,37 @@ class AnnotationNode(dai.node.HostNode):
         return self
 
     def process(self, cam):
-        transformation = cam.getTransformation()
+        """Publish the latest workflow outputs without leaking shutdown errors."""
+        if self._stopping.is_set():
+            return
 
-        # send the latest stored data for each workflow output
-        for key in self.frames.keys():
-            self.frames[key].setTransformation(transformation)
-            self.output_frames[key].send(self.frames[key])
+        try:
+            transformation = cam.getTransformation()
+            with self._state_lock:
+                frames = list(self.frames.items())
+                detections = list(self.detections.items())
 
-        for key in self.detections.keys():
-            self.detections[key].setTransformation(transformation)
-            self.output_detections[key].send(self.detections[key])
+            # The pipeline may be stopped between any of these sends.  A
+            # closed queue is normal during a workflow-schema rebuild and must
+            # not escape a HostNode callback (DepthAI aborts the process).
+            for key, frame in frames:
+                if self._stopping.is_set():
+                    return
+                frame.setTransformation(transformation)
+                self.output_frames[key].send(frame)
+
+            for key, detections_message in detections:
+                if self._stopping.is_set():
+                    return
+                detections_message.setTransformation(transformation)
+                self.output_detections[key].send(detections_message)
+        except Exception:
+            if not self._stopping.is_set():
+                self._logger.exception("Failed to publish workflow annotations")
+
+    def stop_processing(self):
+        """Prevent HostNode callbacks from using queues being torn down."""
+        self._stopping.set()
 
     def on_prediction(self, result, frame):
         """Process Roboflow output to DAI output"""
@@ -66,7 +90,8 @@ class AnnotationNode(dai.node.HostNode):
 
         dai_frame = dai.ImgFrame()
         dai_frame.setCvFrame(frame.image, dai.ImgFrame.Type.NV12)
-        self.frames["passthrough"] = dai_frame
+        with self._state_lock:
+            self.frames["passthrough"] = dai_frame
 
         for key, value in result.items():
             output_type = self._parse_key(key)
@@ -84,7 +109,8 @@ class AnnotationNode(dai.node.HostNode):
                         "If it does not, consider renaming the output in your Workflow so that "
                         "'visualization' is not a substring of the output name."
                     )
-                self.frames[key] = vis_frame
+                with self._state_lock:
+                    self.frames[key] = vis_frame
 
             elif output_type == OutputType.DETECTION:
                 dets = dai.ImgDetections()
@@ -128,7 +154,8 @@ class AnnotationNode(dai.node.HostNode):
                         "'predictions' is not a substring of the output name."
                     )
 
-                self.detections[key] = dets
+                with self._state_lock:
+                    self.detections[key] = dets
 
     def _log_throughput(self, every: int = 100):
         """Periodically log the end-to-end workflow prediction rate"""

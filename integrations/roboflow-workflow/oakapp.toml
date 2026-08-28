@@ -2,8 +2,7 @@ identifier = "com.example.integrations.roboflow-workflow"
 entrypoint = ["/entrypoint.sh", "bash", "/app/backend-run.sh"]
 app_version = "3.1.0"
 
-# --- NPU (Hexagon DSP) passthrough for the ONNX Runtime QNN EP --------------
-# Lets `inference` run its ONNX models on the DSP through depthai-nodes.
+# NPU (Hexagon DSP) passthrough for the released QNN runtime.
 optional_devices = [
     "/dev/fastrpc-cdsp",
     "/dev/adsprpc-smd",
@@ -36,9 +35,7 @@ prepare_build_container = [
 build_steps = []
 
 [env]
-# EP=dsp routes the workflow's ONNX models to the DSP, EP=cpu keeps the
-# previous CPU-only behavior. STRICT=1 fails instead of falling back to the
-# CPU EP (debugging aid). Override per run: oakctl app run --env EP=cpu .
+# Set EP=cpu to disable DSP acceleration; STRICT=1 makes QNN setup failures fatal.
 EP = "dsp"
 STRICT = "0"
 
@@ -48,7 +45,7 @@ dist_path = "./frontend/dist"
 [static_frontend.build]
 source_path = "./frontend"
 steps = [
-    "bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"
+    "bash -c 'ulimit -n $(ulimit -Hn); cd /app/frontend && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"
 ]
 
 
