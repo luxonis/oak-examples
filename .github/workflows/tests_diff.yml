@@ -129,7 +129,11 @@ jobs:
           while read -r file; do
             dir=$(dirname "$file")
             while [ "$dir" != "." ] && [ "$dir" != "/" ]; do
-              if [[ -f "$dir/main.py" && -f "$dir/requirements.txt" ]]; then
+              if [[
+                -f "$dir/oakapp.toml" &&
+                -f "$dir/backend/src/main.py" &&
+                ( -f "$dir/backend/requirements.txt" || -f "$dir/backend/src/requirements.txt" )
+              ]] || [[ -f "$dir/main.py" && -f "$dir/requirements.txt" ]]; then
                 example_dirs="$example_dirs $dir"
                 break
               fi
