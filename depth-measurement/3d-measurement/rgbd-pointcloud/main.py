@@ -13,39 +13,23 @@ if not device.setIrLaserDotProjectorIntensity(1):
     )
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
-    platform = device.getPlatform()
-
-    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-
-    left_out = left.requestOutput(IMG_SHAPE, type=dai.ImgFrame.Type.NV12)
-    right_out = right.requestOutput(IMG_SHAPE, type=dai.ImgFrame.Type.NV12)
-
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_out,
-        right=right_out,
-        presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
-    )
 
     rgbd = pipeline.create(dai.node.RGBD).build()
 
-    width, height = IMG_SHAPE
     if args.mono:
-        cam_node = right
+        cam_node = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     else:
         cam_node = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
 
-    cam_out = cam_node.requestOutput(IMG_SHAPE, type=dai.ImgFrame.Type.RGB888i)
+    cam_out = cam_node.requestOutput(
+        IMG_SHAPE, type=dai.ImgFrame.Type.RGB888i, enableUndistortion=True
+    )
     cam_out.link(rgbd.inColor)
 
-    if platform == dai.Platform.RVC4:
-        align = pipeline.create(dai.node.ImageAlign)
-        stereo.depth.link(align.input)
-        cam_out.link(align.inputAlignTo)
-        align.outputAligned.link(rgbd.inDepth)
-    else:
-        cam_out.link(stereo.inputAlignTo)
-        stereo.depth.link(rgbd.inDepth)
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(dai.node.Depth.Algorithm.AUTO, size=IMG_SHAPE)
+    depth.setAlignTo(cam_out)
+    depth.depth.link(rgbd.inDepth)
 
     visualizer.addTopic("preview", cam_out)
     visualizer.addTopic("pointcloud", rgbd.pcl)

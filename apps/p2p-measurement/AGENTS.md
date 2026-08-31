@@ -14,7 +14,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 ## Do Not Use This Example When
 
 - You need segmented pointclouds and object volume.
-- You need a generic stereo-depth baseline with no frontend.
+- You need a generic depth baseline with no frontend.
 - You need host/peripheral support instead of standalone-only packaging.
 - You need a polished ROS measurement workflow.
 
@@ -28,7 +28,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` RVC4 standalone only
 - `Requires:` RVC4 device with RGB and stereo; calibration on device; static frontend build
-- `Input:` RGB camera, stereo depth, and frontend point clicks
+- `Input:` RGB camera, unified depth, and frontend point clicks
 - `Output:` `Video`, `Depth`, `Point Annotations`, and service-based distance/tracking state
 - `Models:` none
 - `Visualizer / UI:` custom static frontend
@@ -47,15 +47,15 @@ This is the best standalone reference for interactive two-point 3D distance meas
 ## Architecture
 
 - `CAM_A` provides RGB frames.
-- `CAM_B` and `CAM_C` feed `StereoDepth`.
-- An `ImageAlign` node aligns depth to RGB.
+- `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
+- `Depth.setAlignTo(...)` aligns depth to RGB.
 - A colorized depth stream is published for viewing.
 - The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using calibration intrinsics, and emits overlay annotations.
 - The frontend interacts with backend services for point selection, clearing, distance polling, and tracking-mode toggling.
 
 ## Data Flow
 
-- `RGB + stereo depth -> aligned depth`
+- `RGB + Depth -> aligned depth`
 - `aligned depth -> ApplyDepthColormap -> Depth`
 - `RGB + aligned depth -> PointTracker host node -> Point Annotations`
 - `frontend clicks -> Selection Service -> PointTracker state`
@@ -91,7 +91,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 - [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need segmented object measurement instead of two-point distance
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial ROI measurement is enough
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a simpler stereo-depth baseline
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a simpler depth baseline
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when the main goal is host-side stereo processing, not an interactive measurement UI
 
 ## Validation

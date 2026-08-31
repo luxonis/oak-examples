@@ -54,32 +54,20 @@ with dai.Pipeline(device) as pipeline:
         enableUndistortion=True,
     )
 
-    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-
-    left_out = left.requestOutput(
-        (FRAME_WIDTH, FRAME_HEIGHT), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(
+        dai.node.Depth.Algorithm.AUTO,
+        fps=args.fps_limit,
+        size=(FRAME_WIDTH, FRAME_HEIGHT),
     )
-    right_out = right.requestOutput(
-        (FRAME_WIDTH, FRAME_HEIGHT), type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-    )
+    depth.setAlignTo(cam_out)
 
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_out,
-        right=right_out,
-        presetMode=dai.node.StereoDepth.PresetMode.FAST_DENSITY,
-    )
-
-    align = pipeline.create(dai.node.ImageAlign)
-    stereo.depth.link(align.input)
-    cam_out.link(align.inputAlignTo)
-
-    coloredDepth = pipeline.create(ApplyDepthColormap).build(align.outputAligned)
+    coloredDepth = pipeline.create(ApplyDepthColormap).build(depth.depth)
     coloredDepth.setColormap(cv2.COLORMAP_JET)
 
     point_tracker = pipeline.create(
         PointTracker, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT
-    ).build(cam_out, align.outputAligned)
+    ).build(cam_out, depth.depth)
     calibration_data = device.readCalibration()
     camera_matrix = np.array(
         calibration_data.getCameraIntrinsics(

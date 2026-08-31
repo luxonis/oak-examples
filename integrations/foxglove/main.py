@@ -41,7 +41,7 @@ async def main():
             )
             color_q = color_out.createOutputQueue(blocking=False, maxSize=1)
 
-        if args.pointcloud or args.left:
+        if args.left:
             left_cam = pipeline.create(dai.node.Camera).build(
                 dai.CameraBoardSocket.CAM_B
             )
@@ -52,7 +52,7 @@ async def main():
             if args.left:
                 left_q = left_out.createOutputQueue(blocking=False, maxSize=1)
 
-        if args.pointcloud or args.right:
+        if args.right:
             right_cam = pipeline.create(dai.node.Camera).build(
                 dai.CameraBoardSocket.CAM_C
             )
@@ -64,19 +64,16 @@ async def main():
                 right_q = right_out.createOutputQueue(blocking=False, maxSize=1)
 
         if args.pointcloud:
-            stereo = pipeline.create(dai.node.StereoDepth).build(
-                left=left_out,
-                right=right_out,
-                presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
+            depth = pipeline.create(dai.node.Depth)
+            depth.build(
+                dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=resolution
             )
 
             if not args.no_color:
-                img_align = pipeline.create(dai.node.ImageAlign)
-                color_out.link(img_align.inputAlignTo)
-                stereo.depth.link(img_align.input)
-                depth_out = img_align.outputAligned
+                depth.setAlignTo(color_out)
+                depth_out = depth.depth
             else:
-                depth_out = stereo.depth
+                depth_out = depth.depth
 
             point_cloud = pipeline.create(dai.node.PointCloud)
             depth_out.link(point_cloud.inputDepth)

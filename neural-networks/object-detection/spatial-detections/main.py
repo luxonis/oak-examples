@@ -43,22 +43,13 @@ with dai.Pipeline(device) as pipeline:
     # camera input
     cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
 
-    left_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_cam.requestOutput(nn_size, fps=args.fps_limit),
-        right=right_cam.requestOutput(nn_size, fps=args.fps_limit),
-        presetMode=dai.node.StereoDepth.PresetMode.HIGH_DETAIL,
-    )
-    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-    if platform == "RVC2":
-        stereo.setOutputSize(*nn_size)
-    stereo.setLeftRightCheck(True)
-    stereo.setRectification(True)
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=nn_size)
+    # SpatialDetectionNetwork handles depth alignment; no depth.setAlignTo(...) call is needed.
 
     nn = pipeline.create(dai.node.SpatialDetectionNetwork).build(
         input=cam,
-        stereo=stereo,
+        stereo=depth,
         nnArchive=det_model_nn_archive,
         fps=float(args.fps_limit),
     )
@@ -70,10 +61,10 @@ with dai.Pipeline(device) as pipeline:
 
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(
-        input_detections=nn.out, depth=stereo.depth, labels=classes
+        input_detections=nn.out, depth=nn.passthroughDepth, labels=classes
     )
 
-    apply_colormap = pipeline.create(ApplyDepthColormap).build(stereo.depth)
+    apply_colormap = pipeline.create(ApplyDepthColormap).build(nn.passthroughDepth)
 
     # video encoding
     cam_nv12 = cam.requestOutput(

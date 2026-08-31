@@ -28,13 +28,13 @@ class ROIControl(dai.node.HostNode):
 
     def build(
         self,
-        disparity_frames: dai.Node.Output,
+        depth_frames: dai.Node.Output,
         measured_depth: dai.Node.Output,
     ) -> "ROIControl":
-        self.link_args(disparity_frames, measured_depth)
+        self.link_args(depth_frames, measured_depth)
         return self
 
-    def process(self, disparity: dai.ImgFrame, depth: dai.Buffer) -> None:
+    def process(self, depth_preview: dai.ImgFrame, depth: dai.Buffer) -> None:
         assert isinstance(depth, SpatialDistance)
 
         annotations_builder = AnnotationHelper()
@@ -47,8 +47,8 @@ class ROIControl(dai.node.HostNode):
             size=4,
         )
 
-        width = disparity.getWidth()
-        height = disparity.getHeight()
+        width = depth_preview.getWidth()
+        height = depth_preview.getHeight()
 
         rel_xmin = self._roi.xmin / width
         rel_ymin = self._roi.ymin / height
@@ -66,17 +66,17 @@ class ROIControl(dai.node.HostNode):
         y = self._roi.ymin
 
         text_x = (
-            f"X: {depth.spatials.x / 1000:.1f}m"
+            f"X: {depth.spatials.x / 1000:.2f}m"
             if not math.isnan(depth.spatials.x)
             else "X: --"
         )
         text_y = (
-            f"Y: {depth.spatials.y / 1000:.1f}m"
+            f"Y: {depth.spatials.y / 1000:.2f}m"
             if not math.isnan(depth.spatials.y)
             else "Y: --"
         )
         text_z = (
-            f"Z: {depth.spatials.z / 1000:.1f}m"
+            f"Z: {depth.spatials.z / 1000:.2f}m"
             if not math.isnan(depth.spatials.z)
             else "Z: --"
         )
@@ -106,10 +106,10 @@ class ROIControl(dai.node.HostNode):
         )
 
         annotations = annotations_builder.build(
-            disparity.getTimestamp(), disparity.getSequenceNum()
+            depth_preview.getTimestamp(), depth_preview.getSequenceNum()
         )
         self.annotation_output.send(annotations)
-        self.passthrough.send(disparity)
+        self.passthrough.send(depth_preview)
 
     def handle_key_press(self, key: int) -> None:
         if key == -1:

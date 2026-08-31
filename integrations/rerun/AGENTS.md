@@ -46,7 +46,7 @@ This is the repository reference for streaming DepthAI data into Rerun Viewer. U
 - `main.py` always creates an RGB stream from `CAM_A`.
 - Optional mono streams from `CAM_B/C` are added when `--left`, `--right`, or `--pointcloud` requires them.
 - Point-cloud mode builds:
-  - `StereoDepth`
+  - `Depth`
   - `ImageAlign` aligned to RGB
   - `PointCloud`
 - The custom [utils/host_rerun.py](utils/host_rerun.py) threaded host node consumes the selected streams and logs them into Rerun.
@@ -58,7 +58,7 @@ This is the repository reference for streaming DepthAI data into Rerun Viewer. U
 
 - `CAM_A -> Rerun host node -> rr.Image("Color")`
 - `optional CAM_B/C -> Rerun host node -> rr.Image("Left"/"Right")`
-- `CAM_B/C -> StereoDepth -> ImageAlign -> PointCloud -> Rerun host node -> rr.Points3D("Pointcloud")`
+- `Depth -> PointCloud -> Rerun host node -> rr.Points3D("Pointcloud")`
 
 ## Modification Guide
 

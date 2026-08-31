@@ -7,7 +7,7 @@ This is the repository reference for person detection plus distance monitoring. 
 ## Use This Example When
 
 - You need social-distance or proximity monitoring.
-- You want a bird’s-eye view derived from stereo depth.
+- You want a bird’s-eye view derived from depth.
 - You need a person-specific spatial detection baseline rather than a generic detector.
 
 ## Do Not Use This Example When
@@ -25,7 +25,7 @@ This is the repository reference for person detection plus distance monitoring. 
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` devices with `CAM_A`, `CAM_B`, and `CAM_C`; RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
-- `Requires:` SCRFD person detector, stereo depth, and calibration
+- `Requires:` SCRFD person detector, depth, and calibration
 - `Input:` live color and stereo pair
 - `Output:` `Video`, `Detections`, `Distances`, and `Bird-eye view`
 - `Models:` SCRFD person-detection YAMLs in [depthai_models/](depthai_models/)
@@ -42,13 +42,13 @@ This is the repository reference for person detection plus distance monitoring. 
 ## Architecture
 
 - A color camera on `CAM_A` feeds the person detector.
-- `StereoDepth` on `CAM_B/C` aligns depth back to the RGB stream.
+- `Depth` owns depth-source selection and aligns depth back to the RGB stream.
 - `DepthMerger` attaches depth to the 2D person detections.
 - Host nodes derive pairwise distances and a bird’s-eye view from those spatial detections.
 
 ## Constraints
 
-- The example requires three cameras and aligned stereo depth.
+- The example requires three cameras and aligned depth.
 - It is person-specific; it is not a general spatial-object monitor.
 - Distance logic quality depends on reliable depth for each detected person.
 

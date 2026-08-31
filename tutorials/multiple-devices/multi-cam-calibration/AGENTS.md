@@ -58,7 +58,7 @@ This is the repository reference for generating per-device extrinsic calibration
 
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this after calibration when you need fused 3D detections
 - [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you only need multi-device preview/orchestration
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): use this when you need a single-device stereo baseline rather than multi-device world calibration
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a single-device stereo baseline rather than multi-device world calibration
 
 ## Validation
 

@@ -1,4 +1,4 @@
-identifier = "com.example.tutorials.camera-stereo-depth"
+identifier = "com.example.tutorials.camera-depth"
 entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
 app_version = "1.1.0"
 assign_frontend_port = true

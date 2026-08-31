@@ -66,26 +66,12 @@ def setup_device_pipeline(
         dai.CameraBoardSocket.CAM_A, sensorFps=fps_limit
     )
 
-    left_cam = pipeline.create(dai.node.Camera).build(
-        dai.CameraBoardSocket.CAM_B,
-    )
-    right_cam = pipeline.create(dai.node.Camera).build(
-        dai.CameraBoardSocket.CAM_C,
-    )
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left_cam.requestOutput(nn_input_size, fps=fps_limit),
-        right=right_cam.requestOutput(nn_input_size, fps=fps_limit),
-        presetMode=dai.node.StereoDepth.PresetMode.HIGH_DETAIL,
-    )
-    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-
-    if platform == "RVC2":
-        stereo.setOutputSize(*nn_input_size)
-    stereo.setLeftRightCheck(True)
-    stereo.setRectification(True)
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(dai.node.Depth.Algorithm.AUTO, fps=fps_limit, size=nn_input_size)
+    # SpatialDetectionNetwork handles depth alignment; no depth.setAlignTo(...) call is needed.
 
     detector = pipeline.create(dai.node.SpatialDetectionNetwork).build(
-        input=cam, stereo=stereo, nnArchive=nn_archive
+        input=cam, stereo=depth, nnArchive=nn_archive
     )
     detector.setBoundingBoxScaleFactor(0.2)
 

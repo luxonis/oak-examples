@@ -294,6 +294,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             rgbF.setHeight(H)
             rgbF.setData(img_msg.getData())
             rgbF.setTimestamp(depth_msg.getTimestamp())
+            rgbF.setTimestampDevice(depth_msg.getTimestampDevice())
             rgbF.setSequenceNum(depth_msg.getSequenceNum())
             rgbF.setTransformation(img_msg.getTransformation())
 

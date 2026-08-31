@@ -3,7 +3,7 @@ import depthai as dai
 import numpy as np
 from aiortc import VideoStreamTrack
 from av import VideoFrame
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ParsingNeuralNetwork, ApplyDepthColormap
 
 
 class VideoTransform(VideoStreamTrack):
@@ -36,11 +36,6 @@ class VideoTransform(VideoStreamTrack):
             else self.preview.get().getCvFrame()
         )
         dets = self.nn.get().detections if self.nn is not None else []
-
-        if self.depth_flag:
-            frame = (frame * (255 / frame.max())).astype(np.uint8)
-            frame = cv2.applyColorMap(frame, cv2.COLORMAP_JET)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         for detection in dets:
             if isinstance(detection, dai.ImgDetection):
@@ -105,20 +100,17 @@ def start_pipeline(pipeline: dai.Pipeline, options):
     nn_q = None
     label_map = None
     if depth_flag:
-        left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-        right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-
-        left_out = left.requestFullResolutionOutput(type=dai.ImgFrame.Type.NV12)
-        right_out = right.requestFullResolutionOutput(type=dai.ImgFrame.Type.NV12)
-        preset_mode = dai.node.StereoDepth.PresetMode.__entries[options.preset_mode][0]
-
-        stereo = pipeline.create(dai.node.StereoDepth).build(
-            left=left_out,
-            right=right_out,
-            presetMode=preset_mode,
+        depth = pipeline.create(dai.node.Depth)
+        depth.build(
+            dai.node.Depth.Algorithm.AUTO,
+            fps=fps,
+            size=(options.width, options.height),
+        )
+        depth_colored = pipeline.create(ApplyDepthColormap).build(
+            frame=depth.depth,
         )
 
-        preview_q = stereo.disparity.createOutputQueue(blocking=False, maxSize=4)
+        preview_q = depth_colored.out.createOutputQueue(blocking=False, maxSize=4)
 
     else:
         cam = pipeline.create(dai.node.Camera).build()

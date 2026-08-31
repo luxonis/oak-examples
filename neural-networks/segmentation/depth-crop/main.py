@@ -1,16 +1,20 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ApplyDepthColormap, ParsingNeuralNetwork
 from utils.annotation_node import AnnotationNode
 
 from utils.arguments import initialize_argparser
 
 CAMERA_RESOLUTION = (640, 400)
+BENCHMARK_REPORT_INTERVAL_SECONDS = 1
 
 _, args = initialize_argparser()
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 platform = device.getPlatform().name
+frame_type = (
+    dai.ImgFrame.Type.BGR888p if platform == "RVC2" else dai.ImgFrame.Type.BGR888i
+)
 print(f"Platform: {platform}")
 
 if not args.fps_limit:
@@ -26,6 +30,7 @@ if len(device.getConnectedCameras()) < 3:
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
+    pipeline.enablePipelineDebugging(True)
 
     # depth estimation model
     model_description = dai.NNModelDescription.fromYamlFile(
@@ -36,26 +41,25 @@ with dai.Pipeline(device) as pipeline:
     # camera input
     color = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
     color_output = color.requestOutput(
-        CAMERA_RESOLUTION, dai.ImgFrame.Type.NV12, fps=args.fps_limit
+        size=CAMERA_RESOLUTION,
+        type=dai.ImgFrame.Type.NV12,
+        fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
-    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
-        right=right.requestOutput(CAMERA_RESOLUTION, fps=args.fps_limit),
+    depth = pipeline.create(dai.node.Depth)
+    depth.build(
+        dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=CAMERA_RESOLUTION
     )
-    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.DEFAULT)
-    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-    if platform == "RVC2":
-        stereo.setOutputSize(*CAMERA_RESOLUTION)
+    depth.setAlignTo(color_output)
+
+    depth_colored = pipeline.create(ApplyDepthColormap).build(
+        frame=depth.depth,
+    )
 
     manip = pipeline.create(dai.node.ImageManip)
     manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
-    manip.initialConfig.setFrameType(
-        dai.ImgFrame.Type.BGR888p if platform == "RVC2" else dai.ImgFrame.Type.BGR888i
-    )
+    manip.initialConfig.setFrameType(frame_type)
     manip.setMaxOutputFrameSize(
         nn_archive.getInputSize()[0] * nn_archive.getInputSize()[1] * 3
     )
@@ -69,9 +73,8 @@ with dai.Pipeline(device) as pipeline:
     # annotation
     annotation_node = pipeline.create(AnnotationNode).build(
         preview=color_output,
-        disparity=stereo.disparity,
+        depth=depth_colored.out,
         mask=nn.out,
-        max_disparity=stereo.initialConfig.getMaxDisparity(),
     )
 
     output_segmentation_encoder = pipeline.create(dai.node.VideoEncoder).build(

@@ -51,11 +51,14 @@ class ShowAlert(dai.node.HostNode):
 
         if len(self._state_queue) > STATE_QUEUE_LENGTH:
             self._state_queue.pop(0)
+        timestamp = distances.getTimestamp()
+        sequence_num = distances.getSequenceNum()
         if self._should_alert:
-            img_annotations = self._draw_alert(
-                distances.getTimestamp(), distances.getSequenceNum()
-            )
-            self.output.send(img_annotations)
+            img_annotations = self._draw_alert(timestamp, sequence_num)
+        else:
+            img_annotations = self._draw_empty(timestamp, sequence_num)
+
+        self.output.send(img_annotations)
 
     @property
     def _should_alert(self) -> bool:
@@ -80,6 +83,16 @@ class ShowAlert(dai.node.HostNode):
             size=64,
         )
 
+        img_annotations = annotation_helper.build(
+            timestamp=timestamp,
+            sequence_num=sequence_num,
+        )
+        return img_annotations
+
+    def _draw_empty(
+        self, timestamp: timedelta, sequence_num: int
+    ) -> dai.ImgAnnotations:
+        annotation_helper = AnnotationHelper()
         img_annotations = annotation_helper.build(
             timestamp=timestamp,
             sequence_num=sequence_num,

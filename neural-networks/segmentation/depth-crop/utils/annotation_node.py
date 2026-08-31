@@ -3,10 +3,6 @@ import depthai as dai
 import numpy as np
 from depthai_nodes import PRIMARY_COLOR
 
-# Custom colormap with 0 mapped to black - better disparity visualization
-JET_CUSTOM = cv2.applyColorMap(np.arange(256, dtype=np.uint8), cv2.COLORMAP_JET)
-JET_CUSTOM[0] = [0, 0, 0]
-
 
 class AnnotationNode(dai.node.HostNode):
     def __init__(self) -> None:
@@ -32,17 +28,14 @@ class AnnotationNode(dai.node.HostNode):
     def build(
         self,
         preview: dai.Node.Output,
-        disparity: dai.Node.Output,
+        depth: dai.Node.Output,
         mask: dai.Node.Output,
-        max_disparity: int,
     ) -> "AnnotationNode":
-        self.link_args(preview, disparity, mask)
-
-        self.disp_multiplier = 255 / max_disparity
+        self.link_args(preview, depth, mask)
         return self
 
     def process(
-        self, preview: dai.ImgFrame, disparity: dai.ImgFrame, mask: dai.Buffer
+        self, preview: dai.ImgFrame, depth: dai.ImgFrame, mask: dai.Buffer
     ) -> None:
         frame = preview.getCvFrame()
 
@@ -65,8 +58,7 @@ class AnnotationNode(dai.node.HostNode):
 
         mask_overlay = cv2.addWeighted(frame, 1, mask, 0.5, 0)
 
-        disp_frame = (disparity.getFrame() * self.disp_multiplier).astype(np.uint8)
-        depth_frame = cv2.applyColorMap(disp_frame, JET_CUSTOM)
+        depth_frame = depth.getCvFrame()
         depth_frame = cv2.resize(depth_frame, (frame.shape[1], frame.shape[0]))
 
         # cut out the mask from the depth frame

@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the repository reference for distance-based safety checks between detected palms and selected dangerous objects. Use it when you need multi-model detection fused with stereo depth and host-side alert logic.
+This is the repository reference for distance-based safety checks between detected palms and selected dangerous objects. Use it when you need multi-model detection fused with depth and host-side alert logic.
 
 ## Use This Example When
 
@@ -25,7 +25,7 @@ This is the repository reference for distance-based safety checks between detect
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` devices with `CAM_A`, `CAM_B`, and `CAM_C`; RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
-- `Requires:` stereo depth, palm detector, object detector, and calibration
+- `Requires:` depth, palm detector, object detector, and calibration
 - `Input:` live color plus stereo pair
 - `Output:` `Color`, `Detections`, `Distances`, and `Alert`
 - `Models:` YOLOv6 and MediaPipe palm YAMLs in [depthai_models/](depthai_models/)
@@ -51,7 +51,7 @@ This is the repository reference for distance-based safety checks between detect
 ## Constraints
 
 - The current code hardcodes `DANGEROUS_OBJECTS = ["bottle", "cup"]`.
-- The example requires three cameras and aligned stereo depth.
+- The example requires three cameras and aligned depth.
 - Palm and object labels are merged into one namespace, so label offsets matter if you modify the model set.
 
 ## Related Examples

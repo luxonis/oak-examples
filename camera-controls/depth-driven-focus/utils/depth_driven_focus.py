@@ -31,12 +31,10 @@ class DepthDrivenFocus(dai.node.HostNode):
     def process(self, face_detection: dai.SpatialImgDetections) -> None:
         closest_dist = None
         for detection in face_detection.detections:
-            try:
+            if valid_depth(detection.spatialCoordinates):
                 dist = int(calculate_distance(detection.spatialCoordinates))
                 if closest_dist is None or dist < closest_dist:
                     closest_dist = dist
-            except ValueError:
-                print("Invalid depth value")
 
         if closest_dist is not None:
             new_lens_pos = max(
@@ -81,5 +79,9 @@ def get_lens_position(dist):
     return int(150 - dist * 0.0242 + 0.00000412 * dist**2)
 
 
-def calculate_distance(coords):
+def valid_depth(coords: dai.Point3f):
+    return math.isfinite(coords.z) and coords.z > 0.0
+
+
+def calculate_distance(coords: dai.Point3f):
     return math.sqrt(coords.x**2 + coords.y**2 + coords.z**2)

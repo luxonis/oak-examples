@@ -73,7 +73,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 ## Constraints
 
 - This example depends on OpenCV contrib `ximgproc`, which is a stronger host dependency than the simpler stereo demos.
-- `WLS Raw Depth` is a host-generated BGR visualization derived from filtered disparity, not a raw metric depth topic.
+- `WLS Raw Depth` is a host-generated BGR visualization derived from filtered disparity, not a raw depth topic.
 - The host filter currently assumes a fixed `71.86` degree FOV in [utils/host_wls_filter.py](utils/host_wls_filter.py).
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
 

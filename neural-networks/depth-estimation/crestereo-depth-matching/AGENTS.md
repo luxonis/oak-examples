@@ -2,12 +2,12 @@
 
 ## Summary
 
-This is the repository reference for comparing neural stereo matching against DepthAI `StereoDepth`. Use it when you need a neural disparity model and a classic stereo baseline in the same visualizer session.
+This is the repository reference for comparing CREStereo neural stereo matching against unified DepthAI depth. Use it when you need a neural stereo model and a `dai.node.Depth` baseline in the same visualizer session.
 
 ## Use This Example When
 
-- You need a neural stereo disparity reference.
-- You want to compare model disparity against DepthAI stereo disparity directly.
+- You need a neural stereo depth reference.
+- You want to compare CREStereo-derived depth against DepthAI `Depth` output.
 - You need the supported CREStereo model variants and platform restrictions documented in one place.
 
 ## Do Not Use This Example When
@@ -18,16 +18,16 @@ This is the repository reference for comparing neural stereo matching against De
 
 ## Quick Facts
 
-- `Category:` `neural-networks/depth-estimation/crestereo-stereo-matching`
+- `Category:` `neural-networks/depth-estimation/crestereo-depth-matching`
 - `Shape:` `script+standalone`
-- `Primary task:` compare CREStereo disparity with `StereoDepth`
+- `Primary task:` compare CREStereo-derived depth with `Depth`
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` stereo-capable RVC2 and RVC4 devices with platform-specific supported model variants
 - `Requires:` `CAM_B/C` stereo pair and supported CREStereo model slug for the platform
 - `Input:` stereo camera pair only
-- `Output:` `Stereo Disparity` and `NN`
+- `Output:` `Depth` and `CREStereo Depth`
 - `Models:` default CREStereo YAMLs in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
@@ -40,10 +40,11 @@ This is the repository reference for comparing neural stereo matching against De
 
 ## Architecture
 
-- Stereo mono cameras on `CAM_B` and `CAM_C` feed both `StereoDepth` and the neural model path.
+- Stereo mono cameras on `CAM_B` and `CAM_C` feed the CREStereo neural model path; `Depth` owns its own depth-source wiring.
 - `Sync` and `MessageDemux` provide left/right inputs for the CREStereo network.
 - The neural path uses `ParsingNeuralNetwork`; RVC4 explicitly sets the `snpe` DSP backend.
-- `ApplyDepthColormap` and `ApplyColormap` visualize the classic and neural disparity outputs side by side.
+- [utils/disparity_to_depth.py](utils/disparity_to_depth.py) converts CREStereo disparity to depth using calibration before visualization.
+- `ApplyDepthColormap` visualizes both metric-depth outputs side by side.
 
 ## Constraints
 
@@ -60,5 +61,5 @@ This is the repository reference for comparing neural stereo matching against De
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Success looks like:` the Visualizer shows `Stereo Disparity` and `NN`, and both streams update from the stereo pair
+- `Success looks like:` the Visualizer shows `Depth` and `CREStereo Depth`, and both streams update from the stereo pair
 - `Common failure meaning:` the chosen model is unsupported for the platform, the device lacks stereo cameras, or the requested FPS/model size is too heavy for the hardware

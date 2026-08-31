@@ -8,7 +8,7 @@ Here is a short explanation of the Kalman filter: https://www.youtube.com/watch?
 
 It uses our [YOLOv6 nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) model for detection.
 
-> **Note:** This example requires a device with at least 3 cameras (color, left and right) since it utilizes the `StereoDepth` node.
+> **Note:** This example requires a device with at least 3 cameras (color, left and right) for the default stereo-backed `Depth` path.
 
 ## Demo
 
