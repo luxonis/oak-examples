@@ -1,4 +1,4 @@
-identifier   = "com.example.depth-measurement.3d-measurement.box-measurement"
+identifier   = "com.example.depth-measurement.measurement-3d.box-measurement"
 app_version  = "0.1.0"
 
 prepare_container = [

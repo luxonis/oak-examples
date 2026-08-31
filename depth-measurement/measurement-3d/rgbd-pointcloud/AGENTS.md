@@ -20,7 +20,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 ## Quick Facts
 
-- `Category:` `depth-measurement/3d-measurement/rgbd-pointcloud`
+- `Category:` `depth-measurement/measurement-3d/rgbd-pointcloud`
 - `Shape:` `script+standalone`
 - `Primary task:` align unified depth to a color source and publish a point cloud
 - `Entrypoint:` [main.py](main.py)
@@ -67,9 +67,9 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 ## Common Adaptations
 
 - `To colorize from mono by default:` start from the `--mono` branch in [main.py](main.py)
-- `To reuse this as a point-cloud baseline for another task:` keep the `Depth` and `RGBD` branch and replace the Visualizer topics
-- `To add host-side geometry processing:` compare against [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement) after this baseline is working
-- `To move to ToF:` use [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud) instead
+- `To reuse this as a point-cloud baseline for another task:` keep the `StereoDepth` and `RGBD` branch and replace the Visualizer topics
+- `To add host-side geometry processing:` compare against [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement) after this baseline is working
+- `To move to ToF:` use [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud) instead
 
 ## Constraints
 
@@ -86,8 +86,8 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 ## Related Examples
 
-- [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement): use this when you need segmentation-driven measurements on top of RGBD point clouds
-- [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud): use this when the point cloud should come from a ToF sensor
+- [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/box-measurement): use this when you need segmentation-driven measurements on top of RGBD point clouds
+- [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/tof-pointcloud): use this when the point cloud should come from a ToF sensor
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host-side stereo comparison rather than a point cloud
 - [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a simpler depth baseline before RGBD fusion
 

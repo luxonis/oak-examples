@@ -54,8 +54,8 @@ This is the repository reference for combining segmentation with unified depth a
 ## Related Examples
 
 - [neural-networks/segmentation/blur-background](https://github.com/luxonis/oak-examples/tree/main/neural-networks/segmentation/blur-background): use this when you only need segmentation-based blur
-- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you need RGBD/point-cloud output instead of segmentation masking
-- [depth-measurement/3d-measurement/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement): use this when you need 3D measurement built on a semantic/instance understanding of the scene
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need RGBD/point-cloud output instead of segmentation masking
+- [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/box-measurement): use this when you need 3D measurement built on a semantic/instance understanding of the scene
 
 ## Validation
 
