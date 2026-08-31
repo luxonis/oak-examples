@@ -70,7 +70,7 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
 - `To expose more channels:` extend `create_channels()` and the main event loop in [utils/foxglove_utils.py](utils/foxglove_utils.py) and [main.py](main.py)
 - `To disable downsampling:` change `downsample_pcl` in [main.py](main.py) or `process_pointcloud()` in [utils/foxglove_utils.py](utils/foxglove_utils.py)
 - `To move to another external viewer:` compare this example with [integrations/rerun](https://github.com/luxonis/oak-examples/tree/main/integrations/rerun)
-- `To keep point-cloud logic but use the Visualizer instead:` start instead from [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud)
+- `To keep point-cloud logic but use the Visualizer instead:` start instead from [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud)
 
 ## Constraints
 
@@ -89,7 +89,7 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
 ## Related Examples
 
 - [integrations/rerun](https://github.com/luxonis/oak-examples/tree/main/integrations/rerun): use this when you want another external viewer integration with point clouds and frames
-- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you need the RGBD/point-cloud baseline without Foxglove
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need the RGBD/point-cloud baseline without Foxglove
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when the host-side goal is stereo benchmarking rather than websocket export
 - [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you only need a simple camera baseline before adding external viewer integration
 
