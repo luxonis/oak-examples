@@ -18,7 +18,7 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 
 ## Quick Facts
 
-- `Category:` `neural-networks/3D-detection/objectron`
+- `Category:` `neural-networks/detection-3D/objectron`
 - `Shape:` `script+standalone`
 - `Primary task:` 2-stage chair detection plus 3D Objectron pose/keypoint estimation
 - `Entrypoint:` [main.py](main.py)
