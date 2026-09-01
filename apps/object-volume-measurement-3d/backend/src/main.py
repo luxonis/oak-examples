@@ -33,7 +33,7 @@ CLASS_NAMES = ["person", "chair", "TV"]
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.15
 
-visualizer = dai.RemoteConnection(serveFrontend=True)
+visualizer = dai.RemoteConnection(serveFrontend=False)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
 platform = device.getPlatformAsString()
@@ -57,7 +57,6 @@ if args.fps_limit is None:
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
-    pipeline.enablePipelineDebugging(True)
 
     model_description = dai.NNModelDescription.fromYamlFile(
         f"yoloe_v8_l.{platform}.yaml"
