@@ -1,1 +1,10 @@
 @layer reset, base, tokens, recipes, utilities;
+
+@keyframes rf-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
