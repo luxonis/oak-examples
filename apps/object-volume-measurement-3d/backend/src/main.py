@@ -33,7 +33,7 @@ CLASS_NAMES = ["person", "chair", "TV"]
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.15
 
-visualizer = dai.RemoteConnection(serveFrontend=False)
+visualizer = dai.RemoteConnection(serveFrontend=True)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
 platform = device.getPlatformAsString()
@@ -57,6 +57,7 @@ if args.fps_limit is None:
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
+    pipeline.enablePipelineDebugging(True)
 
     model_description = dai.NNModelDescription.fromYamlFile(
         f"yoloe_v8_l.{platform}.yaml"
@@ -102,7 +103,6 @@ with dai.Pipeline(device) as pipeline:
         {"runtime": "dsp", "performance_profile": "default"}
     )
     nn_with_parser.setNumInferenceThreads(1)
-    nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
 
     input_node.link(nn_with_parser.inputs["images"])
 
@@ -111,6 +111,7 @@ with dai.Pipeline(device) as pipeline:
 
     det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
     det_process_filter.keepLabels(labels=[i for i in range(len(CLASS_NAMES))])
+    det_process_filter.minConfidence(CONFIDENCE_THRESHOLD)
 
     # Annotation node
     annotation_node = pipeline.create(AnnotationNode).build(
@@ -165,7 +166,7 @@ with dai.Pipeline(device) as pipeline:
     def conf_threshold_update_service(new_conf_threshold: float):
         """Changes confidence threshold based on the user input"""
         CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
-        nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
+        det_process_filter.minConfidence(CONFIDENCE_THRESHOLD)
         print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
 
     def selection_service(clicks: dict):
