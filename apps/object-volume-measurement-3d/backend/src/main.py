@@ -102,15 +102,24 @@ with dai.Pipeline(device) as pipeline:
         {"runtime": "dsp", "performance_profile": "default"}
     )
     nn_with_parser.setNumInferenceThreads(1)
-    nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
 
     input_node.link(nn_with_parser.inputs["images"])
 
     textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
 
-    det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.keepLabels(labels=[i for i in range(len(CLASS_NAMES))])
+    det_process_filter = (
+        pipeline.create(ImgDetectionsFilter)
+        .keepLabels(
+            labels=[i for i in range(len(CLASS_NAMES))],
+        )
+        .minConfidence(
+            threshold=CONFIDENCE_THRESHOLD,
+        )
+        .build(
+            input=nn_with_parser.out,
+        )
+    )
 
     # Annotation node
     annotation_node = pipeline.create(AnnotationNode).build(
@@ -165,7 +174,7 @@ with dai.Pipeline(device) as pipeline:
     def conf_threshold_update_service(new_conf_threshold: float):
         """Changes confidence threshold based on the user input"""
         CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
-        nn_with_parser.getParser(0).setConfidenceThreshold(CONFIDENCE_THRESHOLD)
+        det_process_filter.minConfidence(CONFIDENCE_THRESHOLD)
         print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
 
     def selection_service(clicks: dict):

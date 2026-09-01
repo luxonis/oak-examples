@@ -436,6 +436,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 depthF.setHeight(H)
                 depthF.setData(depth_u16.tobytes())
                 depthF.setTimestamp(depth_msg.getTimestamp())
+                depthF.setTimestampDevice(depth_msg.getTimestampDevice())
                 depthF.setSequenceNum(depth_msg.getSequenceNum())
                 depthF.setTransformation(depth_msg.getTransformation())
 
