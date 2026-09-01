@@ -55,7 +55,7 @@ This is the repository reference for two-stage animal pose estimation. Use it wh
 
 - [neural-networks/pose-estimation/human-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/human-pose): use this when you need human pose
 - [neural-networks/pose-estimation/hand-pose](https://github.com/luxonis/oak-examples/tree/main/neural-networks/pose-estimation/hand-pose): use this when you need hand pose and gesture logic
-- [neural-networks/detection-3D/objectron](https://github.com/luxonis/oak-examples/tree/main/neural-networks/detection-3D/objectron): use this when you need another detect-then-keypoint workflow with geometry flavor
+- [neural-networks/detection-3d/objectron](https://github.com/luxonis/oak-examples/tree/main/neural-networks/detection-3d/objectron): use this when you need another detect-then-keypoint workflow with geometry flavor
 
 ## Validation
 
