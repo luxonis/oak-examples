@@ -108,9 +108,18 @@ with dai.Pipeline(device) as pipeline:
     textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
 
-    det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.keepLabels(labels=[i for i in range(len(CLASS_NAMES))])
-    det_process_filter.minConfidence(CONFIDENCE_THRESHOLD)
+    det_process_filter = (
+        pipeline.create(ImgDetectionsFilter)
+        .keepLabels(
+            labels=[i for i in range(len(CLASS_NAMES))],
+        )
+        .minConfidence(
+            threshold=CONFIDENCE_THRESHOLD,
+        )
+        .build(
+            input=nn_with_parser.out,
+        )
+    )
 
     # Annotation node
     annotation_node = pipeline.create(AnnotationNode).build(
