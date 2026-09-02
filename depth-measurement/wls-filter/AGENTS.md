@@ -88,7 +88,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you want host-side stereo comparison instead of WLS post-processing
 - [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration): use this when the tuning target should be device stereo parameters rather than host filters
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when the host-side task should become ROI coordinate measurement
-- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when the end goal is a point cloud rather than a filtered disparity view
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when the end goal is a point cloud rather than a filtered disparity view
 
 ## Validation
 

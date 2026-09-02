@@ -18,10 +18,11 @@ OAKCTL_HUB_TOKEN="your_token_here" \
 
 Optional environment variables:
 
-- `LUXONIS_OFFICIAL=true` to replace `com.example` with `com.luxonis`
-  on the `identifier` line. Defaults to `true`.
+- `LUXONIS_OFFICIAL_IDENTIFIER=true` to replace
+  `com.example.<top-level-folder>` with `com.luxonis` on the `identifier`
+  line. Defaults to `true`.
 - `NEW_IDENTIFIER="com.luxonis.myapp"` to override the `identifier`
-  line (takes precedence over `LUXONIS_OFFICIAL`).
+  line (takes precedence over `LUXONIS_OFFICIAL_IDENTIFIER`).
 
 Notes:
 
@@ -30,3 +31,19 @@ Notes:
   file on exit, even if the run fails.
 - This performs a real publish; consider using a temp copy of an example
   if you want to avoid touching your working tree.
+
+## Bulk publishing
+
+The `Publish OAK Apps` workflow publishes the curated list in
+`.github/publish_oakapps.txt`. Run it from GitHub Actions with an optional
+comma-separated `exclude_apps` input. Set `dry_run` to validate the list and
+show the identifier plan without reserving a testbed or publishing.
+
+For example, from the repository root:
+
+```bash
+gh workflow run publish_oakapps.yaml \
+  --repo luxonis/oak-examples \
+  --ref main \
+  -f exclude_apps=apps/dino-tracking,neural-networks/ocr/general-ocr
+```

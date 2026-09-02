@@ -1,4 +1,4 @@
-identifier = "com.example.face-detection.emotion-recognition"
+identifier = "com.example.neural-networks.face-detection.emotion-recognition"
 app_version = "1.0.0"
 
 prepare_container = [

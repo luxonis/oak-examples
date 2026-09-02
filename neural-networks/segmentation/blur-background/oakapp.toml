@@ -1,4 +1,4 @@
-identifier = "com.example.segmentation.background-blur"
+identifier = "com.example.neural-networks.segmentation.blur-background"
 app_version = "1.0.0"
 
 prepare_container = [

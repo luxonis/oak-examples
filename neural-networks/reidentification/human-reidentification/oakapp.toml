@@ -1,4 +1,4 @@
-identifier = "com.example.reidentification.human-reidentification"
+identifier = "com.example.neural-networks.reidentification.human-reidentification"
 app_version = "1.0.0"
 
 prepare_container = [

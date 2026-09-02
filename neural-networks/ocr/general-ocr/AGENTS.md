@@ -22,7 +22,7 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 - `Shape:` `script+standalone`
 - `Primary task:` general text detection and recognition
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` Paddle text-detection and text-recognition models
