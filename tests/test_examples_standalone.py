@@ -142,8 +142,9 @@ def enqueue_output(out, q):
     try:
         for line in iter(out.readline, ""):
             q.put(line)
-    except ValueError:
+    except ValueError as e:
         # This happens if 'out' is closed while reading.
+        logger.error(f"Could not read from output: {e}")
         pass
     finally:
         try:
@@ -227,7 +228,7 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             try:
                 line = q.get_nowait().strip()
                 recent_lines.append(line)
-                logger.debug(f"[app output]: {line}")
+                logger.warning(f"[app output]: {line}")
             except queue.Empty:
                 pass
 
