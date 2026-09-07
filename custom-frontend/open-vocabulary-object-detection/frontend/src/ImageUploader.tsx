@@ -1,5 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Flex } from '@luxonis/ui-components';
+import { Button } from '@luxonis/ui-components';
 import { useState } from 'react';
 import { useNotifications } from './Notifications.tsx';
 import { postToCustomService } from './services.ts';
@@ -106,7 +106,7 @@ export function ImageUploader({
 
 			<label
 				htmlFor="fileInput"
-				className={`rounded-md border-2 border-dashed border-muted-foreground/50 bg-muted p-8 text-center ${
+				className={`min-w-0 rounded-md border-2 border-dashed border-muted-foreground/50 bg-muted p-8 text-center break-words ${
 					maxReached
 						? 'cursor-not-allowed opacity-60'
 						: 'cursor-pointer hover:bg-accent'
@@ -126,20 +126,19 @@ export function ImageUploader({
 				disabled={maxReached}
 			/>
 
-			<Flex
-				direction="row"
-				align="center"
-				justify="center"
-				gap="md"
-				className="mt-8"
-			>
-				<Button onClick={handleUpload} disabled={maxReached}>
+			<div className="mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+				<Button
+					className="min-w-0 px-3"
+					onClick={handleUpload}
+					disabled={maxReached}
+				>
 					Upload Image
 				</Button>
 
-				<span>or</span>
+				<span className="text-center text-sm">or</span>
 
 				<Button
+					className="min-w-0 px-3"
 					onClick={() => {
 						console.log('[BBox] Button clicked: enabling drawing overlay');
 						onDrawBBox?.();
@@ -152,7 +151,7 @@ export function ImageUploader({
 				>
 					Draw Bounding Box
 				</Button>
-			</Flex>
+			</div>
 		</div>
 	);
 }

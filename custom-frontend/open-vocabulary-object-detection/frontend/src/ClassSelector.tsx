@@ -1,5 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Flex, Input } from '@luxonis/ui-components';
+import { Button, Input } from '@luxonis/ui-components';
 import { useRef, useState } from 'react';
 import { useNotifications } from './Notifications.tsx';
 import { postToCustomService } from './services.ts';
@@ -82,10 +82,20 @@ export function ClassSelector({
 				)}
 			</div>
 
-			<Flex direction="row" gap="sm" align="center">
-				<Input type="text" placeholder="person,chair,TV" ref={inputRef} />
-				<Button onClick={handleSendMessage}>Update&nbsp;Classes</Button>
-			</Flex>
+			<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-1">
+				<Input
+					className="min-w-0 w-full"
+					type="text"
+					placeholder="person,chair,TV"
+					ref={inputRef}
+				/>
+				<Button
+					className="shrink-0 whitespace-nowrap px-4"
+					onClick={handleSendMessage}
+				>
+					Update Classes
+				</Button>
+			</div>
 		</div>
 	);
 }

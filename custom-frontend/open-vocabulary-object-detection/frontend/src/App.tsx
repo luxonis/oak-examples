@@ -29,6 +29,7 @@ function App() {
 	const connection = useDaiConnection();
 	const { notify } = useNotifications();
 	const [paramsLoaded, setParamsLoaded] = useState(false);
+	const previousConnectedRef = useRef<boolean | null>(null);
 
 	const [confidence, setConfidence] = useState<number>(0.1);
 
@@ -71,13 +72,12 @@ function App() {
 
 	useEffect(() => {
 		if (!connection.connected) {
-			notify('Not connected to device', { type: 'error' });
 			setParamsLoaded(false);
 			return;
 		}
 		console.log('[Init] Requesting current params from backend...');
 		fetchCustomService(connection.daiConnection, 'Get Current Params Service');
-	}, [connection.connected, connection.daiConnection, notify]);
+	}, [connection.connected, connection.daiConnection]);
 
 	const getNextObjectLabel = useCallback((): string | null => {
 		if (imagePromptLabels.length >= MAX_IMAGE_PROMPTS) {
@@ -390,10 +390,15 @@ function App() {
 	}, [isDrawing]);
 
 	useEffect(() => {
-		notify(
-			connection.connected ? 'Connected to device' : 'Disconnected from device',
-			{ type: connection.connected ? 'success' : 'warning', durationMs: 1800 },
-		);
+		const previousConnected = previousConnectedRef.current;
+		previousConnectedRef.current = connection.connected;
+
+		if (connection.connected && previousConnected !== true) {
+			notify('Connected to device', { type: 'success', durationMs: 1800 });
+		}
+		if (!connection.connected && previousConnected === true) {
+			notify('Disconnected from device', { type: 'warning', durationMs: 1800 });
+		}
 	}, [connection.connected, notify]);
 
 	const onOverlayMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {

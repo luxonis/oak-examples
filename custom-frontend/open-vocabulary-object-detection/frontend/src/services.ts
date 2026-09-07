@@ -16,7 +16,9 @@ export const CUSTOM_SERVICES = [
 
 export type CustomService = (typeof CUSTOM_SERVICES)[number];
 
-export const ACTIVE_SERVICES = CUSTOM_SERVICES as unknown as DAIService[];
+export const ACTIVE_SERVICES = [
+	'Get Current Params Service',
+] as unknown as DAIService[];
 
 type ServiceBody = Record<string, unknown> | string | number;
 
