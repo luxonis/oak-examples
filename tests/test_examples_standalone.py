@@ -189,7 +189,6 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         for line in process.stdout:
             line = line.strip()
             recent_lines.append(line)
-            logger.debug(f"[app output]: {line}")
 
             # Detect app start trigger
             if "App output:" in line:
@@ -204,9 +203,6 @@ def run_example(example_dir: Path, args: Dict) -> bool:
                 logger.error(f"Timeout waiting for app start after {startup_timeout}s.")
                 return False
 
-        # At this point, either app started, or process.stdout hit EOF
-        process.stdout.close()
-        process.wait()
         if not app_started:
             logger.error(
                 f"Process exited before app started (code: {process.returncode})"
@@ -252,12 +248,11 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             time.sleep(1)
 
         # Clean up process
-        if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
+        process = subprocess.Popen(["oakctl", "app", "stop", APP_ID], **popen_kwargs)
+        try:
+            process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            process.kill()
 
         if passed:
             return True
