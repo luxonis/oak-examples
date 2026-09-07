@@ -141,6 +141,7 @@ def setup_env(
 def enqueue_output(out, q):
     try:
         for line in iter(out.readline, ""):
+            logger.warning(f"read line: {line}")
             q.put(line)
     except ValueError as e:
         # This happens if 'out' is closed while reading.
