@@ -1,30 +1,32 @@
-import { Button } from "@luxonis/common-fe-components";
-import { css } from "../../../styled-system/css/css.mjs";
+import { Button } from '@luxonis/ui-components';
 
 interface SnapActionButtonProps {
-  running: boolean;
-  busy: boolean;
-  disabled?: boolean;
-  onClick: () => void;
+	running: boolean;
+	busy: boolean;
+	disabled?: boolean;
+	onClick: () => void;
 }
 
-export function SnapCollectionButton({ running, busy, disabled, onClick }: SnapActionButtonProps) {
-  return (
-    <Button
-      onClick={onClick}
-      disabled={!!disabled}
-      className={css({
-        width: "full",
-        py: "sm",
-        fontWeight: "semibold",
-        backgroundColor: running ? "red.600" : "blue.600",
-        color: "white",
-        _hover: { backgroundColor: running ? "red.700" : "blue.700" },
-        _active: { backgroundColor: running ? "red.800" : "blue.800" },
-        _disabled: { opacity: 0.6, cursor: "not-allowed" },
-      })}
-    >
-      {busy ? (running ? "Stopping…" : "Starting…") : running ? "Stop Snapping" : "Start Snapping"}
-    </Button>
-  );
+export function SnapCollectionButton({
+	running,
+	busy,
+	disabled,
+	onClick,
+}: SnapActionButtonProps) {
+	return (
+		<Button
+			className="w-full font-semibold"
+			intent={running ? 'error' : 'active'}
+			onClick={onClick}
+			disabled={disabled}
+		>
+			{busy
+				? running
+					? 'Stopping...'
+					: 'Starting...'
+				: running
+					? 'Stop Snapping'
+					: 'Start Snapping'}
+		</Button>
+	);
 }
