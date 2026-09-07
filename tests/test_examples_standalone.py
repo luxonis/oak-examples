@@ -152,6 +152,23 @@ def enqueue_output(out, q):
             pass  # Ignore if already closed
 
 
+def drain_output(q, recent_lines):
+    """Drain currently available app output without blocking the test loop."""
+    app_started = False
+    while True:
+        try:
+            line = q.get_nowait().strip()
+        except queue.Empty:
+            break
+
+        recent_lines.append(line)
+        logger.debug(f"[app output]: {line}")
+        if "App output:" in line:
+            app_started = True
+
+    return app_started
+
+
 def run_example(example_dir: Path, args: Dict) -> bool:
     oakctl_path = shutil.which("oakctl")
     assert oakctl_path is not None, "'oakctl' command is not available in PATH"
@@ -164,6 +181,8 @@ def run_example(example_dir: Path, args: Dict) -> bool:
     run_duration = args.get("timeout")
     # If setup takes too long, fail the test. Some apps can override this.
     startup_timeout = args.get("startup_timeout", 60 * 5)
+    process = None
+    output_thread = None
     try:
         logger.debug(f"Installing {example_dir} app")
 
@@ -180,91 +199,91 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             popen_kwargs["errors"] = "replace"
 
         process = subprocess.Popen(["oakctl", "app", "run", "."], **popen_kwargs)
+        assert process.stdout is not None
+
+        # Direct-entrypoint apps keep `oakctl app run` attached for their lifetime.
+        # Drain its output concurrently and wait only during final cleanup.
+        q = queue.Queue()
+        output_thread = threading.Thread(
+            target=enqueue_output, args=(process.stdout, q), daemon=True
+        )
+        output_thread.start()
+
         app_started = False
         start_time = None
-        signal_start = time.time()
+        signal_start = time.monotonic()
         recent_lines = deque(maxlen=10)
-        for line in process.stdout:
-            line = line.strip()
-            recent_lines.append(line)
-            logger.debug(f"[app output]: {line}")
 
-            # Detect app start trigger
-            if "App output:" in line:
+        while not app_started:
+            if drain_output(q, recent_lines):
                 app_started = True
-                start_time = time.time()
+                start_time = time.monotonic()
                 logger.info("App start detected. Starting run timer.")
                 break
 
-            # Timeout waiting for app to start
-            if time.time() - signal_start > startup_timeout:
-                process.terminate()
+            returncode = process.poll()
+            if returncode is not None:
+                drain_output(q, recent_lines)
+                logger.error(f"Process exited before app started (code: {returncode})")
+                logger.error("Last 10 log lines from device:")
+                for log_line in recent_lines:
+                    logger.error(f"  {log_line}")
+                return False
+
+            if time.monotonic() - signal_start > startup_timeout:
                 logger.error(f"Timeout waiting for app start after {startup_timeout}s.")
                 return False
 
-        # At this point, either app started, or process.stdout hit EOF
-        process.stdout.close()
-        process.wait()
-        if not app_started:
-            logger.error(
-                f"Process exited before app started (code: {process.returncode})"
-            )
-            logger.error("Last 10 log lines from device:")
-            for log_line in recent_lines:
-                logger.error(f"  {log_line}")
-            return False
-
-        # Setup threading to keep reading app outputs
-        q = queue.Queue()
-        t = threading.Thread(
-            target=enqueue_output, args=(process.stdout, q), daemon=True
-        )
-        t.start()
+            time.sleep(0.1)
 
         passed = True
-        recent_lines = deque(maxlen=10)
-        while True and app_started:
-            try:
-                line = q.get_nowait().strip()
-                recent_lines.append(line)
-                logger.debug(f"[app output]: {line}")
-            except queue.Empty:
-                pass
+        while app_started:
+            drain_output(q, recent_lines)
+
+            returncode = process.poll()
+            if returncode is not None:
+                drain_output(q, recent_lines)
+                logger.error(
+                    f"oakctl app run exited with code {returncode} after "
+                    f"{time.monotonic() - start_time:.2f}s."
+                )
+                passed = False
+                break
 
             status = get_app_status(APP_ID, args)
             # When app has started, check if it exited early
             if status != "running":
                 logger.error(
-                    f"App status switched to '{status}' after {time.time() - start_time:.2f}s but should run for {run_duration}s."
+                    f"App status switched to '{status}' after {time.monotonic() - start_time:.2f}s but should run for {run_duration}s."
                 )
-                logger.error("Last 10 log lines from device:")
-                for log_line in recent_lines:
-                    logger.error(f"  {log_line}")
                 passed = False
                 break
 
-            if time.time() - start_time >= run_duration:
+            if time.monotonic() - start_time >= run_duration:
                 logger.info(f"App ran for {run_duration} seconds successfully.")
                 break
 
             time.sleep(1)
 
-        # Clean up process
-        if process.poll() is None:
+        if not passed:
+            logger.error("Last 10 log lines from device:")
+            for log_line in recent_lines:
+                logger.error(f"  {log_line}")
+        return passed
+
+    except Exception as e:
+        logger.error(f"Error running app: {e}")
+        return False
+    finally:
+        if process is not None and process.poll() is None:
             process.terminate()
             try:
                 process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 process.kill()
-
-        if passed:
-            return True
-        else:
-            return False
-
-    except Exception as e:
-        logger.error(f"Error running app: {e}")
-        return False
+                process.wait(timeout=5)
+        if output_thread is not None:
+            output_thread.join(timeout=1)
 
 
 def connect_to_device(device: str, device_password: str):
