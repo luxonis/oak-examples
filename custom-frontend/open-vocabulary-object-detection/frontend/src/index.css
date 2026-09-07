@@ -1,1 +1,13 @@
-@layer reset, base, tokens, recipes, utilities;
+@import "tailwindcss";
+
+@source "./**/*.{ts,tsx}";
+
+@keyframes slideInUp {
+	from {
+		transform: translateY(8px);
+	}
+
+	to {
+		transform: translateY(0);
+	}
+}
