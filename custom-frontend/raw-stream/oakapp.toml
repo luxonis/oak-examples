@@ -17,4 +17,4 @@ dist_path = "./frontend/dist"
 
 [static_frontend.build]
 source_path = "./frontend"
-steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
+steps = ["bash -c 'ulimit -n $(ulimit -Hn); cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
