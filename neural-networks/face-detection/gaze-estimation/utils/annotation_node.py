@@ -53,6 +53,7 @@ class AnnotationNode(dai.node.HostNode):
             timestamp=detections_msg.getTimestamp(),
             sequence_num=detections_msg.getSequenceNum(),
         )
+        annotations_msg.setTimestampDevice(detections_msg.getTimestampDevice())
 
         self.out.send(annotations_msg)
 

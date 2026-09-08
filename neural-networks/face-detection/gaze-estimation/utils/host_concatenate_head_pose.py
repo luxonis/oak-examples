@@ -41,6 +41,7 @@ class ConcatenateHeadPose(dai.node.HostNode):
 
         output_msg.addTensor("head_pose_angles_yaw_pitch_roll", output)
         output_msg.setTimestamp(ts)
+        output_msg.setTimestampDevice(yaw_msg.getTimestampDevice())
         output_msg.setSequenceNum(seq_num)
 
         self.output.send(output_msg)
