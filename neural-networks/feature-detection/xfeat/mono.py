@@ -43,9 +43,9 @@ def mono_mode(
         visualizer.addTopic("Matches", custom_visualizer.output, "images")
 
         print("Pipeline created.")
-        print("\nPress 's' to set the reference frame.\n")
-
         pipeline.start()
+        print("Pipeline started.")
+        print("\nPress 's' to set the reference frame.\n")
         visualizer.registerPipeline(pipeline)
 
         while pipeline.isRunning():

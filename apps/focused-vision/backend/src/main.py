@@ -247,8 +247,9 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic(
         "Focused with Tiling", face_crops_tiling.out, "focused_vision_tiling"
     )
-    logger.error("Starting Pipeline")
+    logger.info("Pipeline created.")
     pipeline.start()
+    logger.info("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     counter = 0

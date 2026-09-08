@@ -49,7 +49,9 @@ def main():
         )
 
         print("Pipeline created.")
-        pipeline.run()
+        pipeline.start()
+        print("Pipeline started.")
+        pipeline.wait()
 
 
 if __name__ == "__main__":

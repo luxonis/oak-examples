@@ -190,8 +190,8 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             line = line.strip()
             recent_lines.append(line)
 
-            # Detect app start trigger, wait for pipeline to be created to see if the pipeline can run
-            if "Pipeline created" in line:
+            # Detect app start trigger only after Pipeline.start() returns successfully.
+            if "Pipeline started." in line:
                 app_started = True
                 start_time = time.time()
                 logger.info("App start detected. Starting run timer.")

@@ -91,7 +91,9 @@ with dai.Pipeline(device) as p:
     visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
     visualizer.addTopic("Pointcloud", rgbd.pcl, "point_clouds")
 
+    print("Pipeline created.")
     p.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(p)
 
     while p.isRunning():

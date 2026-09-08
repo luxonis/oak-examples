@@ -177,8 +177,9 @@ with dai.Pipeline(device) as pipeline:
     )
     visualizer.registerService(params_service.NAME, params_service)
 
-    logger.info("Pipeline created. Starting...")
+    logger.info("Pipeline created.")
     pipeline.start()
+    logger.info("Pipeline started.")
     visualizer.registerPipeline(pipeline)
     logger.info("Pipeline running!")
 

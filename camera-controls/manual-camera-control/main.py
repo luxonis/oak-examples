@@ -26,8 +26,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Camera Configuration", manual_cam_control.output, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():
