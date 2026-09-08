@@ -190,8 +190,8 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             line = line.strip()
             recent_lines.append(line)
 
-            # Detect app start trigger
-            if "App output:" in line:
+            # Detect app start trigger, wait for pipeline to be created to see if the pipeline can run
+            if "Pipeline created" in line:
                 app_started = True
                 start_time = time.time()
                 logger.info("App start detected. Starting run timer.")
@@ -225,7 +225,6 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             try:
                 line = q.get_nowait().strip()
                 recent_lines.append(line)
-                logger.warning(f"[app output]: {line}")
             except queue.Empty:
                 pass
 
@@ -235,9 +234,6 @@ def run_example(example_dir: Path, args: Dict) -> bool:
                 logger.error(
                     f"App status switched to '{status}' after {time.time() - start_time:.2f}s but should run for {run_duration}s."
                 )
-                logger.error("Last 10 log lines from device:")
-                for log_line in recent_lines:
-                    logger.error(f"  {log_line}")
                 passed = False
                 break
 
@@ -247,6 +243,9 @@ def run_example(example_dir: Path, args: Dict) -> bool:
 
             time.sleep(1)
 
+        logger.info("Last 10 log lines from device:")
+        for log_line in recent_lines:
+            logger.info(f"  {log_line}")
         # Clean up process
         process = subprocess.Popen(["oakctl", "app", "stop", APP_ID], **popen_kwargs)
         try:
