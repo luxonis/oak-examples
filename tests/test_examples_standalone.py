@@ -201,7 +201,7 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             if time.time() - signal_start > startup_timeout:
                 process.terminate()
                 logger.error(f"Timeout waiting for app start after {startup_timeout}s.")
-                return False
+                break
 
         if not app_started:
             logger.error(
