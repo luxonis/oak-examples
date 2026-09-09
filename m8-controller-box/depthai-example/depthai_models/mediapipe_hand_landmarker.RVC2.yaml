@@ -1,0 +1,2 @@
+model: luxonis/mediapipe-hand-landmarker:224x224
+platform: RVC2
