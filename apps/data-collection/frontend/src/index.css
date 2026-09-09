@@ -1,1 +1,3 @@
-@layer reset, base, tokens, recipes, utilities;
+@import "tailwindcss";
+
+@source "./**/*.{ts,tsx}";

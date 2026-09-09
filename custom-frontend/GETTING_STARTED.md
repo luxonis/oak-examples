@@ -58,31 +58,34 @@ Your `package.json` needs the following dependencies and scripts:
 
 ```json
 "dependencies": {
-  "@luxonis/depthai-viewer-common": "^1.6.2",
-  "react": "^18.3.1",
-  "react-dom": "^18.3.1",
+  "@luxonis/depthai-pipeline-lib": "4.0.0",
+  "@luxonis/depthai-viewer-common": "4.0.0",
+  "@luxonis/ui-components": "1.3.9",
+  "@luxonis/ui-utils": "1.0.7",
+  "react": "19.2.5",
+  "react-dom": "19.2.5",
   "react-router": "^7.5.0",
   "react-router-dom": "^7.5.0"
 },
 "devDependencies": {
-  "@pandacss/dev": "0.53.0",
-  "@types/react": "^18.3.20",
-  "@types/react-dom": "^18.3.6",
-  "@vitejs/plugin-react": "^4.3.4",
+  "@tailwindcss/postcss": "^4.1.13",
+  "@types/react": "^19.2.0",
+  "@types/react-dom": "^19.2.0",
+  "@vitejs/plugin-react": "^5.0.0",
   "globals": "^16.0.0",
+  "tailwindcss": "^4.1.13",
   "typescript": "~5.7.2",
   "vite": "^6.3.1"
 }
 ```
 
-**Scripts** (required for PandaCSS codegen):
+**Scripts:**
 
 ```json
  "scripts": {
      "dev": "vite",
-     "build": "npm run styleGen && tsc -b && vite build",
-     "preview": "vite preview",
-     "styleGen": "panda codegen"
+     "build": "tsc -b && vite build",
+     "preview": "vite preview"
  }
 ```
 
@@ -94,47 +97,20 @@ Then install the dependencies:
 npm i
 ```
 
-> ⚠️ **React version requirement**
->
-> `@luxonis/depthai-viewer-common` currently supports **React 18.x only**.
->
-> An **RC (Release Candidate)** version with **React 19.x** support can be found
-> [here](https://www.npmjs.com/package/@luxonis/depthai-viewer-common?activeTab=versions).
-> This version is not yet an official release and may contain unresolved issues.
+### Configure Tailwind CSS
 
-### Configure PandaCSS
+Luxonis UI packages use Tailwind-based styles. Add the Tailwind PostCSS
+plugin in `postcss.config.mjs`:
 
-Our packages use Luxonis common UI components from
-`@luxonis/common-fe-components` package, which depends on PandaCSS for
-tokens, recipes, and layered styles.
-
-To use these components, [PandaCSS](https://panda-css.com/) is required.
-
-**Initialize PandaCSS** in your project root:
-
-```bash
-npx panda init --postcss
+```javascript
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
+};
 ```
 
-**Edit `panda.config.ts`** with the preset from our style lib:
-
-```typescript
-import { defineConfig, defineGlobalStyles } from "@pandacss/dev";
-import { pandaPreset } from "@luxonis/common-fe-components";
-
-export default defineConfig({
-  presets: [pandaPreset],
-  preflight: true,
-  include: ["./src/**/*.{ts,tsx}"],
-  exclude: [],
-  jsxFramework: "react",
-  outdir: "styled-system",
-  forceConsistentTypeExtension: true,
-});
-
-```
-
-See [panda.config.ts](./raw-stream/frontend/panda.config.ts)
+No style code generation step is required.
 
 ### Configure Vite
 
@@ -247,18 +223,19 @@ ______________________________________________________________________
 
 ### Global CSS Setup
 
-Luxonis frontend components rely on PandaCSS layered styles. The generated index.css must be replaced.
+Luxonis frontend components rely on Tailwind styles. The generated index.css must be replaced.
 
 **Update `index.css`:**
 
 Add this code to an `src/index.css` file imported in the root component of your project:
 
 ```css
-@layer reset, base, tokens, recipes, utilities;
+@import "tailwindcss";
+
+@source "./**/*.{ts,tsx}";
 ```
 
-This enables PandaCSS layered styles and prevents style ordering issues
-in Luxonis UI components.
+This enables Tailwind utilities for your frontend source files.
 
 > **Note:** Feel free to remove src/App.css file as we don't need it anymore, and make sure to remove the import from the src/App.tsx file.
 
@@ -268,7 +245,7 @@ In your application entrypoint, import styles in this order:
 
 ```typescript
 import '@luxonis/depthai-viewer-common/styles';
-import '@luxonis/common-fe-components/styles';
+import '@luxonis/ui-components/styles.css';
 import '@luxonis/depthai-pipeline-lib/styles';
 ```
 
@@ -371,9 +348,9 @@ See [main.py](./raw-stream/main.py) custom_service function for a working backen
 
 ### Styling
 
-Since `@luxonis/common-fe-components` depends on PandaCSS, it is recommended to use PandaCSS directly in your project
-as well. It's highly recommended to check out [PandaCSS docs](https://panda-css.com/docs/overview/getting-started) and use the
-`css()` function imported from `styled-system/css` like it is done in [App.tsx](./raw-stream/frontend/src/App.tsx).
+Use Tailwind utility classes for layout and custom styling, and prefer reusable
+components from `@luxonis/ui-components` for common controls such as buttons,
+inputs, sliders, switches, and toasts.
 
 ______________________________________________________________________
 

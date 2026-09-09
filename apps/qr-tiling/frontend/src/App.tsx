@@ -1,198 +1,153 @@
-import { css } from "../styled-system/css/css.mjs";
-import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
-import { TilingControl, TilingParams } from "./TilingControl";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNotifications } from "./Notifications";
-import { CircleLoader } from "./CircleLoader.tsx";
+import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Switch } from '@luxonis/ui-components';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CircleLoader } from './CircleLoader.tsx';
+import { useNotifications } from './Notifications.tsx';
+import { TilingControl, type TilingParams } from './TilingControl.tsx';
+import { fetchQRTilingService, postToQRTilingService } from './services.ts';
 
 export type CurrentParamsResponse = {
-    tiling: TilingParams;
-    decoder: boolean;
+	tiling: TilingParams;
+	decoder: boolean;
 };
 
 function App() {
-    const connection = useDaiConnection();
-    const { notify } = useNotifications();
+	const connection = useDaiConnection();
+	const { notify } = useNotifications();
+	const previousConnectedRef = useRef<boolean | null>(null);
 
-    const [paramsLoaded, setParamsLoaded] = useState(false);
-    const [tilingParams, setTilingParams] = useState<TilingParams | null>(null);
-    const [decodeEnabled, setDecodeEnabled] = useState<boolean>(false);
+	const [paramsLoaded, setParamsLoaded] = useState(false);
+	const [tilingParams, setTilingParams] = useState<TilingParams | null>(null);
+	const [decodeEnabled, setDecodeEnabled] = useState(false);
 
-    const streamContainerRef = useRef<HTMLDivElement>(null);
+	const streamContainerRef = useRef<HTMLDivElement>(null);
 
-    const onCurrentParams = useCallback((response: CurrentParamsResponse) => {
-        console.log("[Init] Returned tiling params:", response);
-        setTilingParams(response.tiling);
-        setDecodeEnabled(response.decoder)
-        setParamsLoaded(true);
-    }, []);
+	const onCurrentParams = useCallback((response: CurrentParamsResponse) => {
+		console.log('[Init] Returned tiling params:', response);
+		setTilingParams(response.tiling);
+		setDecodeEnabled(response.decoder);
+		setParamsLoaded(true);
+	}, []);
 
-    useEffect(() => {
-        const dai = (connection as any).daiConnection;
-        if (!dai) return;
+	useEffect(() => {
+		connection.daiConnection?.setOnService(
+			'Get Current Params Service',
+			onCurrentParams,
+		);
+	}, [connection.daiConnection, onCurrentParams]);
 
-        dai.setOnService("Get Current Params Service", onCurrentParams);
-    }, [connection, onCurrentParams]);
+	useEffect(() => {
+		if (!connection.connected) {
+			setParamsLoaded(false);
+			return;
+		}
 
-    useEffect(() => {
-        if (!connection.connected) {
-            notify("Not connected to device", { type: "error" });
-            setParamsLoaded(false);
-            return;
-        }
+		console.log('[Init] Fetching tiling params...');
+		fetchQRTilingService(
+			connection.daiConnection,
+			'Get Current Params Service',
+		);
+	}, [connection.connected, connection.daiConnection]);
 
-        console.log("[Init] Fetching tiling params…");
-        (connection as any).daiConnection?.fetchService(
-            "Get Current Params Service"
-        );
-    }, [connection, notify]);
+	useEffect(() => {
+		const previousConnected = previousConnectedRef.current;
+		previousConnectedRef.current = connection.connected;
 
-    const sendQRConfig = useCallback(
-    (state: boolean) => {
-        (connection as any).daiConnection?.postToService(
-            "QR Config Service",
-            { state }
-        );
-    },
-    [connection]
-);
+		if (connection.connected && previousConnected !== true) {
+			notify('Connected to device', { type: 'success', durationMs: 1800 });
+		}
+		if (!connection.connected && previousConnected === true) {
+			notify('Disconnected from device', {
+				type: 'warning',
+				durationMs: 1800,
+			});
+		}
+	}, [connection.connected, notify]);
 
-    return (
-        <main
-            className={css({
-                width: "screen",
-                height: "screen",
-                display: "flex",
-                flexDirection: "row",
-                gap: "md",
-                padding: "md",
-            })}
-        >
-            {/* Stream */}
-            <div
-                className={css({ flex: 1, position: "relative" })}
-                ref={streamContainerRef}
-            >
-                <Streams allowedTopics={["Video"]} defaultTopics={["Video"]} />
-            </div>
+	const sendQRConfig = useCallback(
+		(state: boolean) => {
+			if (!connection.connected) {
+				notify('Not connected to device. Unable to update QR decoding.', {
+					type: 'error',
+				});
+				return;
+			}
 
-            <div
-                className={css({
-                    width: "2px",
-                    backgroundColor: "gray.300",
-                })}
-            />
+			postToQRTilingService(
+				connection.daiConnection,
+				'QR Config Service',
+				{ state },
+				() => {
+					notify(`QR decoding ${state ? 'enabled' : 'disabled'}`, {
+						type: 'success',
+						durationMs: 2500,
+					});
+				},
+			);
+		},
+		[connection.connected, connection.daiConnection, notify],
+	);
 
-            {/* Sidebar */}
-            <div
-                className={css({
-                    width: "md",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "md",
-                    height: "100vh",
-                    overflowY: "auto",
-                    paddingRight: "sm",
-                })}
-            >
-                <h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
-                    Configuration
-                </h1>
+	return (
+		<main className="flex h-screen w-screen overflow-hidden p-8">
+			<div className="relative min-w-0 flex-1" ref={streamContainerRef}>
+				<Streams allowedTopics={['Video']} defaultTopics={['Video']} />
+			</div>
 
-                {!paramsLoaded || !tilingParams ? (
-                    <div className={css({
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 'sm',
-                        height: 'full',
-                        color: 'gray.500'
-                    })}>
-                        <CircleLoader />
-                        <span>Loading tiling configuration…</span>
-                    </div>
-                ) : (
-                    <div>
-                        <span style={{ fontSize: 16, fontWeight: "bold" }}>
-                                QR Code Configuration
-                            </span>
-                        <div
-                            className={css({
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "sm",
-                                padding: "sm",
-                                borderRadius: "md",
-                                backgroundColor: "gray.50",
-                                border: "1px solid",
-                                borderColor: "gray.200",
-                                marginBottom: "md",
-                                marginTop: "md",
-                            })}
-                        >
-                            <input
-                                type="checkbox"
-                                checked={decodeEnabled}
-                                onChange={(e) => {
-                                    const newState = e.target.checked;
-                                    setDecodeEnabled(newState);
-                                    sendQRConfig(newState);
-                                }}
-                            />
-                            <span
-                                className={css({
-                                    fontSize: "sm",
-                                    fontWeight: "medium",
-                                })}
-                            >
-                                Enable QR decoding
-                            </span>
-                        </div>
+			<div className="mx-8 w-px shrink-0 bg-border" />
 
-                        <div
-                            className={css({
-                                flex: 1,
-                                overflowY: "auto",
-                                paddingRight: "xs",
-                                minHeight: 0,
-                            })}
-                        >
-                            <TilingControl initialParams={tilingParams} />
-                        </div>
-                    </div>
-                )}
+			<aside className="flex max-h-full w-[360px] shrink-0 flex-col gap-6 overflow-y-auto pr-3">
+				<div className="flex flex-col gap-3">
+					<h1 className="text-2xl font-bold">QR Tiling Detector</h1>
+					<p className="text-sm leading-6 text-muted-foreground">
+						High-resolution QR detection with configurable tiled inference.
+					</p>
+				</div>
 
-                <div
-                    className={css({
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "xs",
-                        marginTop: "auto",
-                        color: connection.connected
-                            ? "green.500"
-                            : "red.500",
-                    })}
-                >
-                    <div
-                        className={css({
-                            width: "3",
-                            height: "3",
-                            borderRadius: "full",
-                            backgroundColor: connection.connected
-                                ? "green.500"
-                                : "red.500",
-                        })}
-                    />
-                    <span>
-                        {connection.connected
-                            ? "Connected"
-                            : "Disconnected"}
-                    </span>
-                </div>
-            </div>
-        </main>
-    );
+				{!paramsLoaded || !tilingParams ? (
+					<div className="flex min-h-[260px] flex-col items-center justify-center gap-4 text-muted-foreground">
+						<CircleLoader />
+						<span>Loading tiling configuration...</span>
+					</div>
+				) : (
+					<>
+						<section className="flex flex-col gap-4 border-t border-border pt-4">
+							<div className="flex items-center justify-between gap-4">
+								<div className="flex flex-col gap-1">
+									<h2 className="font-semibold">QR Code Configuration</h2>
+									<span className="text-sm text-muted-foreground">
+										Decode QR contents from detected tiles.
+									</span>
+								</div>
+								<Switch
+									value={decodeEnabled}
+									onChange={(newState) => {
+										setDecodeEnabled(newState);
+										sendQRConfig(newState);
+									}}
+								/>
+							</div>
+						</section>
+
+						<TilingControl initialParams={tilingParams} />
+					</>
+				)}
+
+				<div
+					className={`mt-auto flex items-center gap-2 pt-4 ${
+						connection.connected ? 'text-success' : 'text-destructive'
+					}`}
+				>
+					<div
+						className={`h-3 w-3 rounded-full ${
+							connection.connected ? 'bg-success' : 'bg-destructive'
+						}`}
+					/>
+					<span>{connection.connected ? 'Connected' : 'Disconnected'}</span>
+				</div>
+			</aside>
+		</main>
+	);
 }
 
 export default App;

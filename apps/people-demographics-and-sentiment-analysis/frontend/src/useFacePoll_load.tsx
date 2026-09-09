@@ -1,79 +1,168 @@
-import { useEffect, useRef, useState } from "react";
-import { useDaiConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { useEffect, useRef, useState } from 'react';
+import { postToPeopleAnalyticsService } from './services.ts';
 
 export type EmotionName =
-  | "Happiness" | "Anger" | "Neutral" | "Sadness"
-  | "Surprise"  | "Fear"  | "Disgust" | "Contempt";
+	| 'Happiness'
+	| 'Anger'
+	| 'Neutral'
+	| 'Sadness'
+	| 'Surprise'
+	| 'Fear'
+	| 'Disgust'
+	| 'Contempt';
 
 export type FaceMeta = {
-  id?: string;
-  status?: "NEW" | "REID" | "TBD";
-  age?: number;
-  gender?: "Male" | "Female";
-  emotion?: EmotionName;
-  img_url?: string;                
+	id?: string;
+	status?: 'NEW' | 'REID' | 'TBD';
+	age?: number;
+	gender?: 'Male' | 'Female';
+	emotion?: EmotionName;
+	img_url?: string;
 };
 
 export type FaceStats = {
-  age: number;
-  males: number;
-  females: number;
-  emotions: Partial<Record<EmotionName, number>>;
+	age: number;
+	males: number;
+	females: number;
+	emotions: Partial<Record<EmotionName, number>>;
 };
 
-function shallowEqualFaces(a: (FaceMeta | undefined)[], b: (FaceMeta | undefined)[]) {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    const A = a[i], B = b[i];
-    if (!A && !B) continue;
-    if (!A || !B) return false;
-    if (
-      A.id      !== B.id      ||
-      A.age     !== B.age     ||
-      A.gender  !== B.gender  ||
-      A.emotion !== B.emotion ||
-      A.img_url !== B.img_url 
-    ) return false;
-  }
-  return true;
+type FacesPayload = {
+	faces?: FaceMeta[];
+	stats?: FaceStats;
+};
+
+function decodePayload(response: unknown): unknown {
+	let payload = response;
+
+	if (
+		typeof payload === 'object' &&
+		payload !== null &&
+		Object.hasOwn(payload, 'data')
+	) {
+		payload = (payload as { data: unknown }).data;
+	}
+
+	if (typeof payload === 'string') {
+		return JSON.parse(payload);
+	}
+
+	if (payload instanceof DataView) {
+		return JSON.parse(new TextDecoder().decode(payload));
+	}
+
+	if (payload instanceof ArrayBuffer) {
+		return JSON.parse(new TextDecoder('utf-8').decode(payload));
+	}
+
+	if (ArrayBuffer.isView(payload)) {
+		return JSON.parse(
+			new TextDecoder('utf-8').decode(
+				new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength),
+			),
+		);
+	}
+
+	return payload;
+}
+
+function parseFacesPayload(response: unknown): FacesPayload | null {
+	try {
+		const payload = decodePayload(response);
+		return typeof payload === 'object' && payload !== null
+			? (payload as FacesPayload)
+			: null;
+	} catch (error) {
+		console.error('[PeopleAnalytics] Failed to parse faces payload:', error);
+		return null;
+	}
+}
+
+function shallowEqualFaces(
+	a: (FaceMeta | undefined)[],
+	b: (FaceMeta | undefined)[],
+) {
+	if (a.length !== b.length) return false;
+
+	for (let i = 0; i < a.length; i++) {
+		const left = a[i];
+		const right = b[i];
+
+		if (!left && !right) continue;
+		if (!left || !right) return false;
+
+		if (
+			left.id !== right.id ||
+			left.age !== right.age ||
+			left.gender !== right.gender ||
+			left.emotion !== right.emotion ||
+			left.img_url !== right.img_url
+		) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 export function useFacesPoll() {
-  const { connected, daiConnection } = useDaiConnection();
-  const [faces, setFaces] = useState<(FaceMeta | undefined)[]>([undefined, undefined, undefined]);
-  const [stats, setStats] = useState<FaceStats | undefined>(undefined);
+	const { connected, daiConnection } = useDaiConnection();
+	const [faces, setFaces] = useState<(FaceMeta | undefined)[]>([
+		undefined,
+		undefined,
+		undefined,
+	]);
+	const [stats, setStats] = useState<FaceStats | undefined>(undefined);
+	const inFlight = useRef(false);
+	const timer = useRef<number | null>(null);
 
-  const inFlight = useRef(false);
-  const timer = useRef<number | null>(null);
+	useEffect(() => {
+		if (!connected) return;
 
-  useEffect(() => {
-    if (!connected) return;
+		const tick = () => {
+			if (inFlight.current || document.hidden) return;
+			inFlight.current = true;
 
-    const tick = () => {
-      if (inFlight.current || document.hidden) return;
-      inFlight.current = true;
+			postToPeopleAnalyticsService(
+				daiConnection,
+				'Get Faces',
+				{},
+				(response) => {
+					const payload = parseFacesPayload(response);
+					const payloadFaces = Array.isArray(payload?.faces)
+						? payload.faces
+						: [];
+					const next: (FaceMeta | undefined)[] = [
+						payloadFaces[0],
+						payloadFaces[1],
+						payloadFaces[2],
+					];
 
-      // @ts-ignore custom service name
-      daiConnection?.postToService("Get Faces", {}, (resp: any) => {
-        const arr = Array.isArray(resp?.faces) ? resp.faces : [];
-        const next: (FaceMeta | undefined)[] = [arr[0], arr[1], arr[2]];
-        setFaces(prev => (shallowEqualFaces(prev, next) ? prev : next));
-        if (resp?.stats) setStats(resp.stats);
-        inFlight.current = false;
-      });
-    };
+					setFaces((previous) =>
+						shallowEqualFaces(previous, next) ? previous : next,
+					);
 
-    const loop = () => {
-      tick();
-      timer.current = window.setTimeout(loop, 1000); // 1 Hz
-    };
+					if (payload?.stats) {
+						setStats(payload.stats);
+					}
 
-    loop();
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-      inFlight.current = false;
-    };
-  }, [connected, daiConnection]);
+					inFlight.current = false;
+				},
+			);
+		};
 
-  return { faces, stats };
+		const loop = () => {
+			tick();
+			timer.current = window.setTimeout(loop, 1000);
+		};
+
+		loop();
+		return () => {
+			if (timer.current) window.clearTimeout(timer.current);
+			inFlight.current = false;
+		};
+	}, [connected, daiConnection]);
+
+	return { faces, stats };
 }
