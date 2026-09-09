@@ -21,6 +21,7 @@ class LandmarksProcessing(dai.node.ThreadedHostNode):
             detections = img_detections.detections
             sequence_num = img_detections.getSequenceNum()
             timestamp = img_detections.getTimestamp()
+            timestamp_device = img_detections.getTimestampDevice()
 
             left_configs_message = dai.MessageGroup()
             right_configs_message = dai.MessageGroup()
@@ -53,12 +54,15 @@ class LandmarksProcessing(dai.node.ThreadedHostNode):
 
             left_configs_message.setSequenceNum(sequence_num)
             left_configs_message.setTimestamp(timestamp)
+            left_configs_message.setTimestampDevice(timestamp_device)
 
             right_configs_message.setSequenceNum(sequence_num)
             right_configs_message.setTimestamp(timestamp)
+            right_configs_message.setTimestampDevice(timestamp_device)
 
             face_configs_message.setSequenceNum(sequence_num)
             face_configs_message.setTimestamp(timestamp)
+            face_configs_message.setTimestampDevice(timestamp_device)
 
             self.face_config_output.send(face_configs_message)
             self.left_config_output.send(left_configs_message)
@@ -83,6 +87,7 @@ class LandmarksProcessing(dai.node.ThreadedHostNode):
         cfg.setOutputSize(self.target_w, self.target_h)
         cfg.setReusePreviousImage(False)
         cfg.setTimestamp(img_detections.getTimestamp())
+        cfg.setTimestampDevice(img_detections.getTimestampDevice())
         cfg.setSequenceNum(img_detections.getSequenceNum())
 
         return cfg
