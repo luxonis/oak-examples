@@ -249,8 +249,9 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         # Clean up process
         process = subprocess.Popen(["oakctl", "app", "stop", APP_ID], **popen_kwargs)
         try:
-            process.wait(timeout=10)
+            process.wait(timeout=60)
         except subprocess.TimeoutExpired:
+            logger.error(f"Timeout waiting for app stop after {run_duration}s.")
             process.kill()
 
         if passed:
