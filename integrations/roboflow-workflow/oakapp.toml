@@ -1,5 +1,5 @@
 identifier = "com.example.integrations.roboflow-workflow"
-entrypoint = ["/entrypoint.sh", "bash", "/app/backend-run.sh"]
+entrypoint = ["/entrypoint.sh", "python3.11", "-u", "/app/backend/src/main.py"]
 app_version = "3.1.0"
 
 # NPU (Hexagon DSP) passthrough for the released QNN runtime.
@@ -32,12 +32,13 @@ prepare_build_container = [
     { type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'" }
 ]
 
-build_steps = []
-
 [env]
 # Set EP=cpu to disable DSP acceleration; STRICT=1 makes QNN setup failures fatal.
 EP = "dsp"
 STRICT = "0"
+# Use the classic ONNX Runtime execution path of `inference` - the default
+# (torch-based `inference-models` backend) is significantly slower on ARM CPU.
+USE_INFERENCE_MODELS = false
 
 [static_frontend]
 dist_path = "./frontend/dist"
@@ -47,7 +48,6 @@ source_path = "./frontend"
 steps = [
     "bash -c 'ulimit -n $(ulimit -Hn); cd /app/frontend && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"
 ]
-
 
 [base_image]
 api_url = "https://registry-1.docker.io"

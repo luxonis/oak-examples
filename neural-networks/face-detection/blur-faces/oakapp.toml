@@ -1,4 +1,4 @@
-identifier = "com.example.face-detection.blur-faces"
+identifier = "com.example.neural-networks.face-detection.blur-faces"
 app_version = "1.0.0"
 
 prepare_container = [

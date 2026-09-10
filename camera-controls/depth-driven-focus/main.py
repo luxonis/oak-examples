@@ -57,8 +57,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Focus distance", depth_driven_focus.output, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

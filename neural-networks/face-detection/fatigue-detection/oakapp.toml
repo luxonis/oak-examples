@@ -1,4 +1,4 @@
-identifier = "com.example.face-detection.fatigue-detection"
+identifier = "com.example.neural-networks.face-detection.fatigue-detection"
 app_version = "1.0.0"
 
 prepare_container = [

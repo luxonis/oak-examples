@@ -135,8 +135,9 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Depth", coloredDepth.out, "images")
     visualizer.addTopic("Point Annotations", point_tracker.output_annotations, "images")
 
+    print("Pipeline created.")
     pipeline.start()
-    print("Pipeline started successfully")
+    print("Pipeline started.")
 
     visualizer.registerPipeline(pipeline)
 

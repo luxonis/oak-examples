@@ -228,8 +228,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Plane Status", measurement_node.out_plane_status, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     inputNNData = dai.NNData()

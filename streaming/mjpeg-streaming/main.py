@@ -55,4 +55,9 @@ with dai.Pipeline(device) as pipeline:
         labels=nn_archive.getConfigV1().model.heads[0].metadata.classes,
     )
 
-    pipeline.run()
+    print("Pipeline created.")
+    pipeline.start()
+    print("Pipeline started.")
+
+    while pipeline.isRunning():
+        pipeline.processTasks(waitForTasks=True)

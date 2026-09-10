@@ -85,6 +85,7 @@ async def main():
 
         print("Pipeline created.")
         pipeline.start()
+        print("Pipeline started.")
 
         # Start server and wait for foxglove connection
         async with FoxgloveServer("0.0.0.0", 8765, "DepthAI server") as server:

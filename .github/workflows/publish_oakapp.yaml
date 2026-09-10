@@ -8,7 +8,7 @@ on:
         type: string
         required: true
       new_identifier:
-        description: "Override whole identifier value in oakapp.toml. By default only `com.example` will be replaced by `com.luxonis`"
+        description: "Override identifier. Otherwise com.example.<top-level-folder> becomes com.luxonis"
         type: string
         required: false
 

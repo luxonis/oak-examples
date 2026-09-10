@@ -1,8 +1,6 @@
-identifier = "com.luxonis.custom-frontend.open-vocabulary-object-detection"
-# /entrypoint.sh starts runsvdir for /etc/service, including our backend service.
-# Keep PID 1 alive without starting a competing supervisor.
-entrypoint = ["/entrypoint.sh", "tail", "-f", "/dev/null"]
-app_version = "1.0.3"
+identifier = "com.example.custom-frontend.open-vocabulary-object-detection"
+entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/backend/src/main.py"]
+app_version = "1.1.0"
 
 prepare_container = [
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
@@ -11,11 +9,6 @@ prepare_container = [
 ]
 
 prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
-build_steps = [
-    "mkdir -p /etc/service/backend",
-    "cp /app/backend-run.sh /etc/service/backend/run",
-    "chmod +x /etc/service/backend/run",
-]
 
 depthai_models = { yaml_path = "./backend/src/depthai_models" }
 

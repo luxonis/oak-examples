@@ -22,7 +22,7 @@ This is the repository reference for hand pose plus gesture recognition. Use it 
 - `Shape:` `script+standalone`
 - `Primary task:` palm detection plus hand landmark estimation and gesture recognition
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` MediaPipe palm-detection and hand-landmarker models

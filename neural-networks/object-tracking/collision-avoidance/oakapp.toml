@@ -1,4 +1,4 @@
-identifier = "com.example.object-tracking.collision-avoidance"
+identifier = "com.example.neural-networks.object-tracking.collision-avoidance"
 app_version = "1.0.0"
 
 prepare_container = [

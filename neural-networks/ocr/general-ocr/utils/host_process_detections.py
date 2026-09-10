@@ -126,6 +126,7 @@ class CropConfigsCreator(dai.node.HostNode):
 
         sequence_num = detections_input.getSequenceNum()
         timestamp = detections_input.getTimestamp()
+        timestamp_device = detections_input.getTimestampDevice()
 
         detections = detections_input.detections
 
@@ -154,16 +155,19 @@ class CropConfigsCreator(dai.node.HostNode):
                     cfg.setOutputSize(self.target_w, self.target_h, self.resize_mode)
 
                 cfg.setTimestamp(timestamp)
+                cfg.setTimestampDevice(timestamp_device)
                 cfg.setSequenceNum(sequence_num)
                 configs_group[f"cfg_{len(valid_detections) - 1}"] = cfg
 
         configs_group.setTimestamp(timestamp)
+        configs_group.setTimestampDevice(timestamp_device)
         configs_group.setSequenceNum(sequence_num)
         self.config_output.send(configs_group)
 
         valid_msg = dai.ImgDetections()
         valid_msg.setSequenceNum(sequence_num)
         valid_msg.setTimestamp(timestamp)
+        valid_msg.setTimestampDevice(timestamp_device)
         valid_msg.detections = valid_detections
         valid_msg.setTransformation(detections_input.getTransformation())
 

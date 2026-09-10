@@ -145,7 +145,7 @@ KNOWN_FAILING = {
         "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method",
         "rules": {"and": [{"platform": "all"}]},
     },
-    "depth-measurement/3d-measurement/tof-pointcloud": {
+    "depth-measurement/measurement-3d/tof-pointcloud": {
         "reason": "ToF cameras are only of the RVC2 variant",
         "rules": {"and": [{"platform": ["rvc4"]}]},
     },
@@ -153,7 +153,7 @@ KNOWN_FAILING = {
         "reason": "Can't sync outputs inside Triangulation node",
         "rules": {"and": [{"platform": ["rvc4"]}]},
     },
-    "depth-measurement/3d-measurement/box-measurement": {
+    "depth-measurement/measurement-3d/box-measurement": {
         "reason": "No matching distribution found for open3d~=0.18 on Windows",
         "rules": {"and": [{"os": ["win"]}]},
     },

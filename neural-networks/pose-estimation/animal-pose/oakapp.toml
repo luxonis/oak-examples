@@ -1,4 +1,4 @@
-identifier = "com.example.pose-estimation.animal-pose"
+identifier = "com.example.neural-networks.pose-estimation.animal-pose"
 app_version = "1.0.0"
 
 prepare_container = [
