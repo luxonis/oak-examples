@@ -141,9 +141,11 @@ def setup_env(
 def enqueue_output(out, q):
     try:
         for line in iter(out.readline, ""):
+            logger.debug(f"read line: {line}")
             q.put(line)
-    except ValueError:
+    except ValueError as e:
         # This happens if 'out' is closed while reading.
+        logger.error(f"Could not read from output: {e}")
         pass
     finally:
         try:
@@ -187,10 +189,9 @@ def run_example(example_dir: Path, args: Dict) -> bool:
         for line in process.stdout:
             line = line.strip()
             recent_lines.append(line)
-            logger.debug(f"[app output]: {line}")
 
-            # Detect app start trigger
-            if "App output:" in line:
+            # Detect app start trigger only after Pipeline.start() returns successfully.
+            if "Pipeline started." in line:
                 app_started = True
                 start_time = time.time()
                 logger.info("App start detected. Starting run timer.")
@@ -200,11 +201,8 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             if time.time() - signal_start > startup_timeout:
                 process.terminate()
                 logger.error(f"Timeout waiting for app start after {startup_timeout}s.")
-                return False
+                break
 
-        # At this point, either app started, or process.stdout hit EOF
-        process.stdout.close()
-        process.wait()
         if not app_started:
             logger.error(
                 f"Process exited before app started (code: {process.returncode})"
@@ -227,7 +225,6 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             try:
                 line = q.get_nowait().strip()
                 recent_lines.append(line)
-                logger.debug(f"[app output]: {line}")
             except queue.Empty:
                 pass
 
@@ -237,9 +234,6 @@ def run_example(example_dir: Path, args: Dict) -> bool:
                 logger.error(
                     f"App status switched to '{status}' after {time.time() - start_time:.2f}s but should run for {run_duration}s."
                 )
-                logger.error("Last 10 log lines from device:")
-                for log_line in recent_lines:
-                    logger.error(f"  {log_line}")
                 passed = False
                 break
 
@@ -249,13 +243,16 @@ def run_example(example_dir: Path, args: Dict) -> bool:
 
             time.sleep(1)
 
+        logger.info("Last 10 log lines from device:")
+        for log_line in recent_lines:
+            logger.info(f"  {log_line}")
         # Clean up process
-        if process.poll() is None:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
+        process = subprocess.Popen(["oakctl", "app", "stop", APP_ID], **popen_kwargs)
+        try:
+            process.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            logger.error(f"Timeout waiting for app stop after {run_duration}s.")
+            process.kill()
 
         if passed:
             return True

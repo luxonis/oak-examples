@@ -22,7 +22,7 @@ This is the repository reference for encoding video on the OAK device and muxing
 - `Shape:` `script+standalone-service`
 - `Primary task:` encode live camera frames on-device and mux them into a file
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` `CAM_A`, PyAV on the runtime side, and filesystem access to the output path
@@ -37,7 +37,6 @@ This is the repository reference for encoding video on the OAK device and muxing
 - [main.py](main.py)
 - [utils/video_saver.py](utils/video_saver.py)
 - [utils/arguments.py](utils/arguments.py)
-- [backend-run.sh](backend-run.sh)
 - [oakapp.toml](oakapp.toml)
 
 ## Architecture

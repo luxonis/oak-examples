@@ -1,4 +1,4 @@
-identifier = "example.apps.ros.follow-object"
+identifier = "com.example.apps.ros.ros-follow-object"
 app_version = "0.9.0"
 
 prepare_container = [

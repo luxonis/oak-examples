@@ -99,8 +99,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Depth", depth_encoder.out)
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

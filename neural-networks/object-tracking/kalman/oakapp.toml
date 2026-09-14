@@ -1,4 +1,4 @@
-identifier = "com.example.object-tracking.kalman-filter"
+identifier = "com.example.neural-networks.object-tracking.kalman"
 app_version = "1.0.0"
 
 prepare_container = [

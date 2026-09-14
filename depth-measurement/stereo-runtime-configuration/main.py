@@ -51,8 +51,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Stereo config", stereo_controller.out_annotations, "color")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

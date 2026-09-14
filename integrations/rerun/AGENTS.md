@@ -71,7 +71,7 @@ This is the repository reference for streaming DepthAI data into Rerun Viewer. U
 - `To default to web serving:` start from the `--serve` branch in [main.py](main.py)
 - `To remove point-cloud support:` keep the RGB/mono logging path and drop the stereo branch
 - `To switch to another external viewer:` compare with [integrations/foxglove](https://github.com/luxonis/oak-examples/tree/main/integrations/foxglove)
-- `To keep the RGBD baseline and leave Rerun behind:` compare with [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud)
+- `To keep the RGBD baseline and leave Rerun behind:` compare with [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud)
 
 ## Constraints
 
@@ -89,7 +89,7 @@ This is the repository reference for streaming DepthAI data into Rerun Viewer. U
 ## Related Examples
 
 - [integrations/foxglove](https://github.com/luxonis/oak-examples/tree/main/integrations/foxglove): use this when you want another external viewer integration with similar stream types
-- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you need the point-cloud baseline without Rerun
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need the point-cloud baseline without Rerun
 - [depth-measurement/wls-filter](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/wls-filter): use this when you need host-side stereo post-processing rather than viewer integration
 - [tutorials/camera-demo](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-demo): use this when you need a smaller camera baseline before adding Rerun
 

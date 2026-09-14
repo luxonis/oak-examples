@@ -82,8 +82,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Decoded Audio Message", text_process.annotaion_out)
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

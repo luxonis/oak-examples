@@ -1,4 +1,4 @@
-identifier = "com.example.object-tracking.deepsort-tracking"
+identifier = "com.example.neural-networks.object-tracking.deepsort-tracking"
 app_version = "1.0.0"
 
 prepare_container = [

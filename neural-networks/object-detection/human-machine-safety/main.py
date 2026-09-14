@@ -165,8 +165,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Alert", show_alert.output)
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

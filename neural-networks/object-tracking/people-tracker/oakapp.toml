@@ -1,4 +1,4 @@
-identifier = "com.example.people-tracker"
+identifier = "com.example.neural-networks.object-tracking.people-tracker"
 app_version = "1.0.0"
 
 prepare_container = [

@@ -1,0 +1,194 @@
+name: Publish OAK Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      exclude_apps:
+        description: "Comma-separated app paths to exclude from the curated publish list."
+        type: string
+        required: false
+      dry_run:
+        description: "Validate and show the publish plan without reserving a testbed or publishing."
+        type: boolean
+        default: false
+        required: false
+
+concurrency:
+  group: publish-oakapps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  select:
+    name: Select apps
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.select.outputs.apps }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve publish list
+        id: select
+        env:
+          EXCLUDE_APPS: ${{ inputs.exclude_apps }}
+        run: |
+          set -euo pipefail
+
+          manifest=".github/publish_oakapps.txt"
+          if [[ ! -f "$manifest" ]]; then
+            echo "Publish manifest not found: $manifest" >&2
+            exit 1
+          fi
+
+          mapfile -t manifest_apps < <(
+            sed -E 's/[[:space:]]*#.*$//' "$manifest" |
+              sed -E 's/^[[:space:]]+|[[:space:]]+$//g' |
+              sed '/^$/d'
+          )
+
+          if [[ "${#manifest_apps[@]}" -eq 0 ]]; then
+            echo "Publish manifest is empty." >&2
+            exit 1
+          fi
+
+          contains_app() {
+            local needle="$1"
+            local candidate
+            for candidate in "${manifest_apps[@]}"; do
+              if [[ "$candidate" == "$needle" ]]; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          declare -A excluded=()
+          if [[ -n "${EXCLUDE_APPS:-}" ]]; then
+            IFS=',' read -ra requested_exclusions <<< "$EXCLUDE_APPS"
+            for raw_app in "${requested_exclusions[@]}"; do
+              app=$(printf '%s' "$raw_app" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+              if [[ -z "$app" ]]; then
+                echo "Empty app path in exclude_apps: '$EXCLUDE_APPS'" >&2
+                exit 1
+              fi
+              if ! contains_app "$app"; then
+                echo "Excluded app is not in the publish manifest: $app" >&2
+                exit 1
+              fi
+              if [[ -n "${excluded[$app]+x}" ]]; then
+                echo "Duplicate app in exclude_apps: $app" >&2
+                exit 1
+              fi
+              excluded["$app"]=1
+            done
+          fi
+
+          declare -A target_identifiers=()
+          selected_apps=()
+          for app in "${manifest_apps[@]}"; do
+            if [[ -n "${excluded[$app]+x}" ]]; then
+              continue
+            fi
+            if [[ ! -d "$app" || ! -f "$app/oakapp.toml" ]]; then
+              echo "Manifest app is missing its directory or oakapp.toml: $app" >&2
+              exit 1
+            fi
+            selected_apps+=("$app")
+
+            identifier=$(sed -n -E 's/^[[:space:]]*identifier[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/p' "$app/oakapp.toml" | head -n 1)
+            top_level="${app%%/*}"
+            prefix="com.example.${top_level}."
+            if [[ "$identifier" != "$prefix"* ]]; then
+              echo "App identifier does not use the expected '${prefix}' prefix: $app ($identifier)" >&2
+              exit 1
+            fi
+            target_identifier="com.luxonis.${identifier#"$prefix"}"
+            if [[ -n "${target_identifiers[$target_identifier]+x}" ]]; then
+              echo "Duplicate target identifier '${target_identifier}' for app: $app" >&2
+              exit 1
+            fi
+            target_identifiers["$target_identifier"]="$app"
+          done
+
+          if [[ "${#selected_apps[@]}" -eq 0 ]]; then
+            echo "No apps remain after applying exclude_apps." >&2
+            exit 1
+          fi
+
+          echo "Publish plan:"
+          for app in "${selected_apps[@]}"; do
+            identifier=$(sed -n -E 's/^[[:space:]]*identifier[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/p' "$app/oakapp.toml" | head -n 1)
+            app_version=$(sed -n -E 's/^[[:space:]]*app_version[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/p' "$app/oakapp.toml" | head -n 1)
+            if [[ -z "$app_version" ]]; then
+              echo "App version is missing: $app" >&2
+              exit 1
+            fi
+            top_level="${app%%/*}"
+            prefix="com.example.${top_level}."
+            target_identifier="com.luxonis.${identifier#"$prefix"}"
+            printf '  %s (version %s): %s -> %s\n' "$app" "$app_version" "$identifier" "$target_identifier"
+          done
+
+          matrix_json=$(printf '%s\n' "${selected_apps[@]}" | jq -Rsc 'split("\n") | map(select(length > 0))')
+          echo "apps=$matrix_json" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### OAK App publish plan"
+            echo
+            echo '```text'
+            printf '%s\n' "${selected_apps[@]}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish ${{ matrix.app }}
+    needs: select
+    if: ${{ inputs.dry_run == false }}
+    runs-on: ['self-hosted', 'testbed-runner']
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        app: ${{ fromJSON(needs.select.outputs.apps) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: pip
+
+      - name: Install HIL
+        run: |
+          pip install hil_framework --upgrade --index-url https://__token__:${{ secrets.GITLAB_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
+
+      - name: Publish app via HIL runner
+        env:
+          ROOT_DIR: ${{ matrix.app }}
+          OAKCTL_HUB_TOKEN: ${{ secrets.OAKCTL_HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          app_slug="${ROOT_DIR//\//-}"
+          reservation_name="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#publish-oakapp-${app_slug}"
+
+          ENV_VARS="\
+            --env ROOT_DIR=$ROOT_DIR \
+            --env OAKCTL_HUB_TOKEN=$OAKCTL_HUB_TOKEN"
+
+          exec hil_runner --models "oak4_pro or oak4_d" --reservation-name "$reservation_name" --wait --oakctl --sync-workspace \
+            --dockerfile ./.github/ci/publish_oakapp/Dockerfile \
+            --docker-run-args "$ENV_VARS"
+
+      - name: Record result
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### ${{ matrix.app }}"
+            echo
+            echo "Result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
