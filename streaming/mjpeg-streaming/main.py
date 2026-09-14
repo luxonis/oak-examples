@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import depthai as dai
@@ -61,3 +62,4 @@ with dai.Pipeline(device) as pipeline:
 
     while pipeline.isRunning():
         pipeline.processTasks(waitForTasks=True)
+        time.sleep(0.001)
