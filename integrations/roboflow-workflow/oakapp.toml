@@ -1,5 +1,5 @@
 identifier = "com.example.integrations.roboflow-workflow"
-entrypoint = ["/entrypoint.sh", "python3.11", "-u", "/app/backend/src/main.py"]
+entrypoint = ["/entrypoint.sh", "python3.12", "-u", "/app/backend/src/main.py"]
 app_version = "3.1.0"
 
 # NPU (Hexagon DSP) passthrough for the released QNN runtime.
