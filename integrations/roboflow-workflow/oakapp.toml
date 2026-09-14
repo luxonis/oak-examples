@@ -38,7 +38,7 @@ EP = "dsp"
 STRICT = "0"
 # Use the classic ONNX Runtime execution path of `inference` - the default
 # (torch-based `inference-models` backend) is significantly slower on ARM CPU.
-USE_INFERENCE_MODELS = false
+USE_INFERENCE_MODELS = "False"
 
 [static_frontend]
 dist_path = "./frontend/dist"
