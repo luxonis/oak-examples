@@ -1,3 +1,4 @@
+import time
 import depthai as dai
 import rerun as rr
 from utils.arguments import initialize_argparser
@@ -51,7 +52,9 @@ def main():
         print("Pipeline created.")
         pipeline.start()
         print("Pipeline started.")
-        pipeline.wait()
+        while pipeline.isRunning():
+            pipeline.processTasks(waitForTasks=True)
+            time.sleep(0.001)
 
 
 if __name__ == "__main__":
