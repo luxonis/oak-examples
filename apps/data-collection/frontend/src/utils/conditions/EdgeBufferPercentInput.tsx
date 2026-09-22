@@ -1,48 +1,47 @@
-import { css } from "../../../styled-system/css/css.mjs";
+import { Input } from '@luxonis/ui-components';
+import { useId } from 'react';
 
 interface EdgeBufferPercentInputProps {
-  value: string;
-  onChange: (v: string) => void;
-  onBlur?: () => void;
-  valid: boolean;
-  disabled?: boolean;
+	value: string;
+	onChange: (v: string) => void;
+	onBlur?: () => void;
+	valid: boolean;
+	disabled?: boolean;
 }
 
 export function EdgeBufferPercentInput({
-  value,
-  onChange,
-  onBlur,
-  valid,
-  disabled,
+	value,
+	onChange,
+	onBlur,
+	valid,
+	disabled,
 }: EdgeBufferPercentInputProps) {
-  return (
-    <label className={css({ display: "flex", flexDirection: "column", gap: "xs" })}>
-      <span className={css({ fontWeight: "medium" })}>Edge buffer (each side) — 0–49%</span>
-      <input
-        type="number"
-        min={0}
-        max={49}
-        step={1}
-        inputMode="numeric"
-        pattern="\\d*"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-        disabled={!!disabled}
-        className={css({
-          px: "sm",
-          py: "xs",
-          borderWidth: "1px",
-          borderColor: disabled ? "gray.300" : valid ? "gray.300" : "red.500",
-          rounded: "md",
-          _disabled: { bg: "gray.100", color: "gray.500", cursor: "not-allowed" },
-        })}
-        aria-invalid={!valid && !disabled}
-        aria-label="Lost-in-middle edge buffer percent (0–49)"
-      />
-      <span className={css({ fontSize: "xs", color: "gray.600" })}>
-        We ignore the outer margin on every edge; only losses inside the remaining center fire snaps.
-      </span>
-    </label>
-  );
+	const inputId = useId();
+
+	return (
+		<div className="flex flex-col gap-2">
+			<label htmlFor={inputId} className="font-medium">
+				Edge buffer (each side) - 0-49%
+			</label>
+			<Input
+				id={inputId}
+				type="number"
+				min={0}
+				max={49}
+				step={1}
+				inputMode="numeric"
+				pattern="\\d*"
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				onBlur={onBlur}
+				disabled={disabled}
+				aria-invalid={!valid && !disabled}
+				aria-label="Lost-in-middle edge buffer percent (0-49)"
+			/>
+			<span className="text-xs text-muted-foreground">
+				We ignore the outer margin on every edge; only losses inside the
+				remaining center fire snaps.
+			</span>
+		</div>
+	);
 }

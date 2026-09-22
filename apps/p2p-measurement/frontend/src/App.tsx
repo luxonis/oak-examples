@@ -1,272 +1,250 @@
-import { css } from "../styled-system/css/css.mjs";
-import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
-import { ClickCatcher } from "./ClickOverlay.tsx";
-import { useRef, useState, useEffect } from "react";
-import { DistanceDisplay } from "./DistanceDisplay.tsx";
+import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Button } from '@luxonis/ui-components';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ClickCatcher } from './ClickOverlay.tsx';
+import { DistanceDisplay } from './DistanceDisplay.tsx';
+import { postToP2PMeasurementService } from './services.ts';
+
+interface DistanceResponse {
+	ok?: boolean;
+	distance?: number | null;
+	std_deviation?: number | null;
+	has_invalid_depth?: boolean;
+}
+
+interface TrackingStatusResponse {
+	ok?: boolean;
+	tracking_enabled?: boolean;
+}
+
+function decodePayload(response: unknown): unknown {
+	let payload = response;
+
+	if (
+		typeof payload === 'object' &&
+		payload !== null &&
+		Object.hasOwn(payload, 'data')
+	) {
+		payload = (payload as { data: unknown }).data;
+	}
+
+	if (typeof payload === 'string') {
+		return JSON.parse(payload);
+	}
+
+	if (payload instanceof DataView) {
+		return JSON.parse(new TextDecoder().decode(payload));
+	}
+
+	if (payload instanceof ArrayBuffer) {
+		return JSON.parse(new TextDecoder('utf-8').decode(payload));
+	}
+
+	if (ArrayBuffer.isView(payload)) {
+		return JSON.parse(
+			new TextDecoder('utf-8').decode(
+				new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength),
+			),
+		);
+	}
+
+	return payload;
+}
+
+function parseObject<T extends object>(response: unknown): T | null {
+	try {
+		const payload = decodePayload(response);
+		return typeof payload === 'object' && payload !== null
+			? (payload as T)
+			: null;
+	} catch (error) {
+		console.error('[P2P] Failed to parse service response:', error);
+		return null;
+	}
+}
 
 function App() {
-    const connection = useDaiConnection();
-    const viewerRef = useRef<HTMLDivElement>(null);
-    const [pointCount, setPointCount] = useState(0);
-    const [currentDistance, setCurrentDistance] = useState<number | null>(null);
-    const [currentStdDeviation, setCurrentStdDeviation] = useState<number | null>(null);
-    const [hasInvalidDepth, setHasInvalidDepth] = useState(false);
-    const [trackingEnabled, setTrackingEnabled] = useState(true);
-    const [showInstructions, setShowInstructions] = useState(false);
+	const connection = useDaiConnection();
+	const viewerRef = useRef<HTMLDivElement>(null);
+	const [pointCount, setPointCount] = useState(0);
+	const [currentDistance, setCurrentDistance] = useState<number | null>(null);
+	const [currentStdDeviation, setCurrentStdDeviation] = useState<number | null>(
+		null,
+	);
+	const [hasInvalidDepth, setHasInvalidDepth] = useState(false);
+	const [trackingEnabled, setTrackingEnabled] = useState(true);
+	const [showInstructions, setShowInstructions] = useState(false);
+	const topicGroups = useMemo(() => ({ images: 'Images', data: 'Data' }), []);
 
-    const selectionService = "Selection Service";
+	const clearSelection = useCallback(() => {
+		postToP2PMeasurementService(connection.daiConnection, 'Selection Service', {
+			clear: true,
+		});
+		setPointCount(0);
+		setCurrentDistance(null);
+		setCurrentStdDeviation(null);
+		setHasInvalidDepth(false);
+	}, [connection.daiConnection]);
 
-    const clearSelection = () => {
-        (connection as any)?.daiConnection?.postToService(selectionService, { clear: true });
-        setPointCount(0);
-        setCurrentDistance(null);
-        setCurrentStdDeviation(null);
-        setHasInvalidDepth(false);
-    };
+	const toggleTracking = () => {
+		postToP2PMeasurementService(
+			connection.daiConnection,
+			'Toggle Tracking Service',
+			{},
+			(response) => {
+				const parsedResponse = parseObject<TrackingStatusResponse>(response);
 
-    const toggleTracking = () => {
-        if (connection.daiConnection) {
-            (connection.daiConnection as any).postToService(
-                "Toggle Tracking Service",
-                {},
-                (response: any) => {
-                    try {
-                        let parsedResponse = response;
-                        if (response && response.constructor && response.constructor.name === 'DataView') {
-                            const decoder = new TextDecoder();
-                            const jsonString = decoder.decode(response);
-                            parsedResponse = JSON.parse(jsonString);
-                        }
-                        
-                        if (parsedResponse?.ok) {
-                            setTrackingEnabled(parsedResponse.tracking_enabled);
-                        }
-                    } catch (e) {
-                        console.error('Error toggling tracking:', e);
-                    }
-                }
-            );
-        }
-    };
+				if (parsedResponse?.ok) {
+					setTrackingEnabled(parsedResponse.tracking_enabled ?? false);
+				}
+			},
+		);
+	};
 
-    useEffect(() => {
-        if (connection.connected) {
-            const daiConnection = (connection as any)?.daiConnection;
-            
-            const pollDistance = () => {
-                if (daiConnection && daiConnection.postToService) {
-                    daiConnection.postToService(
-                        "Get Distance Service",
-                        {},
-                        (response: any) => {
-                            try {
-                                let parsedResponse = response;
-                                if (response && response.constructor && response.constructor.name === 'DataView') {
-                                    const decoder = new TextDecoder();
-                                    const jsonString = decoder.decode(response);
-                                    parsedResponse = JSON.parse(jsonString);
-                                }
-                                
-                                if (parsedResponse?.ok && parsedResponse.distance !== null && typeof parsedResponse.distance === 'number') {
-                                    setCurrentDistance(parsedResponse.distance);
-                                    setCurrentStdDeviation(parsedResponse.std_deviation || null);
-                                    setHasInvalidDepth(parsedResponse.has_invalid_depth || false);
-                                } else if (parsedResponse?.ok && parsedResponse.distance === null) {
-                                    setCurrentDistance(null);
-                                    setCurrentStdDeviation(null);
-                                    setHasInvalidDepth(parsedResponse.has_invalid_depth || false);
-                                }
-                            } catch (e) {
-                                console.error('Error parsing distance service response:', e);
-                            }
-                        }
-                    );
-                }
-            };
-            
-            const interval = setInterval(pollDistance, 50); // 50ms polling
-            
-            return () => clearInterval(interval);
-        }
-    }, [connection.connected]);
+	useEffect(() => {
+		if (!connection.connected) return;
 
-    useEffect(() => {
-        if (connection.connected && connection.daiConnection) {
-            (connection.daiConnection as any).postToService(
-                "Get Tracking Status Service",
-                {},
-                (response: any) => {
-                    try {
-                        let parsedResponse = response;
-                        if (response && response.constructor && response.constructor.name === 'DataView') {
-                            const decoder = new TextDecoder();
-                            const jsonString = decoder.decode(response);
-                            parsedResponse = JSON.parse(jsonString);
-                        }
-                        
-                        if (parsedResponse?.ok) {
-                            setTrackingEnabled(parsedResponse.tracking_enabled);
-                        }
-                    } catch (e) {
-                        console.error('Error getting tracking status:', e);
-                    }
-                }
-            );
-        }
-    }, [connection.connected, connection.daiConnection]);
+		const pollDistance = () => {
+			postToP2PMeasurementService(
+				connection.daiConnection,
+				'Get Distance Service',
+				{},
+				(response) => {
+					const parsedResponse = parseObject<DistanceResponse>(response);
 
-    useEffect(() => {
-        const handleKeyPress = (event: KeyboardEvent) => {
-            if (event.code === 'Space' && pointCount > 0) {
-                event.preventDefault();
-                clearSelection();
-            }
-        };
+					if (!parsedResponse?.ok) return;
 
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [pointCount]);
+					if (typeof parsedResponse.distance === 'number') {
+						setCurrentDistance(parsedResponse.distance);
+						setCurrentStdDeviation(parsedResponse.std_deviation ?? null);
+						setHasInvalidDepth(parsedResponse.has_invalid_depth ?? false);
+						return;
+					}
 
-    return (
-        <main className={css({
-            width: 'screen',
-            height: 'screen',
-            display: 'flex',
-            flexDirection: 'row',
-            gap: 'md',
-            padding: 'md'
-        })}>
-            {/* Left: Stream Viewer */}
-            <div ref={viewerRef} className={css({ flex: 1, position: "relative" })}>
-                <Streams
-                    defaultTopics={["Video", "Depth", "Point Annotations"]}
-                    topicGroups={{ images: "Images", data: "Data" }}
-                />
-                <ClickCatcher
-                    containerRef={viewerRef}
-                    frameWidth={640}
-                    frameHeight={400}
-                    debug
-                    allowedPanelTitle="Video,Depth"
-                    serviceName={selectionService}
-                    onPointAdded={(count) => {
-                        if (count === -1) {
-                            setPointCount(prev => {
-                                const newCount = prev + 1;
-                                return newCount;
-                            });
-                        } else {
-                            setPointCount(count);
-                        }
-                    }}
-                />
-            </div>
+					setCurrentDistance(null);
+					setCurrentStdDeviation(null);
+					setHasInvalidDepth(parsedResponse.has_invalid_depth ?? false);
+				},
+			);
+		};
 
-            {/* Vertical Divider */}
-            <div className={css({
-                width: '2px',
-                backgroundColor: 'gray.300'
-            })} />
+		const interval = window.setInterval(pollDistance, 50);
+		return () => window.clearInterval(interval);
+	}, [connection.connected, connection.daiConnection]);
 
-            {/* Right: Sidebar (Info and Controls) */}
-            <div className={css({
-                width: 'md',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'md'
-            })}>
-                <h1 className={css({ fontSize: 'xl', fontWeight: 'bold' })}>
-                    P2P Distance Measurement
-                </h1>
-                
-                <div className={css({
-                    padding: 'sm',
-                    backgroundColor: 'gray.50',
-                    borderRadius: 'md',
-                    border: '1px solid',
-                    borderColor: 'gray.200',
-                    marginBottom: 'sm'
-                })}>
-                    <button
-                        className={css({
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: '0',
-                            marginBottom: showInstructions ? 'xs' : '0'
-                        })}
-                        onClick={() => setShowInstructions(!showInstructions)}
-                    >
-                        <h3 className={css({ 
-                            fontWeight: 'semibold', 
-                            margin: '0',
-                            color: 'gray.800'
-                        })}>
-                            Instructions
-                        </h3>
-                        <span className={css({ 
-                            fontSize: 'xs',
-                            color: 'gray.500',
-                            transform: showInstructions ? 'rotate(180deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.2s',
-                            fontWeight: 'bold',
-                            lineHeight: '1'
-                        })}>
-                            ▼
-                        </span>
-                    </button>
-                    {showInstructions && (
-                        <ol className={css({ 
-                            listStyleType: 'decimal', 
-                            paddingLeft: 'sm',
-                            fontSize: 'sm',
-                            lineHeight: 'relaxed',
-                            color: 'gray.700',
-                            margin: '0'
-                        })}>
-                            <li>Click on the video or depth stream to select the first point</li>
-                            <li>Click again to select the second point</li>
-                            <li>The distance will be calculated and displayed</li>
-                            <li><strong>Wait a moment</strong> for the measurement to stabilize</li>
-                            <li>Press <strong>Space</strong> or right-click to clear points and reset</li>
-                            <li>Switch between Video and Depth views using the tabs</li>
-                        </ol>
-                    )}
-                </div>
+	useEffect(() => {
+		if (!connection.connected) return;
 
-                {/* Distance Display */}
-                <DistanceDisplay 
-                    distance={currentDistance} 
-                    stdDeviation={currentStdDeviation}
-                    pointCount={pointCount}
-                    hasInvalidDepth={hasInvalidDepth}
-                    trackingEnabled={trackingEnabled}
-                    onToggleTracking={toggleTracking}
-                />
+		postToP2PMeasurementService(
+			connection.daiConnection,
+			'Get Tracking Status Service',
+			{},
+			(response) => {
+				const parsedResponse = parseObject<TrackingStatusResponse>(response);
 
-                {/* Connection Status */}
-                <div className={css({
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'xs',
-                    marginTop: 'auto',
-                    color: connection.connected ? 'green.500' : 'red.500'
-                })}>
-                    <div className={css({
-                        width: '3',
-                        height: '3',
-                        borderRadius: 'full',
-                        backgroundColor: connection.connected ? 'green.500' : 'red.500'
-                    })} />
-                    <span>{connection.connected ? 'Connected to device' : 'Disconnected'}</span>
-                </div>
-            </div>
-        </main>
-    );
+				if (parsedResponse?.ok) {
+					setTrackingEnabled(parsedResponse.tracking_enabled ?? false);
+				}
+			},
+		);
+	}, [connection.connected, connection.daiConnection]);
+
+	useEffect(() => {
+		const handleKeyPress = (event: KeyboardEvent) => {
+			if (event.code === 'Space' && pointCount > 0) {
+				event.preventDefault();
+				clearSelection();
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyPress);
+		return () => window.removeEventListener('keydown', handleKeyPress);
+	}, [clearSelection, pointCount]);
+
+	return (
+		<main className="flex h-screen w-screen flex-row gap-6 overflow-auto bg-muted p-6">
+			<div ref={viewerRef} className="relative min-w-[760px] flex-1 shrink-0">
+				<Streams
+					defaultTopics={['Video', 'Depth', 'Point Annotations']}
+					topicGroups={topicGroups}
+				/>
+				<ClickCatcher
+					containerRef={viewerRef}
+					frameWidth={640}
+					frameHeight={400}
+					allowedPanelTitle="Video,Depth"
+					onPointAdded={(count) => {
+						if (count === -1) {
+							setPointCount((previous) => previous + 1);
+						} else {
+							setPointCount(count);
+						}
+					}}
+				/>
+			</div>
+
+			<div className="w-0.5 shrink-0 bg-border" />
+
+			<aside className="flex max-h-full w-[420px] min-w-[360px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
+				<h1 className="text-2xl font-bold">P2P Distance Measurement</h1>
+
+				<section className="rounded-md border border-border bg-card p-4">
+					<button
+						className="flex w-full items-center justify-between text-left"
+						type="button"
+						onClick={() => setShowInstructions((visible) => !visible)}
+					>
+						<h2 className="m-0 font-semibold">Instructions</h2>
+						<span className="text-sm font-semibold text-muted-foreground">
+							{showInstructions ? 'Hide' : 'Show'}
+						</span>
+					</button>
+
+					{showInstructions ? (
+						<ol className="m-0 mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
+							<li>Select the first point on the video or depth stream.</li>
+							<li>Select the second point to calculate distance.</li>
+							<li>Wait briefly for the measurement to stabilize.</li>
+							<li>Press Space or right-click to clear points.</li>
+						</ol>
+					) : null}
+				</section>
+
+				<DistanceDisplay
+					distance={currentDistance}
+					stdDeviation={currentStdDeviation}
+					pointCount={pointCount}
+					hasInvalidDepth={hasInvalidDepth}
+					trackingEnabled={trackingEnabled}
+					onToggleTracking={toggleTracking}
+				/>
+
+				<Button
+					className="w-fit"
+					variant="outline"
+					onClick={clearSelection}
+					disabled={pointCount === 0}
+				>
+					Clear Points
+				</Button>
+
+				<div
+					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${
+						connection.connected ? 'text-success' : 'text-destructive'
+					}`}
+				>
+					<div
+						className={`h-3 w-3 rounded-full ${
+							connection.connected ? 'bg-success' : 'bg-destructive'
+						}`}
+					/>
+					<span>
+						{connection.connected ? 'Connected to device' : 'Disconnected'}
+					</span>
+				</div>
+			</aside>
+		</main>
+	);
 }
 
 export default App;

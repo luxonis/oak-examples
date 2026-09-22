@@ -1,58 +1,54 @@
-import { Flex, Button } from "@luxonis/common-fe-components";
-import { css } from "../styled-system/css/css.mjs";
-import { useNotifications } from "./Notifications.tsx";
-import { useDaiConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Button } from '@luxonis/ui-components';
+import { useNotifications } from './Notifications.tsx';
+import { postToDinoTrackingService } from './services.ts';
 
 type Props = {
-    enabled: boolean;
-    setEnabled: (v: boolean) => void;
+	enabled: boolean;
+	setEnabled: (value: boolean) => void;
 };
 
 export function OutlinesToggle({ enabled, setEnabled }: Props) {
-    const connection = useDaiConnection();
-    const { notify } = useNotifications();
+	const connection = useDaiConnection();
+	const { notify } = useNotifications();
 
-    const handleToggle = () => {
-        if (!connection.connected) {
-            notify("Not connected to device.", { type: "error" });
-            return;
-        }
+	const handleToggle = () => {
+		if (!connection.connected) {
+			notify('Not connected to device.', { type: 'error' });
+			return;
+		}
 
-        notify(!enabled ? "Enabling outlines…" : "Hiding outlines…", {
-            type: "info",
-        });
+		const nextEnabled = !enabled;
 
-        (connection as any).daiConnection?.postToService(
-            "Outlines Trigger Service",
-            { "active": !enabled },
-            () => {
-                console.log("[Outlines] BE ack:", !enabled);
-                setEnabled(!enabled);
-                notify(!enabled ? "Outlines enabled." : "Outlines disabled.", {
-                    type: "success",
-                });
-            }
-        );
-    };
+		notify(nextEnabled ? 'Enabling outlines...' : 'Hiding outlines...', {
+			type: 'info',
+		});
 
-    return (
-        <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
-            <h3 className={css({ fontWeight: "semibold" })}>Outlines</h3>
+		postToDinoTrackingService(
+			connection.daiConnection,
+			'Outlines Trigger Service',
+			{ active: nextEnabled },
+			() => {
+				console.log('[Outlines] BE ack:', nextEnabled);
+				setEnabled(nextEnabled);
+				notify(nextEnabled ? 'Outlines enabled.' : 'Outlines disabled.', {
+					type: 'success',
+				});
+			},
+		);
+	};
 
-            <Flex direction="row">
-                <Button
-                    onClick={handleToggle}
-                    className={css({
-                        flex: "1 1 0",
-                        fontSize: "sm",
-                        backgroundColor: enabled ? "gray.700" : "blue.500",
-                        color: "white",
-                        cursor: "pointer",
-                    })}
-                >
-                    {enabled ? "Hide outlines" : "Draw outlines"}
-                </Button>
-            </Flex>
-        </div>
-    );
+	return (
+		<div className="flex flex-col gap-3">
+			<h3 className="font-semibold">Outlines</h3>
+
+			<Button
+				variant={enabled ? 'light' : 'filled'}
+				intent={enabled ? 'gray' : 'active'}
+				onClick={handleToggle}
+			>
+				{enabled ? 'Hide Outlines' : 'Draw Outlines'}
+			</Button>
+		</div>
+	);
 }

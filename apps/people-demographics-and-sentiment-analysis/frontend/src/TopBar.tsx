@@ -1,22 +1,10 @@
-import { Flex, Separator } from '@luxonis/common-fe-components';
-
 export const TopBar = () => {
-  const logo = 'logo.svg';
-
-  return (
-    <Flex
-      align="center"
-      justify="space-between"
-      gap="xs"
-      padding="xs"
-      width="full"
-      style={{ borderBottom: '1px solid #d3d3d3d9' }}
-    >
-      <img src={logo} alt="Luxonis" style={{ width: '120px' }} />
-
-      <Flex height="full" gap="sm" align="center">
-        <Separator orientation="vertical" style={{ display: 'none' }} />
-      </Flex>
-    </Flex>
-  );
+	return (
+		<header className="flex h-14 w-full shrink-0 items-center justify-between border-b border-border px-4">
+			<img src="logo.svg" alt="Luxonis" className="h-auto w-[120px]" />
+			<span className="text-xs font-medium text-muted-foreground">
+				People Analytics
+			</span>
+		</header>
+	);
 };

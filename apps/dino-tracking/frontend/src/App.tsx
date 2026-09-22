@@ -1,289 +1,284 @@
-import { css } from "../styled-system/css/css.mjs";
-import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
-import { AnnotationModeSelector } from "./AnnotationModeSelector.tsx";
-import { OutlinesToggle } from "./OutlinesToggle.tsx";
-import { ConfidenceSlider } from "./ConfidenceSlider.tsx";
-import { useCallback, useMemo, useEffect, useState } from "react";
-import { useNotifications } from "./Notifications.tsx";
-import { Button } from "@luxonis/common-fe-components";
-import * as React from "react";
+import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Button } from '@luxonis/ui-components';
+import {
+	type MouseEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
+import { AnnotationModeSelector } from './AnnotationModeSelector.tsx';
+import { ConfidenceSlider } from './ConfidenceSlider.tsx';
+import { useNotifications } from './Notifications.tsx';
+import { OutlinesToggle } from './OutlinesToggle.tsx';
+import { postToDinoTrackingService } from './services.ts';
 
 type OnClickHandler = (
-    event: React.MouseEvent,
-    coords:
-        | {
-              offsetX: number;
-              offsetY: number;
-          }
-        | undefined
+	event: MouseEvent,
+	coords:
+		| {
+				offsetX: number;
+				offsetY: number;
+		  }
+		| undefined,
 ) => void;
 
+type AnnotationMode = 'heatmap' | 'bbox';
+
 interface BackendConfig {
-    confidence: number;
-    annotation_mode: "heatmap" | "bbox";
-    outlines: boolean;
+	confidence: number;
+	annotation_mode: AnnotationMode;
+	outlines: boolean;
+}
+
+function decodePayload(response: unknown): unknown {
+	let payload = response;
+
+	if (
+		typeof payload === 'object' &&
+		payload !== null &&
+		Object.hasOwn(payload, 'data')
+	) {
+		payload = (payload as { data: unknown }).data;
+	}
+
+	if (typeof payload === 'string') {
+		return JSON.parse(payload);
+	}
+
+	if (payload instanceof ArrayBuffer) {
+		return JSON.parse(new TextDecoder('utf-8').decode(payload));
+	}
+
+	if (ArrayBuffer.isView(payload)) {
+		return JSON.parse(
+			new TextDecoder('utf-8').decode(
+				new Uint8Array(payload.buffer, payload.byteOffset, payload.byteLength),
+			),
+		);
+	}
+
+	return payload;
+}
+
+function isBackendConfig(value: unknown): value is BackendConfig {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		typeof (value as BackendConfig).confidence === 'number' &&
+		((value as BackendConfig).annotation_mode === 'heatmap' ||
+			(value as BackendConfig).annotation_mode === 'bbox') &&
+		typeof (value as BackendConfig).outlines === 'boolean'
+	);
+}
+
+function parseBackendConfig(response: unknown): BackendConfig | null {
+	try {
+		const payload = decodePayload(response);
+		return isBackendConfig(payload) ? payload : null;
+	} catch (error) {
+		console.error('[App] Failed to parse service response:', error);
+		return null;
+	}
 }
 
 export default function App() {
-    const connection = useDaiConnection();
-    const { notify } = useNotifications();
+	const connection = useDaiConnection();
+	const { notify } = useNotifications();
+	const previousConnectedRef = useRef<boolean | null>(null);
 
-    // ----------------------------------------------------
-    // UI STATE
-    // ----------------------------------------------------
-    const [threshold, setThreshold] = useState(0.35);
-    const [annotationMode, setAnnotationMode] =
-        useState<"heatmap" | "bbox">("heatmap");
-    const [outlinesEnabled, setOutlinesEnabled] = useState(false);
+	const [threshold, setThreshold] = useState(0.35);
+	const [annotationMode, setAnnotationMode] =
+		useState<AnnotationMode>('heatmap');
+	const [outlinesEnabled, setOutlinesEnabled] = useState(false);
+	const [configLoaded, setConfigLoaded] = useState(false);
+	const [streamEverAvailable, setStreamEverAvailable] = useState(false);
 
-    // Backend config
-    const [configLoaded, setConfigLoaded] = useState(false);
+	useEffect(() => {
+		if (streamEverAvailable) return;
 
-    // 🔒 STREAM LATCH (key fix)
-    const [streamEverAvailable, setStreamEverAvailable] = useState(false);
+		if (
+			Array.isArray(connection.topics) &&
+			connection.topics.some((topic) => topic.name === 'Video')
+		) {
+			console.log('[App] Video stream appeared, latching Streams ON');
+			setStreamEverAvailable(true);
+		}
+	}, [connection.topics, streamEverAvailable]);
 
-    // ----------------------------------------------------
-    // LATCH FIRST VIDEO STREAM APPEARANCE
-    // ----------------------------------------------------
-    useEffect(() => {
-        if (streamEverAvailable) return;
+	const handleStreamClick: OnClickHandler = useCallback(
+		(_event, coords) => {
+			if (!coords) {
+				notify('Click was outside the video area.', { type: 'warning' });
+				return;
+			}
 
-        if (
-            Array.isArray(connection.topics) &&
-            connection.topics.some((t) => t.name === "Video")
-        ) {
-            console.log("[App] Video stream appeared → latching Streams ON");
-            setStreamEverAvailable(true);
-        }
-    }, [connection.topics, streamEverAvailable]);
+			if (!connection.connected) {
+				notify('Not connected to device.', { type: 'error' });
+				return;
+			}
 
-    // ----------------------------------------------------
-    // STREAM CLICK HANDLER
-    // ----------------------------------------------------
-    const handleStreamClick: OnClickHandler = useCallback(
-        (_event, coords) => {
-            if (!coords) {
-                notify("Click was outside the video area.", { type: "warning" });
-                return;
-            }
+			postToDinoTrackingService(
+				connection.daiConnection,
+				'Click Prompt Service',
+				{ x: coords.offsetX, y: coords.offsetY },
+				() => notify('Object selected!', { type: 'success' }),
+			);
+		},
+		[connection.connected, connection.daiConnection, notify],
+	);
 
-            const { offsetX, offsetY } = coords;
+	const clickHandlers = useMemo(
+		() => new Map<string, OnClickHandler>([['Video', handleStreamClick]]),
+		[handleStreamClick],
+	);
 
-            (connection as any).daiConnection?.postToService(
-                "Click Prompt Service",
-                { x: offsetX, y: offsetY },
-                () => notify("Object selected!", { type: "success" })
-            );
-        },
-        [connection, notify]
-    );
+	const handleClearSelection = () => {
+		if (!connection.connected) {
+			notify('Not connected to device.', { type: 'error' });
+			return;
+		}
 
-    const clickHandlers = useMemo(
-        () => new Map<string, OnClickHandler>([["Video", handleStreamClick]]),
-        [handleStreamClick]
-    );
+		postToDinoTrackingService(
+			connection.daiConnection,
+			'Clear Selection Service',
+			{},
+			() => notify('Selection cleared.', { type: 'success' }),
+		);
+	};
 
-    // ----------------------------------------------------
-    // CLEAR SELECTION
-    // ----------------------------------------------------
-    const handleClearSelection = () => {
-        (connection as any).daiConnection?.postToService(
-            "Clear Selection Service",
-            {},
-            () => notify("Selection cleared.", { type: "success" })
-        );
-    };
+	useEffect(() => {
+		if (!connection.connected || configLoaded) return;
 
-    // ----------------------------------------------------
-    // LOAD CONFIG FROM BACKEND
-    // ----------------------------------------------------
-    useEffect(() => {
-        if (!connection.connected || configLoaded) return;
+		const timeoutId = window.setTimeout(() => {
+			postToDinoTrackingService(
+				connection.daiConnection,
+				'BE State Service',
+				{},
+				(response) => {
+					if (!response) {
+						notify('BE State Service unavailable', {
+							type: 'warning',
+						});
+						return;
+					}
 
-        const timeoutId = setTimeout(() => {
-            (connection as any).daiConnection?.postToService(
-                "BE State Service",
-                null,
-                (response: any) => {
-                    if (!response) {
-                        notify("BE State Service unavailable", {
-                            type: "warning",
-                        });
-                        return;
-                    }
+					const config = parseBackendConfig(response);
 
-                    try {
-                        let obj = response;
+					if (!config) {
+						notify('Failed to load configuration', {
+							type: 'error',
+						});
+						return;
+					}
 
-                        if (obj.buffer instanceof ArrayBuffer) {
-                            const td = new TextDecoder("utf-8");
-                            const view = new Uint8Array(
-                                obj.buffer,
-                                obj.byteOffset,
-                                obj.byteLength
-                            );
-                            obj = JSON.parse(td.decode(view));
-                        }
+					setConfigLoaded(true);
+					setThreshold(config.confidence);
+					setAnnotationMode(config.annotation_mode);
+					setOutlinesEnabled(config.outlines);
 
-                        const cfg = obj as BackendConfig;
-                        setConfigLoaded(true);
+					notify('Configuration restored from backend', {
+						type: 'success',
+					});
+				},
+			);
+		}, 600);
 
-                        if (cfg.confidence !== undefined)
-                            setThreshold(cfg.confidence);
-                        if (cfg.annotation_mode)
-                            setAnnotationMode(cfg.annotation_mode);
-                        if (cfg.outlines !== undefined)
-                            setOutlinesEnabled(cfg.outlines);
+		return () => window.clearTimeout(timeoutId);
+	}, [connection.connected, connection.daiConnection, configLoaded, notify]);
 
-                        notify("Configuration restored from backend", {
-                            type: "success",
-                        });
-                    } catch (e) {
-                        console.error(e);
-                        notify("Failed to load configuration", {
-                            type: "error",
-                        });
-                    }
-                }
-            );
-        }, 600);
+	useEffect(() => {
+		if (!connection.connected) {
+			setConfigLoaded(false);
+		}
+	}, [connection.connected]);
 
-        return () => clearTimeout(timeoutId);
-    }, [connection.connected, configLoaded, notify]);
+	useEffect(() => {
+		const previousConnected = previousConnectedRef.current;
+		previousConnectedRef.current = connection.connected;
 
-    useEffect(() => {
-        if (!connection.connected) {
-            setConfigLoaded(false);
-        }
-    }, [connection.connected]);
+		if (connection.connected && previousConnected !== true) {
+			notify('Connected to device', { type: 'success', durationMs: 1800 });
+		}
 
-    return (
-        <main
-            className={css({
-                width: "screen",
-                height: "screen",
-                display: "flex",
-                flexDirection: "row",
-                gap: "md",
-                padding: "md",
-            })}
-        >
-            {/* LEFT SIDE: STREAM */}
-            <div className={css({ flex: 1, position: "relative" })}>
-                {streamEverAvailable ? (
-                    <Streams
-                        topicOnClickHandlersMap={clickHandlers}
-                        defaultTopics={["Video"]}
-                    />
-                ) : (
-                    <div
-                        className={css({
-                            width: "100%",
-                            height: "100%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "gray.500",
-                            fontSize: "sm",
-                        })}
-                    >
-                        Downloading neural network models and waiting for video stream...
-                    </div>
-                )}
-            </div>
+		if (!connection.connected && previousConnected === true) {
+			notify('Disconnected from device', {
+				type: 'warning',
+				durationMs: 1800,
+			});
+		}
+	}, [connection.connected, notify]);
 
-            {/* DIVIDER */}
-            <div className={css({ width: "2px", backgroundColor: "gray.300" })} />
+	return (
+		<main className="flex h-screen w-screen flex-row gap-6 p-6">
+			<div className="relative min-w-0 flex-1 overflow-hidden">
+				{streamEverAvailable ? (
+					<Streams
+						topicOnClickHandlersMap={clickHandlers}
+						defaultTopics={['Video']}
+					/>
+				) : (
+					<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+						Downloading neural network models and waiting for video stream...
+					</div>
+				)}
+			</div>
 
-            {/* RIGHT SIDEBAR */}
-            <div
-                className={css({
-                    width: "md",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "md",
-                })}
-            >
-                <h1
-                    className={css({
-                        fontSize: "2xl",
-                        fontWeight: "bold",
-                    })}
-                >
-                    Dino Tracker
-                </h1>
+			<div className="w-0.5 shrink-0 bg-border" />
 
-                <p
-                    className={css({
-                        fontSize: "sm",
-                        color: "gray.600",
-                        lineHeight: "normal",
-                    })}
-                >
-                    1) Turn on outlines to see FastSAM segments. 2) Click on the stream to
-                    select what to track. 3) Choose how to visualize tracking
-                    (heatmap or bounding boxes) and, in BBox mode, tune the
-                    confidence slider.
-                </p>
+			<aside className="flex max-h-full w-[380px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
+				<h1 className="text-2xl font-bold">Dino Tracker</h1>
 
-                {/* OUTLINES */}
-                <OutlinesToggle enabled={outlinesEnabled} setEnabled={setOutlinesEnabled}/>
+				<p className="text-sm leading-6 text-muted-foreground">
+					1) Turn on outlines to see FastSAM segments. 2) Click on the stream to
+					select what to track. 3) Choose how to visualize tracking (heatmap or
+					bounding boxes) and, in BBox mode, tune the confidence slider.
+				</p>
 
+				<OutlinesToggle
+					enabled={outlinesEnabled}
+					setEnabled={setOutlinesEnabled}
+				/>
 
-                {/* SELECTION */}
-                <p
-                    className={css({
-                        fontSize: "sm",
-                        color: "gray.600",
-                    })}
-                >
-                    Click once on the object in the stream. Use{" "}
-                    <span className={css({fontWeight: "semibold"})}>
-                            Clear selection
-                        </span>{" "}
-                    to reset and choose a new object.
-                </p>
+				<div className="flex flex-col gap-3">
+					<p className="text-sm text-muted-foreground">
+						Click once on the object in the stream. Use{' '}
+						<span className="font-semibold text-foreground">
+							Clear selection
+						</span>{' '}
+						to reset and choose a new object.
+					</p>
 
-                <div className={css({display: "flex", gap: "sm"})}>
-                    <Button variant="outline" onClick={handleClearSelection}>
-                        Clear selection
-                    </Button>
-                </div>
+					<Button variant="outline" onClick={handleClearSelection}>
+						Clear Selection
+					</Button>
+				</div>
 
-                <AnnotationModeSelector
-                    currentMode={annotationMode}
-                    setCurrentMode={setAnnotationMode}
-                />
+				<AnnotationModeSelector
+					currentMode={annotationMode}
+					setCurrentMode={setAnnotationMode}
+				/>
 
-                {annotationMode === "bbox" && (
-                    <ConfidenceSlider value={threshold} setValue={setThreshold}/>
-                )}
+				{annotationMode === 'bbox' ? (
+					<ConfidenceSlider value={threshold} setValue={setThreshold} />
+				) : null}
 
-                {/* CONNECTION STATUS */}
-                <div
-                    className={css({
-                        marginTop: "auto",
-                        display: "flex",
-                        gap: "xs",
-                        alignItems: "center",
-                        color: connection.connected ? "green.500" : "red.500",
-                    })}
-                >
-                    <div
-                        className={css({
-                            width: "3",
-                            height: "3",
-                            borderRadius: "full",
-                            backgroundColor: connection.connected
-                                ? "green.500"
-                                : "red.500",
-                        })}
-                    />
-                    <span>
-                        {connection.connected ? "Connected to device" : "Disconnected"}
-                    </span>
-                </div>
-            </div>
-        </main>
-    );
+				<div
+					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${
+						connection.connected ? 'text-success' : 'text-destructive'
+					}`}
+				>
+					<div
+						className={`h-3 w-3 rounded-full ${
+							connection.connected ? 'bg-success' : 'bg-destructive'
+						}`}
+					/>
+					<span>
+						{connection.connected ? 'Connected to device' : 'Disconnected'}
+					</span>
+				</div>
+			</aside>
+		</main>
+	);
 }

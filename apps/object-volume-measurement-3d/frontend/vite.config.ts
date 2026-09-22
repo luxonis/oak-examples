@@ -1,23 +1,49 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { type Plugin, defineConfig } from 'vite';
 
-// https://vite.dev/config/
+const depthaiPipelinePackageJson = '\0depthai-pipeline-lib-package-json';
+
+function depthaiPipelinePackageJsonPlugin(): Plugin {
+	const depthaiPipelineEntry =
+		'/node_modules/@luxonis/depthai-pipeline-lib/dist/src/index.js';
+
+	return {
+		name: 'depthai-pipeline-lib-package-json',
+		resolveId(source, importer) {
+			const normalizedImporter = importer?.replace(/\\/g, '/');
+
+			if (
+				source === '../package.json' &&
+				normalizedImporter?.slice(-depthaiPipelineEntry.length) ===
+					depthaiPipelineEntry
+			) {
+				return depthaiPipelinePackageJson;
+			}
+			return null;
+		},
+		load(id) {
+			if (id === depthaiPipelinePackageJson) {
+				return 'export const version = "4.0.0"; export default { version };';
+			}
+			return null;
+		},
+	};
+}
+
 export default defineConfig({
-	base: "",
-	plugins: [react(),],
-	// This is needed by FoxGlove
+	base: '',
+	plugins: [react(), depthaiPipelinePackageJsonPlugin()],
 	define: {
 		global: {},
 	},
 	worker: {
-		format: "es",
+		format: 'es',
 	},
 	build: {
 		rollupOptions: {
-			// OAK's build container has a low file-descriptor limit.
 			maxParallelFileOps: 8,
 			output: {
-				format: "esm",
+				format: 'esm',
 			},
 		},
 	},

@@ -1,75 +1,52 @@
-import { css } from "../styled-system/css/css.mjs";
-import { useDaiConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Slider } from '@luxonis/ui-components';
+import { useCallback } from 'react';
+import { postToDinoTrackingService } from './services.ts';
 
 interface ConfidenceSliderProps {
-    value: number;
-    setValue: (v: number) => void;
+	value: number;
+	setValue: (value: number) => void;
 }
 
 export function ConfidenceSlider({ value, setValue }: ConfidenceSliderProps) {
-    const connection = useDaiConnection();
+	const connection = useDaiConnection();
 
-    const handleCommit = () => {
-        if (typeof value === "number" && !isNaN(value)) {
-            console.log("[Threshold] Sending to backend:", value);
+	const handleCommit = useCallback(
+		(nextValue: number[]) => {
+			const threshold = nextValue[0] ?? value;
 
-            (connection as any).daiConnection?.postToService(
-                "Threshold Update Service",
-                { "threshold": value },
-                (response: any) => {
-                    console.log("[Threshold] Backend acknowledged:", response);
-                }
-            );
-        } else {
-            console.warn("[Threshold] Invalid value:", value);
-        }
-    };
+			if (Number.isFinite(threshold)) {
+				console.log('[Threshold] Sending to backend:', threshold);
 
-    return (
-        <div
-            className={css({
-                display: "flex",
-                flexDirection: "column",
-                gap: "xs",
-            })}
-        >
-            <label className={css({ fontWeight: "medium" })}>
-                Confidence Threshold: {value.toFixed(2)}
-            </label>
+				postToDinoTrackingService(
+					connection.daiConnection,
+					'Threshold Update Service',
+					{ threshold },
+					(response) => {
+						console.log('[Threshold] Backend acknowledged:', response);
+					},
+				);
+			} else {
+				console.warn('[Threshold] Invalid value:', threshold);
+			}
+		},
+		[connection.daiConnection, value],
+	);
 
-            <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={value}
-                onChange={(e) => setValue(parseFloat(e.target.value))}
-                onMouseUp={handleCommit}
-                onTouchEnd={handleCommit}
-                className={css({
-                    width: "100%",
-                    appearance: "none",
-                    height: "4px",
-                    borderRadius: "full",
-                    backgroundColor: "gray.300",
-                    "&::-webkit-slider-thumb": {
-                        appearance: "none",
-                        width: "12px",
-                        height: "12px",
-                        borderRadius: "full",
-                        backgroundColor: "blue.500",
-                        cursor: "pointer",
-                    },
-                    "&::-moz-range-thumb": {
-                        appearance: "none",
-                        width: "12px",
-                        height: "12px",
-                        borderRadius: "full",
-                        backgroundColor: "blue.500",
-                        cursor: "pointer",
-                    },
-                })}
-            />
-        </div>
-    );
+	return (
+		<div className="flex flex-col gap-2">
+			<span className="font-medium">
+				Confidence Threshold: {value.toFixed(2)}
+			</span>
+			<Slider
+				value={value}
+				onChange={setValue}
+				onValueCommit={handleCommit}
+				min={0}
+				max={1}
+				step={0.01}
+				aria-label="Confidence threshold"
+			/>
+		</div>
+	);
 }

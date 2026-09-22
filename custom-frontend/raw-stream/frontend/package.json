@@ -5,16 +5,16 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
-		"build": "npm run styleGen && tsc -b && vite build",
+		"build": "tsc -b && vite build",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"preview": "vite preview",
-        "styleGen": "panda codegen"
+		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@luxonis/common-fe-components": "1.26.3",
-		"@luxonis/depthai-pipeline-lib": "3.8.3",
-		"@luxonis/depthai-viewer-common": "3.8.3",
+		"@luxonis/depthai-pipeline-lib": "4.0.0",
+		"@luxonis/depthai-viewer-common": "4.0.0",
+		"@luxonis/ui-components": "1.3.9",
+		"@luxonis/ui-utils": "1.0.7",
 		"react": "19.2.5",
 		"react-dom": "19.2.5",
 		"react-router": "^7.5.0",
@@ -22,11 +22,12 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
-		"@pandacss/dev": "0.53.0",
+		"@tailwindcss/postcss": "^4.3.0",
 		"@types/react": "^19.2.0",
 		"@types/react-dom": "^19.2.0",
 		"@vitejs/plugin-react": "^5.0.0",
 		"globals": "^16.0.0",
+		"tailwindcss": "^4.3.0",
 		"typescript": "~5.7.2",
 		"vite": "^6.3.1"
 	}

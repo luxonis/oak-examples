@@ -1,131 +1,129 @@
-import { Button, Flex, useToast } from "@luxonis/common-fe-components";
-import { css } from "../../../styled-system/css/css.mjs";
-import { useState } from "react";
-import { useDaiConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Button, useToast } from '@luxonis/ui-components';
+import { type ChangeEvent, useState } from 'react';
+import { postToDataCollectionService } from '../../services.ts';
 
 type Props = {
-    onDrawBBox?: () => void;
-}
+	onDrawBBox?: () => void;
+};
 
 export function ImageUploader({ onDrawBBox }: Props) {
-    const connection = useDaiConnection();
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const { toast } = useToast();
+	const connection = useDaiConnection();
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const { toast } = useToast();
 
-    const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file: File | null = event.target.files?.[0] || null;
-        setSelectedFile(file);
-        if (file) {
-            toast({
-                description: `Selected: ${file.name}`,
-                colorVariant: "gray",
-                duration: "default",
-            });
-        }
-    };
+	const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0] || null;
+		setSelectedFile(file);
+		if (file) {
+			toast({
+				description: `Selected: ${file.name}`,
+				colorVariant: 'gray',
+			});
+		}
+	};
 
-    const handleUpload = () => {
-        if (!selectedFile) {
-            toast({
-                description: "Please choose an image first",
-                colorVariant: "warning",
-                duration: "default",
-            });            
-            return;
-        }
-        if (!connection.connected) {
-            toast({
-                description: "Not connected to device. Unable to upload image.",
-                colorVariant: "error",
-                duration: "default",
-            });
-            return;
-        }
+	const handleUpload = () => {
+		if (!selectedFile) {
+			toast({
+				description: 'Please choose an image first',
+				colorVariant: 'warning',
+			});
+			return;
+		}
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            const fileData = reader.result;
+		if (!connection.connected) {
+			toast({
+				description: 'Not connected to device. Unable to upload image.',
+				colorVariant: 'error',
+			});
+			return;
+		}
 
-            console.log("Uploading image to backend:", selectedFile.name);
-            const sizeKb = Math.max(1, Math.round((selectedFile.size || 0) / 1024));
-            toast({
-                description: `Uploading ${selectedFile.name} (${sizeKb} KB)…`,
-                colorVariant: "gray",
-                duration: "default",
-            });
+		const reader = new FileReader();
+		reader.onload = () => {
+			const fileData = reader.result;
 
-            // @ts-ignore - Custom service
-            (connection as any).daiConnection?.postToService(
-                "Image Upload Service",
-                {
-                    filename: selectedFile.name,
-                    type: selectedFile.type,
-                    data: fileData
-                },
-                (resp: any) => {
-                    console.log("[ImageUpload] Service ack:", resp);
-                    toast({
-                        description: `Image uploaded: ${selectedFile.name}`,
-                        colorVariant: "success",
-                        duration: "long",
-                    });
-                }
-            );
-        };
+			if (typeof fileData !== 'string') {
+				toast({
+					description: 'Unable to read image file.',
+					colorVariant: 'error',
+				});
+				return;
+			}
 
-        reader.readAsDataURL(selectedFile);
-    };
+			console.log('Uploading image to backend:', selectedFile.name);
+			const sizeKb = Math.max(1, Math.round((selectedFile.size || 0) / 1024));
+			toast({
+				description: `Uploading ${selectedFile.name} (${sizeKb} KB)...`,
+				colorVariant: 'gray',
+			});
 
-    return (
-        <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
-            <h3 className={css({ fontWeight: "semibold" })}>Update Classes with Image Input:</h3>
-            <span className={css({ color: 'gray.600', fontSize: 'sm' })}>Important: reset view before drawing a bounding box</span>
+			postToDataCollectionService(
+				connection.daiConnection,
+				'Image Upload Service',
+				{
+					filename: selectedFile.name,
+					type: selectedFile.type,
+					data: fileData,
+				},
+				(resp) => {
+					console.log('[ImageUpload] Service ack:', resp);
+					toast({
+						description: `Image uploaded: ${selectedFile.name}`,
+						colorVariant: 'success',
+						duration: 'long',
+					});
+				},
+			);
+		};
 
-            {/* Clickable file selection area */}
-            <label
-                htmlFor="fileInput"
-                className={css({
-                    border: "2px dashed",
-                    borderColor: "gray.400",
-                    borderRadius: "md",
-                    padding: "md",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    backgroundColor: "gray.50",
-                    _hover: { backgroundColor: "gray.100" },
-                })}
-            >
-                {selectedFile ? selectedFile.name : "Click here to choose an image file"}
-            </label>
+		reader.readAsDataURL(selectedFile);
+	};
 
-            {/* Hidden file input */}
-            <input
-                id="fileInput"
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                style={{ display: "none" }}
-            />
+	return (
+		<div className="flex flex-col gap-4">
+			<h3 className="font-semibold">Update Classes with Image Input:</h3>
+			<span className="text-sm text-muted-foreground">
+				Important: reset view before drawing a bounding box
+			</span>
 
-            {/* Upload / Draw buttons */}
-            <Flex direction="row" gap="sm" alignItems="center">
-                <Button onClick={handleUpload}>Upload Image</Button>
-                <span className={css({ color: 'gray.500' })}>OR</span>
-                <Button
-                    variant="outline"
-                    onClick={() => {
-                        console.log("[BBox] Button clicked: enabling drawing overlay");
-                        onDrawBBox?.();
-                        toast({
-                            description: "Drawing mode enabled. Drag on the stream to draw a box.",
-                            colorVariant: "gray",
-                            duration: "long",
-                        });
-                    }}
-                >
-                    Draw bounding box
-                </Button>
-            </Flex>
-        </div>
-    );
+			<label
+				htmlFor="fileInput"
+				className="cursor-pointer rounded-md border-2 border-dashed border-border bg-muted p-4 text-center transition-colors hover:bg-muted/80"
+			>
+				{selectedFile
+					? selectedFile.name
+					: 'Click here to choose an image file'}
+			</label>
+
+			<input
+				id="fileInput"
+				type="file"
+				accept="image/*"
+				onChange={handleFileSelect}
+				className="hidden"
+			/>
+
+			<div className="flex flex-row flex-wrap items-center gap-3">
+				<Button onClick={handleUpload}>Upload Image</Button>
+				<span className="text-muted-foreground">or</span>
+				<Button
+					variant="outline"
+					onClick={() => {
+						console.log('[BBox] Button clicked: enabling drawing overlay');
+						onDrawBBox?.();
+						toast({
+							description:
+								'Drawing mode enabled. Drag on the stream to draw a box.',
+							colorVariant: 'gray',
+							duration: 'long',
+						});
+					}}
+				>
+					Draw Bounding Box
+				</Button>
+			</div>
+		</div>
+	);
 }
