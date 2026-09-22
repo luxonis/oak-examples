@@ -17,7 +17,9 @@ class VideoTransform(VideoStreamTrack):
 
         self.pipeline = pipeline
         self.preview, self.nn, self.label_map = start_pipeline(self.pipeline, options)
+        print("Pipeline created.")
         self.pipeline.start()
+        print("Pipeline started.")
 
     async def recv(self):
         frame = await self.parse_frame()
@@ -143,7 +145,6 @@ def start_pipeline(pipeline: dai.Pipeline, options):
             nn_q = nn.out.createOutputQueue(blocking=False, maxSize=4)
         preview_q = cam_out.createOutputQueue(blocking=False, maxSize=4)
 
-    print("Pipeline created.")
     return preview_q, nn_q, label_map
 
 

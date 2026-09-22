@@ -1,5 +1,5 @@
-identifier = "com.example.apps.people-demographic-sentiment-analysis"
-entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+identifier = "com.example.apps.people-demographics-and-sentiment-analysis"
+entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/backend/src/main.py"]
 app_version = "1.1.0"
 
 prepare_container = [
@@ -8,11 +8,6 @@ prepare_container = [
 ]
 
 prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
-build_steps = [
-    "mkdir -p /etc/service/backend",
-    "cp /app/backend-run.sh /etc/service/backend/run",
-    "chmod +x /etc/service/backend/run",
-]
 
 [static_frontend]
 dist_path = "./frontend/dist"

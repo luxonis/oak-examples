@@ -56,8 +56,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Blur Text", blur_node.out)
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

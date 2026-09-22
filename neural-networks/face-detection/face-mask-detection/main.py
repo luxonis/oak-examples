@@ -63,8 +63,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Detections", det_process_filter.out, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

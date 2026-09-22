@@ -38,7 +38,6 @@ This is the smallest C++ example in the repository. It is the best reference whe
 - [src/main.cpp](src/main.cpp): entire runtime pipeline
 - [CMakeLists.txt](CMakeLists.txt): host build shape and `depthai::core` linkage
 - [oakapp.toml](oakapp.toml): standalone build steps and `cpp` base image
-- [backend-run.sh](backend-run.sh): packaged app startup command
 - [README.md](README.md): host and standalone run instructions
 
 ## Architecture
@@ -64,7 +63,7 @@ This is the smallest C++ example in the repository. It is the best reference whe
 
 - `To add another topic:` request another output and register it in [src/main.cpp](src/main.cpp)
 - `To change resolution or frame type:` edit the `requestOutput(...)` call in [src/main.cpp](src/main.cpp)
-- `To use this as a packaged C++ baseline:` keep [CMakeLists.txt](CMakeLists.txt), [oakapp.toml](oakapp.toml), and [backend-run.sh](backend-run.sh), then expand only [src/main.cpp](src/main.cpp)
+- `To use this as a packaged C++ baseline:` keep [CMakeLists.txt](CMakeLists.txt) and [oakapp.toml](oakapp.toml), then expand only [src/main.cpp](src/main.cpp)
 - `To move toward device-only USB streaming:` compare against [cpp/uvc](https://github.com/luxonis/oak-examples/tree/main/cpp/uvc)
 
 ## Constraints

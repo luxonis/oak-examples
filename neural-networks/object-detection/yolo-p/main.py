@@ -60,8 +60,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Lane Segmentation", nn.getOutput(2), "images")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

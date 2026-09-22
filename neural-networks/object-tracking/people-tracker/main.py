@@ -76,8 +76,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("People count", people_counter.out, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

@@ -1,4 +1,4 @@
-identifier = "com.example.object-detection.yolo-host-decoding"
+identifier = "com.example.neural-networks.object-detection.yolo-host-decoding"
 app_version = "1.0.0"
 
 prepare_container = [
