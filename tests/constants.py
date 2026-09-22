@@ -181,6 +181,10 @@ KNOWN_FAILING = {
         "reason": "Missing bindings for RVC2 in Script node. Cannot open include file for Windows",
         "rules": {"or": [{"platform": ["rvc2"]}, {"os": ["win"]}]},
     },
+    "tutorials/uvc-camera-input": {
+        "reason": "Needs an external UVC camera visible to OpenCV at runtime",
+        "rules": {"and": [{"platform": "all"}]},
+    },
 }
 
 IGNORED_WARNINGS = [
