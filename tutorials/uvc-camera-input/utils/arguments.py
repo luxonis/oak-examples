@@ -19,7 +19,9 @@ def env_optional_int(name: str) -> int | None:
 
 def fourcc(value: str) -> str:
     if value and len(value) != 4:
-        raise argparse.ArgumentTypeError("FOURCC values must be exactly four characters")
+        raise argparse.ArgumentTypeError(
+            "FOURCC values must be exactly four characters"
+        )
     return value
 
 
