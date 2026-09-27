@@ -1,0 +1,5 @@
+
+# Runtime dependencies for examples/cpp/Emulation/hololink_emulator.py
+numpy>=1.24
+opencv-python>=4.8
+depthai>=3.3.0
