@@ -1,5 +1,8 @@
-depthai==3.9.0
-depthai-nodes==0.6.1
+# TODO: Local testing only; remove the snapshot index and pin when DetectionParserConfig is released.
+--extra-index-url https://artifacts.luxonis.com/artifactory/luxonis-python-snapshot-local/
+depthai==3.10.0.dev0+7507348d38ae401d97f132a79998238bd5c0e2a2
+# TODO: Local testing only; replace this branch pin with a released depthai-nodes version.
+depthai-nodes @ https://github.com/luxonis/depthai-nodes/archive/refs/heads/feat/dai_beta_messages.zip
 opencv-python-headless~=4.10.0
 tokenizers~=0.21.0
 onnxruntime

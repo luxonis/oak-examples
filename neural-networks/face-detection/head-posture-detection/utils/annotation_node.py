@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import depthai as dai
 
-from depthai_nodes import Predictions
+from depthai.beta import Predictions
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -35,13 +35,13 @@ class AnnotationNode(dai.node.HostNode):
         ):
             yaw_msg: Predictions = pose_msg_group["0"]
             assert isinstance(yaw_msg, Predictions)
-            yaw = yaw_msg.prediction
+            yaw = yaw_msg.getFirstPrediction()
             roll_msg: Predictions = pose_msg_group["1"]
             assert isinstance(roll_msg, Predictions)
-            roll = roll_msg.prediction
+            roll = roll_msg.getFirstPrediction()
             pitch_msg: Predictions = pose_msg_group["2"]
             assert isinstance(pitch_msg, Predictions)
-            pitch = pitch_msg.prediction
+            pitch = pitch_msg.getFirstPrediction()
 
             pose_text = self._decode_pose(yaw, pitch, roll)
 

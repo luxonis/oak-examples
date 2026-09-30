@@ -7,7 +7,7 @@ from depthai_nodes.node import (
     ImgDetectionsFilter,
     FrameCropper,
 )
-from depthai_nodes.node.parsers import HRNetParser
+from depthai.beta.node import HRNetParser
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode

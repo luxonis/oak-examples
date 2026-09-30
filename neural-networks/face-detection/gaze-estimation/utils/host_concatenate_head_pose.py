@@ -1,5 +1,5 @@
 import depthai as dai
-from depthai_nodes.message import Predictions
+from depthai.beta import Predictions
 import numpy as np
 
 

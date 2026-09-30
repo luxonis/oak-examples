@@ -379,7 +379,7 @@ function App() {
 
         <SectionTitle>Confidence Filter</SectionTitle>
         <p className={css({ fontSize: "xs", color: "gray.600", mb: "xs" })}>Detections below this confidence are dropped.</p>
-        <ConfidenceSlider initialValue={backendConfig?.confidence_threshold ?? 0.40} />
+        <ConfidenceSlider initialValue={backendConfig?.confidence_threshold ?? 0.10} />
 
         <div
           className={css({

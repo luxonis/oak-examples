@@ -1,4 +1,5 @@
-depthai==3.8.0
-depthai-nodes==0.6.0
+depthai==3.10.0
+# TODO: Local testing only; replace this branch pin with a released depthai-nodes version.
+depthai-nodes @ https://github.com/luxonis/depthai-nodes/archive/refs/heads/feat/dai_beta_messages.zip
 numpy>=1.22
 PyGObject==3.46.0

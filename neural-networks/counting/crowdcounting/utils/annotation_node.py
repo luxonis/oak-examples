@@ -1,7 +1,7 @@
 import depthai as dai
 import numpy as np
 
-from depthai_nodes import Map2D
+from depthai.beta import Map2D
 from depthai_nodes.utils import AnnotationHelper
 
 
@@ -20,7 +20,7 @@ class AnnotationNode(dai.node.HostNode):
     def process(self, density_map_msg: dai.Buffer):
         assert isinstance(density_map_msg, Map2D)
 
-        count = np.sum(density_map_msg.map)
+        count = np.sum(density_map_msg.getMap())
 
         annotations = AnnotationHelper()
 
