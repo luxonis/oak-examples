@@ -120,8 +120,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Tiling grid", scanner.out_grid, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

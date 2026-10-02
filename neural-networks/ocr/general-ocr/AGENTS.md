@@ -22,7 +22,7 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 - `Shape:` `script+standalone`
 - `Primary task:` general text detection and recognition
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` Paddle text-detection and text-recognition models
@@ -51,6 +51,7 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 
 - `REQ_WIDTH = 1152` and `REQ_HEIGHT = 640` are chosen to preserve useful detail for the second stage.
 - OCR throughput depends on the number of detected text regions because each region becomes a recognition crop.
+- Preserve the source detection's host timestamp, device timestamp, and sequence number on each crop config, the config group (including empty groups), and filtered detections; `FrameCropper` synchronizes config groups with frames using device timestamps.
 - The current example publishes overlay text, not a structured export format.
 
 ## Related Examples

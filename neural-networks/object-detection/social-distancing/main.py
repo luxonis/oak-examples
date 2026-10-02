@@ -101,8 +101,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Bird-eye view", bird_eye_view.output, "bird-eye")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

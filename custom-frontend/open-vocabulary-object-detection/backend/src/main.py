@@ -95,8 +95,9 @@ def main():
         )
         logger.info("FE services registered!")
 
-        logger.info("Pipeline created. Starting...")
+        logger.info("Pipeline created.")
         pipeline.start()
+        logger.info("Pipeline started.")
         visualizer.registerPipeline(pipeline)
         logger.info("Pipeline running!")
 

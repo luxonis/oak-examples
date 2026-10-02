@@ -22,7 +22,7 @@ This is the repository reference for two-stage face analytics with age and gende
 - `Shape:` `script+standalone`
 - `Primary task:` face detection plus age/gender recognition
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` YuNet face detector and age/gender recognition models

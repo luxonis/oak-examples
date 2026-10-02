@@ -10,12 +10,16 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from utils.datachannel import setup_datachannel
 from utils.options_wrapper import OptionsWrapper
-from utils.transform import VideoTransform
+from utils.transform import VideoTransform, start_pipeline
 
 # There can be only one
 #  if every VideoTransform tries to create its own pipeline they would all try to connect to their own device
 #  one device can run only one pipeline at a time
-pipeline = None
+pipeline = dai.Pipeline()
+startup_queues = start_pipeline(pipeline, OptionsWrapper({}))
+print("Pipeline created.")
+pipeline.start()
+print("Pipeline started.")
 
 
 async def index(request):

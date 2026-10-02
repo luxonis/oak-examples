@@ -122,10 +122,10 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Video", det_nn.passthrough, "images")
     visualizer.addTopic("Objects", id_node.out, "images")
 
-    print("Pipeline created.")
-
     # Start Pipeline
+    print("Pipeline created.")
     pipeline.start()
+    print("Pipeline started.")
 
     while pipeline.isRunning():
         key = visualizer.waitKey(1)

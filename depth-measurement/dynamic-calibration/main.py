@@ -60,7 +60,9 @@ with dai.Pipeline(device) as pipeline:
     )
     visualizer.addTopic("DynCalib HUD", dyn_ctrl.out_annotations, "images")
 
+    print("Pipeline created.")
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     # give it queues

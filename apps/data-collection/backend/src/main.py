@@ -107,8 +107,9 @@ def main():
         visualizer.registerService("Get App Config Service", get_config_service.handle)
         logger.info("FE services registered!")
 
-        logger.info("Pipeline created. Starting...")
+        logger.info("Pipeline created.")
         pipeline.start()
+        logger.info("Pipeline started.")
         visualizer.registerPipeline(pipeline)
         logger.info("Pipeline running!")
 

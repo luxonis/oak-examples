@@ -23,7 +23,7 @@ This is the strongest integration reference in the repository for running Robofl
 - `Shape:` `frontend`
 - `Primary task:` run Roboflow Workflow inference on live DepthAI frames and surface outputs in a custom frontend
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Runs on:` documented as RVC4 standalone only
 - `Requires:` RVC4 device running Luxonis OS 1.40 or newer; valid Roboflow workflow config in [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml); the `inference` package; and static frontend assets
@@ -91,7 +91,7 @@ This is the strongest integration reference in the repository for running Robofl
 ## Non-Obvious Repo Conventions
 
 - Frames flow into Roboflow through the official `VideoFrameProducer` interface (`video_reference` accepts a producer factory), so no global state is patched.
-- The backend exports `USE_INFERENCE_MODELS=False` (see [backend-run.sh](backend-run.sh)) to run models through the classic ONNX Runtime path instead of the torch-based `inference-models` backend, which is markedly slower on the device's ARM CPU.
+- The backend exports `USE_INFERENCE_MODELS=False` (see [oakapp.toml.sh](oakapp.toml)) to run models through the classic ONNX Runtime path instead of the torch-based `inference-models` backend, which is markedly slower on the device's ARM CPU.
 - `core/qnn_patch.py` routes the ONNX Runtime path through `depthai_nodes.runtime.onnx_qnn_session`; keep the NPU devices and `/opt/luxonis/npu-runtime` mount in [oakapp.toml](oakapp.toml).
 - `dai.ImgDetections.detections` returns a copy; the parsed detection list must be assigned back to the property, appending to it is silently ignored.
 - If only workflow parameters change, [backend/src/core/manager.py](backend/src/core/manager.py) restarts just the Roboflow runner; if the workflow identity or credentials change, it rebuilds the full DepthAI topic surface.

@@ -103,10 +103,9 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Position", annotation_node.out_pose_annotations, "images")
 
     print("Pipeline created.")
-
     pipeline.start()
-    visualizer.registerPipeline(pipeline)
     print("Pipeline started.")
+    visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():
         key_pressed = visualizer.waitKey(1)

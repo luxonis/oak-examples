@@ -1,4 +1,4 @@
-identifier = "com.example.generic-example"
+identifier = "com.example.neural-networks.generic-example"
 app_version = "1.0.0"
 
 prepare_container = [

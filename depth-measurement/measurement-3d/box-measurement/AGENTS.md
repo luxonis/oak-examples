@@ -20,7 +20,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 ## Quick Facts
 
-- `Category:` `depth-measurement/3d-measurement/box-measurement`
+- `Category:` `depth-measurement/measurement-3d/box-measurement`
 - `Shape:` `script+standalone`
 - `Primary task:` estimate box dimensions from RGBD plus instance segmentation
 - `Entrypoint:` [main.py](main.py)
@@ -92,8 +92,8 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 ## Related Examples
 
-- [depth-measurement/3d-measurement/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud): use this when you need the RGBD + point-cloud baseline without neural inference
-- [depth-measurement/3d-measurement/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud): use this when the depth source should be ToF instead of stereo
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need the RGBD + point-cloud baseline without neural inference
+- [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/tof-pointcloud): use this when the depth source should be ToF instead of stereo
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when you only need host-side spatial ROI measurement
 - [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need the more app-shaped frontend/backend volume-measurement workflow
 

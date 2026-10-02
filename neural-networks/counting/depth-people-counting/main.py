@@ -91,8 +91,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Count", annotation_node.out, "disparity")
 
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

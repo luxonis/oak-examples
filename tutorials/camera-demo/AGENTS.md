@@ -22,7 +22,7 @@ This is the repository reference for the simplest multi-sensor camera preview tu
 - `Shape:` `script+standalone-service`
 - `Primary task:` stream every connected camera sensor to the Visualizer
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` [backend-run.sh](backend-run.sh) and [oakapp.toml](oakapp.toml)
+- `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` at least one connected camera sensor
@@ -36,7 +36,6 @@ This is the repository reference for the simplest multi-sensor camera preview tu
 - [README.md](README.md)
 - [main.py](main.py)
 - [utils/arguments.py](utils/arguments.py)
-- [backend-run.sh](backend-run.sh)
 - [oakapp.toml](oakapp.toml)
 
 ## Architecture
