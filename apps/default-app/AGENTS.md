@@ -39,7 +39,6 @@ This is the baseline packaged application in the repository. It is the best refe
 - [utils/arguments.py](utils/arguments.py): CLI surface
 - [depthai_models/yolov6_nano_r2_coco.RVC2.yaml](depthai_models/yolov6_nano_r2_coco.RVC2.yaml): default RVC2 model descriptor
 - [depthai_models/yolov6_nano_r2_coco.RVC4.yaml](depthai_models/yolov6_nano_r2_coco.RVC4.yaml): default RVC4 model descriptor
-- [backend-run.sh](backend-run.sh): backend command used in standalone mode
 - [oakapp.toml](oakapp.toml): standalone packaging and model bundle wiring
 
 ## Architecture

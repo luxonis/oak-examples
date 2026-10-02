@@ -1,4 +1,4 @@
-identifier = "com.example.object-detection.conveyor-application-barcodes"
+identifier = "com.example.neural-networks.object-detection.barcode-detection-conveyor-belt"
 app_version = "1.0.0"
 
 prepare_container = [

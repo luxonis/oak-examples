@@ -20,6 +20,8 @@ pytest -v -r a --log-cli-level=INFO --log-file=out.log --color=yes --root-dir . 
 
 This will run all the examples (i.e. folders that have `main.py` and `requirements.txt` present). The outputs will be seen in the CLI and will also be logged into the `out.log` file.
 
+All example tests disable DepthAI telemetry with `DEPTHAI_TELEMETRY=0`. The peripheral runner sets it in each example subprocess after applying `--environment-variables`, so a conflicting value cannot enable telemetry. The standalone runner passes `--env DEPTHAI_TELEMETRY=0` to `oakctl app run` to set it inside the app container on the device. These settings apply to direct pytest runs, Docker/HIL jobs, and the Linux/macOS and Windows test scripts.
+
 **Note:** Because `root-dir` can also accept list of arguments always specify it last, don't use `=` after it and when list is complete use `--` to mark the end (as see in the examples).
 
 You can also pass other custom options to the pytest command. Here is a list of all the custom ones:

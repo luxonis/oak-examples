@@ -1,58 +1,49 @@
-import { Flex, Button } from "@luxonis/common-fe-components";
-import { css } from "../styled-system/css/css.mjs";
-import { useNotifications } from "./Notifications.tsx";
-import { useDaiConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Switch } from '@luxonis/ui-components';
+import { useNotifications } from './Notifications.tsx';
+import { postToDinoTrackingService } from './services.ts';
 
 type Props = {
-    enabled: boolean;
-    setEnabled: (v: boolean) => void;
+	enabled: boolean;
+	setEnabled: (value: boolean) => void;
 };
 
 export function OutlinesToggle({ enabled, setEnabled }: Props) {
-    const connection = useDaiConnection();
-    const { notify } = useNotifications();
+	const connection = useDaiConnection();
+	const { notify } = useNotifications();
 
-    const handleToggle = () => {
-        if (!connection.connected) {
-            notify("Not connected to device.", { type: "error" });
-            return;
-        }
+	const handleToggle = (nextEnabled: boolean) => {
+		if (!connection.connected) {
+			notify('Not connected to device.', { type: 'error' });
+			return;
+		}
 
-        notify(!enabled ? "Enabling outlines…" : "Hiding outlines…", {
-            type: "info",
-        });
+		notify(nextEnabled ? 'Enabling outlines...' : 'Hiding outlines...', {
+			type: 'info',
+		});
 
-        (connection as any).daiConnection?.postToService(
-            "Outlines Trigger Service",
-            { "active": !enabled },
-            () => {
-                console.log("[Outlines] BE ack:", !enabled);
-                setEnabled(!enabled);
-                notify(!enabled ? "Outlines enabled." : "Outlines disabled.", {
-                    type: "success",
-                });
-            }
-        );
-    };
+		postToDinoTrackingService(
+			connection.daiConnection,
+			'Outlines Trigger Service',
+			{ active: nextEnabled },
+			() => {
+				console.log('[Outlines] BE ack:', nextEnabled);
+				setEnabled(nextEnabled);
+				notify(nextEnabled ? 'Outlines enabled.' : 'Outlines disabled.', {
+					type: 'success',
+				});
+			},
+		);
+	};
 
-    return (
-        <div className={css({ display: "flex", flexDirection: "column", gap: "sm" })}>
-            <h3 className={css({ fontWeight: "semibold" })}>Outlines</h3>
-
-            <Flex direction="row">
-                <Button
-                    onClick={handleToggle}
-                    className={css({
-                        flex: "1 1 0",
-                        fontSize: "sm",
-                        backgroundColor: enabled ? "gray.700" : "blue.500",
-                        color: "white",
-                        cursor: "pointer",
-                    })}
-                >
-                    {enabled ? "Hide outlines" : "Draw outlines"}
-                </Button>
-            </Flex>
-        </div>
-    );
+	return (
+		<div className="flex items-center justify-between gap-4">
+			<h3 className="font-semibold">Outlines</h3>
+			<Switch
+				value={enabled}
+				onChange={handleToggle}
+				showActiveLabelOnly
+			/>
+		</div>
+	);
 }

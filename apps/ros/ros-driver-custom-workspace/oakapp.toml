@@ -1,4 +1,4 @@
-identifier = "example.apps.ros.driver-custom_workspace"
+identifier = "com.example.apps.ros.ros-driver-custom-workspace"
 app_version = "0.9.0"
 
 prepare_container = [

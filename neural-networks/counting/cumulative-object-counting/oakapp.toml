@@ -1,4 +1,4 @@
-identifier = "com.example.counting.cumulative-object-counting"
+identifier = "com.example.neural-networks.counting.cumulative-object-counting"
 app_version = "1.0.0"
 
 prepare_container = [

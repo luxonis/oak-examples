@@ -29,9 +29,19 @@ fi
 
 cd "$ROOT_DIR"
 
+ROOT_DIR_FOR_IDENTIFIER="${ROOT_DIR#./}"
+TOP_LEVEL_FOLDER="${ROOT_DIR_FOR_IDENTIFIER%%/*}"
+
 OAKAPP_TOML="oakapp.toml"
 OAKAPP_BACKUP="$(mktemp)"
 OAKAPP_FILE=""
+OAKAPP_EDITED_TMP="${OAKAPP_TOML}.tmp"
+
+replace_identifier() {
+  local target_identifier="$1"
+  sed -E "s|^[[:space:]]*identifier[[:space:]]*=.*|identifier = \"${target_identifier}\"|" "$OAKAPP_TOML" > "$OAKAPP_EDITED_TMP"
+  mv "$OAKAPP_EDITED_TMP" "$OAKAPP_TOML"
+}
 
 cleanup() {
   set +e
@@ -42,6 +52,9 @@ cleanup() {
   if [[ -n "$OAKAPP_FILE" && -f "$OAKAPP_FILE" ]]; then
     rm -f "$OAKAPP_FILE"
   fi
+  if [[ -f "$OAKAPP_EDITED_TMP" ]]; then
+    rm -f "$OAKAPP_EDITED_TMP"
+  fi
 }
 
 trap cleanup EXIT
@@ -49,17 +62,31 @@ trap cleanup EXIT
 cp "$OAKAPP_TOML" "$OAKAPP_BACKUP"
 
 if [[ -n "$NEW_IDENTIFIER" ]]; then
-  if ! grep -qE '^identifier\s*=' "$OAKAPP_TOML"; then
+  if [[ ! "$NEW_IDENTIFIER" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "Invalid identifier: $NEW_IDENTIFIER" >&2
+    exit 1
+  fi
+  if ! grep -qE '^identifier[[:space:]]*=' "$OAKAPP_TOML"; then
     echo "identifier not found in $OAKAPP_TOML" >&2
     exit 1
   fi
-  sed -i -E "s/^identifier\\s*=.*/identifier = \"${NEW_IDENTIFIER}\"/" "$OAKAPP_TOML"
+  replace_identifier "$NEW_IDENTIFIER"
 elif [[ "$LUXONIS_OFFICIAL_IDENTIFIER" == "true" ]]; then
-  if ! grep -qE '^identifier\s*=' "$OAKAPP_TOML"; then
+  if ! grep -qE '^identifier[[:space:]]*=' "$OAKAPP_TOML"; then
     echo "identifier not found in $OAKAPP_TOML" >&2
     exit 1
   fi
-  sed -i -E '/^identifier\s*=/{s/com\.example/com.luxonis/}' "$OAKAPP_TOML"
+  CURRENT_IDENTIFIER=$(sed -n -E 's/^[[:space:]]*identifier[[:space:]]*=[[:space:]]*"([^"]*)".*$/\1/p' "$OAKAPP_TOML" | head -n 1)
+  IDENTIFIER_PREFIX="com.example.${TOP_LEVEL_FOLDER}."
+  if [[ "$CURRENT_IDENTIFIER" == com.luxonis.* ]]; then
+    echo "Identifier is already in the com.luxonis namespace; leaving it unchanged: ${CURRENT_IDENTIFIER}"
+  elif [[ "$CURRENT_IDENTIFIER" == "$IDENTIFIER_PREFIX"* ]]; then
+    TARGET_IDENTIFIER="com.luxonis.${CURRENT_IDENTIFIER#"$IDENTIFIER_PREFIX"}"
+    replace_identifier "$TARGET_IDENTIFIER"
+  else
+    echo "Identifier does not use the expected '${IDENTIFIER_PREFIX}' prefix: ${CURRENT_IDENTIFIER}" >&2
+    exit 1
+  fi
 fi
 
 if ! command -v oakctl >/dev/null 2>&1; then

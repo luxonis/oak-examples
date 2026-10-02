@@ -81,8 +81,8 @@ with dai.Pipeline(device) as pipeline:
     visualizer.addTopic("Direction", collision_avoidance.out_direction)
     visualizer.addTopic("Bird Frame", birds_eye_view.output)
     print("Pipeline created.")
-
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

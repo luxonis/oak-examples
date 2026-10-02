@@ -88,9 +88,12 @@ with dai.Pipeline(device) as pipeline:
 
     visualizer.addTopic("Barcode Overlay", barcode_overlay.output)
 
-    pipeline.run()
+    print("Pipeline created.")
+    pipeline.start()
+    print("Pipeline started.")
 
-    while True:
+    while pipeline.isRunning():
+        pipeline.processTasks()
         key = visualizer.waitKey(1)
         if key == ord("q"):
             break

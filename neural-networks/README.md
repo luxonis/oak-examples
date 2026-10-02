@@ -13,7 +13,7 @@ If not explicitly marked or specified examples can run both on RVC2 and RVC4 dev
 - [Classification](#classification)
 - [Object Detection](#object-detection)
 - [Face Detection](#face-detection)
-- [3D Detection](#3d-detection)
+- [Detection 3D](#detection-3d)
 - [Keypoint Detection](#keypoint-detection)
 - [Pose Estimation](#pose-estimation)
 - [Segmentation](#segmentation)
@@ -93,11 +93,11 @@ LEGEND: ✅: available; ❌: not available; 🚧: work in progress
 
 |                                        Objectron                                         |
 | :--------------------------------------------------------------------------------------: |
-| <img src="3D-detection/objectron/media/chair.gif" alt="objectron" style="height:250px;"> |
+| <img src="detection-3d/objectron/media/chair.gif" alt="objectron" style="height:250px;"> |
 
 | Model                               | RVC2                                                                                                                                                                                               | RVC4 (peripheral) | RVC4 (standalone) | DepthAIv2 | Notes                                                                                |
 | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ----------------- | --------- | ------------------------------------------------------------------------------------ |
-| [objectron](3D-detection/objectron) | [yolov6-nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034), [objectron](https://models.luxonis.com/luxonis/objectron/4c7a51db-9cbe-4aee-a4c1-b8abbbe18c11) | ✅                | ✅                | ✅        | [gen2-objectron](https://github.com/luxonis/oak-examples/tree/master/gen2-objectron) |
+| [objectron](detection-3d/objectron) | [yolov6-nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034), [objectron](https://models.luxonis.com/luxonis/objectron/4c7a51db-9cbe-4aee-a4c1-b8abbbe18c11) | ✅                | ✅                | ✅        | [gen2-objectron](https://github.com/luxonis/oak-examples/tree/master/gen2-objectron) |
 
 ## Keypoint Detection
 

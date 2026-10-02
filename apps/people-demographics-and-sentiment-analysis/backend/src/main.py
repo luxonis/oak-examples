@@ -122,6 +122,7 @@ def main():
 
         print("Pipeline created.")
         pipeline.start()
+        print("Pipeline started.")
         visualizer.registerPipeline(pipeline)
 
         while pipeline.isRunning():

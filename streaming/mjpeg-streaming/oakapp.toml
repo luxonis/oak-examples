@@ -1,4 +1,4 @@
-identifier = "com.example.streaming.mjpeg"
+identifier = "com.example.streaming.mjpeg-streaming"
 app_version = "1.0.0"
 
 prepare_container = [
