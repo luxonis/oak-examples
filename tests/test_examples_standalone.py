@@ -181,7 +181,11 @@ def run_example(example_dir: Path, args: Dict) -> bool:
             popen_kwargs["encoding"] = "utf-8"
             popen_kwargs["errors"] = "replace"
 
-        process = subprocess.Popen(["oakctl", "app", "run", "."], **popen_kwargs)
+        # Set the variable inside the device's app container.
+        process = subprocess.Popen(
+            ["oakctl", "app", "run", ".", "--env", "DEPTHAI_TELEMETRY=0"],
+            **popen_kwargs,
+        )
         app_started = False
         start_time = None
         signal_start = time.time()
