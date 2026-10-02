@@ -336,6 +336,14 @@ def get_app_status(app_id: str, args: Dict):
             if app.get("container_id") == app_id or app.get("app_id") == app_id:
                 return app["status"]
         return None  # App not found
+    except subprocess.CalledProcessError as e:
+        logger.warning(
+            "Failed to query app status (exit code %s).\nstdout:\n%s\nstderr:\n%s",
+            e.returncode,
+            e.stdout or "<empty>",
+            e.stderr or "<empty>",
+        )
+        return None
     except Exception as e:
         logger.warning(f"Failed to query app status: {e}")
         return None
