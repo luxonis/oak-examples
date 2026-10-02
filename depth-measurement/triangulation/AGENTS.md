@@ -77,7 +77,7 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 
 - `To swap face detection for another keypoint-capable model:` replace the YuNet YAML/model and keep the same parsed-output contract
 - `To reuse only the combined overlay view:` keep [utils/host_triangulation.py](utils/host_triangulation.py) and simplify the side-specific topics
-- `To move back to depth-map-based spatial data:` use [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host) or [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud)
+- `To move back to depth-map-based spatial data:` use [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host) or [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud)
 - `To make the packaged run path your baseline:` start with [oakapp.toml](oakapp.toml) and [main.py](main.py)
 
 ## Constraints
