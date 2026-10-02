@@ -42,7 +42,7 @@ CI runs the same validation on pull requests.
 
 The runnability tests discover examples that have `main.py` and `requirements.txt` in the same directory. Detected examples are run as `python3 main.py` with no additional flags after installing their requirements.
 
-Every application used in OAK4 standalone tests must log `Pipeline started.` after successful pipeline startup. See the [startup log requirement](EXAMPLE_CONTRIBUTING.md#required-startup-log-for-oak4-standalone-tests) for timing and output requirements.
+Every application used in OAK4 standalone tests must log `Pipeline started.` after successful pipeline startup. See the [startup log requirement](CONTRIBUTING.md#required-startup-log-for-oak4-standalone-tests) for timing and output requirements.
 
 Run all example tests locally from the repository root:
 
