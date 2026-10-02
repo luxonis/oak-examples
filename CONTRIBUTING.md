@@ -43,11 +43,11 @@ Every application used in OAK4 standalone tests must emit the exact message `Pip
 
 The [standalone test runner](tests/test_examples_standalone.py) waits for this application log before starting its run-duration timer. The `App output:` header from `oakctl` does not satisfy this requirement: it indicates log attachment, not successful pipeline startup. Without `Pipeline started.`, the test keeps waiting for startup and cannot begin monitoring the application's required run duration.
 
-For Python applications, print and flush the message immediately after startup:
+For Python applications, print the message immediately after startup:
 
 ```python
 pipeline.start()
-print("Pipeline started.", flush=True)
+print("Pipeline started.")
 ```
 
 Logging is also supported, for example `logger.info("Pipeline started.")`, provided INFO logging is enabled and the message reaches stdout or stderr in the output captured by `oakctl app run`. Do not emit the message before startup succeeds. Applications using a blocking `pipeline.run()` must use explicit startup followed by their processing loop so they can emit the message while the pipeline is running.
