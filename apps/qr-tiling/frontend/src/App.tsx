@@ -121,6 +121,7 @@ function App() {
 								</div>
 								<Switch
 									value={decodeEnabled}
+									showActiveLabelOnly
 									onChange={(newState) => {
 										setDecodeEnabled(newState);
 										sendQRConfig(newState);

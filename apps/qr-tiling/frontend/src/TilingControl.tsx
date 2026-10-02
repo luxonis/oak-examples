@@ -350,7 +350,11 @@ export function TilingControl({ initialParams }: TilingControlProps) {
 				<span className="text-sm font-medium">
 					Global Detection (include full image)
 				</span>
-				<Switch value={globalDetection} onChange={setGlobalDetection} />
+				<Switch
+					value={globalDetection}
+					onChange={setGlobalDetection}
+					showActiveLabelOnly
+				/>
 			</div>
 
 			<div className="flex flex-col gap-3">
