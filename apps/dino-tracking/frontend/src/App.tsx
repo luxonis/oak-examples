@@ -92,6 +92,7 @@ export default function App() {
 	const [annotationMode, setAnnotationMode] =
 		useState<AnnotationMode>('heatmap');
 	const [outlinesEnabled, setOutlinesEnabled] = useState(false);
+	const [hasSelection, setHasSelection] = useState(false);
 	const [configLoaded, setConfigLoaded] = useState(false);
 	const [streamEverAvailable, setStreamEverAvailable] = useState(false);
 
@@ -123,7 +124,10 @@ export default function App() {
 				connection.daiConnection,
 				'Click Prompt Service',
 				{ x: coords.offsetX, y: coords.offsetY },
-				() => notify('Object selected!', { type: 'success' }),
+				() => {
+					setHasSelection(true);
+					notify('Object selected!', { type: 'success' });
+				},
 			);
 		},
 		[connection.connected, connection.daiConnection, notify],
@@ -144,7 +148,10 @@ export default function App() {
 			connection.daiConnection,
 			'Clear Selection Service',
 			{},
-			() => notify('Selection cleared.', { type: 'success' }),
+			() => {
+				setHasSelection(false);
+				notify('Selection cleared.', { type: 'success' });
+			},
 		);
 	};
 
@@ -191,6 +198,7 @@ export default function App() {
 	useEffect(() => {
 		if (!connection.connected) {
 			setConfigLoaded(false);
+			setHasSelection(false);
 		}
 	}, [connection.connected]);
 
@@ -230,35 +238,36 @@ export default function App() {
 			<aside className="flex max-h-full w-[380px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
 				<h1 className="text-2xl font-bold">Dino Tracker</h1>
 
-				<p className="text-sm leading-6 text-muted-foreground">
-					1) Turn on outlines to see FastSAM segments. 2) Click on the stream to
-					select what to track. 3) Choose how to visualize tracking (heatmap or
-					bounding boxes) and, in BBox mode, tune the confidence slider.
-				</p>
+				<ol className="list-decimal space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+					<li>Turn on outlines to see FastSAM segments.</li>
+					<li>Click on the stream to select what to track.</li>
+					<li>
+						Choose how to visualize tracking (heatmap or bounding boxes) and, in
+						BBox mode, tune the confidence slider.
+					</li>
+				</ol>
 
 				<OutlinesToggle
 					enabled={outlinesEnabled}
 					setEnabled={setOutlinesEnabled}
 				/>
 
-				<div className="flex flex-col gap-3">
-					<p className="text-sm text-muted-foreground">
-						Click once on the object in the stream. Use{' '}
-						<span className="font-semibold text-foreground">
-							Clear selection
-						</span>{' '}
-						to reset and choose a new object.
-					</p>
-
-					<Button variant="outline" onClick={handleClearSelection}>
-						Clear Selection
-					</Button>
-				</div>
+				<p className="text-sm text-muted-foreground">
+					Click once on the object in the stream.
+				</p>
 
 				<AnnotationModeSelector
 					currentMode={annotationMode}
 					setCurrentMode={setAnnotationMode}
 				/>
+
+				<Button
+					variant="outline"
+					onClick={handleClearSelection}
+					disabled={!hasSelection}
+				>
+					Clear Selection
+				</Button>
 
 				{annotationMode === 'bbox' ? (
 					<ConfidenceSlider value={threshold} setValue={setThreshold} />

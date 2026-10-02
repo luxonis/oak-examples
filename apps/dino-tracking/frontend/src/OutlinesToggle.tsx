@@ -1,5 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button } from '@luxonis/ui-components';
+import { Switch } from '@luxonis/ui-components';
 import { useNotifications } from './Notifications.tsx';
 import { postToDinoTrackingService } from './services.ts';
 
@@ -12,13 +12,11 @@ export function OutlinesToggle({ enabled, setEnabled }: Props) {
 	const connection = useDaiConnection();
 	const { notify } = useNotifications();
 
-	const handleToggle = () => {
+	const handleToggle = (nextEnabled: boolean) => {
 		if (!connection.connected) {
 			notify('Not connected to device.', { type: 'error' });
 			return;
 		}
-
-		const nextEnabled = !enabled;
 
 		notify(nextEnabled ? 'Enabling outlines...' : 'Hiding outlines...', {
 			type: 'info',
@@ -39,16 +37,13 @@ export function OutlinesToggle({ enabled, setEnabled }: Props) {
 	};
 
 	return (
-		<div className="flex flex-col gap-3">
+		<div className="flex items-center justify-between gap-4">
 			<h3 className="font-semibold">Outlines</h3>
-
-			<Button
-				variant={enabled ? 'light' : 'filled'}
-				intent={enabled ? 'gray' : 'active'}
-				onClick={handleToggle}
-			>
-				{enabled ? 'Hide Outlines' : 'Draw Outlines'}
-			</Button>
+			<Switch
+				value={enabled}
+				onChange={handleToggle}
+				showActiveLabelOnly
+			/>
 		</div>
 	);
 }
