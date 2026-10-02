@@ -18,44 +18,49 @@ export function StatsBanner({ stats }: { stats?: FaceStats }) {
 
 	return (
 		<div className="flex flex-wrap items-center gap-4 border-b border-border bg-background/90 px-4 py-3">
-			<div className="flex min-w-24 flex-col items-center text-center">
-				<div className="text-xs font-semibold text-muted-foreground">
-					Average Age
-				</div>
-				<div className="text-xl font-bold">{stats.age.toFixed(1)}</div>
-			</div>
+			<StatItem value={stats.age.toFixed(1)} label="Average Age" />
 
 			<div className="hidden self-stretch border-l border-border md:block" />
 
-			<div className="flex min-w-16 flex-col items-center text-center">
-				<div className="text-lg font-bold text-info">
-					{stats.males.toFixed(1)}%
-				</div>
-				<img className="h-7 w-7" src="icons/male.png" alt="Male" />
-			</div>
-
-			<div className="flex min-w-16 flex-col items-center text-center">
-				<div className="text-lg font-bold text-accent">
-					{stats.females.toFixed(1)}%
-				</div>
-				<img className="h-7 w-7" src="icons/female.png" alt="Female" />
-			</div>
+			<StatItem
+				value={`${stats.males.toFixed(1)}%`}
+				label="Male"
+				valueClassName="text-info"
+			/>
+			<StatItem
+				value={`${stats.females.toFixed(1)}%`}
+				label="Female"
+				valueClassName="text-accent"
+			/>
 
 			<div className="hidden self-stretch border-l border-border md:block" />
 
 			{EMOTION_ORDER.map((emotion) => (
-				<div
+				<StatItem
 					key={emotion}
-					className="flex min-w-20 flex-col items-center text-center"
-				>
-					<div className="text-base font-bold">
-						{(emotions[emotion] ?? 0).toFixed(1)}%
-					</div>
-					<div className="text-xs font-semibold text-muted-foreground">
-						{emotion}
-					</div>
-				</div>
+					value={`${(emotions[emotion] ?? 0).toFixed(1)}%`}
+					label={emotion}
+				/>
 			))}
+		</div>
+	);
+}
+
+function StatItem({
+	value,
+	label,
+	valueClassName = '',
+}: {
+	value: string;
+	label: string;
+	valueClassName?: string;
+}) {
+	return (
+		<div className="flex min-w-20 flex-col items-center text-center">
+			<div className={`text-base font-bold ${valueClassName}`}>
+				{value}
+			</div>
+			<div className="text-xs font-semibold text-muted-foreground">{label}</div>
 		</div>
 	);
 }
