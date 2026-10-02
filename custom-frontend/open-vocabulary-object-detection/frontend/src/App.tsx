@@ -60,6 +60,7 @@ function App() {
 		setConfidence(response.confidence_threshold);
 		setTextClasses(response.class_names);
 		setImagePromptLabels(response.image_prompt_labels);
+		lastCommittedImageLabelsRef.current = response.image_prompt_labels;
 		setParamsLoaded(true);
 	}, []);
 
@@ -528,7 +529,7 @@ function App() {
 									Press Enter or click away to save. Press Esc to cancel.
 								</span>
 								{imagePromptLabels.map((lbl, idx) => (
-									<div key={lbl} className="flex items-center gap-4">
+									<div key={idx} className="flex items-center gap-4">
 										<span className="text-sm text-muted-foreground">
 											#{idx + 1}
 										</span>
