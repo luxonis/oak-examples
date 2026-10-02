@@ -37,6 +37,8 @@ If you are fixing, adding, removing, moving, or materially changing examples, fo
 
 For example test discovery, local pytest commands, and known-failing example rules, follow the [Testing](EXAMPLE_AUTHORING.md#testing) section in [EXAMPLE_AUTHORING.md](EXAMPLE_AUTHORING.md).
 
+Applications used in OAK4 standalone tests must also meet the [startup log requirement](EXAMPLE_CONTRIBUTING.md#required-startup-log-for-oak4-standalone-tests).
+
 ### Making the PR
 
 Before pushing your changes, ensure that:
