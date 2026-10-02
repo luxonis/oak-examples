@@ -22,7 +22,12 @@ export function ConditionCard({
 		<div className="flex flex-col gap-4 border-t border-border pt-4">
 			<div className="flex items-center justify-between gap-4">
 				<span className="font-semibold">{title}</span>
-				<Switch value={enabled} onChange={onToggle} disabled={disabled} />
+				<Switch
+					value={enabled}
+					onChange={onToggle}
+					disabled={disabled}
+					showActiveLabelOnly
+				/>
 			</div>
 			{enabled && description ? (
 				<p className="text-sm text-muted-foreground">{description}</p>
