@@ -1,5 +1,4 @@
 depthai==3.10.0
-# TODO: Local testing only; replace this branch pin with a released depthai-nodes version.
-depthai-nodes @ https://github.com/luxonis/depthai-nodes/archive/refs/heads/feat/dai_beta_messages.zip
+depthai-nodes==0.7.0
 opencv-python~=4.10.0
 inference==1.3.7
