@@ -23,7 +23,7 @@ function App() {
 	};
 
 	return (
-		<main className="flex h-screen w-screen flex-row gap-6 overflow-auto bg-muted p-6">
+		<main className="flex h-screen w-screen flex-row gap-6 overflow-auto bg-background p-6">
 			<div className="flex min-w-[760px] flex-1 shrink-0 flex-col overflow-hidden rounded-md border border-border bg-background shadow-sm">
 				<TopBar />
 
@@ -56,7 +56,7 @@ function App() {
 				<ConfidenceSlider initialValue={0.15} />
 
 				<Button className="w-fit" variant="outline" onClick={clearSelection}>
-					Clear selected object
+					Clear Selected Object
 				</Button>
 
 				<MeasurementMethodSelector />
