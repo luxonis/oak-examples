@@ -1,30 +1,36 @@
-import {Flex, Button, Input} from "@luxonis/common-fe-components";
-import {useRef} from "react";
-import {useDaiConnection} from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Button, Flex, Input } from '@luxonis/ui-components';
+import { useRef } from 'react';
 
 export function MessageInput() {
-    const connection = useDaiConnection();
-    const inputRef = useRef<HTMLInputElement>(null);
+	const connection = useDaiConnection();
+	const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleSendMessage = () => {
-        if (inputRef.current) {
-            const message = inputRef.current.value;
+	const handleSendMessage = () => {
+		if (inputRef.current) {
+			const message = inputRef.current.value;
+			const messageService = 'Message Service' as Parameters<
+				NonNullable<typeof connection.daiConnection>['postToService']
+			>[0];
 
-            console.log('Sending message:', message);
-            // @ts-ignore - We're using an example service here which isn't part of the DAI services enum
-            connection.daiConnection?.postToService('Message Service', message, (response) => {
-                console.log('Received response:', response);
-            });
+			console.log('Sending message:', message);
+			connection.daiConnection?.postToService(
+				messageService,
+				message,
+				(response) => {
+					console.log('Received response:', response);
+				},
+			);
 
-            inputRef.current.value = '';
-        }
-    }
+			inputRef.current.value = '';
+		}
+	};
 
-    return (
-        <Flex direction="row" gap="sm" alignItems="center">
-            <Input type="text" placeholder="Message" ref={inputRef}  />
+	return (
+		<Flex direction="row" gap="sm" align="center">
+			<Input type="text" placeholder="Message" ref={inputRef} />
 
-            <Button onClick={handleSendMessage}>Send</Button>
-        </Flex>
-    );
+			<Button onClick={handleSendMessage}>Send</Button>
+		</Flex>
+	);
 }

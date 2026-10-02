@@ -1,129 +1,152 @@
-// ClickCatcher.tsx
-import { useEffect } from "react";
-import { useDaiConnection } from "@luxonis/depthai-viewer-common";
+import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import type { RefObject } from 'react';
+import { useEffect } from 'react';
+import {
+	type ObjectVolumeService,
+	postToObjectVolumeService,
+} from './services.ts';
 
-const clamp = (v:number)=>Math.max(0, Math.min(1, v));
+const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
 export function ClickCatcher({
-  containerRef,
-  frameWidth = 640,        // <-- required: the stream’s image size
-  frameHeight = 640,
-  serviceName = "Selection Service",
-  debug = false,
-  allowedPanelTitle, 
+	containerRef,
+	frameWidth = 640,
+	frameHeight = 640,
+	serviceName = 'Selection Service',
+	debug = false,
+	allowedPanelTitle,
 }: {
-  containerRef: React.RefObject<HTMLElement | null>;
-  frameWidth?: number;
-  frameHeight?: number;
-  serviceName?: string;
-  allowedPanelTitle?: string;
-  debug?: boolean;
+	containerRef: RefObject<HTMLElement | null>;
+	frameWidth?: number;
+	frameHeight?: number;
+	serviceName?: ObjectVolumeService;
+	allowedPanelTitle?: string;
+	debug?: boolean;
 }) {
-  const { daiConnection } = useDaiConnection();
+	const { daiConnection } = useDaiConnection();
 
-  useEffect(() => {
-    const host = containerRef.current;
-    if (!host) return;
+	useEffect(() => {
+		const host = containerRef.current;
+		if (!host) return;
 
-    const onClick = (e: MouseEvent) => {
-      // ignore toolbar/buttons
-      const path = (e.composedPath?.() || []) as HTMLElement[];
-      if (path.some(el => el?.closest?.('button,[role="button"]'))) return;
+		const onClick = (event: MouseEvent) => {
+			const path = (event.composedPath?.() || []) as HTMLElement[];
+			if (
+				path.some((element) => element?.closest?.('button,[role="button"]'))
+			) {
+				return;
+			}
 
-      // find the media element (canvas/video/img)
-      const media = path.find(
-        (el) =>
-          el instanceof HTMLCanvasElement ||
-          el instanceof HTMLVideoElement ||
-          el instanceof HTMLImageElement
-      ) as HTMLCanvasElement | HTMLVideoElement | HTMLImageElement | undefined;
+			const media = path.find(
+				(element) =>
+					element instanceof HTMLCanvasElement ||
+					element instanceof HTMLVideoElement ||
+					element instanceof HTMLImageElement,
+			) as HTMLCanvasElement | HTMLVideoElement | HTMLImageElement | undefined;
 
-      if (!media) return;
+			if (!media) return;
 
-      // The Streams panel name is embedded in the nearest <section>'s text, e.g. "Video(640x640)" or "Pointclouds3D"
-      const panel = media.closest("section") as HTMLElement | null;
-      const panelText = panel?.textContent?.trim().toLowerCase() ?? "";
+			const panel = media.closest('section') as HTMLElement | null;
+			const panelText = panel?.textContent?.trim().toLowerCase() ?? '';
 
-      if (debug) {
-        console.log("[ClickCatcher] panelText:", panelText);
-        console.log("[ClickCatcher] allowedPanelTitle:", allowedPanelTitle);
-      }
+			if (debug) {
+				console.log('[ClickCatcher] panelText:', panelText);
+				console.log('[ClickCatcher] allowedPanelTitle:', allowedPanelTitle);
+			}
 
-      // Allow only if the panel text contains the expected title (e.g., "images" or "video")
-      if (allowedPanelTitle && !panelText.includes(allowedPanelTitle.toLowerCase())) {
-        if (debug) console.log("ignored: panel text mismatch");
-        return;
-      }
+			if (
+				allowedPanelTitle &&
+				!panelText.includes(allowedPanelTitle.toLowerCase())
+			) {
+				if (debug) console.log('ignored: panel text mismatch');
+				return;
+			}
 
-      const looks3D =
-        media instanceof HTMLCanvasElement &&
-        (media.hasAttribute("data-camera-controls-version") ||
-        getComputedStyle(media).touchAction === "none");
+			const looks3D =
+				media instanceof HTMLCanvasElement &&
+				(media.hasAttribute('data-camera-controls-version') ||
+					getComputedStyle(media).touchAction === 'none');
 
-      if (looks3D) {
-        if (debug) console.log("ignored: 3D/Pointcloud canvas");
-        return;
-      }
+			if (looks3D) {
+				if (debug) console.log('ignored: 3D/Pointcloud canvas');
+				return;
+			}
 
-      const rect = media.getBoundingClientRect();
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
+			const rect = media.getBoundingClientRect();
+			const px = event.clientX - rect.left;
+			const py = event.clientY - rect.top;
 
-      // ---- compute letterboxed content box from KNOWN frame aspect ----
-      const ar = frameWidth / frameHeight;
-      const boxAr = rect.width / rect.height;
+			const aspectRatio = frameWidth / frameHeight;
+			const boxAspectRatio = rect.width / rect.height;
 
-      let contentW: number, contentH: number, offX = 0, offY = 0;
-      if (boxAr > ar) {
-        // bars left/right
-        contentH = rect.height;
-        contentW = contentH * ar;
-        offX = (rect.width - contentW) / 2;
-      } else {
-        // bars top/bottom
-        contentW = rect.width;
-        contentH = contentW / ar;
-        offY = (rect.height - contentH) / 2;
-      }
+			let contentW: number;
+			let contentH: number;
+			let offX = 0;
+			let offY = 0;
 
-      // ignore clicks in gray bars
-      if (px < offX || px > offX + contentW || py < offY || py > offY + contentH) {
-        if (debug) console.log("ignored letterbox click");
-        return;
-      }
+			if (boxAspectRatio > aspectRatio) {
+				contentH = rect.height;
+				contentW = contentH * aspectRatio;
+				offX = (rect.width - contentW) / 2;
+			} else {
+				contentW = rect.width;
+				contentH = contentW / aspectRatio;
+				offY = (rect.height - contentH) / 2;
+			}
 
-      const nx = clamp((px - offX) / contentW);
-      const ny = clamp((py - offY) / contentH);
+			if (
+				px < offX ||
+				px > offX + contentW ||
+				py < offY ||
+				py > offY + contentH
+			) {
+				if (debug) console.log('ignored letterbox click');
+				return;
+			}
 
-      if (debug) console.log("norm(image only):", { nx, ny });
+			const nx = clamp((px - offX) / contentW);
+			const ny = clamp((py - offY) / contentH);
 
-      (daiConnection as any)?.postToService(
-        serviceName,
-        { x: nx, y: ny },
-        (resp:any) => debug && console.log("ack:", resp)
-      );
-    };
+			if (debug) console.log('norm(image only):', { nx, ny });
 
-    const onContextMenu = (e: MouseEvent) => {
-      const path = (e.composedPath?.() || []) as HTMLElement[];
-      const onMedia = path.some(
-        (el) =>
-          el instanceof HTMLCanvasElement ||
-          el instanceof HTMLVideoElement ||
-          el instanceof HTMLImageElement
-      );
-      if (!onMedia) return;
-      e.preventDefault();
-      (daiConnection as any)?.postToService(serviceName, { clear: true });
-    };
+			postToObjectVolumeService(
+				daiConnection,
+				serviceName,
+				{ x: nx, y: ny },
+				(response) => {
+					if (debug) console.log('ack:', response);
+				},
+			);
+		};
 
-    host.addEventListener("click", onClick);
-    host.addEventListener("contextmenu", onContextMenu);
-    return () => {
-      host.removeEventListener("click", onClick);
-      host.removeEventListener("contextmenu", onContextMenu);
-    };
-  }, [containerRef, frameWidth, frameHeight, serviceName, debug, daiConnection, allowedPanelTitle]);
+		const onContextMenu = (event: MouseEvent) => {
+			const path = (event.composedPath?.() || []) as HTMLElement[];
+			const onMedia = path.some(
+				(element) =>
+					element instanceof HTMLCanvasElement ||
+					element instanceof HTMLVideoElement ||
+					element instanceof HTMLImageElement,
+			);
+			if (!onMedia) return;
+			event.preventDefault();
+			postToObjectVolumeService(daiConnection, serviceName, { clear: true });
+		};
 
-  return null;
+		host.addEventListener('click', onClick);
+		host.addEventListener('contextmenu', onContextMenu);
+		return () => {
+			host.removeEventListener('click', onClick);
+			host.removeEventListener('contextmenu', onContextMenu);
+		};
+	}, [
+		containerRef,
+		frameWidth,
+		frameHeight,
+		serviceName,
+		debug,
+		daiConnection,
+		allowedPanelTitle,
+	]);
+
+	return null;
 }
