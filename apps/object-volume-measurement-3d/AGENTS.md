@@ -75,7 +75,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - `To change the default classes:` edit `CLASS_NAMES` in [backend/src/main.py](backend/src/main.py)
 - `To change confidence behavior:` edit the parser threshold and [frontend/src/ConfidenceSlider.tsx](frontend/src/ConfidenceSlider.tsx)
 - `To reuse the pointcloud measurement backend:` keep [backend/src/utils/measurement_node.py](backend/src/utils/measurement_node.py) and feed it another segmented pointcloud source
-- `To study a lighter RGBD reference:` compare against [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud)
+- `To study a lighter RGBD reference:` compare against [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud)
 
 ## Constraints
 

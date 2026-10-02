@@ -68,8 +68,8 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 - `To colorize from mono by default:` start from the `--mono` branch in [main.py](main.py)
 - `To reuse this as a point-cloud baseline for another task:` keep the `StereoDepth` and `RGBD` branch and replace the Visualizer topics
-- `To add host-side geometry processing:` compare against [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/box-measurement) after this baseline is working
-- `To move to ToF:` use [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/tof-pointcloud) instead
+- `To add host-side geometry processing:` compare against [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/box-measurement) after this baseline is working
+- `To move to ToF:` use [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/tof-pointcloud) instead
 
 ## Constraints
 

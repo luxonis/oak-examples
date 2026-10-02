@@ -11,6 +11,25 @@ on:
         description: "Override identifier. Otherwise com.example.<top-level-folder> becomes com.luxonis"
         type: string
         required: false
+  workflow_call:
+    inputs:
+      root_dir:
+        description: "Path to the example root containing oakapp.toml."
+        type: string
+        required: true
+      new_identifier:
+        description: "Override identifier. Otherwise com.example.<top-level-folder> becomes com.luxonis"
+        type: string
+        default: ""
+        required: false
+    secrets:
+      GITLAB_TOKEN:
+        required: true
+      OAKCTL_HUB_TOKEN:
+        required: true
+
+permissions:
+  contents: read
 
 jobs:
   publish:
@@ -35,13 +54,27 @@ jobs:
           NEW_IDENTIFIER: ${{ inputs.new_identifier }}
           OAKCTL_HUB_TOKEN: ${{ secrets.OAKCTL_HUB_TOKEN }}
         run: |
-          export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#publish-oakapp"
+          set -euo pipefail
+          app_slug="${ROOT_DIR//\//-}"
+          reservation_name="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#publish-oakapp-${app_slug}"
 
           ENV_VARS="\
             --env ROOT_DIR=$ROOT_DIR \
             --env NEW_IDENTIFIER=$NEW_IDENTIFIER \
             --env OAKCTL_HUB_TOKEN=$OAKCTL_HUB_TOKEN"
 
-          exec hil_runner --models "oak4_pro or oak4_d" --reservation-name "$RESERVATION_NAME" --wait --oakctl --sync-workspace \
+          exec hil_runner --models "oak4_pro or oak4_d" --reservation-name "$reservation_name" --wait --oakctl --sync-workspace \
             --dockerfile ./.github/ci/publish_oakapp/Dockerfile \
             --docker-run-args "$ENV_VARS"
+
+      - name: Record result
+        if: ${{ always() }}
+        env:
+          ROOT_DIR: ${{ inputs.root_dir }}
+          PUBLISH_RESULT: ${{ job.status }}
+        run: |
+          {
+            echo "### $ROOT_DIR"
+            echo
+            echo "Result: $PUBLISH_RESULT"
+          } >> "$GITHUB_STEP_SUMMARY"

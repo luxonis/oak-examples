@@ -71,7 +71,7 @@ This is the ToF-specific depth and point-cloud tuning demo in the repo. Use it w
 - `To reuse only the ToF pipeline:` extract `camera_pipeline()` and drop the GUI/Open3D sections
 - `To change default filter behavior:` edit [main.py](main.py) in `get_initial_filter_params()` and the Tkinter variable defaults
 - `To disable point clouds and keep only 2D visualization:` remove the Open3D thread setup and keep the OpenCV windows
-- `To compare against stereo point clouds:` use [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/3d-measurement/rgbd-pointcloud) as the stereo baseline
+- `To compare against stereo point clouds:` use [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud) as the stereo baseline
 
 ## Constraints
 
