@@ -1,4 +1,4 @@
-import { Button } from '@luxonis/ui-components';
+import { Button, Switch } from '@luxonis/ui-components';
 import { useState } from 'react';
 
 interface DistanceDisplayProps {
@@ -57,50 +57,55 @@ export function DistanceDisplay({
 				distance !== null ? 'border-foreground' : 'border-border'
 			}`}
 		>
-			<div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-				<div className="grid grid-cols-2 gap-2">
-					<Button
-						size="sm"
-						variant={unitSystem === 'metric' ? 'filled' : 'outline'}
-						intent={unitSystem === 'metric' ? 'active' : 'gray'}
-						onClick={() => setUnitSystem('metric')}
-					>
-						Metric
-					</Button>
-					<Button
-						size="sm"
-						variant={unitSystem === 'imperial' ? 'filled' : 'outline'}
-						intent={unitSystem === 'imperial' ? 'active' : 'gray'}
-						onClick={() => setUnitSystem('imperial')}
-					>
-						Imperial
-					</Button>
+			<div className="mb-5 flex flex-col gap-4">
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<div className="grid grid-cols-2 gap-2">
+						<Button
+							size="sm"
+							variant={unitSystem === 'metric' ? 'filled' : 'outline'}
+							intent={unitSystem === 'metric' ? 'active' : 'gray'}
+							onClick={() => setUnitSystem('metric')}
+						>
+							Metric
+						</Button>
+						<Button
+							size="sm"
+							variant={unitSystem === 'imperial' ? 'filled' : 'outline'}
+							intent={unitSystem === 'imperial' ? 'active' : 'gray'}
+							onClick={() => setUnitSystem('imperial')}
+						>
+							Imperial
+						</Button>
+					</div>
+
+					{onToggleTracking ? (
+						<div className="flex items-center gap-3">
+							<span className="text-sm font-medium">Tracking</span>
+							<Switch
+								value={trackingEnabled}
+								onChange={onToggleTracking}
+								showActiveLabelOnly
+							/>
+						</div>
+					) : null}
 				</div>
 
-				{onToggleTracking ? (
-					<Button
-						size="sm"
-						variant={trackingEnabled ? 'filled' : 'outline'}
-						intent={trackingEnabled ? 'active' : 'gray'}
-						onClick={onToggleTracking}
-					>
-						{trackingEnabled ? 'Tracking' : 'Static'}
-					</Button>
-				) : null}
-
-				<div className="grid grid-cols-4 gap-1">
-					{roundingOptions.map((decimals) => (
-						<Button
-							key={decimals}
-							className="h-8 w-8 p-0"
-							size="sm"
-							variant={rounding === decimals ? 'filled' : 'outline'}
-							intent={rounding === decimals ? 'active' : 'gray'}
-							onClick={() => setRounding(decimals)}
-						>
-							{decimals}
-						</Button>
-					))}
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<span className="text-sm font-medium">Precision</span>
+					<div className="grid grid-cols-4 gap-1">
+						{roundingOptions.map((decimals) => (
+							<Button
+								key={decimals}
+								className="h-8 w-8 p-0"
+								size="sm"
+								variant={rounding === decimals ? 'filled' : 'outline'}
+								intent={rounding === decimals ? 'active' : 'gray'}
+								onClick={() => setRounding(decimals)}
+							>
+								{decimals}
+							</Button>
+						))}
+					</div>
 				</div>
 			</div>
 
