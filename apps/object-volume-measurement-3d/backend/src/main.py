@@ -204,12 +204,7 @@ with dai.Pipeline(device) as pipeline:
         method = str(payload.get("method", "")).lower()
         if method not in ("obb", "heightgrid"):
             return {"ok": False, "error": f"unknown method '{method}'"}
-        measurement_node.measurement_mode = method
-        if method == "heightgrid":
-            annotation_node.requestPlaneCapture(True)
-        else:
-            annotation_node.requestPlaneCapture(False)
-        measurement_node.reset_measurements()
+        measurement_node.set_measurement_mode(method)
         print("Selected method: ", method)
         return {"ok": True, "method": method, "have_plane": measurement_node.have_plane}
 

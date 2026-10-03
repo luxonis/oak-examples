@@ -88,6 +88,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - Class changes are pushed into the NN through a `texts` input queue, not by rebuilding the model.
 - Changing measurement method resets cached measurements and can trigger plane recapture.
+- Plane capture streams full-scene depth until success, cancellation, or six failed attempts. `MeasurementNode` owns resetting `AnnotationNode._plane_capture`; do not reset it after one frame while mode and pointcloud queues are consumed independently. A failed capture stays failed until the user selects Retry plane capture or changes method.
 - The frontend defaults to the `Video` and `Pointclouds` topics; measurement overlays are separate image topics emitted by the backend.
 
 ## Related Examples
@@ -100,5 +101,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 ## Validation
 
 - `Run:` `oakctl app run .`
+- `Regression tests:` `python3 -m unittest discover -s backend/tests -v`
+- `Recovery check:` with no valid support plane visible, select Height Grid and confirm failure returns to detection/selection overlays. Retry must start a fresh capture; switching to Min OBB must resume object measurement and remove the plane status. Check the 8-pixel status dot and multiline labels near image edges at 640x400.
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose
