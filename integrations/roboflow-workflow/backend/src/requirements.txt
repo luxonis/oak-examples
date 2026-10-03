@@ -1,4 +1,4 @@
-depthai==3.9.0
-depthai-nodes==0.6.1
+depthai==3.10.0
+depthai-nodes==0.7.0
 opencv-python~=4.10.0
 inference==1.3.7

@@ -3,7 +3,8 @@ import signal
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, FastSAMParser
+from depthai_nodes.node import ParsingNeuralNetwork
+from depthai.beta.node import FastSAMParser
 from dotenv import load_dotenv
 
 from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay

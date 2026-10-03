@@ -2,11 +2,8 @@ from typing import List, Optional
 import depthai as dai
 import numpy as np
 
-from depthai_nodes import (
-    Classifications,
-    Predictions,
-    GatheredData,
-)
+from depthai_nodes import GatheredData
+from depthai.beta import Classifications, Predictions
 from messages.messages import FaceData
 
 
@@ -43,9 +40,9 @@ def merge_face_features(
         age_msg: Predictions = age_gender_msg["0"]
         gender_msg: Classifications = age_gender_msg["1"]
 
-        age = int(age_msg.prediction * 100)
-        gender = gender_msg.top_class
-        emotion = emotion_msg.top_class
+        age = int(age_msg.getFirstPrediction() * 100)
+        gender = gender_msg.getTopClass()
+        emotion = emotion_msg.getTopClass()
 
         embedding = _extract_embedding(reid_msg)
         if embedding is not None:

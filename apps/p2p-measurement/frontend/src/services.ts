@@ -13,8 +13,6 @@ export const P2P_MEASUREMENT_SERVICES = [
 ] as const;
 
 export type P2PMeasurementService = (typeof P2P_MEASUREMENT_SERVICES)[number];
-export const P2P_MEASUREMENT_ACTIVE_SERVICES =
-	P2P_MEASUREMENT_SERVICES as unknown as DAIService[];
 
 type ServiceBody = Record<string, unknown> | string | number;
 

@@ -1,10 +1,6 @@
 import depthai as dai
-from depthai_nodes import (
-    Predictions,
-    GatheredData,
-    SECONDARY_COLOR,
-)
-from depthai_nodes.message import Keypoints
+from depthai_nodes import GatheredData, SECONDARY_COLOR
+from depthai.beta import Predictions, Keypoints
 from depthai_nodes.utils import AnnotationHelper
 from typing import List
 from utils.gesture_recognition import recognize_gesture
@@ -55,8 +51,8 @@ class AnnotationNode(dai.node.HostNode):
             confidence_msg: Predictions = gathered_data.items[ix]["1"]
             handness_msg: Predictions = gathered_data.items[ix]["2"]
 
-            hand_confidence = confidence_msg.prediction
-            handness = handness_msg.prediction
+            hand_confidence = confidence_msg.getFirstPrediction()
+            handness = handness_msg.getFirstPrediction()
 
             if hand_confidence < self.confidence_threshold:
                 continue

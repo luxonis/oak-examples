@@ -1,11 +1,13 @@
 from dataclasses import dataclass, field
+from threading import Lock
 from typing import Optional, Literal
 import logging
 
 import numpy as np
 import depthai as dai
 
-from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
+from depthai_nodes.node import ParsingNeuralNetwork
+from depthai.beta.node import ImgDetectionsFilter
 from .label_mapper_node import DetectionsLabelMapper
 from prompting import TextualPromptEncoder
 from prompting import VisualPromptEncoder
@@ -33,7 +35,7 @@ class NNDetectionController:
       - Produce and send prompt tensors (text/visual) to NN
       - Accumulate multiple image prompts with labels
       - Update label filtering and encoding
-      - Update parser confidence threshold
+      - Send native parser and label-filter configuration messages
       - Track model state for FE/UI
     """
 
@@ -75,7 +77,12 @@ class NNDetectionController:
             self._img_q = self._nn.inputs["image_prompts"].createInputQueue()
             self._nn.inputs["image_prompts"].setReusePreviousMessage(True)
 
-        self._parser = self._nn.getParser(0)
+        parser = self._nn.getParser(0)
+        self._parser_config_q = parser.inputConfig.createInputQueue()
+        # Runtime configs replace both thresholds; preserve the model's NMS setting.
+        self._iou_threshold = parser.initialConfig.iouThreshold
+        self._filter_config_q = self._det_filter.inputConfig.createInputQueue()
+        self._config_lock = Lock()
 
     def send_initial_prompts(
         self,
@@ -245,8 +252,12 @@ class NNDetectionController:
     def set_confidence_threshold(self, threshold: float) -> None:
         """Set the confidence threshold for detection."""
         t = float(max(0.0, min(1.0, threshold)))
-        self._parser.setConfidenceThreshold(t)
-        self._state.confidence_threshold = t
+        with self._config_lock:
+            config = dai.DetectionParserConfig()
+            config.confidenceThreshold = t
+            config.iouThreshold = self._iou_threshold
+            self._parser_config_q.send(config)
+            self._state.confidence_threshold = t
         log.info(f"Confidence threshold set to {t:.2f}")
 
     def get_nn_state(self) -> NNState:
@@ -315,10 +326,11 @@ class NNDetectionController:
         if label_offset < 0:
             raise ValueError("label_offset must be >= 0")
 
-        self._det_filter.setLabels(
-            labels=list(range(label_offset, label_offset + len(label_names))),
-            keep=True,
-        )
+        labels = list(range(label_offset, label_offset + len(label_names)))
+        config = dai.beta.ImgDetectionsFilterConfig()
+        config.confidenceThreshold = 0.0
+        config.labelsToKeep = labels
+        self._filter_config_q.send(config)
 
         encoding = {label_offset + k: v for k, v in enumerate(label_names)}
         self._det_label_mapper.set_label_encoding(encoding)

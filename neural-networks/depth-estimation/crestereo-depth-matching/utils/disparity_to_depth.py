@@ -1,8 +1,6 @@
 import depthai as dai
 import numpy as np
 
-import depthai_nodes
-
 
 class DisparityToDepth(dai.node.HostNode):
     def __init__(self) -> None:
@@ -25,10 +23,8 @@ class DisparityToDepth(dai.node.HostNode):
         return self
 
     def process(self, disparity: dai.Buffer) -> None:
-        assert isinstance(
-            disparity, depthai_nodes.Map2D
-        ), f"got type: {type(disparity)}"
-        disparity_frame = disparity.map.astype(np.float32)
+        assert isinstance(disparity, dai.beta.Map2D), f"got type: {type(disparity)}"
+        disparity_frame = disparity.getMap().astype(np.float32)
         depth_mm = np.zeros(disparity_frame.shape, dtype=np.uint16)
 
         valid = disparity_frame > 0

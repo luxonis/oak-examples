@@ -480,7 +480,7 @@ function App() {
 					Detections below this confidence are dropped.
 				</p>
 				<ConfidenceSlider
-					initialValue={backendConfig?.confidence_threshold ?? 0.4}
+					initialValue={backendConfig?.confidence_threshold ?? 0.10}
 				/>
 
 				<section className="flex flex-col gap-3 rounded-md border border-border bg-background p-4 shadow-sm">
