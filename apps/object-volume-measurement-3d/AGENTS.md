@@ -101,7 +101,5 @@ This is the strongest standalone reference for interactive 3D object measurement
 ## Validation
 
 - `Run:` `oakctl app run .`
-- `Regression tests:` `python3 -m unittest discover -s backend/tests -v`
-- `Recovery check:` with no valid support plane visible, select Height Grid and confirm failure returns to detection/selection overlays. Retry must start a fresh capture; switching to Min OBB must resume object measurement and remove the plane status. Check the 8-pixel status dot and multiline labels near image edges at 640x400.
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose
