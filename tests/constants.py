@@ -48,6 +48,15 @@ KNOWN_FAILING = {
             ],
         },
     },
+    "apps/llamacpp-vlm": {
+        "reason": "Not supported for peripheral; RVC4 only app",
+        "rules": {
+            "and": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
     "apps/ros/ros-driver-basic": {
         "reason": "Needs ros base image",
         "rules": {"and": [{"mode": ["peripheral"]}]},
