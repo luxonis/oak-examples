@@ -1,0 +1,35 @@
+identifier = "com.example.apps.llamacpp-vlm"
+entrypoint = ["/entrypoint.sh", "python3.12", "-u", "/app/backend/src/main.py"]
+app_version = "1.0.0"
+
+prepare_container = [
+    { type = "COPY", source = "./backend/src/models.py", target = "./backend/src/models.py" },
+    { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
+    { type = "RUN", command = "python3.12 -m pip install -r /app/backend/requirements.txt --break-system-packages" },
+    { type = "RUN", command = "python3.12 /app/backend/src/models.py --directory /opt/qwen-models" },
+]
+prepare_build_container = [
+    { type = "RUN", command = "bash -c 'curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'" },
+]
+
+# NPU (Hexagon HTP) passthrough for the llama.cpp
+optional_devices = [
+    "/dev/fastrpc-cdsp",
+    "/dev/adsprpc-smd",
+    "/dev/dma_heap/qcom,system",
+    "/dev/dma_heap/system",
+]
+required_mounts = ["/opt/luxonis/npu-runtime:/opt/luxonis/npu-runtime:ro,rbind"]
+allowed_devices = [{ allow = true, access = "rw" }]
+
+[static_frontend]
+dist_path = "./frontend/dist"
+
+[static_frontend.build]
+source_path = "./frontend"
+steps = ["bash -c 'cd /app/frontend && . $HOME/.nvm/nvm.sh && npm ci --no-audit --no-fund && npm run build'"]
+
+[env]
+DEPTHAI_PIPELINE_DEBUGGING = "1"
+
+# TODO: Add [base_image] section
