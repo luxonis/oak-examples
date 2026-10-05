@@ -4,6 +4,7 @@ from typing import Dict, Tuple, Optional
 import numpy as np
 import cv2
 import json
+from .overlay_layout import draw_label
 
 Point = Tuple[float, float]
 
@@ -34,6 +35,10 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         self.in_rgb_stream = self.createInput()
         self.in_depth_stream = self.createInput()
         self.in_meas_result = self.createInput()
+        # This feedback is display state, and is not consumed during plane capture
+        # or without a selection. Never let old results block the PCL pipeline.
+        self.in_meas_result.setBlocking(False)
+        self.in_meas_result.setMaxSize(1)
 
         self.out_segm = self.createOutput()
         self.out_segm_depth = self.createOutput()
@@ -78,7 +83,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         self._keep_top_only = bool(keep_top)
 
     def requestPlaneCapture(self, enable: bool = True) -> None:
-        """Ask the node to emit exactly one cycle with FULL depth (mode=2)."""
+        """Stream full depth until MeasurementNode ends or cancels capture."""
         self._plane_capture = bool(enable)
 
     def clearCachedMeasurements(self):
@@ -221,12 +226,14 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         )
         # label at first corner (warp a single point)
         lbl_xy = self._nn_to_rgb_norm_pts([(pts_nn_norm[0][0], pts_nn_norm[0][1])])[0]
-        helper.draw_text(
+        draw_label(
+            helper,
             text,
             lbl_xy,
+            *self._dst_size,
             color=(0.5, 0.15, 1.0, 1.0),
             background_color=(1.0, 1.0, 0.0, 0.8),
-            size=19,
+            size=16,
         )
 
     def _nn_to_rgb_norm_pts(self, pts_norm):
@@ -313,7 +320,6 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
             # Plane capture when switch to heightgrid
             if self._plane_capture:
-                # self._send_mode(self.MODE_MEASURE, depth_msg)
                 self._send_mode(self.MODE_PLANE_CAPTURE, depth_msg)
                 self.out_ann.send(
                     AnnotationHelper().build(
@@ -322,8 +328,6 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 )
                 self.out_segm.send(rgbF)
                 self.out_segm_depth.send(depth_msg)  # full-scene depth
-                # self._send_mode(self.MODE_MEASURE, img_msg)
-                # self._plane_capture = False
                 continue
 
             m = det_msg.getCvSegmentationMask()
