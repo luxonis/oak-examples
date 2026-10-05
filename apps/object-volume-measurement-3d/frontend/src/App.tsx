@@ -62,15 +62,10 @@ function App() {
 				<MeasurementMethodSelector />
 
 				<div
-					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${
+					className={`mt-auto border-t border-border pt-4 text-sm ${
 						connection.connected ? 'text-success' : 'text-destructive'
 					}`}
 				>
-					<div
-						className={`h-3 w-3 rounded-full ${
-							connection.connected ? 'bg-success' : 'bg-destructive'
-						}`}
-					/>
 					<span>
 						{connection.connected ? 'Connected to device' : 'Disconnected'}
 					</span>

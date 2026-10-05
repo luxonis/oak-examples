@@ -251,23 +251,14 @@ class MeasurementNode(dai.node.ThreadedHostNode):
     def _emit_plane_status(self, pcl_msg, status: str):
         helper = AnnotationHelper()
 
-        label, dot = self._status_style(status)
-
-        radius_px = 4
-        helper.draw_circle(
-            (12 / self.imgW, 16 / self.imgH),
-            radius_px / self.imgW,
-            outline_color=dot,
-            fill_color=dot,
-            thickness=1,
-        )
+        label, color = self._status_style(status)
         draw_label(
             helper,
             label,
-            (24 / self.imgW, 6 / self.imgH),
+            (8 / self.imgW, 6 / self.imgH),
             self.imgW,
             self.imgH,
-            color=dot,
+            color=color,
             size=16,
         )
 
