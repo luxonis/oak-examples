@@ -1,4 +1,5 @@
 import json
+import logging as log
 import signal
 import threading
 import time
@@ -10,6 +11,10 @@ import depthai as dai
 from images import jpeg_data_url, prepare_image
 from constants import load_config, validate_max_tokens, validate_temperature
 from runtime import Runtime
+
+
+log.basicConfig(level=log.INFO)
+logger = log.getLogger(__name__)
 
 
 class VlmApp:
@@ -210,17 +215,22 @@ class VlmApp:
                     if key != "input_image"
                 }
 
-            print("[RESULT] " + json.dumps(evidence), flush=True)
+            logger.info("[RESULT] %s", json.dumps(evidence))
 
         except Exception as exc:
             with self.lock:
                 self.job.update(state="error", error=str(exc))
-            print(f"[inference] {exc}", flush=True)
+            logger.error("[inference] %s", exc)
+
+    def _handle_shutdown_signal(self, _signum, _frame):
+        """Request shutdown of the pipeline and background workers."""
+        logger.info("Application received a stop signal. Stopping the app...")
+        self.stop.set()
 
     def run(self):
         """Run the RVC4 pipeline and workers until shutdown, then stop the model."""
-        signal.signal(signal.SIGTERM, lambda *_: self.stop.set())
-        signal.signal(signal.SIGINT, lambda *_: self.stop.set())
+        signal.signal(signal.SIGINT, self._handle_shutdown_signal)
+        signal.signal(signal.SIGTERM, self._handle_shutdown_signal)
 
         device = dai.Device()
         if device.getPlatform() != dai.Platform.RVC4:
@@ -251,7 +261,8 @@ class VlmApp:
                 queue = video.createOutputQueue(maxSize=1, blocking=False)
 
                 pipeline.start()
-                print("Pipeline started.", flush=True)
+                logger.info("Pipeline started.")
+                remote.registerPipeline(pipeline)
 
                 # Capture frames continuously while the model loads independently.
                 threading.Thread(
@@ -260,8 +271,15 @@ class VlmApp:
                 threading.Thread(target=self.runtime.start, daemon=True).start()
 
                 # The main thread owns pipeline lifetime and shutdown.
-                while pipeline.isRunning() and not self.stop.wait(0.2):
-                    pass
+                while pipeline.isRunning():
+                    if self.stop.is_set():
+                        pipeline.stop()
+                        break
+                    key = remote.waitKey(1)
+                    pipeline.processTasks()
+                    if key == ord("q"):
+                        logger.info("Got 'q' key. Exiting...")
+                        break
                 self.stop.set()
 
         finally:

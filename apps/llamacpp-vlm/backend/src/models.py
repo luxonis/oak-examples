@@ -2,9 +2,12 @@
 
 import hashlib
 import argparse
+import logging as log
 from pathlib import Path
 
 import requests
+
+logger = log.getLogger(__name__)
 
 REPOSITORY = "unsloth/Qwen3.5-0.8B-GGUF"
 REVISION = "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0"
@@ -24,12 +27,12 @@ def sha256(path):
     return digest.hexdigest()
 
 
-def download_models(directory, update=print):
+def download_models(directory, update=logger.info):
     """Install the pinned model files during the app container build.
 
     Args:
         directory: Destination directory inside the app image.
-        update: Callback receiving progress messages; defaults to print.
+        update: Callback receiving progress messages; defaults to logger.info.
 
     Returns:
         Paths to the verified model and projector, in FILES order.
@@ -70,6 +73,7 @@ def download_models(directory, update=print):
 
 
 if __name__ == "__main__":
+    log.basicConfig(level=log.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", default="/opt/qwen-models")
     download_models(parser.parse_args().directory)

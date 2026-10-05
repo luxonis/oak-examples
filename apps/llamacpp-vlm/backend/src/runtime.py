@@ -1,4 +1,5 @@
 import json
+import logging as log
 import subprocess
 import threading
 import time
@@ -8,6 +9,9 @@ import requests
 
 from constants import load_config, validate_max_tokens, validate_temperature
 from models import FILES
+
+
+logger = log.getLogger(__name__)
 
 
 class Runtime:
@@ -35,7 +39,7 @@ class Runtime:
         with self.lock:
             self.status = message
 
-        print(f"[model] {message}", flush=True)
+        logger.info("[model] %s", message)
 
     def start(self):
         """Launch llama-server and await readiness, recording startup errors in state."""
@@ -132,10 +136,11 @@ class Runtime:
             with self.lock:
                 self.error = str(exc)
             self.update("Model unavailable")
+            logger.error("[model] %s", exc)
 
     def read_logs(self):
         for line in self.process.stdout:
-            print("[llama] " + line.rstrip(), flush=True)
+            logger.info("[llama] %s", line.rstrip())
 
             if any(
                 marker in line for marker in ("using device", "offloaded", "CLIP using")

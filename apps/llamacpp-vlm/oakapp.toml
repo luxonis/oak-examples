@@ -32,4 +32,11 @@ steps = ["bash -c 'cd /app/frontend && . $HOME/.nvm/nvm.sh && npm ci --no-audit 
 [env]
 DEPTHAI_PIPELINE_DEBUGGING = "1"
 
-# TODO: Add [base_image] section
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.5.0-llamacpp"

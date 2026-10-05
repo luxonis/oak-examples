@@ -45,7 +45,7 @@ Standalone RVC4 llama.cpp VLM example using Qwen3.5-0.8B for visual question ans
 - `Qwen Submit` validates the prompt, output-token limit (1–256), temperature (0–1), and region, then launches one inference worker. A second request is rejected while that worker is preparing or running.
 - `Qwen State` returns model readiness, generation defaults, the current job, and up to three requests newest first. History includes live answers and errors, is shared across connected clients, survives frontend reloads, and clears on app restart. It is not sent as model conversation context.
 - The frontend polls state every 250 ms after each response. `Runtime` streams from llama-server's loopback-only OpenAI-compatible endpoint at `http://127.0.0.1:8081`; the frontend uses RemoteConnection services.
-- Weights are downloaded and SHA-256 verified during `prepare_container`, then stored at `/opt/qwen-models` inside the app image. They survive restarts as image files; there is no external model mount, runtime download, or separately managed model cache. Frames and history stay in memory; app logs go to stdout.
+- Weights are downloaded and SHA-256 verified during `prepare_container`, then stored at `/opt/qwen-models` inside the app image. They survive restarts as image files; there is no external model mount, runtime download, or separately managed model cache. Frames and history stay in memory; app logs use Python logging.
 
 ## Modification Guide
 
