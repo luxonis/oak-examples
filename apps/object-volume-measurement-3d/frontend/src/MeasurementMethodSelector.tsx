@@ -24,7 +24,7 @@ export function MeasurementMethodSelector() {
 	const [method, setMethod] = useState<MeasurementMethod>('obb');
 
 	const handleClick = (next: MeasurementMethod) => {
-		if (next === method || !connection.connected) return;
+		if (!connection.connected) return;
 
 		setMethod(next);
 		postToObjectVolumeService(
@@ -56,6 +56,16 @@ export function MeasurementMethodSelector() {
 					Height Grid
 				</Button>
 			</div>
+
+			{method === 'heightgrid' ? (
+				<Button
+					variant="outline"
+					disabled={!connection.connected}
+					onClick={() => handleClick('heightgrid')}
+				>
+					Retry plane capture
+				</Button>
+			) : null}
 
 			<ul className="m-0 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
 				{DESCRIPTIONS[method].map((line) => (

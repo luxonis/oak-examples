@@ -4,7 +4,7 @@ from depthai_nodes import (
     PRIMARY_COLOR,
     SECONDARY_COLOR,
 )
-from depthai_nodes.message import Keypoints
+from depthai.beta import Keypoints
 from depthai_nodes.utils import AnnotationHelper
 from typing import List
 

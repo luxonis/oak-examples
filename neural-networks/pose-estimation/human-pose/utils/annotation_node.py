@@ -1,6 +1,6 @@
 from typing import List, Optional
 import depthai as dai
-from depthai_nodes.message import Keypoints
+from depthai.beta import Keypoints
 from depthai_nodes.utils import AnnotationHelper
 
 

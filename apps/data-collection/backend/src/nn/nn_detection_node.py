@@ -5,8 +5,8 @@ import numpy as np
 
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
-    ImgDetectionsFilter,
 )
+from depthai.beta.node import ImgDetectionsFilter
 from config import NeuralNetworkConfig
 from .nn_detection_controller import NNDetectionController
 from .label_mapper_node import DetectionsLabelMapper
@@ -38,6 +38,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
 
         self._nn: ParsingNeuralNetwork = self.createSubnode(ParsingNeuralNetwork)
         self._det_filter: ImgDetectionsFilter = self.createSubnode(ImgDetectionsFilter)
+        self._det_filter.setRunOnHost(True)
         self._det_label_mapper_extended: DetectionsLabelMapper = self.createSubnode(
             DetectionsLabelMapper
         )
@@ -72,18 +73,18 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
             {"runtime": cfg.runtime, "performance_profile": cfg.performance_profile}
         )
         self._nn.setNumInferenceThreads(cfg.num_inference_threads)
-        self._nn.getParser(0).setConfidenceThreshold(0.0)
+        self._nn.getParser(0).setConfidenceThreshold(cfg.confidence_thr)
 
         input_frame.link(self._nn.inputs["images"])
 
         # Detection filter
-        self._det_filter.build(self._nn.out)
+        self._nn.out.link(self._det_filter.input)
 
         # Add label for visualization (ImgDetectionsExtended)
-        self._det_label_mapper_extended.build(self._det_filter.out)
+        self._det_label_mapper_extended.build(self._det_filter.output)
         self.detections_extended = self._det_label_mapper_extended.out
 
-        self._det_label_mapper.build(self._det_filter.out)
+        self._det_label_mapper.build(self._det_filter.output)
         self.detections = self._det_label_mapper.out
 
         # Prompt encoders

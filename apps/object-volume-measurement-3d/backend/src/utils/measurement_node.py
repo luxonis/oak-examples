@@ -3,9 +3,11 @@ import numpy as np
 import json
 import time
 from collections import deque
+from threading import RLock
 
 from depthai_nodes.utils import AnnotationHelper
 from .PointCloudMeasurement import PointCloudMeasurement
+from .overlay_layout import draw_label
 
 BOX_EDGES = (
     (0, 1),
@@ -41,6 +43,7 @@ class MeasurementNode(dai.node.ThreadedHostNode):
     MODE_NOMEASURE = 0
     MODE_MEASURE = 1
     MODE_PLANE = 2
+    MAX_PLANE_ATTEMPTS = 6
 
     def __init__(self):
         dai.node.ThreadedHostNode.__init__(self)
@@ -71,6 +74,8 @@ class MeasurementNode(dai.node.ThreadedHostNode):
 
         # plane / IMU state
         self.fails = 0
+        self.plane_status = None
+        self._state_lock = RLock()
         self.g_imu_plane = None
         self.latest_mode = self.MODE_NOMEASURE
         self.latest_imu = None
@@ -88,10 +93,21 @@ class MeasurementNode(dai.node.ThreadedHostNode):
         self.imgW = int(imgW)
         self.imgH = int(imgH)
 
+    def set_measurement_mode(self, method):
+        # Service callbacks and plane fitting run on different threads.
+        with self._state_lock:
+            self.measurement_mode = method
+            self.reset_plane()
+            self.reset_measurements()
+            self.an_node.clearCachedMeasurements()
+            self.plane_status = "calculating" if method == "heightgrid" else None
+            self.an_node.requestPlaneCapture(method == "heightgrid")
+
     def reset_plane(self):
         self.pcl_measure.clear_plane()
         self.have_plane = False
         self.g_imu_plane = None
+        self.fails = 0
 
     def reset_measurements(self):
         self.pcl_measure.from_reset = True
@@ -235,30 +251,15 @@ class MeasurementNode(dai.node.ThreadedHostNode):
     def _emit_plane_status(self, pcl_msg, status: str):
         helper = AnnotationHelper()
 
-        label, dot = self._status_style(status)
-
-        pad_x, pad_y = 0.02, 0.02
-        font_px = 18
-        s = font_px / self.imgH
-
-        BASELINE_OFFSET = 0.90
-        ASCENT_CENTER = 0.38
-        DOT_RADIUS = 0.60
-        GAP_AFTER_DOT = 0.055
-
-        baseline_y = pad_y + BASELINE_OFFSET * s
-        cy = baseline_y - ASCENT_CENTER * s
-        dot_r = DOT_RADIUS * s
-        dot_cx = pad_x + 0.025
-
-        helper.draw_circle(
-            (dot_cx, cy), dot_r, outline_color=dot, fill_color=dot, thickness=1
-        )
-        helper.draw_text(
+        label, color = self._status_style(status)
+        draw_label(
+            helper,
             label,
-            (pad_x + GAP_AFTER_DOT, baseline_y),
-            color=dot,
-            size=18,
+            (8 / self.imgW, 6 / self.imgH),
+            self.imgW,
+            self.imgH,
+            color=color,
+            size=16,
         )
 
         self.out_plane_status.send(
@@ -302,87 +303,116 @@ class MeasurementNode(dai.node.ThreadedHostNode):
                     break
                 processed = True
 
-                mode_val = self.latest_mode
-                try:
-                    points, colors = pcl_msg.getPointsRGB()
-                except Exception as e:
-                    print("MeasurementNode: getPointsRGB() failed:", e)
-                    continue
-                if points is None or len(points) == 0:
-                    continue
-
-                if mode_val == self.MODE_PLANE:
-                    g_imu = self._extract_g_imu(self.latest_imu)
-                    if g_imu is None:
-                        continue
-
-                    self.pcl_measure.set_point_cloud_plane(points)
-                    plane, _, ok = self.pcl_measure.fit_plane(g_imu)
-
-                    if ok:
-                        self.pcl_measure.plane_eq = plane
-                        self.have_plane = True
-                        self.an_node.requestPlaneCapture(False)
-                        self.g_imu_plane = g_imu / (np.linalg.norm(g_imu) + 1e-9)
-                        self._emit_plane_status(pcl_msg, "ok")
-                        self.fails = 0
-
-                    else:
-                        self.fails += 1
-                        self.have_plane = False
-                        self.an_node.requestPlaneCapture(True)
-                        if self.fails > 5:
-                            self._emit_plane_status(pcl_msg, "failed")
-                        time.sleep(0.005)
-                    continue
-
-                if mode_val != self.MODE_MEASURE:
-                    if self.measurement_mode == "heightgrid" and self.have_plane:
-                        self._emit_plane_status(pcl_msg, "ok")
-                    continue
-
-                bgr = colors[:, :3]
-                rgb = bgr[:, ::-1].astype(np.float64) / 255.0
-
-                if self.measurement_mode == "obb":
-                    self.an_node.requestPlaneCapture(False)
-                    self.pcl_measure.set_point_cloud(points, rgb)
-                    self.pcl_measure.get_measurement_OBB()
-
-                    self._emit_overlay(pcl_msg, self.pcl_measure.obb_pts)
-                    self._emit_median(
-                        pcl_msg, self.pcl_measure.dimensions, self.pcl_measure.volume
-                    )
-
-                elif self.measurement_mode == "heightgrid":
-                    if not self.have_plane or self.pcl_measure.plane_eq is None:
-                        self.an_node.requestPlaneCapture(True)
-                        self._emit_plane_status(pcl_msg, "calculating")
-                        self._emit_result_min(pcl_msg, None, None)
-                        continue
-
-                    g_imu = self._extract_g_imu(self.latest_imu)
-                    if (
-                        g_imu is None
-                        or not self.pcl_measure.is_ground_plane(
-                            g_imu, self.pcl_measure.plane_eq
-                        )
-                        or self._moved_since_plane(g_imu)
-                    ):
-                        self.have_plane = False
-                        self.an_node.requestPlaneCapture(True)
-                        self._emit_plane_status(pcl_msg, "calculating")
-                        self._emit_result_min(pcl_msg, None, None)
-                        continue
-
-                    self.pcl_measure.set_point_cloud(points, rgb)
-                    self.pcl_measure.get_measurement_groundHG()
-
-                    self._emit_overlay(pcl_msg, self.pcl_measure.corners3d)
-                    self._emit_median(
-                        pcl_msg, self.pcl_measure.dimensions, self.pcl_measure.volume
-                    )
-                    self._emit_plane_status(pcl_msg, "ok")
+                with self._state_lock:
+                    self._process_cloud(pcl_msg, self.latest_mode)
 
             if not (read_any or processed):
                 time.sleep(0.002)
+
+    def _capture_plane(self, pcl_msg):
+        self._emit_overlay(pcl_msg, None)
+        self._emit_result_min(pcl_msg, None, None)
+        ok = False
+        g_imu = self._extract_g_imu(self.latest_imu)
+        try:
+            points, _ = pcl_msg.getPointsRGB()
+            if g_imu is not None and points is not None and len(points):
+                self.pcl_measure.set_point_cloud_plane(points)
+                plane, _, ok = self.pcl_measure.fit_plane(g_imu)
+        except (RuntimeError, ValueError) as e:
+            print("MeasurementNode: plane capture failed:", e)
+
+        if ok:
+            self.pcl_measure.plane_eq = plane
+            self.have_plane = True
+            self.g_imu_plane = g_imu / (np.linalg.norm(g_imu) + 1e-9)
+            self.plane_status = "ok"
+            self.fails = 0
+            self.an_node.requestPlaneCapture(False)
+        else:
+            self.fails += 1
+            self.have_plane = False
+            if self.fails >= self.MAX_PLANE_ATTEMPTS:
+                self.plane_status = "failed"
+                self.an_node.requestPlaneCapture(False)
+        self._emit_plane_status(pcl_msg, self.plane_status)
+
+    def _process_cloud(self, pcl_msg, mode_val):
+        # Ignore full-scene clouds already queued when capture was cancelled or finished.
+        if mode_val == self.MODE_PLANE:
+            if (
+                self.measurement_mode == "heightgrid"
+                and self.plane_status == "calculating"
+            ):
+                self._capture_plane(pcl_msg)
+            return
+
+        if self.measurement_mode == "obb":
+            self.out_plane_status.send(
+                AnnotationHelper().build(
+                    pcl_msg.getTimestamp(), pcl_msg.getSequenceNum()
+                )
+            )
+        elif self.plane_status:
+            self._emit_plane_status(pcl_msg, self.plane_status)
+
+        if mode_val != self.MODE_MEASURE:
+            if self.measurement_mode == "heightgrid" and self.have_plane:
+                self._emit_plane_status(pcl_msg, "ok")
+            return
+
+        try:
+            points, colors = pcl_msg.getPointsRGB()
+        except Exception as e:
+            print("MeasurementNode: getPointsRGB() failed:", e)
+            return
+        if points is None or len(points) == 0:
+            return
+
+        bgr = colors[:, :3]
+        rgb = bgr[:, ::-1].astype(np.float64) / 255.0
+
+        if self.measurement_mode == "obb":
+            self.an_node.requestPlaneCapture(False)
+            self.pcl_measure.set_point_cloud(points, rgb)
+            self.pcl_measure.get_measurement_OBB()
+
+            self._emit_overlay(pcl_msg, self.pcl_measure.obb_pts)
+            self._emit_median(
+                pcl_msg, self.pcl_measure.dimensions, self.pcl_measure.volume
+            )
+
+        elif self.measurement_mode == "heightgrid":
+            if not self.have_plane or self.pcl_measure.plane_eq is None:
+                if self.plane_status != "failed":
+                    self.plane_status = "calculating"
+                    self.an_node.requestPlaneCapture(True)
+                self._emit_plane_status(pcl_msg, self.plane_status)
+                self._emit_overlay(pcl_msg, None)
+                self._emit_result_min(pcl_msg, None, None)
+                return
+
+            g_imu = self._extract_g_imu(self.latest_imu)
+            if (
+                g_imu is None
+                or not self.pcl_measure.is_ground_plane(
+                    g_imu, self.pcl_measure.plane_eq
+                )
+                or self._moved_since_plane(g_imu)
+            ):
+                self.reset_plane()
+                self.reset_measurements()
+                self.plane_status = "calculating"
+                self.an_node.requestPlaneCapture(True)
+                self._emit_plane_status(pcl_msg, "calculating")
+                self._emit_result_min(pcl_msg, None, None)
+                return
+
+            self.pcl_measure.set_point_cloud(points, rgb)
+            self.pcl_measure.get_measurement_groundHG()
+
+            self._emit_overlay(pcl_msg, self.pcl_measure.corners3d)
+            self._emit_median(
+                pcl_msg, self.pcl_measure.dimensions, self.pcl_measure.volume
+            )
+            self._emit_plane_status(pcl_msg, "ok")

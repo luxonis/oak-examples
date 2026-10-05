@@ -39,6 +39,7 @@ grid-based slicing of the objects top surface.
 
 1. Plane capture: we run RANSAC on the scene point cloud and validate with the IMU that the plane is ground-like (plane normal parallel to gravity).
    The app shows Calculating / OK / Failed status in the overlay of the Video Stream and re-requests capture if the camera has been moved or plane becomes invalid.
+   After six unsuccessful attempts, capture stops so object selection remains usable. Adjust the view to include the support surface and click **Retry plane capture**, or switch to **Min OBB** to measure without a support plane.
 2. Transform the object point cloud into the ground/table frame.
 3. Compute a minimum-area rectangle for the footprint of the object. From here we get the L, W and yaw (rotation along the z axis).
 4. Volume calculation: the footprint polygon is divided into a 2D grid of square cells (default 5 mm each). For every cell inside the footprint, the algorithm estimates a height value by looking at the object points that fall into that cell. The base area of each cell = (cell size)² and height = cell height above the ground plane.\
