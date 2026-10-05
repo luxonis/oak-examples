@@ -1,0 +1,22 @@
+# Image preparation happens after cropping the original camera frame.
+image:
+  max_edge: 448 # Downscale only; preserve aspect ratio. Allowed: 224–896.
+
+# Initial frontend values; each request can override these two settings.
+generation:
+  max_tokens: 128 # 1–256 output tokens.
+  temperature: 0.0 # 0–1; lower values produce less varied answers.
+
+# llama-server startup settings. Restart the app after changing this file.
+runtime:
+  context_size: 2048
+  threads: 4
+  batch_size: 256
+  ubatch_size: 256
+  flash_attention: auto # auto, on, or off.
+  fit: true # Allow llama.cpp to adjust unset parameters to available memory.
+  context_shift: false
+  cache_ram_mb: 8192 # llama.cpp prompt-cache budget; 0 disables this cache.
+  # Dynamic vision-token bounds, independent of the app's image max_edge.
+  image_min_tokens: 8
+  image_max_tokens: 4096

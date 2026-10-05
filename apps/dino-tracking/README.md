@@ -78,7 +78,7 @@ oakctl app run .
 
 Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
-Remote access
+### Remote access
 
-You can upload oakapp to Luxonis Hub via oakctl
-And then you can just remotely open App UI via App detail
+1. You can upload oakapp to Luxonis Hub via oakctl
+2. And then you can just remotely open App UI via App detail
