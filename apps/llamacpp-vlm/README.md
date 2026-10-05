@@ -13,6 +13,8 @@ The UI provides controls for:
 
 ## Demo
 
+![llamacpp](media/llama_vlm_qwen.gif)
+
 ## Architecture
 
 ```mermaid
