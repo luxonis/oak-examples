@@ -107,8 +107,8 @@ Running this example requires a **Luxonis RVC4 device** reachable from your comp
 Refer to the [documentation](https://docs.luxonis.com/software-v3/) to set up your
 device if you haven't already.
 
-The app uses `luxonis/oakapp-base:1.4.0-llamacpp`, which must be available in the
-registry. The device OS must expose `/opt/luxonis/npu-runtime` and the FastRPC
+The app uses `llamacpp` oakapp base image variant.
+The device OS must expose `/opt/luxonis/npu-runtime` and the FastRPC
 devices required by the base image.
 
 The first container build requires internet access and downloads approximately
