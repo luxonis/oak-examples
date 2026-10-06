@@ -63,7 +63,7 @@ export function MeasurementMethodSelector() {
 					disabled={!connection.connected}
 					onClick={() => handleClick('heightgrid')}
 				>
-					Retry plane capture
+					Retry Plane Capture
 				</Button>
 			) : null}
 

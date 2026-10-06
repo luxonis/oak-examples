@@ -48,7 +48,7 @@ function App() {
 				<h1 className="text-2xl font-bold">Object Volume Measurement 3D</h1>
 				<p className="text-sm leading-6 text-muted-foreground">
 					This example combines a YOLOE segmentation model with DepthAI point
-					clouds to measure real-world objects in 3D. Click any detected object
+					clouds to measure real-world objects in 3D. <br />Click any detected object
 					in the Video panel to segment it and get its dimensions and volume.
 				</p>
 
