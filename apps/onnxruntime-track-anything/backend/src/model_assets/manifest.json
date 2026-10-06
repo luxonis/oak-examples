@@ -1,0 +1,20 @@
+{
+  "track_anything": {
+    "encode_key_without_shrinkage.onnx": "bdf8d7c2de57ed0bd952c8cbc95442996149fc9184a6ff99b88b8c60992b8f7a",
+    "encode_key_with_shrinkage.data": "222e8790c17a40bfbe303d0ea93791ca25da94e2d5f22d637857e889decdd252",
+    "segment.data": "f668cf27d2dd944135c6a6cf7c74cf505abeca99654e9af355a7da1b58bec956",
+    "encode_value.data": "9ca8a15edc3abe535f75dfe3b02bccd71786212b400ca0393bd0cc48fe89135f",
+    "segment.onnx": "7303bc8a571f02b9bb9e6dda8ab0db90eed7ce74244c4363d3419e1159bc51bb",
+    "metadata.json": "fcda8ccbfc8e0b9d3243e67c68d48103ac001b5dbd2c50ef816b878e717d67bb",
+    "encode_key_with_shrinkage.onnx": "fa9cbaf696a29dc545f69bfd909170ddd3f46567be5e2f6d75a799a97ce323f2",
+    "encode_key_without_shrinkage.data": "b651f8de003a74900eff7b6bb2441246edb55700d9c17e4f25dcf193654faebf",
+    "encode_value.onnx": "06904db562e1c52f16c96e3c8a8f37cf4152750a2b94b09d3d34714458d453e2"
+  },
+  "mobilesam": {
+    "decoder.onnx": "82bbaed5a1deac4ecb90734a15cc643043b0081ba7a4dcdef7e733767a4caf39",
+    "metadata.json": "60db25ec6e5ca3734397ecf949a1a6bf258bed300218a6eef81cfb285d05fdaa",
+    "decoder.data": "a19306330820b9f05398ecdce0eaddeed4777a12e3c5fde67f8728cb450cdf2c",
+    "encoder.onnx": "bb67da32e125380a8411d4bceba4d0348e9bcdc3abca6d9dbea1f756b4047b15",
+    "encoder.data": "57c0f73c068f8c1f6845ab2965e4bdd8458c313b45f85fcca76b29f0e4644c95"
+  }
+}
