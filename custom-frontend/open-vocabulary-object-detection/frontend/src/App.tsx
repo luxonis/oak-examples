@@ -54,13 +54,20 @@ function App() {
 		'chair',
 		'TV',
 	]);
+	
+	const lastTextClassesRef = useRef<string[]>(textClasses);
 
 	const current_params_setter = useCallback((response: CurrentParams) => {
 		console.log('[Init] Returned current params:', response);
 		setConfidence(response.confidence_threshold);
-		setTextClasses(response.class_names);
 		setImagePromptLabels(response.image_prompt_labels);
 		lastCommittedImageLabelsRef.current = response.image_prompt_labels;
+
+		if (response.image_prompt_labels.length === 0) {
+			setTextClasses(response.class_names);
+			lastTextClassesRef.current = response.class_names;
+		}
+
 		setParamsLoaded(true);
 	}, []);
 
@@ -334,6 +341,7 @@ function App() {
 	const handleTextClassesUpdated = useCallback(
 		(updated: string[]) => {
 			setTextClasses(updated);
+			lastTextClassesRef.current = updated;
 			if (imagePromptLabels.length > 0) {
 				notify('Image prompts cleared. Using text prompts for detection.', {
 					type: 'info',
@@ -357,17 +365,18 @@ function App() {
 		postToCustomService(
 			connection.daiConnection,
 			'Class Update Service',
-			textClasses,
+			lastTextClassesRef.current,
 			() => {
 				setImagePromptLabels([]);
 				lastCommittedImageLabelsRef.current = [];
+				setTextClasses(lastTextClassesRef.current);
 				notify('Image prompts cleared. Using text prompts for detection.', {
 					type: 'success',
 					durationMs: 5000,
 				});
 			},
 		);
-	}, [connection.connected, connection.daiConnection, notify, textClasses]);
+	}, [connection.connected, connection.daiConnection, notify]);
 
 	useEffect(() => {
 		if (!isDrawing) return;
