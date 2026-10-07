@@ -41,6 +41,9 @@ type StreamMedia = {
 	offsetY: number;
 };
 
+const VIDEO_TOPIC = 'Video';
+const RESET_IMAGE_VIEW_EVENT = 'visualizer:image-reset-zoom';
+
 function decodePayload(response: unknown): unknown {
 	let payload = response;
 
@@ -124,8 +127,8 @@ function App() {
 	);
 	const [configLoaded, setConfigLoaded] = useState(false);
 	const { toast } = useToast();
-	const topicGroups = useMemo(() => ({ images: 'Video' }), []);
-	const allowedTopics = useMemo(() => ['Video'], []);
+	const topicGroups = useMemo(() => ({ images: VIDEO_TOPIC }), []);
+	const allowedTopics = useMemo(() => [VIDEO_TOPIC], []);
 
 	const getUnderlyingMediaAndSize = useCallback((): StreamMedia | null => {
 		const container = streamContainerRef.current;
@@ -313,6 +316,18 @@ function App() {
 		setDragStart(null);
 	}, []);
 
+	const handleResetStreamView = useCallback(() => {
+		window.dispatchEvent(
+			new CustomEvent<{ topic: string }>(RESET_IMAGE_VIEW_EVENT, {
+				detail: { topic: VIDEO_TOPIC },
+			}),
+		);
+		toast({
+			description: 'Stream view reset',
+			colorVariant: 'success',
+		});
+	}, [toast]);
+
 	useEffect(() => {
 		if (!isDrawing) return;
 		const container = streamContainerRef.current;
@@ -460,7 +475,9 @@ function App() {
 			<aside className="flex max-h-full w-[420px] min-w-[340px] max-w-[520px] shrink-0 flex-col gap-4 overflow-y-auto pr-2 text-left">
 				<h1 className="text-2xl font-bold">Data Collection</h1>
 				<p className="mb-2 text-sm leading-6 text-muted-foreground">
-					Detect by name or example and auto-capture snaps based on conditions.
+					Detect by text labels or a visual example. Updating text labels
+					switches back to text mode; uploading an image or drawing a box
+					switches to image mode.
 				</p>
 
 				<SectionTitle>Labels by Text</SectionTitle>
@@ -471,16 +488,19 @@ function App() {
 
 				<SectionTitle>Labels by Image</SectionTitle>
 				<p className="text-xs text-muted-foreground">
-					Upload a photo or draw a box on the stream.
+					Upload an image or draw a box to switch to image mode.
 				</p>
-				<ImageUploader onDrawBBox={handleBeginBBoxDraw} />
+				<ImageUploader
+					onDrawBBox={handleBeginBBoxDraw}
+					onResetView={handleResetStreamView}
+				/>
 
 				<SectionTitle>Confidence Filter</SectionTitle>
 				<p className="text-xs text-muted-foreground">
 					Detections below this confidence are dropped.
 				</p>
 				<ConfidenceSlider
-					initialValue={backendConfig?.confidence_threshold ?? 0.10}
+					initialValue={backendConfig?.confidence_threshold ?? 0.1}
 				/>
 
 				<section className="flex flex-col gap-3 rounded-md border border-border bg-background p-4 shadow-sm">

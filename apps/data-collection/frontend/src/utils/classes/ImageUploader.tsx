@@ -5,9 +5,10 @@ import { postToDataCollectionService } from '../../services.ts';
 
 type Props = {
 	onDrawBBox?: () => void;
+	onResetView?: () => void;
 };
 
-export function ImageUploader({ onDrawBBox }: Props) {
+export function ImageUploader({ onDrawBBox, onResetView }: Props) {
 	const connection = useDaiConnection();
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const { toast } = useToast();
@@ -84,9 +85,15 @@ export function ImageUploader({ onDrawBBox }: Props) {
 	return (
 		<div className="flex flex-col gap-4">
 			<h3 className="font-semibold">Update Classes with Image Input:</h3>
-			<span className="text-sm text-muted-foreground">
-				Important: reset view before drawing a bounding box
-			</span>
+			<div className="flex flex-col gap-3">
+				<span className="text-sm text-muted-foreground">
+					Important: Use Reset View before drawing if the stream is zoomed or
+					panned.
+				</span>
+				<Button className="w-full" variant="outline" onClick={onResetView}>
+					Reset View
+				</Button>
+			</div>
 
 			<label
 				htmlFor="fileInput"
@@ -115,7 +122,7 @@ export function ImageUploader({ onDrawBBox }: Props) {
 						onDrawBBox?.();
 						toast({
 							description:
-								'Drawing mode enabled. Drag on the stream to draw a box.',
+								'Drawing mode enabled. Reset the view first if the stream is zoomed or panned.',
 							colorVariant: 'gray',
 							duration: 'long',
 						});
