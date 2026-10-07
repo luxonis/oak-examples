@@ -1,0 +1,247 @@
+@import "tailwindcss";
+@source "./**/*.{ts,tsx}";
+
+.app-shell {
+	height: 100dvh;
+	padding: 24px;
+}
+.workspace {
+	display: flex;
+	height: 100%;
+	gap: 24px;
+}
+.camera-column {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+}
+.camera-panel {
+	position: relative;
+	height: 100%;
+	overflow: hidden;
+}
+.live-stream {
+	width: 100%;
+	height: 100%;
+}
+.stream-hidden {
+	visibility: hidden;
+}
+.snapshot-wrap {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	container-type: size;
+	background: var(--lux-muted);
+}
+.selection-surface {
+	position: relative;
+	touch-action: none;
+	cursor: crosshair;
+}
+.selection-surface img {
+	width: 100%;
+	display: block;
+	user-select: none;
+}
+.selection-surface .mask-preview {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.prompt-point {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	border: 2px solid white;
+	background: var(--lux-primary);
+	color: white;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	display: grid;
+	place-content: center;
+	font-weight: 700;
+	font-size: 13px;
+	pointer-events: none;
+}
+.prompt-point.negative {
+	background: var(--lux-destructive);
+}
+.selection-box {
+	position: absolute;
+	border: 2px solid var(--lux-primary);
+	background: color-mix(in srgb, var(--lux-primary) 15%, transparent);
+	pointer-events: none;
+}
+.controls {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	width: 404px;
+	flex-shrink: 0;
+	overflow-y: auto;
+	padding: 0 8px 0 24px;
+	border-left: 2px solid var(--lux-border);
+	text-align: left;
+}
+.title-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.sidebar-header h1 {
+	font-size: 24px;
+	font-weight: 700;
+}
+.controls h2 {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+.controls section {
+	padding-bottom: 20px;
+	border-bottom: 1px solid var(--lux-border);
+}
+.muted {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--lux-muted-foreground);
+	margin: 8px 0 12px;
+}
+.sidebar-header .muted {
+	margin-bottom: 0;
+}
+.button-row,
+.segmented {
+	display: flex;
+	gap: 8px;
+}
+.segmented {
+	margin: 12px 0;
+}
+.button-row > button,
+.segmented > button {
+	flex: 1;
+}
+.toggle-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	font-size: 14px;
+	padding: 8px 0;
+}
+.metrics-bar {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 12px;
+}
+.metrics-bar div,
+.stage-grid div {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.metrics-bar span,
+.metrics-bar small {
+	font-size: 11px;
+	color: var(--lux-muted-foreground);
+}
+.metrics-bar strong {
+	font-size: 16px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.metrics-bar small {
+	display: block;
+	font-weight: 400;
+}
+.footnote,
+.runtime-details p {
+	font-size: 12px;
+	color: var(--lux-muted-foreground);
+	line-height: 1.5;
+	margin: 10px 0;
+}
+.runtime-details summary {
+	font-size: 13px;
+	cursor: pointer;
+}
+.stage-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+	margin: 12px 0;
+	font-size: 12px;
+}
+.status-card {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 12px;
+	color: var(--lux-muted-foreground);
+	margin-top: auto;
+}
+.status-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--lux-success);
+	flex-shrink: 0;
+}
+.spinner {
+	width: 13px;
+	height: 13px;
+	border: 2px solid var(--lux-border);
+	border-top-color: var(--lux-primary);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	flex-shrink: 0;
+}
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+.error {
+	font-size: 13px;
+	color: var(--lux-destructive);
+	overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+	.app-shell {
+		height: auto;
+		min-height: 100dvh;
+		padding: 16px;
+	}
+	.workspace {
+		flex-direction: column;
+		gap: 20px;
+	}
+	.camera-column {
+		flex: none;
+		height: 55dvh;
+		min-height: 260px;
+	}
+	.controls {
+		width: 100%;
+		overflow: visible;
+		border-left: 0;
+		border-top: 2px solid var(--lux-border);
+		padding: 20px 0 0;
+	}
+}
+
+.selection-disabled {
+	cursor: not-allowed;
+}
+.selection-expired {
+	font-size: 13px;
+	line-height: 1.5;
+	margin-top: 12px;
+	color: var(--lux-destructive);
+}

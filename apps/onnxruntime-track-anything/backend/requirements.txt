@@ -1,0 +1,5 @@
+depthai==3.10.0
+depthai-nodes==0.7.0
+numpy>=1.26,<3
+opencv-python-headless==4.10.0.84
+onnx==1.22.0

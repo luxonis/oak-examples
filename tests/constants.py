@@ -57,6 +57,10 @@ KNOWN_FAILING = {
             ],
         },
     },
+    "apps/onnxruntime-track-anything": {
+        "reason": "Not supported for peripheral; RVC4 only app",
+        "rules": {"and": [{"platform": ["rvc2"]}]},
+    },
     "apps/ros/ros-driver-basic": {
         "reason": "Needs ros base image",
         "rules": {"and": [{"mode": ["peripheral"]}]},
