@@ -15,7 +15,7 @@ The UI provides controls for:
 
 ## Demo
 
-TODO: Add a demo GIF.
+![track_anything](media/track_anything.gif)
 
 ## Architecture
 
