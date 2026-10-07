@@ -43,6 +43,7 @@ type StreamMedia = {
 
 const VIDEO_TOPIC = 'Video';
 const RESET_IMAGE_VIEW_EVENT = 'visualizer:image-reset-zoom';
+const IMAGE_VIEW_STATE_EVENT = 'visualizer:image-zoom-state';
 
 function decodePayload(response: unknown): unknown {
 	let payload = response;
@@ -126,6 +127,7 @@ function App() {
 		null,
 	);
 	const [configLoaded, setConfigLoaded] = useState(false);
+	const [streamViewMoved, setStreamViewMoved] = useState(false);
 	const { toast } = useToast();
 	const topicGroups = useMemo(() => ({ images: VIDEO_TOPIC }), []);
 	const allowedTopics = useMemo(() => [VIDEO_TOPIC], []);
@@ -322,11 +324,36 @@ function App() {
 				detail: { topic: VIDEO_TOPIC },
 			}),
 		);
+		setStreamViewMoved(false);
 		toast({
 			description: 'Stream view reset',
 			colorVariant: 'success',
 		});
 	}, [toast]);
+
+	useEffect(() => {
+		const handleImageViewState = (event: Event) => {
+			const { topic, isZoomed } =
+				(event as CustomEvent<{ topic?: string; isZoomed?: boolean }>).detail ??
+				{};
+
+			if (topic === VIDEO_TOPIC) {
+				setStreamViewMoved(Boolean(isZoomed));
+			}
+		};
+
+		window.addEventListener(
+			IMAGE_VIEW_STATE_EVENT,
+			handleImageViewState as EventListener,
+		);
+
+		return () => {
+			window.removeEventListener(
+				IMAGE_VIEW_STATE_EVENT,
+				handleImageViewState as EventListener,
+			);
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!isDrawing) return;
@@ -493,6 +520,8 @@ function App() {
 				<ImageUploader
 					onDrawBBox={handleBeginBBoxDraw}
 					onResetView={handleResetStreamView}
+					resetViewDisabled={!streamViewMoved}
+					drawBBoxDisabled={streamViewMoved}
 				/>
 
 				<SectionTitle>Confidence Filter</SectionTitle>

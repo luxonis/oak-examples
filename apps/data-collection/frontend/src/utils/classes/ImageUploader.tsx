@@ -6,9 +6,16 @@ import { postToDataCollectionService } from '../../services.ts';
 type Props = {
 	onDrawBBox?: () => void;
 	onResetView?: () => void;
+	resetViewDisabled?: boolean;
+	drawBBoxDisabled?: boolean;
 };
 
-export function ImageUploader({ onDrawBBox, onResetView }: Props) {
+export function ImageUploader({
+	onDrawBBox,
+	onResetView,
+	resetViewDisabled,
+	drawBBoxDisabled,
+}: Props) {
 	const connection = useDaiConnection();
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const { toast } = useToast();
@@ -90,7 +97,12 @@ export function ImageUploader({ onDrawBBox, onResetView }: Props) {
 					Important: Use Reset View before drawing if the stream is zoomed or
 					panned.
 				</span>
-				<Button className="w-full" variant="outline" onClick={onResetView}>
+				<Button
+					className="w-full"
+					variant="outline"
+					onClick={onResetView}
+					disabled={resetViewDisabled}
+				>
 					Reset View
 				</Button>
 			</div>
@@ -117,6 +129,7 @@ export function ImageUploader({ onDrawBBox, onResetView }: Props) {
 				<span className="text-muted-foreground">or</span>
 				<Button
 					variant="outline"
+					disabled={drawBBoxDisabled}
 					onClick={() => {
 						console.log('[BBox] Button clicked: enabling drawing overlay');
 						onDrawBBox?.();
