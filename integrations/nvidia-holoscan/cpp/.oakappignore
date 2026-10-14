@@ -1,0 +1,10 @@
+# Build artifacts
+build/
+
+# Documentation
+README.md
+
+# VCS
+.git/
+.github/
+.gitlab/
