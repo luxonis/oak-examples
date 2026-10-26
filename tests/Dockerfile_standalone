@@ -8,6 +8,9 @@ ENV PYTHON_VERSION_ENV=""
 ENV LOG_LEVEL="INFO"
 ENV ROOT_DIR="."
 ENV STRICT_MODE="no"
+ENV PATH="/root/.local/bin:${PATH}"
+# Keep container data outside the host directory mounted by HIL.
+ENV OAKCTL_DATA_DIR="/opt/oakctl"
 
 # Install Virtual Display
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,8 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     udev \
     ca-certificates \
+    curl \
     && rm -rf /var/lib/apt/lists/*
-    
+
+RUN curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh -o /tmp/oakctl-installer.sh \
+    && VERSION=0.31.1 bash /tmp/oakctl-installer.sh --no-modify-path --skip-usbd --skip-udev \
+    && rm /tmp/oakctl-installer.sh
+
 # Copy your project files into the container
 # If running inside GH Actions/HIL syncs, files are mounted; otherwise copy.
 # COPY . /tmp/oak-examples
@@ -40,7 +48,6 @@ ENTRYPOINT ["sh", "-c", "\
     fi && \
     echo 'Installing dependencies...' && \
     pip install --no-cache-dir -r tests/requirements.txt && \
-    /root/.local/share/oakctl/oakctl self-update -v $(/root/.local/share/oakctl/oakctl version) &&\
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
         --depthai-version=${DAI_VERSION} \
