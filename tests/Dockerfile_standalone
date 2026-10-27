@@ -40,7 +40,7 @@ ENTRYPOINT ["sh", "-c", "\
     fi && \
     echo 'Installing dependencies...' && \
     pip install --no-cache-dir -r tests/requirements.txt && \
-    /root/.local/share/oakctl/oakctl self-update -v $(/root/.local/share/oakctl/oakctl version) &&\
+    /root/.local/share/oakctl self-update -v $(/root/.local/share/oakctl version) &&\
     echo 'Running tests...' && \
     pytest -v -r a --log-cli-level=${LOG_LEVEL} --log-file=out.log --color=yes \
         --depthai-version=${DAI_VERSION} \
