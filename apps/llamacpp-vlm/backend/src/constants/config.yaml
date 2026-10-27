@@ -16,7 +16,7 @@ runtime:
   flash_attention: auto # auto, on, or off.
   fit: true # Allow llama.cpp to adjust unset parameters to available memory.
   context_shift: false
-  cache_ram_mb: 8192 # llama.cpp prompt-cache budget; 0 disables this cache.
+  cache_ram_mb: 0 # Disable RAM prompt cache by default on OAK4.
   # Dynamic vision-token bounds, independent of the app's image max_edge.
   image_min_tokens: 8
   image_max_tokens: 4096
