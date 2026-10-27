@@ -1,6 +1,8 @@
 ARG PYTHON_VERSION=3.10
 FROM python:${PYTHON_VERSION}
 
+ARG OAKCTL_VERSION=""
+
 ENV PLATFORM=""
 ENV DAI_VERSION=""
 ENV DAI_NODES_VERSION=""
@@ -22,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh -o /tmp/oakctl-installer.sh \
-    && VERSION=0.31.1 bash /tmp/oakctl-installer.sh --no-modify-path --skip-usbd --skip-udev \
+    && VERSION="${OAKCTL_VERSION}" bash /tmp/oakctl-installer.sh --no-modify-path --skip-usbd --skip-udev \
     && rm /tmp/oakctl-installer.sh
 
 # Copy your project files into the container
