@@ -2,11 +2,11 @@
 
 ## Summary
 
-This is the repository reference for Luxonis `NeuralDepth` running directly on RVC4 hardware. Use it when you need the built-in NeuralDepth node and its runtime controls rather than a host-run stereo model.
+This example runs native Luxonis `NeuralDepth` or Model Zoo Lite Any Stereo V2 on RVC4 hardware, with matching depth and disparity frame formats. Use it for live neural stereo and native NeuralDepth runtime controls.
 
 ## Use This Example When
 
-- You need `dai.node.NeuralDepth`.
+- You need `dai.node.NeuralDepth` or LAS2 with a common output interface.
 - You want to inspect disparity, confidence, and edge outputs together.
 - You need keyboard-driven runtime control over the node configuration.
 
@@ -27,8 +27,8 @@ This is the repository reference for Luxonis `NeuralDepth` running directly on R
 - `Runs on:` RVC4 only
 - `Requires:` stereo mono pair on `CAM_B/C`
 - `Input:` full-resolution stereo camera pair
-- `Output:` `Disparity`, `Confidence`, `Edge`, and `Controls`
-- `Models:` `NeuralDepth` device-zoo models selected through `--model`
+- `Output:` `Depth`, `Disparity`, `Depth Raw`, `Disparity Raw`; native-only `Confidence`, `Edge`, `Controls`
+- `Models:` `--backend native|las2`, with backend-specific `--model`; native defaults to `LARGE`, LAS2 to `l-fp16-1280x800`
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
 ## Read First
@@ -37,19 +37,26 @@ This is the repository reference for Luxonis `NeuralDepth` running directly on R
 - [main.py](main.py)
 - [utils/manual_camera_control.py](utils/manual_camera_control.py)
 - [utils/arguments.py](utils/arguments.py)
+- [utils/las2.py](utils/las2.py)
+- [test_outputs.py](test_outputs.py)
 - [oakapp.toml](oakapp.toml)
 
 ## Architecture
 
-- Two full-resolution mono camera outputs feed `dai.node.NeuralDepth`.
+- Native mode feeds full-resolution grayscale stereo outputs into `dai.node.NeuralDepth`.
+- LAS2 uses Sync → MessageDemux → Rectification → ParsingNeuralNetwork, followed by a host adapter synchronized with the NN left passthrough. The archive determines the rectified resolution.
+- Both expose RAW16 disparity scaled by 16 and RAW16 depth in millimeters, referenced to the rectified left camera. LAS2 derives focal length from frame transformation metadata and uses calibrated translation (centimeters converted to millimeters), matching native geometry. Do not normalize the raw disparity map or derive focal length from unrectified intrinsics.
+- Invalid LAS2 disparity maps to zero; conversion saturates uint16 overflow. Preserve frame geometry, timestamps and sequence numbers when adapting output.
 - [utils/manual_camera_control.py](utils/manual_camera_control.py) owns the runtime config input queue and keyboard control overlay.
-- `ApplyDepthColormap` visualizes disparity, while `ApplyColormap` visualizes confidence and edge outputs.
+- `ApplyDepthColormap` visualizes depth and disparity; native-only `ApplyColormap` visualizes confidence and edge. LAS2 has no confidence/edge outputs or native runtime controls.
 
 ## Constraints
 
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - This example is live-camera only; there is no replay input path.
-- Runtime behavior depends on the control bindings implemented in [utils/manual_camera_control.py](utils/manual_camera_control.py).
+- Native runtime behavior depends on [utils/manual_camera_control.py](utils/manual_camera_control.py).
+- Native model choices are derived from `DeviceModelZoo.__members__`; retain legacy aliases. LAS2 choices are the published variants in [utils/arguments.py](utils/arguments.py).
+- LAS2 model downloads require internet on first use. Output processing runs on the host in peripheral mode and locally in the OAK App in standalone mode.
 
 ## Related Examples
 
@@ -59,6 +66,6 @@ This is the repository reference for Luxonis `NeuralDepth` running directly on R
 
 ## Validation
 
-- `Run:` `python3 main.py`
-- `Success looks like:` the Visualizer shows `Disparity`, `Confidence`, `Edge`, and `Controls`, and keyboard input updates the control overlay
+- `Run:` `python3 main.py -d <IP>` and `python3 main.py --backend las2 -d <IP>`
+- `Success looks like:` both backends show depth/disparity and raw frames; native additionally shows confidence, edge, and responsive controls
 - `Common failure meaning:` the device is not RVC4, stereo cameras are unavailable, or the chosen NeuralDepth model is incompatible with the hardware
