@@ -14,7 +14,8 @@ message(STATUS "Found depthai: ${depthai_DIR}")
 add_executable(main src/main.cpp)
 
 # Link with libraries
-target_link_libraries(main PUBLIC depthai::core)
+target_link_libraries(main PUBLIC depthai::core
+)
 
 # Suppress warnings about C++17 ABI in GCC 10.1+
 target_compile_options(main PRIVATE -Wno-psabi)
