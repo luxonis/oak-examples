@@ -1,5 +1,6 @@
 import logging
 import signal
+from datetime import timedelta
 
 import depthai as dai
 
@@ -121,16 +122,26 @@ with dai.Pipeline(device) as pipeline:
         )
     )
 
+    sync = pipeline.create(dai.node.Sync)
+    sync.setRunOnHost(True)
+    sync.setTimestampSource(dai.node.Sync.TimestampSource.DEVICE)
+    sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
+    det_process_filter.out.link(sync.inputs["detections"])
+    cam_out.link(sync.inputs["rgb"])
+    depth.depth.link(sync.inputs["depth"])
+
     # Annotation node
     annotation_node = pipeline.create(AnnotationNode).build(
-        det_process_filter.out,
-        cam_out,
-        depth.depth,
+        sync.out,
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
 
     # RGBD node for the segmented PCL
     rgbd_seg = pipeline.create(dai.node.RGBD).build()
+    # Its internal Sync must accept the same pairs and clock as the upstream Sync.
+    rgbd_sync = rgbd_seg.inColor.getParent()
+    rgbd_sync.setSyncThreshold(sync.getSyncThreshold())
+    rgbd_sync.setTimestampSource(sync.getTimestampSource())
     annotation_node.out_segm.link(rgbd_seg.inColor)
     annotation_node.out_segm_depth.link(rgbd_seg.inDepth)
 

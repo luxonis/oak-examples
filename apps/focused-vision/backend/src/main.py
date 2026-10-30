@@ -11,7 +11,6 @@ from depthai_nodes.node import (
     ExtendedNeuralNetwork,
     FrameCropper,
     GatherData,
-    CoordinatesMapper,
     ParsingNeuralNetwork,
     Tiling,
 )
@@ -131,18 +130,19 @@ with dai.Pipeline(device) as pipeline:
     ).build(
         inputImage=rgb_high_res_out,
     )
+    face_det_coordinates_mapper = pipeline.create(dai.node.Align)
+    face_det_coordinates_mapper.input.setBlocking(True)
+    face_det_coordinates_mapper.inputAlignTo.setWaitForMessage(False)
+    face_det_nn.out.link(face_det_coordinates_mapper.input)
+    rgb_high_res_out.link(face_det_coordinates_mapper.inputAlignTo)
     face_det_collector = pipeline.create(GatherData).build(
-        inputData=face_det_nn.out,
+        inputData=face_det_coordinates_mapper.outputAligned,
         inputReference=largest_people_detection_cropped.out,
         cameraFps=args.fps_limit,
     )
-    face_det_coordinates_mapper = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=rgb_high_res_out,
-        fromTransformationInput=face_det_collector.out,
-    )
     face_detection_2_stage = pipeline.create(
         host_nodes.FaceDetectionFromCollection
-    ).build(node_out=face_det_coordinates_mapper.out)
+    ).build(node_out=face_det_collector.out)
     switch_2_stage = host_nodes.Switch().build(
         face_detection_2_stage.out, rgb_high_res_out
     )
@@ -189,19 +189,20 @@ with dai.Pipeline(device) as pipeline:
         input=frame_cropper_tiling.out,
         nnSource=nn_source,
     )
+    face_detection_tiling_remapper = pipeline.create(dai.node.Align)
+    face_detection_tiling_remapper.input.setBlocking(True)
+    face_detection_tiling_remapper.inputAlignTo.setWaitForMessage(False)
+    face_detection_nn_tiling.out.link(face_detection_tiling_remapper.input)
+    rgb_high_res_out.link(face_detection_tiling_remapper.inputAlignTo)
     face_detection_tiling_collector = pipeline.create(GatherData).build(
-        inputData=face_detection_nn_tiling.out,
+        inputData=face_detection_tiling_remapper.outputAligned,
         inputReference=rgb_high_res_out,
         cameraFps=args.fps_limit,
         waitCountFn=lambda _: tiling.tileCount,
     )
-    face_detection_tiling_remapper = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=rgb_high_res_out,
-        fromTransformationInput=face_detection_tiling_collector.out,
-    )
     face_detections_tiling_merged = pipeline.create(
         host_nodes.MergeImgDetections
-    ).build(collection_out=face_detection_tiling_remapper.out)
+    ).build(collection_out=face_detection_tiling_collector.out)
     face_detection_tiling_filter = (
         pipeline.create(ImgDetectionsFilter)
         .minConfidence(

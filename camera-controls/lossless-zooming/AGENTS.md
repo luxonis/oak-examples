@@ -44,6 +44,9 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Architecture
 
+- A device Script forwards only source dimensions, transformation, and timing metadata to the crop-control host node; image pixels stay on the existing image branches. Create its empty message with `ImgFrame(0)` because RVC2 Script bindings require an explicit payload size.
+- CropFace's host Sync explicitly uses device timestamps: RVC2 Script timestamp getters expose device time, whereas NN detections also carry converted host timestamps.
+- CropFace remaps detections to the synchronized source frame and uses its actual dimensions. The crop center stays inside the source; smaller replay frames use the available area and resize it to the output size.
 - The example starts from a live camera or a replayed video file.
 - A preprocessing `ImageManip` resizes frames into the detector input size.
 - A `ParsingNeuralNetwork` runs YuNet face detection.
@@ -61,7 +64,7 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 ## Modification Guide
 
 - `Safe to change:` target crop size, averaging window, default FPS, topic names, replay usage
-- `Requires care:` hardcoded source-size assumptions, first-detection-only behavior, `ImageManipConfig` timing, replay-versus-camera frame types
+- `Requires care:` source-frame transformation metadata, first-detection-only behavior, `ImageManipConfig` timing, replay-versus-camera frame types
 - `Likely to break if changed blindly:` crop synchronization, crop-size normalization, or platform-specific frame-type handling
 
 ## Common Adaptations
@@ -73,7 +76,7 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Constraints
 
-- The crop logic assumes a source size of `3840x2880` and a target size of `1920x1088`.
+- The camera requests `3840x2880`; crop normalization uses actual source dimensions. The target output defaults to `1920x1088`, and smaller sources require upscaling.
 - Only the first detected face is used for zooming.
 - When no face is detected, `CropFace` sends `setSkipCurrentImage(True)` and the crop branch intentionally skips that frame.
 - In standalone mode, the default packaged path uses camera input; `--media_path` is mainly a peripheral-mode workflow unless you edit the app config.
@@ -94,8 +97,9 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Validation
 
+- `Geometry checks:` Replay a non-3840x2880 video and test faces at each edge. Verify the crop stays centered as far as its bounds allow and output metadata follows the detections.
 - `Run:` `python3 main.py`
 - `Media replay run:` `python3 main.py --media_path <PATH_TO_VIDEO>`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows the detector-view `Video`, face `Visualizations`, and a stable `Cropped Face` stream that follows the detected face
-- `Common failure meaning:` the source resolution does not match the crop assumptions, no face is being detected, or crop-config timing drifted from the source frames
+- `Common failure meaning:` source transformation metadata is missing, no face is being detected, or crop-config timing drifted from the source frames

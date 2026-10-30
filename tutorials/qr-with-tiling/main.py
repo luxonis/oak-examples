@@ -2,7 +2,6 @@ from pathlib import Path
 
 import depthai as dai
 from depthai_nodes.node import (
-    CoordinatesMapper,
     FrameCropper,
     GatherData,
     ImgDetectionsFilter,
@@ -80,13 +79,8 @@ with dai.Pipeline(device) as pipeline:
         input=tiling_cropper.out, nnSource=nn_archive
     )
 
-    detections_in_image_space = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=cam_out,
-        fromTransformationInput=nn.out,
-    )
-
     gathered_detections = pipeline.create(GatherData).build(
-        inputData=detections_in_image_space.out,
+        inputData=nn.out,
         inputReference=cam_out,
         cameraFps=args.fps_limit,
         waitCountFn=lambda _: tile_manager.tileCount,

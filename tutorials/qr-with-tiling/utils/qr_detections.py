@@ -43,6 +43,5 @@ class QRDetections(dai.Buffer):
             txt_annot.backgroundColor = dai.Color(0.0, 1.0, 0.0)
             img_annot.texts.append(txt_annot)
         img_annots.annotations.append(img_annot)
-        img_annots.setTimestamp(self.getTimestamp())
-        img_annots.setSequenceNum(self.getSequenceNum())
+        img_annots.setBufferMetadataFrom(self)
         return img_annots

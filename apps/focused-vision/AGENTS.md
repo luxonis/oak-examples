@@ -47,6 +47,8 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 ## Architecture
 
+- Align caches the latest target transformation with `inputAlignTo.setWaitForMessage(False)`, allowing every tile/crop to emit without waiting for another camera frame. Its detection input uses `input.setBlocking(True)` so bursts apply backpressure instead of dropping crop results before collection.
+- In the two-stage and tiling branches, dai.node.Align remaps each native face-detection message to high-resolution RGB before GatherData. The collection adapters retain their existing reference and crop association; containers are never passed to Align.
 - The backend builds one RGB camera source and splits it into high-resolution and low-resolution outputs.
 - The naive branch runs face detection directly on low-resolution RGB and crops the largest detected face.
 - The 2-stage branch runs person detection, crops a high-resolution person region, remaps coordinates, then runs face detection on that crop.
@@ -95,6 +97,7 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 ## Validation
 
+- `Geometry checks:` Compare all three branches with off-center faces and altered crop padding, letterboxing, or rotation. Check zero detections and multiple tiles without changing reference/crop association.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows the RGB preview plus three comparison outputs for naive, 2-stage, and tiling approaches
 - `Common failure meaning:` the app is running on a non-RVC4 platform, the expected bundled models are missing, or the frontend topic expectations no longer match the backend outputs

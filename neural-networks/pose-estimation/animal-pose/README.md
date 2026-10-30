@@ -4,6 +4,8 @@ This example demonstrates how to build a 2-stage DepthAI pipeline for detecting 
 
 **NOTE**: The example currently works only on RVC2 as there are some problems on RVC4.
 
+Each native Keypoints message is transformed to the first-stage detections frame before drawing. Annotation geometry comes from the actual crop transformation, independently of crop padding, and source metadata is preserved.
+
 ## Demo
 
 [![Animal detection and pose estimation](media/cow-walking.gif)](media/cow-walking.gif)

@@ -41,6 +41,9 @@ This is the repository reference for hand pose plus gesture recognition. Use it 
 
 ## Architecture
 
+- Crop configs and their MessageGroup preserve both timestamps and the sequence number with `setBufferMetadataFrom`; FrameCropper synchronizes them to camera frames using device timestamps.
+
+- Native Keypoints and palm detections are transformed to the displayed source frame before drawing and gesture recognition. The hand rectangle is remapped from the actual crop extent, including rotation; annotation metadata follows the original detections.
 - Palm detection runs first on the full frame.
 - [utils/process.py](utils/process.py) turns detections into crop configs for the hand landmark model.
 - `FrameCropper` extracts hand crops, and a second `ParsingNeuralNetwork` predicts landmarks.
@@ -60,6 +63,7 @@ This is the repository reference for hand pose plus gesture recognition. Use it 
 
 ## Validation
 
+- `Geometry checks:` Check multiple hands, rotated/clipped crops, letterboxing, and a second source resolution. Landmarks, crop rectangles, gesture labels, handedness, and per-crop confidence must stay associated.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows hand detections and pose overlays, and gesture logic reacts to visible hands
 - `Common failure meaning:` palm detection is unstable, crops are misaligned, or the run is too heavy for the target device/FPS

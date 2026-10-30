@@ -19,16 +19,13 @@ class AnnotationNode(dai.node.HostNode):
         self.out_pose_annotations = self.createOutput()
 
         self.connection_pairs = [[]]
-        self.padding = 0.2
 
     def build(
         self,
         gathered_data: dai.Node.Output,
         connection_pairs: List[List[int]],
-        padding: float,
     ) -> "AnnotationNode":
         self.connection_pairs = connection_pairs
-        self.padding = padding
         self.link_args(gathered_data)
         return self
 
@@ -40,28 +37,15 @@ class AnnotationNode(dai.node.HostNode):
 
         annotation_helper = AnnotationHelper()
 
-        padding = self.padding
-
         for ix, detection in enumerate(detections_list):
-            keypoints_msg: Keypoints = gathered_data.items[ix]
-
-            slope_x = (detection.xmax + padding) - (detection.xmin - padding)
-            slope_y = (detection.ymax + padding) - (detection.ymin - padding)
+            keypoints_msg: Keypoints = gathered_data.items[ix].transformTo(
+                detections_message.getTransformation()
+            )
             xs = []
             ys = []
             for kp in keypoints_msg.getKeypoints():
-                x = min(
-                    max(
-                        detection.xmin - padding + slope_x * kp.imageCoordinates.x, 0.0
-                    ),
-                    1.0,
-                )
-                y = min(
-                    max(
-                        detection.ymin - padding + slope_y * kp.imageCoordinates.y, 0.0
-                    ),
-                    1.0,
-                )
+                x = kp.imageCoordinates.x
+                y = kp.imageCoordinates.y
                 xs.append(x)
                 ys.append(y)
 
@@ -93,4 +77,6 @@ class AnnotationNode(dai.node.HostNode):
             timestamp=detections_message.getTimestamp(),
             sequence_num=detections_message.getSequenceNum(),
         )
+        annotations.setBufferMetadataFrom(detections_message)
+        annotations.setTransformation(detections_message.getTransformation())
         self.out_pose_annotations.send(annotations)

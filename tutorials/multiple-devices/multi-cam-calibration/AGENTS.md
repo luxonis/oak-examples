@@ -42,6 +42,7 @@ This is the repository reference for generating per-device extrinsic calibration
 
 ## Architecture
 
+- The still frame supplies its actual transformation and intrinsics for pose estimation. Projected axes are remapped to the current preview with ImgTransformation.remapPointTo(), preserving crops, aspect ratio, and distortion differences. This is same-camera image remapping; saved world-frame conventions are unchanged.
 - [main.py](main.py) discovers multiple devices, creates one pipeline per device, and cycles calibration focus with keyboard input.
 - [utils/calibration_node.py](utils/calibration_node.py) requests a `3840x2160` still, finds checkerboard corners, runs `solvePnP`, and saves the resulting transforms.
 - The saved outputs include `world_to_cam`, `cam_to_world`, the original `rvec` and `tvec`, and the still-image intrinsics used for the solve.
@@ -62,6 +63,7 @@ This is the repository reference for generating per-device extrinsic calibration
 
 ## Validation
 
+- `Geometry checks:` Capture a checkerboard away from the center, change preview aspect ratio/resolution, and confirm the axes stay on its origin. Check stored intrinsics against the captured frame transformation.
 - `Run:` `python3 main.py`
 - `Controls:` press `a` to change the selected device and `c` to capture/calibrate
 - `Success looks like:` terminal output reports successful pose estimation and `calibration_data/extrinsics_<MXID>.npz` files appear

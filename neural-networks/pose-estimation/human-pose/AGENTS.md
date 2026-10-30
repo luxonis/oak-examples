@@ -40,6 +40,7 @@ This is the repository reference for person detection plus human pose estimation
 
 ## Architecture
 
+- Each native Keypoints message is transformed to the first-stage detections frame before drawing. Crop padding is used only by FrameCropper; annotations use the actual crop transformation and preserve source metadata.
 - A person detector runs first.
 - `ImgDetectionsFilter` identifies the `person` class for the pose workflow.
 - `FrameCropper` extracts padded person crops for Lite-HRNet.
@@ -59,6 +60,7 @@ This is the repository reference for person detection plus human pose estimation
 
 ## Validation
 
+- `Geometry checks:` Check multiple people, edge-clipped crops, letterboxing, rotation, and a second source resolution. Each skeleton must remain associated with its crop.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `Video`, `Detections`, and `Pose`, and visible people receive skeleton overlays
 - `Common failure meaning:` the detector is not stably finding people, crop generation drifted, or the selected pose model does not match the parser assumptions

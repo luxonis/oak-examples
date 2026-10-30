@@ -41,6 +41,7 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 
 ## Architecture
 
+- The native Keypoints message is transformed to the first-stage detection frame before drawing its projected cuboid. This remaps image coordinates while retaining Objectron model outputs and source metadata.
 - A first-stage YOLOv6 detector runs on camera or replay input.
 - `ImgDetectionsFilter` keeps only `VALID_LABELS = [56]`, which is the COCO `chair` label in the current code.
 - `FrameCropper` extracts padded chair crops for the Objectron model.
@@ -50,7 +51,7 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 ## Constraints
 
 - Despite the README’s broader Objectron framing, the current repo state is chair-only.
-- `PADDING = 0.2` is baked into both crop generation and annotation reprojection.
+- `PADDING = 0.2` controls crop generation; annotation reprojection reads each crop transformation.
 - Default FPS is intentionally low on RVC2 and lower than many detection examples because this is a two-stage geometry workflow.
 
 ## Related Examples
@@ -61,6 +62,7 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 
 ## Validation
 
+- `Geometry checks:` Check offset, padded, rotated, and clipped chair crops at two source resolutions; projected cuboids must follow their original chair detections.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `Video` and `Position`, and detected chairs receive 3D keypoint/box overlays
 - `Common failure meaning:` the detector is not finding chairs, the wrong platform model is being used, or replay media does not match the expected frame type

@@ -6,6 +6,8 @@ As an alternative you can use the end-to-end [YOLOv8 Nano Pose Estimation](https
 
 There are 4 models available for the [Lite-HRNet models](https://models.luxonis.com/luxonis/lite-hrnet/c7c9e353-9f6d-43e1-9b45-8edeae82db70). If you choose to use a different model please adjust `fps_limit` accordingly.
 
+Each native Keypoints message is transformed to the first-stage detections frame before drawing. Crop padding is used only by FrameCropper; annotations use the actual crop transformation and preserve source metadata.
+
 ## Demo
 
 [![Human pose estimation](media/dance.gif)](media/dance.gif)
