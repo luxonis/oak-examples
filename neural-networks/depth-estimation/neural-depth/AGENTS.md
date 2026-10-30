@@ -27,7 +27,7 @@ This example runs native Luxonis `NeuralDepth` or Model Zoo Lite Any Stereo V2 o
 - `Runs on:` RVC4 only
 - `Requires:` stereo mono pair on `CAM_B/C`
 - `Input:` full-resolution stereo camera pair
-- `Output:` `Depth`, `Disparity`, `Depth Raw`, `Disparity Raw`; native-only `Confidence`, `Edge`, `Controls`
+- `Output:` colorized `Depth` and `Disparity`; native-only `Confidence`, `Edge`, `Controls`
 - `Models:` `--backend native|las2`, with backend-specific `--model`; native defaults to `LARGE`, LAS2 to `l-fp16-1280x800`
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
@@ -38,7 +38,6 @@ This example runs native Luxonis `NeuralDepth` or Model Zoo Lite Any Stereo V2 o
 - [utils/manual_camera_control.py](utils/manual_camera_control.py)
 - [utils/arguments.py](utils/arguments.py)
 - [utils/las2.py](utils/las2.py)
-- [test_outputs.py](test_outputs.py)
 - [oakapp.toml](oakapp.toml)
 
 ## Architecture
@@ -67,5 +66,5 @@ This example runs native Luxonis `NeuralDepth` or Model Zoo Lite Any Stereo V2 o
 ## Validation
 
 - `Run:` `python3 main.py -d <IP>` and `python3 main.py --backend las2 -d <IP>`
-- `Success looks like:` both backends show depth/disparity and raw frames; native additionally shows confidence, edge, and responsive controls
+- `Success looks like:` both backends show colorized depth and disparity; native additionally shows confidence, edge, and responsive controls
 - `Common failure meaning:` the device is not RVC4, stereo cameras are unavailable, or the chosen NeuralDepth model is incompatible with the hardware
