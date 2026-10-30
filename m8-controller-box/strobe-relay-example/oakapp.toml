@@ -1,0 +1,39 @@
+identifier = "com.example.object-detection.fsync-relay-barcode"
+app_version = "1.0.0"
+
+allowed_devices = [{ allow = true, access = "rwm" }]
+
+# Install dependencies and run system-level commands
+prepare_container = [
+    # system packages
+    { type = "RUN", command = "apt-get update" },
+    { type = "RUN", command = "apt-get install -y python3 python3-pip libzbar0 libzbar-dev libhidapi-hidraw0 libhidapi-libusb0 git gpiod" },
+
+    # python dependencies
+    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
+    { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages" },
+]
+
+build_steps = [
+    "mkdir -p /etc/service/backend",
+    "cp /app/backend-run.sh /etc/service/backend/run",
+    "chmod +x /etc/service/backend/run",
+    "chmod +x /app/backend-run.sh",
+]
+
+additional_mounts = [
+    { source = "/dev", target = "/dev", type = "devtmpfs", options = [
+        "mode=777",
+    ] },
+]
+
+entrypoint = ["bash", "-c", "/usr/bin/runsvdir -P /etc/service"]
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.6"
