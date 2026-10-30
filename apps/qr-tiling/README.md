@@ -16,6 +16,12 @@ This application demonstrates high-resolution QR code detection using dynamic im
 
 ______________________________________________________________________
 
+dai.node.Align remaps each native tile detection to the high-resolution QR-decoder frame before MessageCollector, merge, and NMS. The merged message inherits the aligned leaf transformation because Collection has no transformation of its own.
+
+The tile grid remaps each corner from the actual high-resolution frame transformation to the display frame, including rotated/cropped views.
+
+Align caches the latest target transformation with `inputAlignTo.setWaitForMessage(False)`, allowing every tile/crop to emit without waiting for another camera frame. Its detection input uses `input.setBlocking(True)` so bursts apply backpressure instead of dropping crop results before collection.
+
 ## Features
 
 - **Dynamic tiling for high-resolution detection**

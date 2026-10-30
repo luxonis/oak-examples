@@ -16,6 +16,8 @@ Stitching, tiling and YOLO detections run on host computer can be **costly on th
 
 This example is intended as a conceptual demonstration rather than a production-ready implementation. It provides a foundation for users to extend and refine as needed.
 
+The full panorama and resized inference canvas share an explicit virtual-image transformation. The first camera supplies output timestamps/sequence numbers; this does not synchronize devices. MergeImgDetections uses native transformTo() within that virtual image, separately from physical-camera homographies.
+
 ## Demo
 
 ![example](media/stitching.gif)

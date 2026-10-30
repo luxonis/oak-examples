@@ -4,6 +4,10 @@ This example shows how to run the [Deeplabv3+](https://models.luxonis.com/luxoni
 
 > **Note:** This example requires a device with at least 3 cameras (color, left and right) for the default stereo-backed `Depth` path.
 
+The annotation node uses depthai-nodes `remap_message` to resample the native segmentation mask to the undistorted preview, including rotated crops. Depth.setAlignTo targets that same stream. The annotation node requires matching pixel dimensions rather than resizing depth/masks, and derived frames retain preview metadata.
+
+DepthAI 3.11 Align does not preserve arbitrary mask rotations. The shared host remapper is the fallback for same-camera crops, resize, letterbox, and rotation; keep both source and target undistorted.
+
 ## Demo
 
 ![Deeplabv3 Depth GIF](https://user-images.githubusercontent.com/59799831/132396685-c494f21b-8101-4be4-a787-dd382ae6b470.gif)

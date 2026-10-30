@@ -1,7 +1,6 @@
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
-from utils.translate_cropped_detections import TranslateCroppedDetections
 
 _, args = initialize_argparser()
 
@@ -31,12 +30,14 @@ with dai.Pipeline(device) as pipeline:
     cam_out.link(crop_manip.inputImage)
 
     nn = pipeline.create(ParsingNeuralNetwork).build(crop_manip.out, model_description)
-    translate_cropped_dets = pipeline.create(TranslateCroppedDetections).build(
-        nn.out, (640, 480), (512, 288)
-    )
+    translate_cropped_dets = pipeline.create(dai.node.Align)
+    nn.out.link(translate_cropped_dets.input)
+    cam_out.link(translate_cropped_dets.inputAlignTo)
 
     visualizer.addTopic("Full cam FOV (4:3)", cam_out, "full")
-    visualizer.addTopic("Translated Detections", translate_cropped_dets.out, "full")
+    visualizer.addTopic(
+        "Translated Detections", translate_cropped_dets.outputAligned, "full"
+    )
     visualizer.addTopic("Cropped (16:9)", crop_manip.out, "cropped")
     visualizer.addTopic("Original Detections", nn.out, "cropped")
 

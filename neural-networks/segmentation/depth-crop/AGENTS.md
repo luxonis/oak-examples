@@ -40,6 +40,7 @@ This is the repository reference for combining segmentation with unified depth a
 
 ## Architecture
 
+- The annotation node uses depthai-nodes `remap_message` to resample the native segmentation mask to the undistorted preview, including rotated crops. Depth.setAlignTo targets that same stream. The annotation node requires matching pixel dimensions rather than resizing depth/masks, and derived frames retain preview metadata.
 - `CAM_A` provides the RGB source.
 - `Depth` owns depth-source selection and aligns depth back to the color stream.
 - The color stream is resized into the segmentation model input shape.
@@ -47,6 +48,7 @@ This is the repository reference for combining segmentation with unified depth a
 
 ## Constraints
 
+- DepthAI 3.11 Align does not preserve arbitrary mask rotations. The shared host remapper is the fallback for same-camera crops, resize, letterbox, and rotation; keep both source and target undistorted.
 - The example requires three cameras and aligned depth.
 - Output streams are encoded views, not raw tensors.
 - This is semantic segmentation plus depth masking, not object-instance-aware 3D measurement.
@@ -59,6 +61,7 @@ This is the repository reference for combining segmentation with unified depth a
 
 ## Validation
 
+- `Geometry checks:` Try letterboxed and rotated inference inputs and a second preview resolution. Segmentation edges and masked depth must coincide with the preview.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `Segmentation`, `Cutout`, and `Depth`, with the depth view restricted by the segmentation mask
 - `Common failure meaning:` stereo alignment is wrong, the device lacks the required camera topology, or the segmentation mask no longer matches the color/depth projection assumptions

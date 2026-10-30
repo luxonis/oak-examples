@@ -62,9 +62,27 @@ with dai.Pipeline(device) as pipeline:
         image_manip.out, nn_archive
     )
 
+    source_metadata = pipeline.create(dai.node.Script)
+    source_metadata.setScript("""
+while True:
+    source = node.inputs["source"].get()
+    metadata = ImgFrame(0)
+    metadata.setWidth(source.getWidth())
+    metadata.setHeight(source.getHeight())
+    metadata.setTransformation(source.getTransformation())
+    metadata.setTimestamp(source.getTimestamp())
+    metadata.setTimestampDevice(source.getTimestampDevice())
+    metadata.setSequenceNum(source.getSequenceNum())
+    node.outputs["metadata"].send(metadata)
+""")
+    cam_out.link(source_metadata.inputs["source"])
+    source_metadata.outputs["metadata"].setPossibleDatatypes(
+        [(dai.DatatypeEnum.ImgFrame, True)]
+    )
+
     crop_face = pipeline.create(CropFace).build(
         nn_with_parser.out,
-        source_size=(REQ_WIDTH, REQ_HEIGHT),
+        source=source_metadata.outputs["metadata"],
         target_size=(1920, 1088),
     )
 

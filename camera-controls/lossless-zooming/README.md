@@ -1,6 +1,12 @@
 # Lossless Zooming
 
-This example demonstrates how to perform lossless zooming on the device. It will zoom into the first face it detects. It will crop 1080p frames, centered around the face. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
+This example demonstrates how to perform lossless zooming on the device. It will zoom into the first face it detects. It outputs a `1920x1088` crop centered around the face where source bounds allow. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
+
+CropFace remaps detections to the synchronized source frame and uses its actual dimensions. The crop center stays inside the source; smaller replay frames use the available area and resize it to the output size.
+
+A device Script forwards only source dimensions, transformation, and timing metadata to the crop-control host node; image pixels stay on the existing image branches.
+
+The Script uses `ImgFrame(0)` for its empty metadata message, as required by the RVC2 bindings. Crop control synchronizes on device timestamps because RVC2 Script messages expose device-clock timestamps.
 
 ## Demo
 
