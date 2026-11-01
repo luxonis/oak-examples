@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the repository reference for comparing CREStereo neural stereo matching against unified DepthAI depth. Use it when you need a neural stereo model and a `dai.node.Depth` baseline in the same visualizer session.
+This is the repository reference for comparing CREStereo neural stereo matching against calibrated DepthAI stereo depth. Use it when you need a neural stereo model and a `dai.node.StereoDepth` baseline in the same visualizer session.
 
 ## Use This Example When
 
@@ -20,14 +20,14 @@ This is the repository reference for comparing CREStereo neural stereo matching 
 
 - `Category:` `neural-networks/depth-estimation/crestereo-depth-matching`
 - `Shape:` `script+standalone`
-- `Primary task:` compare CREStereo-derived depth with `Depth`
+- `Primary task:` compare CREStereo-derived depth with classical stereo depth
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` stereo-capable RVC2 and RVC4 devices with platform-specific supported model variants
 - `Requires:` `CAM_B/C` stereo pair and supported CREStereo model slug for the platform
 - `Input:` stereo camera pair only
-- `Output:` `Depth` and `CREStereo Depth`
+- `Output:` `Depth`, `CREStereo Depth`, `Rectified Left`, `Rectified Right`
 - `Models:` default CREStereo YAMLs in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
@@ -40,13 +40,16 @@ This is the repository reference for comparing CREStereo neural stereo matching 
 
 ## Architecture
 
-- Stereo mono cameras on `CAM_B` and `CAM_C` feed the CREStereo neural model path; `Depth` owns its own depth-source wiring.
-- `Sync` and `MessageDemux` provide left/right inputs for the CREStereo network.
+- Stereo mono cameras on `CAM_B` and `CAM_C` feed `StereoDepth` with distortion correction, calibrated translation and rectified-left alignment. Its rectified outputs also feed CREStereo, making both matchers use the same geometry.
+- The classical baseline explicitly uses `StereoDepth`, rather than `Depth.AUTO`, to keep this a comparison of matching algorithms on the same input pair.
+- A host `RectifiedColor` node replicates rectified mono into the model color format. `Sync` (5 ms, indefinite attempts) and `MessageDemux` provide paired inputs for CREStereo.
 - The neural path uses `ParsingNeuralNetwork`; RVC4 explicitly sets the `snpe` DSP backend.
-- [utils/disparity_to_depth.py](utils/disparity_to_depth.py) converts CREStereo disparity to depth using calibration before visualization.
+- [utils/disparity_to_depth.py](utils/disparity_to_depth.py) converts CREStereo disparity to depth using the calibrated baseline and actual rectified-left inference passthrough intrinsics before visualization. It checks matching sequences and output dimensions; non-finite, negative and near-zero disparities become invalid (zero depth). Output is RAW16 millimeters.
 - `ApplyDepthColormap` visualizes both metric-depth outputs side by side.
 
 ## Constraints
+
+- `RectifiedColor` runs on the host because RVC4 `ImageManip` cannot convert StereoDepth RAW8 to the model color format. This adds a host round trip, while retaining geometry and metadata.
 
 - Supported model slugs are hardcoded by platform in [main.py](main.py).
 - There is no media replay path; this example is stereo-camera only.
@@ -63,3 +66,7 @@ This is the repository reference for comparing CREStereo neural stereo matching 
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `Depth` and `CREStereo Depth`, and both streams update from the stereo pair
 - `Common failure meaning:` the chosen model is unsupported for the platform, the device lacks stereo cameras, or the requested FPS/model size is too heavy for the hardware
+
+- Confirm both metric-depth streams and rectified previews update. Inspect vertical residuals and validate scale against known distances and off-axis points before claiming accuracy. The model must emit horizontal disparity in input-pixel units at the input resolution.
+
+- The final RVC2 capture streamed both depth outputs at 320×240, then reported a device watchdog crash (error 9001) after the requested shutdown. This teardown issue remains unresolved; the run validates output production, not clean shutdown or long-term stability.

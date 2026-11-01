@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 import cv2
 import depthai as dai
 from depthai_nodes.node import ApplyDepthColormap, ParsingNeuralNetwork
 from utils.arguments import initialize_argparser
 from utils.disparity_to_depth import DisparityToDepth
+from utils.rectified_color import RectifiedColor
 
 _, args = initialize_argparser()
 
@@ -19,14 +22,10 @@ supported_models = {
     "RVC2": ["luxonis/crestereo:iter2-160x120", "luxonis/crestereo:iter2-320x240"],
     "RVC4": ["luxonis/crestereo:iter4-640x360"],
 }
-if args.model is not None:
-    for key in supported_models.keys():
-        if key == platform and args.model not in supported_models[key]:
-            raise ValueError(
-                f"Model {args.model} is not supported on {platform} platform."
-            )
-else:
+if args.model is None:
     args.model = supported_models[platform][-1]
+elif args.model not in supported_models[platform]:
+    raise ValueError(f"Model {args.model} is not supported on {platform} platform.")
 
 if args.fps_limit is None:
     args.fps_limit = 2 if platform == "RVC2" else 3
@@ -51,20 +50,34 @@ with dai.Pipeline(device) as pipeline:
     left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
     right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
 
-    depth = pipeline.create(dai.node.Depth)
-    depth.build(
-        dai.node.Depth.Algorithm.AUTO,
-        fps=args.fps_limit,
-        size=model_input_shape,
+    raw_left = left.requestOutput(
+        model_input_shape, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+    )
+    raw_right = right.requestOutput(
+        model_input_shape, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+    )
+    stereo = pipeline.create(dai.node.StereoDepth).build(
+        left=raw_left,
+        right=raw_right,
+        presetMode=dai.node.StereoDepth.PresetMode.DEFAULT,
+    )
+    # Keep the baseline at the neural input resolution (no post-depth decimation).
+    stereo.initialConfig.postProcessing.decimationFilter.decimationFactor = 1
+    stereo.enableDistortionCorrection(True)
+    stereo.setRectificationUseSpecTranslation(False)
+    stereo.setRectifyEdgeFillColor(0)
+    rect_left, rect_right = stereo.rectifiedLeft, stereo.rectifiedRight
+    stereo.setDisparityToDepthUseSpecTranslation(False)
+    stereo.setDepthAlign(
+        dai.StereoDepthConfig.AlgorithmControl.DepthAlign.RECTIFIED_LEFT
     )
 
     lr_sync = pipeline.create(dai.node.Sync)
-    left.requestOutput(model_input_shape, type=frame_type, fps=args.fps_limit).link(
-        lr_sync.inputs["left"]
-    )
-    right.requestOutput(model_input_shape, type=frame_type, fps=args.fps_limit).link(
-        lr_sync.inputs["right"]
-    )
+    lr_sync.setSyncThreshold(timedelta(milliseconds=5))
+    lr_sync.setSyncAttempts(-1)
+    for name, output in (("left", rect_left), ("right", rect_right)):
+        color = pipeline.create(RectifiedColor).build(output, frame_type)
+        color.output.link(lr_sync.inputs[name])
 
     demux = pipeline.create(dai.node.MessageDemux)
     lr_sync.out.link(demux.input)
@@ -85,19 +98,21 @@ with dai.Pipeline(device) as pipeline:
     demux.outputs["left"].link(nn.inputs["left"])
     demux.outputs["right"].link(nn.inputs["right"])
 
-    # color Depth node depth
-    depth_coloring = pipeline.create(ApplyDepthColormap).build(depth.depth)
+    # color classical stereo depth
+    depth_coloring = pipeline.create(ApplyDepthColormap).build(stereo.depth)
     depth_coloring.setColormap(cv2.COLORMAP_PLASMA)
 
     calibration = device.readCalibration()
-    baseline_mm = calibration.getBaselineDistance() * 10
-    focal_length_px = calibration.getCameraIntrinsics(
-        dai.CameraBoardSocket.CAM_C, *model_input_shape
-    )[0][0]
+    baseline_mm = (
+        calibration.getBaselineDistance(
+            dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C, False
+        )
+        * 10
+    )
     nn_depth = pipeline.create(DisparityToDepth).build(
         disparity=nn.out,
+        rectified=nn.passthroughs["left"],
         baseline_mm=baseline_mm,
-        focal_length_px=focal_length_px,
     )
 
     # color CREStereo output converted from disparity to depth
@@ -105,6 +120,8 @@ with dai.Pipeline(device) as pipeline:
     nn_coloring.setColormap(cv2.COLORMAP_PLASMA)
 
     # visualization
+    visualizer.addTopic("Rectified Left", rect_left)
+    visualizer.addTopic("Rectified Right", rect_right)
     visualizer.addTopic("Depth", depth_coloring.out)
     visualizer.addTopic("CREStereo Depth", nn_coloring.out)
 

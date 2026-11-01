@@ -1,8 +1,8 @@
 # CREStereo: Depth Estimation
 
-This example compares depth derived from neural stereo matching using [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) to output from the unified `Depth` node. The example works on both RVC2 and RVC4.
+This example compares depth derived from neural stereo matching using [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) to classical `StereoDepth` output on the same calibrated, distortion-corrected rectified pair. The example works on both RVC2 and RVC4.
 
-There are 2 available model variants for the [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) model for each platform. If you choose to use a different model please adjust `fps_limit` argument accordingly.
+There are platform-specific model variants for the [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) model for each platform. If you choose to use a different model please adjust `fps_limit` argument accordingly.
 
 ## Demo
 
@@ -22,7 +22,7 @@ Here is a list of all available parameters:
 -d DEVICE, --device DEVICE
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                      FPS limit for the model runtime. (default: 2 for RVC2 and 5 for RVC4)
+                      FPS limit for the model runtime. (default: 2 for RVC2 and 3 for RVC4)
 ```
 
 - `<DEVICE_FILTER_ENV>`: DepthAI environment variable used for filtering the devices. Usable variables are `DEPTHAI_DEVICE_NAME_LIST` and `DEPTHAI_PLATFORM`. For usage examples see the [subsection below](#examples).
@@ -81,3 +81,15 @@ oakctl app run .
 ```
 
 This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
+
+Depth uses the calibrated baseline and the rectified-left inference frame’s focal length. Values are millimeters, with zero indicating invalid depth. Inspect `Rectified Left` and `Rectified Right` to check alignment. A host color-format adapter replicates rectified mono into the model’s three channels without resizing.
+
+## U03 validation
+
+On 1 November 2026, this example was run in host mode on an office OAK4-D (RVC4, Luxonis OS 1.40.0) and OAK-D-PRO-W-POE (RVC2), with DepthAI 3.11.0 and depthai-nodes 0.7.0. Both pipelines streamed frames and their processing outputs during bounded 15–20 second captures. Devices were selected from discovery after checking stereo cameras and calibration; devices running other applications were excluded.
+
+Both platforms produced classical and neural depth plus rectified previews. The baseline explicitly disables depth decimation to keep output resolution equal to the neural input. Depth previews normalize their colors independently and should not be interpreted as a shared metric color scale.
+
+Real-world metric scale still needs validation against measured-distance targets, including off-axis points. Standalone packaging was not exercised in this run.
+
+The final RVC2 capture streamed both depth outputs at 320×240, then reported a device watchdog crash (error 9001) after the requested shutdown. This teardown issue remains unresolved; the run validates output production, not clean shutdown or long-term stability.

@@ -2,6 +2,8 @@
 
 This DepthAI example uses stereo cameras for face detection with [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915), calculating 3D spatial coordinates via triangulation. It visualizes bounding boxes, keypoints, and disparity in real-time. Because there are often application-specific host-side filtering to be done on the stereo neural inference results, and because these calculations are lightweight (i.e. could be done on an ESP32), we leave the triangulation itself to the host.
 
+The cameras are rectified using device calibration before inference. Triangulation uses signed horizontal disparity and the rectified-left frame’s intrinsics; XYZ is reported in the rectified-left camera frame (X right, Y down, Z forward). Only a single face in each view is accepted. Non-positive/near-zero disparity and keypoints more than 3 pixels apart vertically do not produce a measurement. This single-face demo does not establish identity across cameras; verify metric accuracy using known-distance targets.
+
 ## Demo
 
 ![Stereo Inference GIF](https://user-images.githubusercontent.com/59799831/132098832-70a2d0b9-1a30-4994-8dad-dc880a803fb3.gif)
@@ -57,3 +59,15 @@ oakctl app run .
 ```
 
 This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
+
+## U03 validation
+
+On 1 November 2026, this example was run in host mode on an office OAK4-D (RVC4, Luxonis OS 1.40.0) and OAK-D-PRO-W-POE (RVC2), with DepthAI 3.11.0 and depthai-nodes 0.7.0. Both pipelines streamed frames and their processing outputs during bounded 15–20 second captures. Devices were selected from discovery after checking stereo cameras and calibration; devices running other applications were excluded.
+
+Both devices produced inference passthrough frames, combined views and annotation topics. The office captures did not establish a valid single-face spatial measurement. Five geometry regression tests cover synthetic known depths (1, 2 and 5 meters), off-axis points, invalid/near-zero disparity, vertical mismatch and uint16 depth limits:
+
+```bash
+python3 -m unittest discover -s tests -p test_rectified_geometry.py
+```
+
+Real-world metric scale still needs validation against measured-distance targets, including off-axis points. Standalone packaging was not exercised in this run.
