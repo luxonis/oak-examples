@@ -1,15 +1,16 @@
-from typing import Optional, Tuple
-from collections import deque
-import numpy as np
+import json
 import time
+from collections import deque
+from typing import Optional, Tuple
 
 import depthai as dai
+import numpy as np
 
 
 class DynamicCalibrationControler(dai.node.HostNode):
     def __init__(self):
         super().__init__()
-        # queues you set after pipeline.start()
+        # Queues wired before pipeline.start().
         self._cmd_q = None
         self._quality_q = None
 
@@ -30,6 +31,9 @@ class DynamicCalibrationControler(dai.node.HostNode):
         self.last_quality = None
         self.wants_quit = False
         self._show_help = True
+        self._automatic_mode = None
+        self._automatic_q = None
+        self._automatic_result = None
 
         self._calib_q = None  # queue for dyn_calib.calibrationOutput
         self._last_calib_diff = None  # latest calibrationDifference
@@ -74,6 +78,30 @@ class DynamicCalibrationControler(dai.node.HostNode):
     def set_device(self, device: dai.Device):
         """Provide a device so we can flash calibrations from keypresses."""
         self._device = device
+
+    def set_automatic_mode(self, mode, result_queue):
+        """Reuse the display HUD without exposing manual calibration/flash controls."""
+        self._automatic_mode = mode
+        self._automatic_q = result_queue
+
+    def on_automatic_result(self, result):
+        # AutoCalibration applies accepted results internally. A passed result can
+        # also validate the existing calibration without changing its parameters.
+        changed = False
+        if result.passed:
+            changed = (
+                self.calibration is not None
+                and self.calibration.eepromToJson() != result.calibration.eepromToJson()
+            )
+            self.calibration = result.calibration
+        self._automatic_result = {
+            "passed": result.passed,
+            "dataConfidence": result.dataConfidence,
+            "calibrationConfidence": result.calibrationConfidence,
+            "calibrationChanged": changed,
+            "flashCalibration": False,
+        }
+        print("AutoCalibration: " + json.dumps(self._automatic_result), flush=True)
 
     # ---- external wiring ----
     def set_command_input(self, q):
@@ -471,6 +499,32 @@ class DynamicCalibrationControler(dai.node.HostNode):
             "[q] Quit",
         ]
 
+        if self._automatic_mode:
+            result = self._automatic_result
+            status = "Waiting for validation result"
+            if result:
+                status = (
+                    "Validation passed; runtime calibration active"
+                    if result["passed"]
+                    else "Validation failed; calibration unchanged"
+                )
+            lines = [
+                f"AutoCalibration - {self._automatic_mode}",
+                status,
+                "Runtime updates only; EEPROM flashing disabled",
+            ]
+            if result:
+                lines += [
+                    f"Data confidence: {result['dataConfidence']:.3f}",
+                    f"Calibration confidence: {result['calibrationConfidence']:.3f}",
+                    f"Calibration parameters changed: {result['calibrationChanged']}",
+                ]
+            lines += [
+                "[g] Toggle depth HUD    [h] Toggle help",
+                "[w/a/s/d] Move ROI    [z/x] ROI size",
+                "[q] Quit",
+            ]
+
         # Layout (smaller font, tighter spacing)
         size = 18
         x = 0.04  # left
@@ -726,6 +780,13 @@ class DynamicCalibrationControler(dai.node.HostNode):
         self.out_annotations.send(img_annots)
 
     def process(self, frame: dai.ImgFrame):
+        if self._automatic_q is not None:
+            while True:
+                result = self._automatic_q.tryGet()
+                if result is None:
+                    break
+                self.on_automatic_result(result)
+
         # 0) drain depth/disparity input so HUD has up-to-date pixels
         if self.in_depth is not None:
             while True:
@@ -888,6 +949,9 @@ class DynamicCalibrationControler(dai.node.HostNode):
 
     # ---- key handling ----
     def handle_key_press(self, key: int):
+        if self._automatic_mode and key not in map(ord, "qhgwasdzxWASDZXG"):
+            return
+
         # dismiss modal on any key
         if self._modal_kind is not None:
             self._modal_kind = None
