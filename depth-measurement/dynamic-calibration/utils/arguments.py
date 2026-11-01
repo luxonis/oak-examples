@@ -1,34 +1,12 @@
 import argparse
 
 
-def positive_int(value):
-    number = int(value)
-    if number <= 0:
-        raise argparse.ArgumentTypeError("must be greater than zero")
-    return number
-
-
-def initialize_argparser(argv=None):
+def initialize_argparser():
     """Initialize the argument parser for the script."""
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.description = (
-        "Manual or automatic runtime stereo calibration on OAK devices."
-    )
-
-    parser.add_argument(
-        "--mode",
-        choices=("manual", "on-start", "continuous"),
-        default="manual",
-        help="Calibration workflow. Automatic modes update RAM only, never EEPROM.",
-    )
-    parser.add_argument(
-        "--auto-interval",
-        type=positive_int,
-        default=30,
-        help="Seconds between calibration cycles in continuous mode.",
-    )
+    parser.description = "This example showcases the capabinility of Dynamic Calibration on OAK devices. "
 
     parser.add_argument(
         "-d",
@@ -42,12 +20,12 @@ def initialize_argparser(argv=None):
     parser.add_argument(
         "-fps",
         "--fps_limit",
-        help="Stereo camera FPS limit.",
+        help="FPS limit for the model runtime.",
         required=False,
         default=10,
-        type=positive_int,
+        type=int,
     )
 
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
 
     return parser, args

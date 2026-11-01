@@ -2,24 +2,7 @@
 
 This example demonstrates **runtime stereo camera calibration** with the `DynamicCalibration` node, plus a host-side controller/visualizer that overlays helpful UI (help panel, coverage bar, quality/recalibration modals, and a depth ROI HUD).
 
-It also offers an explicit `AutoCalibration` workflow: choose `--mode on-start` for one startup cycle or `--mode continuous` for periodic validation and recalibration. The default remains `--mode manual` with the full diagnostic controls below.
-
-### Automatic runtime calibration
-
-```bash
-python3 main.py --mode on-start --device <DEVICE_IP_OR_ID>
-python3 main.py --mode continuous --auto-interval 30 --device <DEVICE_IP_OR_ID>
-```
-
-Automatic modes require stereo cameras on `CAM_B` and `CAM_C` with matching native **1280×800 or 640×400** sensor modes and valid stored calibration. The script selects a supported mode before starting the pipeline; unsupported devices fail with an explanation. AutoCalibration uses the unrectified ISP streams; `StereoDepth` continues producing the live preview and depth HUD.
-
-The `DynCalib HUD` shows the selected mode, validation status, data confidence, calibration confidence, and whether the accepted calibration parameters differ from the previous state. Results are also printed as JSON. DepthAI 3.11 cannot serialize `AutoCalibrationResult` directly through RemoteConnection, so inspect the HUD annotations or console results. A successful validation may retain the existing parameters. A failed cycle keeps the active calibration; low-texture or poorly covered scenes may need another viewpoint. Failed results in DepthAI 3.11 report zero confidence fields, so those zeros do not describe each internal retry.
-
-The native acceptance rules remain enabled: five validation images, calibration confidence above `0.9`, the SDK's lens-specific data-confidence threshold, and up to five iterations. `--auto-interval` is the pause **after** each continuous cycle, rather than its total duration. Recalibration and validation run within the SDK; accepted calibration updates refresh device runtime geometry used by the downstream stereo pipeline.
-
-**Automatic modes never flash EEPROM:** `flashCalibration=False` is set explicitly, manual calibration/flash keys are disabled, and no deliberate calibration perturbation is applied. Runtime updates disappear after device restart. The SDK's implicit pipeline automatic-calibration procedure is disabled in all modes so it cannot run alongside these explicit nodes. For persistent calibration, use the manual workflow and its explicit flash controls.
-
-Automatic mode keeps the display controls: `q` quit, `h` help, `g` depth HUD, `w/a/s/d` move ROI, and `z/x` resize ROI. Automatic calibration status is in the help panel, shown by default. Manual calibration commands require restarting with `--mode manual`.
+For automatic on-start or continuous calibration, use the separate [AutoCalibration example](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/auto-calibration).
 
 ## Features
 
@@ -45,10 +28,6 @@ You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rv
 Here is a list of all available parameters:
 
 ```
---mode {manual,on-start,continuous}
-                    Calibration workflow. (default: manual)
---auto-interval AUTO_INTERVAL
-                    Positive pause in seconds between continuous cycles. (default: 30)
 -d DEVICE, --device DEVICE
                     Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
