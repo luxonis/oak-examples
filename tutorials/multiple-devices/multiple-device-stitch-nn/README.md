@@ -1,94 +1,87 @@
-# Multi device stitching with tiling and Yolo detection
+# Native panorama stitching with tiled YOLO detection
 
-Example **connects to multiple discoverable Luxonis cameras** of the same type (either RVC2 or RVC4) and **stitches their image streams into a single view**. It runs YoloV6-nano object detection on the resulting view by separating the wide image into tiles.
-
-The browser visualizer shows the live stitched feed and detection overlays, providing a simple interface for monitoring and recalculation of homography.
-
-At startup, the system calculates a homography between camera feeds to align them, and all subsequent warping is performed based on this fixed calibration. **Cameras are assumed to be static**; if they are moved, pressing “r” in the browser visualizer triggers a recalculation of the homography.
-
-**Autofocus of all cameras is turned ON only some seconds** after start of program and after recalculation of homography, then it is turned OFF. This is to avoid the flickering in the resulting panorama image.
-
-**Limitations:**
-
-Cameras must be **vertically aligned** and have **sufficient field-of-view overlap** for reliable stitching. The **image order (left to right) is important** and should remain consistent across runs. For best results, **use identical, well-calibrated cameras**, as differences in lens parameters or image quality can negatively impact stitching and homography accuracy.
-
-Stitching, tiling and YOLO detections run on host computer can be **costly on the processing resources** - especially with larger number of cameras connected - and the output FPS will depend on the host CPU power. If output FPS is too low, **try lowering the resolution** with `--input_size` parameter.
-
-This example is intended as a conceptual demonstration rather than a production-ready implementation. It provides a foundation for users to extend and refine as needed.
-
-## Demo
-
-![example](media/stitching.gif)
-
-## Usage
-
-Running this example requires at least two **Luxonis devices** connected to your computer or on the same network. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your devices if you haven't done it already.
-
-You can only run the example in [`PERIPHERAL` mode](#peripheral-mode) (using your computer as host).
-
-Here is a list of all available parameters:
-
-```
--fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                    FPS limit for the model runtime. (default: 20)
--is INPUT_SIZE, --input_size INPUT_SIZE
-                    Input video stream resolution. {2160p, 1080p, 720p, 480p, 360p} (default: 360p)
-```
-
-## Peripheral Mode
-
-### Installation
-
-You need to first prepare a **Python >= 3.10** environment with the following packages installed:
-
-- [DepthAI](https://pypi.org/project/depthai/),
-- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
-- [Stitching](https://pypi.org/project/stitching/)
-
-You can simply install them by running:
+Combine overlapping camera streams from RVC2, RVC4, or a mixed rig using
+`dai.beta.node.Stitching` in PANORAMA mode. Stitching runs on the host; YOLO runs
+on the first selected device. This is a host example, without standalone packaging.
+Requires Python >=3.10 and DepthAI 3.11.0 with OpenCV support.
 
 ```bash
+python3 -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
+# Choose cameras in a consistent left-to-right order:
+oakctl run-script python main.py --devices DEVICE_ID_LEFT DEVICE_ID_RIGHT
+# Alternatively, stitch overlapping sensors on one device:
+oakctl run-script python main.py --devices DEVICE_ID --sockets CAM_B CAM_C
 ```
 
-Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
+Without `--devices`, all available, unbooted RVC2/RVC4 devices are selected.
+Explicit selection is recommended in shared environments. Devices are opened by
+ID/IP, never by an implicit discovery choice. Select only devices you can access;
+this example does not configure authentication or update devices.
 
-### Examples
+Open http://localhost:8082 in the DepthAI Visualizer. `Input-0`, `Input-1`, etc.
+show the selected sources. `Stitched` is the full native panorama; `Inference`
+is the fixed, stretched inference canvas. `Patcher` contains NMS-filtered tiled
+YOLO detections in canvas coordinates; `PanoramaDetections` maps them back to
+the full panorama. Each group is mapped against its timestamp-matched reference
+with native `ImgDetections.transformTo()`; this also works on RVC2 and avoids
+caching stale panorama geometry after a reset. Native transformations are retained throughout resizing,
+cropping, mapping and merging. The native BGR888i output is converted to BGR888p for RVC2 inference and
+retained as BGR888i for RVC4 inference. Model YAML paths resolve relative to the script.
+
+Press **r** to call `resetTransform()` after moving cameras. Autofocus (where
+available) is enabled again and disabled after five seconds to reduce flicker.
+Press **q** or Ctrl-C to stop. All devices belong to one pipeline and close together.
+
+## Registration and limits
+
+Place static cameras with substantial overlap and textured, similarly lit views.
+Close foreground objects and motion can cause parallax and seams. Registration
+selects the strongest of three valid candidates, then caches the transform and
+composition. It uses a perspective projection (required by the current native
+detection remapper), DP_COLOR seams and caps panorama dimensions at 4096x2048.
+
+**The old concatenate-on-failure fallback has been removed.** A concatenation
+has no single panorama camera geometry. If registration fails, source topics
+remain visible but no panorama or detections are emitted. After 20 seconds the
+script prints guidance; a bounded run exits unsuccessfully if it produced no
+panorama. This avoids displaying an unrelated image as a successful stitch.
+
+The internal Sync threshold defaults to 100ms for independent office cameras.
+It groups frames by time; it does not synchronize exposures. Tighten it for
+hardware-synchronized cameras. No FPS or seam-quality improvement is assumed.
+
+## Options and validation
+
+Run `python main.py --help` for all options. Existing `-fps` / `--fps_limit` and
+`-is` / `--input_size` flags remain; default capture rate is 10 FPS.
 
 ```bash
-python3 main.py
+# Camera and native-stitch validation without model download:
+oakctl run-script python main.py --devices DEVICE_ID --sockets CAM_B CAM_C \
+  --no-nn --duration 60 --reset-after 25
+# In a second terminal, capture the live result:
+oakctl inspect frames Stitched --count 2 --out evidence/panorama --timeout 30s
+# Validate full inference separately by omitting --no-nn.
 ```
 
-This will run the Stitching with YOLO detection example with all the discoverable devices.
+`--estimation-frames`, `--sync-threshold-ms`, `--max-panorama-size WIDTH HEIGHT`,
+and `--seam-finder` configure native registration. `--sockets` selects the same
+ordered sockets on each device. Duplicate devices or sockets are rejected.
 
-```bash
-python3 main.py -fps 10
-```
+Check weak overlap (source topics but no fabricated panorama), textured overlap
+(real panorama), reset after movement, bounded canvas allocation, and detection
+alignment on both image sizes. Beta APIs may change; dependency versions are pinned.
 
-This will run the example at 10 FPS.
+[Native Stitching documentation](https://docs.luxonis.com/software-v3/depthai/depthai-components/host_nodes/stitching)
 
-```bash
-python3 main.py -is 720p
-```
+Live device results and remaining limits are recorded in [device validation notes](docs/device.md).
 
-This will run the example with resolution 720p.
+RVC2 live panorama:
 
-## FAQ
+![RVC2 native panorama](media/native-panorama-rvc2.png)
 
-**Why aren’t the images stitching correctly (e.g., strange wrapping or distortion)?**
+RVC4 live panorama:
 
-Ensure that your cameras are ordered correctly from left to right, vertically aligned, and positioned as close together as possible. While focused on the web visualizer (http://localhost:8082), press "r" to recalculate the homography. Once you find the right camera order you will see a well stitched image.
-
-**Why are two separate (concatenated) images shown instead of a stitched one?**
-
-This usually means there isn’t enough field-of-view (FOV) overlap between cameras.
-Try adjusting their positions to increase the overlap until stitching occurs.
-Additionally, ensure that:
-
-- Your cameras are ordered correctly from left to right, vertically aligned, and positioned as close together as possible
-- Both camera streams have similar lighting conditions (avoid direct sunlight exposure).
-- The camera lenses are clean, as smudges or fingerprints can prevent reliable keypoint detection needed for stitching.
-
-**Why is the panorama image blurry?**
-
-Autofocus is turned automatically off after some seconds to avoid flickering. It may be that for your setup, autofocus needs more time. Try pressing "r" in the web visualizer (http://localhost:8082) to recalculate homography and reset autofocus. If result is still problematic, try making `AF_MSG_DELAY_S` bigger to allow more time for autofocus. Also make sure cameras are clean as smudges or fingerprints can result in blurry images.
+![RVC4 native panorama](media/native-panorama-rvc4.png)

@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the repository reference for stitching multiple camera feeds into one panorama-like host view and then running tiled YOLO inference on that stitched image. Use it when you need the repo’s most elaborate multi-device visual-composition tutorial.
+Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native beta Stitching, then run tiled YOLO inference on the first selected device. Use it when you need the repo’s most elaborate multi-device visual-composition tutorial.
 
 ## Use This Example When
 
@@ -24,34 +24,39 @@ This is the repository reference for stitching multiple camera feeds into one pa
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` none
 - `Frontend:` none
-- `Runs on:` host mode only, with at least two discoverable devices of the same practical type/platform
-- `Requires:` overlapping FOV, vertically aligned cameras, host CPU headroom, and the `stitching` Python package
-- `Input:` live `CAM_A` from each discovered device
-- `Output:` `Stitched` image topic and `Patcher` detection overlays
+- `Runs on:` host mode only, with at least two camera sources across RVC2, RVC4, or mixed devices
+- `Requires:` overlapping textured FOV, static cameras, host CPU headroom, and DepthAI 3.11.0 with OpenCV support
+- `Input:` live `CAM_A` by default; ordered device IDs/IPs and sockets are selectable
+- `Output:` `Input-N`, full `Stitched`, resized `Inference`, `Patcher` and `PanoramaDetections` topics
 - `Models:` YOLOv6 YAMLs in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
 ## Read First
 
 - [README.md](README.md)
+- [Device validation notes](docs/device.md)
 - [main.py](main.py)
-- [utils/stitch.py](utils/stitch.py)
 - [utils/merge_img_detections.py](utils/merge_img_detections.py)
 - [utils/arguments.py](utils/arguments.py)
 
 ## Architecture
 
-- [main.py](main.py) creates one camera pipeline per device, then feeds all outputs into the threaded [utils/stitch.py](utils/stitch.py) host node.
-- [utils/stitch.py](utils/stitch.py) estimates homography/camera parameters once, unless `recalculate_homography()` is triggered with `r`.
-- The stitched output is tiled and passed through YOLOv6 so detections cover the wide panorama in smaller NN-sized chunks.
-- Autofocus is briefly re-enabled after startup and after each homography recalculation, then turned back off to avoid visible focus flicker in the panorama.
+- [main.py](main.py) opens the selected first device as the default inference device and adds the remaining devices to the same pipeline. Camera nodes are explicitly assigned to devices.
+- Native host `dai.beta.node.Stitching` owns synchronization, visual registration, cached composition, seams and virtual-camera metadata. `r` calls `resetTransform()`.
+- Host ImageManip resizes the full BGR888i panorama into a fixed platform-appropriate BGR inference canvas while preserving transformation metadata.
+- Tiling, FrameCropper, ParsingNeuralNetwork, GatherData, MergeImgDetections and NMS produce canvas detections. MergeImgDetections uses native transformTo against the timestamp-matched reference, both before NMS and when mapping back to the full panorama.
+- Only autofocus-capable sensors receive focus controls; focus is disabled five seconds after startup/reset.
 
 ## Constraints
 
-- This is host-only; there is no standalone packaging path.
-- Reliable stitching assumes static, vertically aligned cameras with sufficient overlap and consistent left-to-right ordering.
-- The code selects the YOLO model variant from the current platform variable after device setup, so mixed-platform multi-device runs are not the intended shape.
-- If stitching fails, [utils/stitch.py](utils/stitch.py) falls back to a simple horizontal concatenation.
+- Host-only; RVC2 and RVC4 sources can be mixed. The first selected device determines the inference platform/model.
+- Static, overlapping, textured views are required for visual registration. Software Sync groups timestamps but does not align camera exposures.
+- Explicit `--devices` is preferred in a shared office; `--sockets` applies to each device. Do not select busy devices or change their OS, credentials or persistent settings.
+- There is deliberately no concatenation fallback. Failed registration leaves input topics available; no panorama/detections are fabricated. `--duration` fails when no panorama was produced.
+- Use Perspective panorama projection: native transformTo rejects Equirectangular. CoordinatesMapper is intentionally avoided because depthai-nodes 0.7.0 rejects it on RVC2.
+- RVC2 inference uses BGR888p; RVC4 uses BGR888i.
+- Native output allocation is bounded by `--max-panorama-size`; ImageManip and NN crop sizes are independently bounded.
+- Use `--no-nn` only for camera/stitch validation; it does not prove inference. Both dependency versions are pinned because Stitching is beta.
 
 ## Related Examples
 
@@ -61,7 +66,10 @@ This is the repository reference for stitching multiple camera feeds into one pa
 
 ## Validation
 
-- `Run:` `python3 main.py`
+- `Run:` `oakctl run-script python main.py --devices LEFT_ID RIGHT_ID`
+- `Single-device sensors:` `python main.py --devices ID --sockets CAM_B CAM_C`
+- `Bounded reset check:` append `--duration 60 --reset-after 25`; use `--no-nn` to isolate stitching
+- `Evidence:` use `oakctl inspect frames Stitched` and inspect both inference and full panorama overlays
 - `Recalculate:` focus the Visualizer and press `r`
 - `Success looks like:` the Visualizer shows a stitched panorama with detection overlays, and pressing `r` recomputes alignment
-- `Common failure meaning:` camera overlap/order is wrong, the host lacks enough CPU for stitching plus tiling, or the user expects a robust production stitcher instead of a conceptual tutorial
+- `Common failure meaning:` no panorama usually means insufficient overlap/texture or no synchronized groups; inspect source topics first
