@@ -41,15 +41,15 @@ This is the repository reference for Kalman-filtered spatial tracking. Use it wh
 
 ## Architecture
 
-- A `SpatialDetectionNetwork` runs on `CAM_A` with depth from `Depth`.
+- A `SpatialDetectionNetwork` runs on `CAM_A` with depth from `StereoDepth`.
 - `ObjectTracker` produces person tracklets.
-- `main.py` reads calibration to compute baseline and focal length.
+- `main.py` explicitly uses classical stereo and reads its calibrated baseline in millimeters. The filter refreshes focal length from the latest rectified-right frame through a separate nonblocking input. RGB and tracklets remain synchronized together; stereo exposure timing is independent.
 - [utils/kalman_filter_node.py](utils/kalman_filter_node.py) uses that geometry plus tracklets to smooth the reported state.
 
 ## Constraints
 
 - The current code tracks only the `person` label.
-- The filter depends on calibration-derived baseline and focal length for its spatial smoothing path.
+- The filter models one-pixel disparity noise as Z²/(baseline × focal length), with millimeters for spatial coordinates and baseline. Its focal length comes from the actual rectified disparity grid, not the aligned RGB grid. Do not switch to AUTO/NeuralDepth/ToF without replacing this noise model.
 - This is a live-camera stereo example; there is no replay path in the current code.
 
 ## Related Examples
@@ -59,6 +59,8 @@ This is the repository reference for Kalman-filtered spatial tracking. Use it wh
 - [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the unsmoothed baseline spatial detections
 
 ## Validation
+
+- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
 
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `Video` and `Tracklets`, with smoother spatial boxes and IDs over time

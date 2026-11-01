@@ -44,7 +44,8 @@ This is the repository reference for generating per-device extrinsic calibration
 
 - [main.py](main.py) discovers multiple devices, creates one pipeline per device, and cycles calibration focus with keyboard input.
 - [utils/calibration_node.py](utils/calibration_node.py) requests a `3840x2160` still, finds checkerboard corners, runs `solvePnP`, and saves the resulting transforms.
-- The saved outputs include `world_to_cam`, `cam_to_world`, the original `rvec` and `tvec`, and the still-image intrinsics used for the solve.
+- The saved outputs include `world_to_cam`, `cam_to_world`, the original `rvec` and `tvec`, and the captured still frame’s native intrinsics used for the solve. Both preview and still are explicitly undistorted; zero distortion coefficients are intentional.
+- Checkerboard translations are meters; camera coordinates are optical (+X right, +Y down, +Z forward). The current preview’s native `project3DPoint` draws world axes without scaling still-image pixels.
 - [pattern.pdf](pattern.pdf) matches the default checkerboard configuration declared in [utils/calibration_node.py](utils/calibration_node.py).
 
 ## Constraints
@@ -61,6 +62,8 @@ This is the repository reference for generating per-device extrinsic calibration
 - [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a single-device stereo baseline rather than multi-device world calibration
 
 ## Validation
+
+- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
 
 - `Run:` `python3 main.py`
 - `Controls:` press `a` to change the selected device and `c` to capture/calibrate

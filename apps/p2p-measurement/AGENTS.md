@@ -50,7 +50,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
 - `Depth.setAlignTo(...)` aligns depth to RGB.
 - A colorized depth stream is published for viewing.
-- The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using calibration intrinsics, and emits overlay annotations.
+- The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using the current aligned depth frame’s native inverse intrinsic matrix, and emits overlay annotations.
 - The frontend interacts with backend services for point selection, clearing, distance polling, and tracking-mode toggling.
 
 ## Data Flow
@@ -95,6 +95,8 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when the main goal is host-side stereo processing, not an interactive measurement UI
 
 ## Validation
+
+- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
 
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target

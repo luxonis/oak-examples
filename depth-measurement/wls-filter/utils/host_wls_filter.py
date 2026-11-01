@@ -1,7 +1,6 @@
 import cv2
 import depthai as dai
 import numpy as np
-import math
 from typing import Tuple
 from depthai_nodes.utils import AnnotationHelper
 
@@ -39,12 +38,13 @@ class Filter:
         self.wlsFilter.setSigmaColor(self._sigma)
         filteredDisp = self.wlsFilter.filter(disparity, right)
 
-        # Compute depth from disparity (32 levels)
+        # Z in millimeters; nonpositive disparity is invalid.
         with np.errstate(divide="ignore"):  # Should be safe to ignore div by zero here
             # raw depth values
             depth = depthScaleFactor / filteredDisp
         depth = np.nan_to_num(depth, nan=0.0, posinf=0.0, neginf=0.0)
-        depthFrame = depth.astype(np.uint16)
+        depth[filteredDisp <= 0] = 0
+        depthFrame = np.clip(depth, 0, np.iinfo(np.uint16).max).astype(np.uint16)
 
         return filteredDisp, depthFrame
 
@@ -53,9 +53,6 @@ class WLSFilter(dai.node.HostNode):
     def __init__(self) -> None:
         super().__init__()
         self._filter_window = Filter(_lambda=8000, _sigma=1.5)
-        self._baseline = 75  # mm
-        self._disp_levels = 96
-        self._fov = 71.86
 
         self.depth_frame = self.createOutput(
             possibleDatatypes=[
@@ -78,18 +75,21 @@ class WLSFilter(dai.node.HostNode):
         disparity: dai.Node.Output,
         rectified_right: dai.Node.Output,
         max_disparity: float,
-        baseline,
+        baseline_mm: float,
+        disparity_scale: float,
     ) -> "WLSFilter":
         self.link_args(disparity, rectified_right)
         self._disp_multiplier = 255 / max_disparity
-        self._baseline = baseline * 10  # mm
+        self._baseline = baseline_mm
+        self._disparity_scale = disparity_scale
         return self
 
     def process(self, disparity: dai.ImgFrame, right: dai.ImgFrame) -> None:
         disparity_frame = disparity.getFrame()
         right_frame = right.getFrame()
-        focal = disparity_frame.shape[1] / (2.0 * math.tan(math.radians(self._fov / 2)))
-        depthScaleFactor = self._baseline * focal
+        focal = right.getTransformation().getIntrinsicMatrix()[0][0]
+        # Raw subpixel disparity contains 2**fractional_bits units per pixel.
+        depthScaleFactor = self._baseline * focal * self._disparity_scale
         filteredDisp, depthFrame = self._filter_window.filter(
             disparity_frame, right_frame, depthScaleFactor
         )
@@ -109,10 +109,14 @@ class WLSFilter(dai.node.HostNode):
 
         depth_fr = dai.ImgFrame()
         depth_fr.setCvFrame(color_arr, dai.ImgFrame.Type.BGR888i)
+        depth_fr.setTransformation(right.getTransformation())
+        depth_fr.setTimestamp(right.getTimestamp())
+        depth_fr.setTimestampDevice(right.getTimestampDevice())
+        depth_fr.setSequenceNum(right.getSequenceNum())
         self.depth_frame.send(depth_fr)
 
         self.filtered_disp.send(
-            self.create_img_frame(filteredDisp, dai.ImgFrame.Type.RAW8)
+            self.create_img_frame(filteredDisp, dai.ImgFrame.Type.RAW8, disparity)
         )
 
         annots = AnnotationHelper()
@@ -162,11 +166,17 @@ class WLSFilter(dai.node.HostNode):
         elif key == ord("S"):
             self._filter_window.increase_sigma()
 
-    def create_img_frame(self, frame, type: dai.ImgFrame.Type) -> dai.ImgFrame:
+    def create_img_frame(
+        self, frame, type: dai.ImgFrame.Type, source: dai.ImgFrame
+    ) -> dai.ImgFrame:
         img_frame = dai.ImgFrame()
         img_frame.setWidth(frame.shape[1])
         img_frame.setHeight(frame.shape[0])
         img_frame.setType(type)
         img_frame.setFrame(frame)
+        img_frame.setTransformation(source.getTransformation())
+        img_frame.setTimestamp(source.getTimestamp())
+        img_frame.setTimestampDevice(source.getTimestampDevice())
+        img_frame.setSequenceNum(source.getSequenceNum())
 
         return img_frame

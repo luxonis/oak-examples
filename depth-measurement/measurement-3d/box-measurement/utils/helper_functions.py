@@ -1,19 +1,4 @@
 import cv2
-import depthai as dai
-import numpy as np
-
-
-def read_intrinsics(device: dai.Device, resize_w: int, resize_h: int) -> tuple:
-    """Reads the camera intrinsics from the device and returns the focal lengths and principal points."""
-    calibData = device.readCalibration2()
-    M2 = np.array(
-        calibData.getCameraIntrinsics(dai.CameraBoardSocket.CAM_A, resize_w, resize_h)
-    )  # Because the displayed image is with NN input res
-    fx = M2[0, 0]
-    fy = M2[1, 1]
-    cx = M2[0, 2]
-    cy = M2[1, 2]
-    return fx, fy, cx, cy
 
 
 def resize_and_pad(img, target_size, pad_color=0):

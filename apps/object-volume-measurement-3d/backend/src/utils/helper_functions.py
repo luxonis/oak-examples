@@ -4,7 +4,6 @@ import os
 import requests
 import onnxruntime
 import numpy as np
-import depthai as dai
 
 
 QUANT_VALUES = {
@@ -137,15 +136,3 @@ def download_file(download_link: str, local_filename: str):
                     progress_bar.update(len(chunk))
         progress_bar.close()
         os.replace(partial_filename, local_filename)
-
-
-def read_intrinsics(device: dai.Device, width: int, height: int) -> tuple:
-    calibData = device.readCalibration2()
-    M2 = np.array(
-        calibData.getCameraIntrinsics(dai.CameraBoardSocket.CAM_A, width, height)
-    )
-    fx = M2[0, 0]
-    fy = M2[1, 1]
-    cx = M2[0, 2]
-    cy = M2[1, 2]
-    return fx, fy, cx, cy

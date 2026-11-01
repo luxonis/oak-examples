@@ -3,7 +3,6 @@ import signal
 
 import depthai as dai
 from depthai_nodes.node import ApplyDepthColormap
-import numpy as np
 import cv2
 
 from utils.arguments import initialize_argparser
@@ -68,14 +67,6 @@ with dai.Pipeline(device) as pipeline:
     point_tracker = pipeline.create(
         PointTracker, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT
     ).build(cam_out, depth.depth)
-    calibration_data = device.readCalibration()
-    camera_matrix = np.array(
-        calibration_data.getCameraIntrinsics(
-            dai.CameraBoardSocket.CAM_A, FRAME_WIDTH, FRAME_HEIGHT
-        )
-    )
-
-    point_tracker.set_camera_matrix(camera_matrix)
 
     def point_selection_service(clicks: dict):
         if clicks.get("clear"):
@@ -88,7 +79,9 @@ with dai.Pipeline(device) as pipeline:
         except Exception as e:
             return {"ok": False, "error": f"bad payload: {e}"}
 
-        point_tracker.add_point(x, y, FRAME_WIDTH, FRAME_HEIGHT)
+        point_tracker.add_point(
+            x, y, point_tracker.frame_width, point_tracker.frame_height
+        )
         return {"ok": True}
 
     def clear_points_service(data: dict):

@@ -39,14 +39,14 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 - [main.py](main.py): pipeline wiring, platform branching, and Visualizer topics
 - [utils/box_processing_node.py](utils/box_processing_node.py): host-side mask rendering, point-cloud filtering, and cuboid-fit annotations
 - [utils/cuboid_fitter.py](utils/cuboid_fitter.py): fitting logic used to estimate dimensions
-- [utils/helper_functions.py](utils/helper_functions.py): intrinsics readout plus mask resize/pad helpers
+- [utils/helper_functions.py](utils/helper_functions.py): mask resize/pad helpers
 - [utils/arguments.py](utils/arguments.py): CLI surface
 - [oakapp.toml](oakapp.toml): packaging and bundled model path
 
 ## Architecture
 
 - `CAM_A` provides the RGB stream used for display and inference.
-- `Depth` owns depth-source selection and aligns its depth output to RGB before `RGBD`.
+- `Depth` owns depth-source selection and aligns its depth output to RGB before `PointCloud`.
 - A platform-specific box instance-segmentation archive is loaded from [depthai_models/](depthai_models/).
 - `ImageManip` resizes RGB frames to the model input size before `ParsingNeuralNetwork`.
 - The custom [utils/box_processing_node.py](utils/box_processing_node.py) threaded host node receives:
@@ -66,38 +66,40 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 - `Safe to change:` topic names, FPS limit default, parser thresholds, projector usage, label text
 - `Requires care:` camera sockets, RGB/depth alignment path, model input dimensions, calibration usage, point-cloud color assumptions
-- `Likely to break if changed blindly:` the fixed `640x400` and `512x320` assumptions in [utils/box_processing_node.py](utils/box_processing_node.py), intrinsics scaling, and mask reprojection logic
+- `Likely to break if changed blindly:` organized point-cloud dimensions, frame transformation metadata, and mask reprojection logic
 
 ## Common Adaptations
 
 - `To swap the model:` replace the YAML/model pair in [depthai_models/](depthai_models/) and keep the same parser contract
 - `To reuse only the measurement host logic:` keep [utils/box_processing_node.py](utils/box_processing_node.py) and feed it your own point cloud plus detections
 - `To remove the cuboid overlay:` keep `outputANN` and drop the `outputANNCuboid` topic
-- `To test alignment changes:` start from the `RGBD` and `ImageAlign` branch in [main.py](main.py)
+- `To test alignment changes:` start from the `PointCloud` and `ImageAlign` branch in [main.py](main.py)
 
 ## Constraints
 
 - The README explicitly calls out cuboid-fit instability and dimension jumps; this is a reference demo, not a hardened metrology pipeline.
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
-- [utils/box_processing_node.py](utils/box_processing_node.py) hardcodes `IMG_WIDTH=640`, `IMG_HEIGHT=400`, `NN_WIDTH=512`, and `NN_HEIGHT=320`.
+- Processing dimensions come from point-cloud and NN passthrough messages. Cuboid overlays use `ImgTransformation.project3DPointTo` from cloud to image coordinates.
 - RVC2 disables the median filter path, so stereo behavior differs by platform.
 
 ## Non-Obvious Repo Conventions
 
 - [oakapp.toml](oakapp.toml) adds a standalone packaging path but does not mean the example is RVC4-only.
 - `Box Detections` and `Cuboid Fit` are separate annotation topics layered over the same preview stream.
-- Intrinsics are read for `CAM_A` at NN resolution, because the cuboid overlay is projected into model-space image coordinates.
-- The point cloud comes from `rgbd.pcl`, not from a custom host reconstruction step.
+- PointCloud input depth and cloud coordinates are millimeters in optical coordinates (+X right, +Y down, +Z forward); dimension labels convert to centimeters. The displayed RGB stream is the same undistorted source used for geometry.
+- The point cloud comes from `point_cloud.outputPointCloud`, not from a custom host reconstruction step.
 
 ## Related Examples
 
-- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need the RGBD + point-cloud baseline without neural inference
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need the PointCloud baseline without neural inference
 - [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/tof-pointcloud): use this when the depth source should be ToF instead of stereo
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when you only need host-side spatial ROI measurement
 - [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need the more app-shaped frontend/backend volume-measurement workflow
 
 ## Validation
+
+- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
 
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`

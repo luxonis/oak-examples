@@ -31,12 +31,23 @@ with dai.Pipeline(device) as pipeline:
     stereo.setDepthAlign(dai.CameraBoardSocket.CAM_C)
 
     calib = device.readCalibration()
-    baseline = calib.getBaselineDistance()
+    stereo.setDisparityToDepthUseSpecTranslation(False)
+    baseline = calib.getBaselineDistance(
+        dai.CameraBoardSocket.CAM_B,
+        dai.CameraBoardSocket.CAM_C,
+        useSpecTranslation=False,
+        unit=dai.LengthUnit.MILLIMETER,
+    )
+    config = stereo.initialConfig
+    disparity_scale = (
+        2 ** config.getSubpixelFractionalBits() if config.getSubpixel() else 1
+    )
     wls_filter = pipeline.create(WLSFilter).build(
         disparity=stereo.disparity,
         rectified_right=stereo.rectifiedRight,
         max_disparity=stereo.initialConfig.getMaxDisparity(),
-        baseline=baseline,
+        baseline_mm=baseline,
+        disparity_scale=disparity_scale,
     )
 
     disp_colored = pipeline.create(ApplyDepthColormap).build(stereo.disparity)

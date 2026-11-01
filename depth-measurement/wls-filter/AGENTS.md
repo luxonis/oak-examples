@@ -60,7 +60,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 ## Modification Guide
 
 - `Safe to change:` initial lambda/sigma defaults, topic names, color maps, stereo confidence defaults
-- `Requires care:` disparity scale assumptions, baseline/FOV math, and OpenCV WLS parameter ranges
+- `Requires care:` disparity scale assumptions, baseline, frame intrinsics, and OpenCV WLS parameter ranges
 - `Likely to break if changed blindly:` the conversion from filtered disparity to host depth in [utils/host_wls_filter.py](utils/host_wls_filter.py), or the expectation that `cv2.ximgproc` is available
 
 ## Common Adaptations
@@ -74,14 +74,14 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 - This example depends on OpenCV contrib `ximgproc`, which is a stronger host dependency than the simpler stereo demos.
 - `WLS Raw Depth` is a host-generated BGR visualization derived from filtered disparity, not a raw depth topic.
-- The host filter currently assumes a fixed `71.86` degree FOV in [utils/host_wls_filter.py](utils/host_wls_filter.py).
+- Metric conversion uses the current rectified-right frame’s focal length, calibrated baseline in millimeters, and the configured disparity units per pixel. Update the host conversion scale if changing stereo subpixel settings at runtime.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
 
 ## Non-Obvious Repo Conventions
 
 - Lowercase `l` decreases lambda and uppercase `L` increases it; the same lowercase/uppercase pattern applies to sigma with `s` and `S`.
 - `WLS Filtered Disparity` is published as raw filtered disparity, while `WLS Colored Disparity` is the separately colorized view.
-- The host node converts the calibration baseline to millimeters internally before deriving depth.
+- The pipeline requests baseline in `LengthUnit.MILLIMETER` and uses calibrated translation for device and host depth conversion. Invalid/nonpositive disparities map to zero depth.
 
 ## Related Examples
 
@@ -91,6 +91,8 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 - [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when the end goal is a point cloud rather than a filtered disparity view
 
 ## Validation
+
+- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
 
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`

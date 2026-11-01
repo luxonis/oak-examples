@@ -69,7 +69,6 @@ class CalibrationNode(dai.node.HostNode):
     def build(
         self,
         preview_input: dai.Node.Output,
-        intrinsic_mat_still: np.ndarray,
         device: dai.Device,
         preview_width: int,
         preview_height: int,
@@ -78,7 +77,6 @@ class CalibrationNode(dai.node.HostNode):
         control_q: Optional[dai.InputQueue] = None,
         still_q=None,
     ) -> "CalibrationNode":
-        self.intrinsic_mat_still = intrinsic_mat_still
         self.device = device
         self.mxid = device.getDeviceId()
         self.preview_width = preview_width
@@ -223,6 +221,11 @@ class CalibrationNode(dai.node.HostNode):
                 )
                 return False
 
+            self.intrinsic_mat_still = np.asarray(
+                in_still_msg.getTransformation().getIntrinsicMatrix(), dtype=np.float64
+            )
+            self.still_width = in_still_msg.getWidth()
+            self.still_height = in_still_msg.getHeight()
             raw_cv_frame = in_still_msg.getCvFrame()
             print(
                 f"[{self.mxid}] CalibrationNode: ImgFrame received (type: {in_still_msg.getType()}, size: {in_still_msg.getWidth()}x{in_still_msg.getHeight()})."
@@ -288,23 +291,20 @@ class CalibrationNode(dai.node.HostNode):
                 ]
             )
 
-            img_points_axes_high_res, _ = cv2.projectPoints(
-                world_points_axes,
-                self.rot_vec,
-                self.trans_vec,
-                self.intrinsic_mat_still,
-                self.distortion_coef,
+            # solvePnP uses meters in optical camera coordinates (+X right,
+            # +Y down, +Z forward). Project using this preview's own geometry.
+            rotation, _ = cv2.Rodrigues(self.rot_vec)
+            camera_points = (rotation @ world_points_axes.T).T + self.trans_vec.reshape(
+                3
             )
-
-            scale_x = self.preview_width / self.still_width
-            scale_y = self.preview_height / self.still_height
-
-            scaled_projected_points_for_preview = [
-                [pt[0] * scale_x, pt[1] * scale_y]
-                for pt in img_points_axes_high_res.reshape(-1, 2)
+            transformation = frame_message.getTransformation()
+            self.preview_width = frame_message.getWidth()
+            self.preview_height = frame_message.getHeight()
+            projected = [
+                transformation.project3DPoint(dai.Point3f(*point))
+                for point in camera_points
             ]
-
-            p_origin, p_x, p_y, p_z = np.array(scaled_projected_points_for_preview)
+            p_origin, p_x, p_y, p_z = [np.array([p.x, p.y]) for p in projected]
 
             def to_norm_coords(px_pt: np.ndarray) -> Tuple[float, float]:
                 norm_x = (
