@@ -42,7 +42,6 @@ Runtime stereo calibration with optional on-start or continuous AutoCalibration 
 - [utils/dynamic_calibration_interactive.py](utils/dynamic_calibration_interactive.py): related calibration interaction support
 - [utils/arguments.py](utils/arguments.py): CLI surface
 - [utils/auto_calibration.py](utils/auto_calibration.py): automatic node configuration and native sensor-mode checks
-- [tests/test_auto_calibration.py](tests/test_auto_calibration.py): hardware-independent safety checks
 - [oakapp.toml](oakapp.toml): packaging path and extra runtime dependencies
 
 ## Architecture
@@ -109,7 +108,6 @@ Runtime stereo calibration with optional on-start or continuous AutoCalibration 
 
 - `Run:` `python3 main.py`
 - `Automatic:` `python3 main.py --mode on-start --device <IP-or-ID>` or `python3 main.py --mode continuous --auto-interval 30 --device <IP-or-ID>`
-- `Safety checks:` `python3 -m unittest discover -s tests -v` from the example directory.
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Left`, `Right`, `Depth`, and `DynCalib HUD`, and the keyboard commands trigger help, coverage, quality, and calibration-state feedback
 - Automatic validation: inspect real stereo/depth frames, HUD status and console JSON; compare confidence before/after any accepted change, verify downstream geometry refresh when parameters change, and compare stored EEPROM before/after. Do not claim improved calibration from a pass that retained existing parameters. Core failure messages report zero confidence fields after retries; use SDK info logs for retry metrics. An unchanged EEPROM is required in automatic mode.

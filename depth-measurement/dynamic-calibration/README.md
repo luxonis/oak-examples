@@ -143,12 +143,6 @@ python3 main.py --device 18443010C1BA9D1200
 
 This will run the example on a specific device.
 
-Hardware-independent safety checks:
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
 ## Standalone Mode (RVC4 only)
 
 Running the example in the standalone mode, app runs entirely on the device.
