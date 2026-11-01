@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Native host panorama stitching with optional tiled, on-device YOLO inference."""
+"""Native host panorama stitching with tiled, on-device YOLO inference."""
 
-import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -23,7 +22,6 @@ IMG_SIZES = {
     "480p": (640, 480),
     "360p": (640, 360),
 }
-AF_DELAY_S = 5.0
 
 
 def add_inference(pipeline, panorama, source_count, fps):
@@ -98,56 +96,17 @@ def add_inference(pipeline, panorama, source_count, fps):
 
 def main():
     parser, args = initialize_argparser()
-    infos = (
-        [dai.DeviceInfo(selector) for selector in args.devices]
-        if args.devices
-        else [
-            info
-            for info in dai.Device.getAllAvailableDevices()
-            if info.platform
-            in (dai.XLinkPlatform.X_LINK_MYRIAD_X, dai.XLinkPlatform.X_LINK_RVC4)
-            and info.state
-            in (
-                dai.XLinkDeviceState.X_LINK_UNBOOTED,
-                dai.XLinkDeviceState.X_LINK_BOOTLOADER,
-                dai.XLinkDeviceState.X_LINK_GATE,
-            )
-        ]
-    )
-    if not infos or len(infos) * len(args.sockets) < 2:
-        parser.error(
-            "Stitching needs at least two sources: use --devices ID ID or --devices ID --sockets CAM_B CAM_C"
-        )
+    if len(args.devices) * len(args.sockets) < 2:
+        parser.error("Select at least two camera sources")
 
-    if len(set(args.sockets)) != len(args.sockets):
-        parser.error("Duplicate sockets are not supported")
-    identities = [info.getDeviceId() or info.name for info in infos]
-    if len(set(identities)) != len(identities):
-        parser.error("Duplicate devices are not supported")
-
-    with dai.Device(infos[0]) as first, dai.Pipeline(first) as pipeline:
-        devices = [first] + [pipeline.addDevice(info) for info in infos[1:]]
-        if len({device.getDeviceId() for device in devices}) != len(devices):
-            raise RuntimeError("Device selectors resolve to the same camera")
-        outputs, focus_controls = [], []
+    with dai.Pipeline(createImplicitDevice=False) as pipeline:
         visualizer = dai.RemoteConnection(httpPort=8082)
-        for device in devices:
-            if device.getPlatform() not in (dai.Platform.RVC2, dai.Platform.RVC4):
-                raise RuntimeError("Only RVC2 and RVC4 are supported")
-            print(
-                f"Connected: {device.getDeviceId()} {device.getPlatform().name}",
-                flush=True,
-            )
-            features = {
-                feature.socket: feature
-                for feature in device.getConnectedCameraFeatures()
-            }
-            for socket_name in args.sockets:
-                socket = getattr(dai.CameraBoardSocket, socket_name)
-                if socket not in features:
-                    raise RuntimeError(f"{device.getDeviceId()} has no {socket_name}")
+        outputs = []
+        for selector in args.devices:
+            device = pipeline.addDevice(dai.DeviceInfo(selector))
+            for socket in args.sockets:
                 camera = pipeline.create(dai.node.Camera, device).build(
-                    socket, sensorFps=args.fps_limit
+                    getattr(dai.CameraBoardSocket, socket), sensorFps=args.fps_limit
                 )
                 output = camera.requestOutput(
                     IMG_SIZES[args.input_size],
@@ -155,116 +114,44 @@ def main():
                     dai.ImgResizeMode.CROP,
                     fps=args.fps_limit,
                 )
+                visualizer.addTopic(f"Input-{len(outputs)}", output)
                 outputs.append(output)
-                visualizer.addTopic(f"Input-{len(outputs) - 1}", output)
-                if features[socket].hasAutofocus:
-                    focus_controls.append(camera.inputControl.createInputQueue())
 
         stitch = pipeline.create(dai.beta.node.Stitching).build(outputs)
-        stitch.setRunOnHost(True)
         stitch.setMode(dai.beta.node.Stitching.Mode.PANORAMA)
-        # Native detection transformTo currently supports pinhole projections.
+        # Stitching runs on host by default, supporting RVC2 and RVC4 inputs.
+        # Native detection transformTo requires a perspective projection.
         stitch.setCameraModel(dai.CameraModel.Perspective)
         stitch.setContinuous(False)
-        stitch.setEstimationFrames(args.estimation_frames)
-        stitch.setMaxPanoramaSize(*args.max_panorama_size)
-        stitch.setSeamFinder(
-            getattr(dai.beta.node.Stitching.SeamFinder, args.seam_finder)
+        stitch.setEstimationFrames(3)
+        stitch.setMaxPanoramaSize(4096, 2048)
+        stitch.setSeamFinder(dai.beta.node.Stitching.SeamFinder.DP_COLOR)
+        stitch.setSyncThreshold(timedelta(milliseconds=100))
+
+        canvas, detections, full_detections = add_inference(
+            pipeline,
+            stitch.out,
+            len(outputs),
+            args.fps_limit,
         )
-        stitch.setSyncThreshold(timedelta(milliseconds=args.sync_threshold_ms))
         visualizer.addTopic("Stitched", stitch.out)
-        panorama_queue = stitch.out.createOutputQueue(maxSize=1, blocking=False)
-        detection_queue = None
-        if not args.no_nn:
-            canvas, detections, full_detections = add_inference(
-                pipeline,
-                stitch.out,
-                len(outputs),
-                args.fps_limit,
-            )
-            detection_queue = full_detections.createOutputQueue(
-                maxSize=1, blocking=False
-            )
-            visualizer.addTopic("Inference", canvas)
-            visualizer.addTopic("Patcher", detections)
-            visualizer.addTopic("PanoramaDetections", full_detections)
+        visualizer.addTopic("Inference", canvas)
+        visualizer.addTopic("Patcher", detections)
+        visualizer.addTopic("PanoramaDetections", full_detections)
 
         pipeline.start()
         visualizer.registerPipeline(pipeline)
-        started = focus_started = time.monotonic()
-        focus_enabled, reset_done, received, warned = True, False, 0, False
-        detection_messages = 0
-        print(
-            "Visualizer: http://localhost:8082. Press r to reset registration; q to quit.",
-            flush=True,
-        )
+        print("Open http://localhost:8082. Press r to reset stitching, q to quit.")
         try:
             while pipeline.isRunning():
                 pipeline.processTasks()
-                elapsed = time.monotonic() - started
                 key = visualizer.waitKey(1)
                 if key == ord("q"):
                     break
-                if key == ord("r") or (
-                    args.reset_after and elapsed >= args.reset_after and not reset_done
-                ):
+                if key == ord("r"):
                     stitch.resetTransform()
-                    reset_done = True
-                    control = dai.CameraControl()
-                    control.setAutoFocusMode(dai.CameraControl.AutoFocusMode.AUTO)
-                    for queue in focus_controls:
-                        queue.send(control)
-                    focus_started, focus_enabled = time.monotonic(), True
-                    print("Registration reset", flush=True)
-                if focus_enabled and time.monotonic() - focus_started >= AF_DELAY_S:
-                    control = dai.CameraControl()
-                    control.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
-                    for queue in focus_controls:
-                        queue.send(control)
-                    focus_enabled = False
-                frame = panorama_queue.tryGet()
-                if frame is not None:
-                    received += 1
-                    if received == 1:
-                        print(
-                            f"Panorama: {frame.getWidth()}x{frame.getHeight()}, "
-                            f"projection={frame.getTransformation().getDistortionModel().name}",
-                            flush=True,
-                        )
-                if detection_queue is not None:
-                    detections = detection_queue.tryGet()
-                    if detections is not None:
-                        detection_messages += 1
-                        if detection_messages == 1:
-                            print(
-                                f"Inference running: {len(detections.detections)} detections in first result",
-                                flush=True,
-                            )
-                if elapsed > 20 and not received and not warned:
-                    print(
-                        "No panorama yet: check Input topics for overlap/texture and synchronization. "
-                        "Native registration waits for valid candidates; no concatenation fallback.",
-                        flush=True,
-                    )
-                    warned = True
-                if args.duration and elapsed >= args.duration:
-                    if not received:
-                        raise RuntimeError(
-                            "No panorama produced during the bounded run"
-                        )
-                    if detection_queue is not None and not detection_messages:
-                        raise RuntimeError(
-                            "Panorama produced, but no inference results during the bounded run"
-                        )
-                    break
-                time.sleep(0.001)
         except KeyboardInterrupt:
             pass
-        finally:
-            print(
-                f"Received {received} panorama frames and {detection_messages} inference messages",
-                flush=True,
-            )
 
 
 if __name__ == "__main__":

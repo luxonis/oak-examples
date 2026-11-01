@@ -36,20 +36,27 @@ plausibility, not detection accuracy or moving-object synchronization.
 
 ## Reproduction
 
+The app now uses the Visualizer directly, with no validation queues, counters,
+focus timers, or diagnostic CLI flags. Automated checks use a separate script.
+The runs and frame counts above were collected before that simplification.
+The simplified app was then retested using scripts/validate.py on RVC2
+1944301051FB078C00 and RVC4 3121428587. Both produced two real panoramas,
+an inference frame, and two full-panorama detection messages, then closed.
+Captured geometry was 649x372 on RVC2 and 646x362 on RVC4; RVC4 samples
+included chair/person detections. Captures were opened and JSONL parsed under
+`/home/matic/Luxonis/oak-examples-u19/evidence/u19-simplified/`.
+
 From the example directory in an environment with its requirements:
 
 ```bash
-oakctl run-script python main.py --devices 1944301021AF721300 \
-  --sockets CAM_B CAM_C --duration 55 --reset-after 25
-oakctl run-script python main.py --devices 1944301051FB078C00 \
-  --sockets CAM_B CAM_C --duration 35
-oakctl run-script python main.py --devices 3155104876 \
-  --sockets CAM_B CAM_C --duration 65 --reset-after 30
-oakctl run-script python main.py --devices 3121428587 \
-  --sockets CAM_B CAM_C --duration 35
+python scripts/validate.py --devices 1944301021AF721300 --sockets CAM_B CAM_C
+python scripts/validate.py --devices 1944301051FB078C00 --sockets CAM_B CAM_C
+python scripts/validate.py --devices 3155104876 --sockets CAM_B CAM_C
+python scripts/validate.py --devices 3121428587 --sockets CAM_B CAM_C
 ```
 
-Run these sequentially. Capture from another terminal while each runs:
+Run these sequentially. For manual reset testing, run main.py with the same
+device/socket options, press r in the Visualizer, and capture from another terminal:
 
 ```bash
 oakctl inspect frames Stitched --count 1 --out evidence/panorama --timeout 20s

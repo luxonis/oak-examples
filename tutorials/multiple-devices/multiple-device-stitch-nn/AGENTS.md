@@ -45,18 +45,18 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native beta S
 - Native host `dai.beta.node.Stitching` owns synchronization, visual registration, cached composition, seams and virtual-camera metadata. `r` calls `resetTransform()`.
 - Host ImageManip resizes the full BGR888i panorama into a fixed platform-appropriate BGR inference canvas while preserving transformation metadata.
 - Tiling, FrameCropper, ParsingNeuralNetwork, GatherData, MergeImgDetections and NMS produce canvas detections. MergeImgDetections uses native transformTo against the timestamp-matched reference, both before NMS and when mapping back to the full panorama.
-- Only autofocus-capable sensors receive focus controls; focus is disabled five seconds after startup/reset.
+- The Visualizer owns display. The main loop only processes pipeline tasks and handles r/q; camera focus stays at its default. Automated capture is isolated in [scripts/validate.py](scripts/validate.py).
 
 ## Constraints
 
 - Host-only; RVC2 and RVC4 sources can be mixed. The first selected device determines the inference platform/model.
 - Static, overlapping, textured views are required for visual registration. Software Sync groups timestamps but does not align camera exposures.
-- Explicit `--devices` is preferred in a shared office; `--sockets` applies to each device. Do not select busy devices or change their OS, credentials or persistent settings.
-- There is deliberately no concatenation fallback. Failed registration leaves input topics available; no panorama/detections are fabricated. `--duration` fails when no panorama was produced.
+- Explicit `--devices` is required; `--sockets` applies to each device. Do not select busy devices or change their OS, credentials or persistent settings.
+- There is deliberately no concatenation fallback. Failed registration leaves input topics available; no panorama/detections are fabricated.
 - Use Perspective panorama projection: native transformTo rejects Equirectangular. CoordinatesMapper is intentionally avoided because depthai-nodes 0.7.0 rejects it on RVC2.
 - RVC2 inference uses BGR888p; RVC4 uses BGR888i.
-- Native output allocation is bounded by `--max-panorama-size`; ImageManip and NN crop sizes are independently bounded.
-- Use `--no-nn` only for camera/stitch validation; it does not prove inference. Both dependency versions are pinned because Stitching is beta.
+- Native output allocation is bounded by the 4096x2048 constant in main.py; ImageManip and NN crop sizes are independently bounded.
+- Both dependency versions are pinned because Stitching is beta. Stitching parameters are constants in main.py, not diagnostic CLI options.
 
 ## Related Examples
 
@@ -68,7 +68,7 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native beta S
 
 - `Run:` `oakctl run-script python main.py --devices LEFT_ID RIGHT_ID`
 - `Single-device sensors:` `python main.py --devices ID --sockets CAM_B CAM_C`
-- `Bounded reset check:` append `--duration 60 --reset-after 25`; use `--no-nn` to isolate stitching
+- `Automated capture:` `python scripts/validate.py --devices ID --sockets CAM_B CAM_C`; this checks the normal app through oakctl inspect and stops it afterward
 - `Evidence:` use `oakctl inspect frames Stitched` and inspect both inference and full panorama overlays
 - `Recalculate:` focus the Visualizer and press `r`
 - `Success looks like:` the Visualizer shows a stitched panorama with detection overlays, and pressing `r` recomputes alignment
