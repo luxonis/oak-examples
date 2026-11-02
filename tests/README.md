@@ -63,6 +63,24 @@ If you for example want to run the test on a single example you can do it like t
 pytest -v -r a --log-cli-level=INFO --log-file=out.log --color=yes --root-dir neural-networks/generic-example -- tests/
 ```
 
+## Geometry Regression Tests
+
+From the repository root, run the device-free frame-geometry tests:
+
+```bash
+python -m pytest tests/test_frame_geometry.py --root-dir . -q
+```
+
+The suite needs pytest, DepthAI >=3.11.0, depthai-nodes, NumPy, and OpenCV contrib
+(`cv2.ximgproc`). Install Open3D and SciPy as well to include the box and volume
+projection tests. Missing SDK packages skip the suite; missing Open3D or SciPy
+skips the affected projection tests.
+
+These tests cover host ROI and point-to-point measurements, WLS disparity scaling,
+box and volume projection, checkerboard still intrinsics, and Kalman initialization.
+They use real DepthAI metadata with controlled inputs and do not require a camera.
+For physical accuracy and alignment, follow each example's hardware checks.
+
 ## Known Failing Examples (Rule System)
 
 Some examples are known to fail under specific conditions (platform, OS, mode, Python

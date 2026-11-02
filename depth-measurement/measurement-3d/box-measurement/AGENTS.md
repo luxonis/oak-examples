@@ -58,7 +58,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 ## Data Flow
 
 - `CAM_A -> ImageManip -> ParsingNeuralNetwork -> detections + segmentation mask`
-- `Depth -> RGBD -> Pointcloud`
+- `Depth -> PointCloud -> Pointcloud`
 - `pointcloud + NN passthrough + detections -> BoxProcessingNode -> Box Detections + Cuboid Fit`
 - `CAM_A preview -> Video Stream`
 
@@ -99,8 +99,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 ## Validation
 
-- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
-
+- `Hardware check:` Check cuboid overlays and known box dimensions at the center and edges, then repeat with another output aspect ratio.
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Video Stream`, `Box Detections`, `Cuboid Fit`, and `Pointcloud`, and detected boxes receive dimension labels when the fit succeeds

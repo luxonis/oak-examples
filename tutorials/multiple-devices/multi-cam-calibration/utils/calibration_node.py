@@ -51,12 +51,7 @@ class CalibrationNode(dai.node.HostNode):
         self.intrinsic_mat_still: Optional[np.ndarray] = (
             None  # For high-res still image
         )
-        self.device: Optional[dai.Device] = None
         self.mxid: Optional[str] = None
-        self.preview_width: int = 0
-        self.preview_height: int = 0
-        self.still_width: int = 3840
-        self.still_height: int = 2160
         self.control_q: Optional[dai.InputQueue] = None
         self.still_q = None
 
@@ -70,19 +65,10 @@ class CalibrationNode(dai.node.HostNode):
         self,
         preview_input: dai.Node.Output,
         device: dai.Device,
-        preview_width: int,
-        preview_height: int,
-        still_width: int = 3840,
-        still_height: int = 2160,
         control_q: Optional[dai.InputQueue] = None,
         still_q=None,
     ) -> "CalibrationNode":
-        self.device = device
         self.mxid = device.getDeviceId()
-        self.preview_width = preview_width
-        self.preview_height = preview_height
-        self.still_width = still_width
-        self.still_height = still_height
         self.control_q = control_q
         self.still_q = still_q
 
@@ -224,8 +210,6 @@ class CalibrationNode(dai.node.HostNode):
             self.intrinsic_mat_still = np.asarray(
                 in_still_msg.getTransformation().getIntrinsicMatrix(), dtype=np.float64
             )
-            self.still_width = in_still_msg.getWidth()
-            self.still_height = in_still_msg.getHeight()
             raw_cv_frame = in_still_msg.getCvFrame()
             print(
                 f"[{self.mxid}] CalibrationNode: ImgFrame received (type: {in_still_msg.getType()}, size: {in_still_msg.getWidth()}x{in_still_msg.getHeight()})."
@@ -278,8 +262,6 @@ class CalibrationNode(dai.node.HostNode):
             and self.rot_vec is not None
             and self.trans_vec is not None
             and self.intrinsic_mat_still is not None
-            and self.preview_width > 0
-            and self.preview_height > 0
         ):
             axis_length = self.square_size * 2.5
             world_points_axes = np.float32(
@@ -298,8 +280,7 @@ class CalibrationNode(dai.node.HostNode):
                 3
             )
             transformation = frame_message.getTransformation()
-            self.preview_width = frame_message.getWidth()
-            self.preview_height = frame_message.getHeight()
+            width, height = frame_message.getWidth(), frame_message.getHeight()
             projected = [
                 transformation.project3DPoint(dai.Point3f(*point))
                 for point in camera_points
@@ -307,12 +288,8 @@ class CalibrationNode(dai.node.HostNode):
             p_origin, p_x, p_y, p_z = [np.array([p.x, p.y]) for p in projected]
 
             def to_norm_coords(px_pt: np.ndarray) -> Tuple[float, float]:
-                norm_x = (
-                    np.clip(px_pt[0], 0, self.preview_width - 1) / self.preview_width
-                )
-                norm_y = (
-                    np.clip(px_pt[1], 0, self.preview_height - 1) / self.preview_height
-                )
+                norm_x = np.clip(px_pt[0], 0, width - 1) / width
+                norm_y = np.clip(px_pt[1], 0, height - 1) / height
                 return (float(norm_x), float(norm_y))
 
             try:

@@ -60,8 +60,7 @@ This is the repository reference for Kalman-filtered spatial tracking. Use it wh
 
 ## Validation
 
-- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
-
+- `Hardware check:` Track a person through NEW, TRACKED, and REMOVED states and check spatial smoothing at known distances.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `Video` and `Tracklets`, with smoother spatial boxes and IDs over time
 - `Common failure meaning:` stereo calibration is wrong, the device lacks the required camera set, or the person-only assumption does not match the scene

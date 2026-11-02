@@ -96,8 +96,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Validation
 
-- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
-
+- `Hardware check:` Measure a known distance at the image center and corners, then repeat with another output aspect ratio.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target
 - `Common failure meaning:` stereo alignment or calibration is missing, invalid depth prevents measurement, or frontend topic/service assumptions drifted from the backend

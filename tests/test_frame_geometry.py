@@ -145,7 +145,6 @@ def test_calibration_uses_intrinsics_of_received_still():
     )
     assert calibration.CalibrationNode.capture_and_calibrate(host)
     np.testing.assert_allclose(seen[0], still.getTransformation().getIntrinsicMatrix())
-    assert (host.still_width, host.still_height) == (320, 240)
 
 
 def test_volume_projection_uses_current_cloud_transformation():

@@ -49,10 +49,6 @@ def setup_device_pipeline(
     calibration_node = pipeline.create(CalibrationNode).build(
         preview_input=cam_preview,
         device=device_instance,
-        preview_width=preview_width,
-        preview_height=preview_height,
-        still_width=STILL_WIDTH,
-        still_height=STILL_HEIGHT,
         control_q=control_q,
         still_q=still_q,
     )

@@ -95,8 +95,7 @@ This is the host-side spatial ROI measurement reference in the repo. Use it when
 
 ## Validation
 
-- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
-
+- `Hardware check:` Check ROI coordinates at the center and corners against known target positions, then repeat with another output aspect ratio.
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Depth` plus `Spatial Calculations`, and the overlay displays X/Y/Z values for the current ROI

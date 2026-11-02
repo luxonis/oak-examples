@@ -5,8 +5,6 @@ from typing import List, Tuple, Optional
 from depthai_nodes.utils import AnnotationHelper
 from .distance_calculator import DistanceCalculator
 
-Point = Tuple[int, int]
-
 POINT_COLOR = (0, 0.75, 1.0, 1.0)  # Brighter blue
 POINT_FILL_COLOR = POINT_COLOR
 BBOX_COLOR = POINT_COLOR
@@ -37,7 +35,6 @@ class PointTracker(dai.node.HostNode):
         self.input_rgb = self.createInput()
         self.input_depth = self.createInput()
         self.output_annotations = self.createOutput()
-        self.output_distance = self.createOutput()
 
         self.points: List[dict] = []
         self.max_points = 2
@@ -62,14 +59,14 @@ class PointTracker(dai.node.HostNode):
         if mode == 2:
             self.clear_points()
         self.mode = self.modes[mode]
-        if self.distance_calculator:
-            self.distance_calculator.clear_distances()
+        self.distance_calculator.clear_distances()
 
     def set_frame(self, frame: np.ndarray):
         self.prev_frame = self.current_frame
         self.current_frame = frame.copy() if frame is not None else None
 
-    def add_point(self, x: float, y: float, frame_width: int, frame_height: int):
+    def add_point(self, x: float, y: float):
+        frame_width, frame_height = self.frame_width, self.frame_height
         pixel_x = int(x * frame_width)
         pixel_y = int(y * frame_height)
 
@@ -305,8 +302,7 @@ class PointTracker(dai.node.HostNode):
         self.latest_distance = None
         self.latest_std_dev = None
         self.has_invalid_depth = False
-        if self.distance_calculator:
-            self.distance_calculator.clear_distances()
+        self.distance_calculator.clear_distances()
 
     def get_latest_distance(self):
         return {
@@ -316,9 +312,7 @@ class PointTracker(dai.node.HostNode):
             "has_invalid_depth": self.has_invalid_depth,
         }
 
-    def create_annotations(
-        self, rgb_msg, depth_frame: np.ndarray
-    ) -> dai.ImgAnnotations:
+    def create_annotations(self, rgb_msg) -> dai.ImgAnnotations:
         helper = AnnotationHelper()
 
         for i, point_data in enumerate(self.points):
@@ -381,11 +375,10 @@ class PointTracker(dai.node.HostNode):
                     self.set_frame(bgr_frame)
                     self.update_tracking()
 
-                depth_frame = depth_msg.getFrame()
-                annotations = self.create_annotations(rgb_msg, depth_frame)
+                annotations = self.create_annotations(rgb_msg)
                 self.output_annotations.send(annotations)
 
-                if len(self.points) == 2 and self.distance_calculator:
+                if len(self.points) == 2:
                     distance, std_dev = self.distance_calculator.calculate_distance(
                         self.points, depth_msg
                     )

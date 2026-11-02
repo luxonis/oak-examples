@@ -5,7 +5,6 @@ from typing import List, Tuple
 
 class DistanceCalculator:
     def __init__(self, measurement_history_length: int = 20):
-        self.show_confidence_interval = False
         self.distances = []
         self.measurement_history_length = measurement_history_length
 
@@ -79,11 +78,3 @@ class DistanceCalculator:
     def clear_distances(self):
         """Clear stored distance measurements"""
         self.distances.clear()
-
-    def toggle_confidence_interval(self):
-        """Toggle confidence interval display"""
-        self.show_confidence_interval = not self.show_confidence_interval
-
-    def get_average_distance(self) -> float:
-        """Get average of all stored distances"""
-        return np.mean(self.distances) if self.distances else 0

@@ -63,8 +63,7 @@ This is the repository reference for generating per-device extrinsic calibration
 
 ## Validation
 
-- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
-
+- `Hardware check:` Capture a checkerboard pose and verify that preview axes stay on the board across devices and preview aspect ratios.
 - `Run:` `python3 main.py`
 - `Controls:` press `a` to change the selected device and `c` to capture/calibrate
 - `Success looks like:` terminal output reports successful pose estimation and `calibration_data/extrinsics_<MXID>.npz` files appear

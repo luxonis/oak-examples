@@ -61,7 +61,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - `RGB + text embeddings -> ParsingNeuralNetwork -> filtered detections`
 - `RGB + aligned depth + detections -> annotation node -> Detections`
-- `segmented RGB + segmented depth -> RGBD -> Pointclouds`
+- `segmented RGB + segmented depth -> PointCloud -> Pointclouds`
 - `Pointclouds + selection + IMU -> measurement node -> Measurement Overlay + Plane Status`
 
 ## Modification Guide
@@ -101,8 +101,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Validation
 
-- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
-
+- `Hardware check:` Check fitted dimensions against an object of known size at the image center and edges.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose

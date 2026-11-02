@@ -92,8 +92,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 ## Validation
 
-- `Geometry regression tests:` from the repository root, run `python -m pytest tests/test_frame_geometry.py --root-dir . -q` with the example dependencies installed. Check center/corner measurements and another output aspect ratio on hardware.
-
+- `Hardware check:` Compare filtered depth with a known target distance and repeat after changing the configured subpixel precision.
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows raw disparity, filtered disparity, and WLS annotations, and `l/L/s/S` visibly changes the filtered output

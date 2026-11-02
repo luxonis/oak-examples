@@ -79,9 +79,7 @@ with dai.Pipeline(device) as pipeline:
         except Exception as e:
             return {"ok": False, "error": f"bad payload: {e}"}
 
-        point_tracker.add_point(
-            x, y, point_tracker.frame_width, point_tracker.frame_height
-        )
+        point_tracker.add_point(x, y)
         return {"ok": True}
 
     def clear_points_service(data: dict):
