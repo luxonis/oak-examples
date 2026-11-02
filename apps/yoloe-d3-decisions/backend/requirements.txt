@@ -1,0 +1,10 @@
+depthai==3.11.0
+depthai-nodes==0.7.0
+opencv-python-headless==4.10.0.84
+numpy>=1.26,<3
+requests>=2.32,<3
+Pillow>=11,<13
+python-box>=7,<8
+tokenizers>=0.21,<0.22
+onnxruntime>=1.22,<2
+tqdm>=4.60,<5
