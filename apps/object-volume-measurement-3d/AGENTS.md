@@ -53,7 +53,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
 - Detection filtering keeps only the currently active class labels.
 - The annotation node handles segmentation, selection, and display overlays.
-- An `RGBD` node creates pointcloud output for the segmented region.
+- A `PointCloud` node (organized mode, `setLengthUnit(CENTIMETER)`) creates colored pointcloud output for the segmented region from the masked depth and RGB frames, so the measurement code works in centimeters end to end with no unit conversion.
 - The measurement node estimates dimensions and volume, either by oriented bounding box or height-grid over a captured support plane.
 - The frontend controls selection, classes, threshold, and measurement method through services.
 
@@ -61,13 +61,13 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - `RGB + text embeddings -> ParsingNeuralNetwork -> filtered detections`
 - `RGB + aligned depth + detections -> annotation node -> Detections`
-- `segmented RGB + segmented depth -> RGBD -> Pointclouds`
+- `segmented depth + segmented RGB -> PointCloud -> Pointclouds`
 - `Pointclouds + selection + IMU -> measurement node -> Measurement Overlay + Plane Status`
 
 ## Modification Guide
 
 - `Safe to change:` initial classes, confidence threshold, frontend labels, measurement mode defaults, topic names
-- `Requires care:` text-embedding updates, selection reset behavior, stereo alignment, plane-capture logic, intrinsics assumptions
+- `Requires care:` text-embedding updates, selection reset behavior, stereo alignment, plane-capture logic, intrinsics assumptions, the point-cloud length unit (all thresholds in [backend/src/utils/PointCloudMeasurement.py](backend/src/utils/PointCloudMeasurement.py) are in centimeters)
 - `Likely to break if changed blindly:` measurement method switching, pointcloud selection pipeline, or the label-encoding contract between backend and frontend
 
 ## Common Adaptations
@@ -75,7 +75,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - `To change the default classes:` edit `CLASS_NAMES` in [backend/src/main.py](backend/src/main.py)
 - `To change confidence behavior:` edit the parser threshold and [frontend/src/ConfidenceSlider.tsx](frontend/src/ConfidenceSlider.tsx)
 - `To reuse the pointcloud measurement backend:` keep [backend/src/utils/measurement_node.py](backend/src/utils/measurement_node.py) and feed it another segmented pointcloud source
-- `To study a lighter RGBD reference:` compare against [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud)
+- `To study a lighter point-cloud reference:` compare against [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud)
 
 ## Constraints
 
@@ -94,7 +94,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 ## Related Examples
 
 - [apps/p2p-measurement](https://github.com/luxonis/oak-examples/tree/main/apps/p2p-measurement): use this when you only need two-point distance measurement
-- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need a cleaner RGBD pointcloud reference
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need a cleaner `PointCloud` reference
 - [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when the main frontend pattern is interactive class control rather than 3D measurement
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial measurement is enough
 
