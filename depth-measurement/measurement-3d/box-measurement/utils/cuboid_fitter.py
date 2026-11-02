@@ -92,13 +92,13 @@ class CuboidFitter:
         )
         self.point_cloud, _ = self.point_cloud.remove_statistical_outlier(40, 0.1)
 
-        filtered_points, filtered_colors = self.mad_filtering(self.point_cloud)
+        filtered_points, filtered_colors = self.MAD_filtering(self.point_cloud)
         if filtered_points.size == 0:
             return
         self.point_cloud.colors = o3d.utility.Vector3dVector(filtered_colors)
         self.point_cloud.points = o3d.utility.Vector3dVector(filtered_points)
 
-    def mad_filtering(
+    def MAD_filtering(
         self, pcl: o3d.geometry.PointCloud, k: int = 3
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -307,7 +307,7 @@ class CuboidFitter:
 
         return len(self.planes) == 3
 
-    def calculate_dimensions_corners_mad(self) -> Tuple[np.ndarray, np.ndarray]:
+    def calculate_dimensions_corners_MAD(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Calculates the dimensions and corners of the cuboid using a robust percentile-based method.
 
@@ -408,7 +408,7 @@ class CuboidFitter:
         self.line_set.paint_uniform_color([1, 0, 0])
         return self.line_set
 
-    def create_rotation_from_normals(self) -> np.ndarray:
+    def create_R_from_normals(self) -> np.ndarray:
         """
         Creates a rotation matrix from the normal vectors of the three orthogonal planes.
         """
@@ -472,7 +472,7 @@ class CuboidFitter:
         if self.center is None:
             self.center = np.mean(corners, axis=0)
 
-        R = self.create_rotation_from_normals()
+        R = self.create_R_from_normals()
         U, _, Vt = np.linalg.svd(R)
         R_orthogonal = np.dot(U, Vt)
 

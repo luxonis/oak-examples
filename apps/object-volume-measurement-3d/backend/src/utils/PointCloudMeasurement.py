@@ -339,7 +339,7 @@ class PointCloudMeasurement:
             self.point_cloud.colors = o3d.utility.Vector3dVector(colors)
 
         self.filter_point_cloud()
-        idx = self.mad_filtering(self.point_cloud, k=3)
+        idx = self.MAD_filtering(self.point_cloud, k=3)
         if idx.size == 0:
             return
 
@@ -377,7 +377,7 @@ class PointCloudMeasurement:
             np.where(mask)[0]
         )
 
-    def mad_filtering(self, pcl: o3d.geometry.PointCloud, k: int = 3):
+    def MAD_filtering(self, pcl: o3d.geometry.PointCloud, k: int = 3):
         """
         Filters the point cloud using the Median Absolute Deviation (MAD) method.
 
@@ -685,7 +685,7 @@ class PointCloudMeasurement:
 
     # --------------- Filtering bbox positions-------------------
 
-    def get_measurement_obb(self):
+    def get_measurement_OBB(self):
         """
         Object-oriented bbox with temporal stabilization/smoothing
         Pipeline:
@@ -751,7 +751,7 @@ class PointCloudMeasurement:
             )
             self.from_reset = True
 
-    def get_measurement_ground_hg(self):
+    def get_measurement_groundHG(self):
         """
         Height-grid measurement with temporal stabilization/filtering.
         """

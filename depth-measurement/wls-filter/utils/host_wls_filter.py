@@ -9,7 +9,7 @@ class Filter:
     def __init__(self, _lambda, _sigma) -> None:
         self._lambda = _lambda
         self._sigma = _sigma
-        self.wls_filter = cv2.ximgproc.createDisparityWLSFilterGeneric(False)
+        self.wlsFilter = cv2.ximgproc.createDisparityWLSFilterGeneric(False)
 
     def increase_lambda(self) -> None:
         if self._lambda < 255 * 100:
@@ -30,23 +30,23 @@ class Filter:
             self._sigma = round(self._sigma, 2)
 
     def filter(
-        self, disparity, right, depth_scale_factor
+        self, disparity, right, depthScaleFactor
     ) -> Tuple[np.ndarray, np.ndarray]:
         # https://github.com/opencv/opencv_contrib/blob/master/modules/ximgproc/include/opencv2/ximgproc/disparity_filter.hpp#L92
-        self.wls_filter.setLambda(self._lambda)
+        self.wlsFilter.setLambda(self._lambda)
         # https://github.com/opencv/opencv_contrib/blob/master/modules/ximgproc/include/opencv2/ximgproc/disparity_filter.hpp#L99
-        self.wls_filter.setSigmaColor(self._sigma)
-        filtered_disparity = self.wls_filter.filter(disparity, right)
+        self.wlsFilter.setSigmaColor(self._sigma)
+        filteredDisp = self.wlsFilter.filter(disparity, right)
 
         # Z in millimeters; nonpositive disparity is invalid.
         with np.errstate(divide="ignore"):  # Should be safe to ignore div by zero here
             # raw depth values
-            depth = depth_scale_factor / filtered_disparity
+            depth = depthScaleFactor / filteredDisp
         depth = np.nan_to_num(depth, nan=0.0, posinf=0.0, neginf=0.0)
-        depth[filtered_disparity <= 0] = 0
-        depth_frame = np.clip(depth, 0, np.iinfo(np.uint16).max).astype(np.uint16)
+        depth[filteredDisp <= 0] = 0
+        depthFrame = np.clip(depth, 0, np.iinfo(np.uint16).max).astype(np.uint16)
 
-        return filtered_disparity, depth_frame
+        return filteredDisp, depthFrame
 
 
 class WLSFilter(dai.node.HostNode):
@@ -89,23 +89,21 @@ class WLSFilter(dai.node.HostNode):
         right_frame = right.getFrame()
         focal = right.getTransformation().getIntrinsicMatrix()[0][0]
         # Raw subpixel disparity contains 2**fractional_bits units per pixel.
-        depth_scale_factor = self._baseline * focal * self._disparity_scale
-        filtered_disparity, depth_frame = self._filter_window.filter(
-            disparity_frame, right_frame, depth_scale_factor
+        depthScaleFactor = self._baseline * focal * self._disparity_scale
+        filteredDisp, depthFrame = self._filter_window.filter(
+            disparity_frame, right_frame, depthScaleFactor
         )
-        filtered_disparity = (filtered_disparity * self._disp_multiplier).astype(
-            np.uint8
-        )
+        filteredDisp = (filteredDisp * self._disp_multiplier).astype(np.uint8)
 
-        max_value = depth_frame.max()
+        max_value = depthFrame.max()
         if max_value == 0:
             color_arr = np.zeros(
-                (depth_frame.shape[0], depth_frame.shape[1], 3),
+                (depthFrame.shape[0], depthFrame.shape[1], 3),
                 dtype=np.uint8,
             )
         else:
             color_arr = cv2.cvtColor(
-                ((depth_frame / max_value) * 255).astype(np.uint8),
+                ((depthFrame / max_value) * 255).astype(np.uint8),
                 cv2.COLOR_GRAY2BGR,
             )
 
@@ -118,7 +116,7 @@ class WLSFilter(dai.node.HostNode):
         self.depth_frame.send(depth_fr)
 
         self.filtered_disp.send(
-            self.create_img_frame(filtered_disparity, dai.ImgFrame.Type.RAW8, disparity)
+            self.create_img_frame(filteredDisp, dai.ImgFrame.Type.RAW8, disparity)
         )
 
         annots = AnnotationHelper()

@@ -62,8 +62,8 @@ class MeasurementNode(dai.node.ThreadedHostNode):
 
         # Geometry of the current native point cloud (millimeters, optical coordinates).
         self.transformation = None
-        self.image_width = None
-        self.image_height = None
+        self.imgW = None
+        self.imgH = None
 
         # smoothing of measurement values
         self._last_dims = deque(maxlen=30)
@@ -94,9 +94,9 @@ class MeasurementNode(dai.node.ThreadedHostNode):
             self.measurement_mode = method
             self.reset_plane()
             self.reset_measurements()
-            self.an_node.clear_cached_measurements()
+            self.an_node.clearCachedMeasurements()
             self.plane_status = "calculating" if method == "heightgrid" else None
-            self.an_node.request_plane_capture(method == "heightgrid")
+            self.an_node.requestPlaneCapture(method == "heightgrid")
 
     def reset_plane(self):
         self.pcl_measure.clear_plane()
@@ -159,7 +159,7 @@ class MeasurementNode(dai.node.ThreadedHostNode):
                 out.append(None)
                 continue
             pixel = self.transformation.project3DPoint(dai.Point3f(x, y, z))
-            out.append((pixel.x / self.image_width, pixel.y / self.image_height))
+            out.append((pixel.x / self.imgW, pixel.y / self.imgH))
         return out
 
     def _emit_overlay(
@@ -248,9 +248,9 @@ class MeasurementNode(dai.node.ThreadedHostNode):
         draw_label(
             helper,
             label,
-            (8 / self.image_width, 6 / self.image_height),
-            self.image_width,
-            self.image_height,
+            (8 / self.imgW, 6 / self.imgH),
+            self.imgW,
+            self.imgH,
             color=color,
             size=16,
         )
@@ -321,18 +321,18 @@ class MeasurementNode(dai.node.ThreadedHostNode):
             self.g_imu_plane = g_imu / (np.linalg.norm(g_imu) + 1e-9)
             self.plane_status = "ok"
             self.fails = 0
-            self.an_node.request_plane_capture(False)
+            self.an_node.requestPlaneCapture(False)
         else:
             self.fails += 1
             self.have_plane = False
             if self.fails >= self.MAX_PLANE_ATTEMPTS:
                 self.plane_status = "failed"
-                self.an_node.request_plane_capture(False)
+                self.an_node.requestPlaneCapture(False)
         self._emit_plane_status(pcl_msg, self.plane_status)
 
     def _process_cloud(self, pcl_msg, mode_val):
         self.transformation = pcl_msg.getTransformation()
-        self.image_width, self.image_height = self.transformation.getSize()
+        self.imgW, self.imgH = self.transformation.getSize()
         # Ignore full-scene clouds already queued when capture was cancelled or finished.
         if mode_val == self.MODE_PLANE:
             if (
@@ -368,9 +368,9 @@ class MeasurementNode(dai.node.ThreadedHostNode):
         rgb = bgr[:, ::-1].astype(np.float64) / 255.0
 
         if self.measurement_mode == "obb":
-            self.an_node.request_plane_capture(False)
+            self.an_node.requestPlaneCapture(False)
             self.pcl_measure.set_point_cloud(points, rgb)
-            self.pcl_measure.get_measurement_obb()
+            self.pcl_measure.get_measurement_OBB()
 
             self._emit_overlay(pcl_msg, self.pcl_measure.obb_pts)
             self._emit_median(
@@ -381,7 +381,7 @@ class MeasurementNode(dai.node.ThreadedHostNode):
             if not self.have_plane or self.pcl_measure.plane_eq is None:
                 if self.plane_status != "failed":
                     self.plane_status = "calculating"
-                    self.an_node.request_plane_capture(True)
+                    self.an_node.requestPlaneCapture(True)
                 self._emit_plane_status(pcl_msg, self.plane_status)
                 self._emit_overlay(pcl_msg, None)
                 self._emit_result_min(pcl_msg, None, None)
@@ -398,13 +398,13 @@ class MeasurementNode(dai.node.ThreadedHostNode):
                 self.reset_plane()
                 self.reset_measurements()
                 self.plane_status = "calculating"
-                self.an_node.request_plane_capture(True)
+                self.an_node.requestPlaneCapture(True)
                 self._emit_plane_status(pcl_msg, "calculating")
                 self._emit_result_min(pcl_msg, None, None)
                 return
 
             self.pcl_measure.set_point_cloud(points, rgb)
-            self.pcl_measure.get_measurement_ground_hg()
+            self.pcl_measure.get_measurement_groundHG()
 
             self._emit_overlay(pcl_msg, self.pcl_measure.corners3d)
             self._emit_median(

@@ -74,16 +74,14 @@ with dai.Pipeline(device) as p:
 
     box_processing = p.create(BoxProcessingNode)
 
-    point_cloud.outputPointCloud.link(box_processing.input_pcl)
-    nn.passthrough.link(box_processing.input_rgb)
-    nn.out.link(box_processing.input_detections)
+    point_cloud.outputPointCloud.link(box_processing.inputPCL)
+    nn.passthrough.link(box_processing.inputRGB)
+    nn.out.link(box_processing.inputDet)
 
     # Display the exact undistorted image used for geometry and inference.
     visualizer.addTopic("Video Stream", color_output, "images")
-    visualizer.addTopic("Box Detections", box_processing.output_annotations, "images")
-    visualizer.addTopic(
-        "Cuboid Fit", box_processing.output_cuboid_annotations, "images"
-    )
+    visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
+    visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
     visualizer.addTopic("Pointcloud", point_cloud.outputPointCloud, "point_clouds")
 
     print("Pipeline created.")

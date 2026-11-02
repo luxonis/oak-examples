@@ -61,8 +61,8 @@ with dai.Pipeline(device) as pipeline:
     )
     depth.setAlignTo(cam_out)
 
-    colored_depth = pipeline.create(ApplyDepthColormap).build(depth.depth)
-    colored_depth.setColormap(cv2.COLORMAP_JET)
+    coloredDepth = pipeline.create(ApplyDepthColormap).build(depth.depth)
+    coloredDepth.setColormap(cv2.COLORMAP_JET)
 
     point_tracker = pipeline.create(
         PointTracker, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT
@@ -123,7 +123,7 @@ with dai.Pipeline(device) as pipeline:
     )
 
     visualizer.addTopic("Video", cam_out, "images")
-    visualizer.addTopic("Depth", colored_depth.out, "images")
+    visualizer.addTopic("Depth", coloredDepth.out, "images")
     visualizer.addTopic("Point Annotations", point_tracker.output_annotations, "images")
 
     print("Pipeline created.")
