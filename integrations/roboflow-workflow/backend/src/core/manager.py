@@ -2,6 +2,7 @@ import logging
 import threading
 
 from config.config import PipelineConfig
+from core import qnn_patch
 from core.depthai_pipeline import DepthAIPipeline
 from core.roboflow_runner import (
     RoboflowRunner,
@@ -210,4 +211,5 @@ class RoboflowManager:
             # One bad frame kills the inference thread for good (the camera
             # stream keeps running) - report it so the UI can tell the user
             "pipeline": self._runner.get_status(),
+            "qnn_preparing": qnn_patch.is_preparing(),
         }
