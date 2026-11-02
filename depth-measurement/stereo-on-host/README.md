@@ -65,11 +65,3 @@ oakctl app run .
 This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
 
 Both matchers now use the same calibrated, distortion-corrected rectified pair from `StereoDepth`. OpenCV disparity retains its four fractional bits, and SSIM compares both outputs in pixel units. The host matcher does not apply a second rectification.
-
-## U03 validation
-
-On 1 November 2026, this example was run in host mode on an office OAK4-D (RVC4, Luxonis OS 1.40.0) and OAK-D-PRO-W-POE (RVC2), with DepthAI 3.11.0 and depthai-nodes 0.7.0. Both pipelines streamed frames and their processing outputs during bounded 15–20 second captures. Devices were selected from discovery after checking stereo cameras and calibration; devices running other applications were excluded.
-
-Both devices produced rectified views, host/device disparity and SSIM annotations. Saved rectified pairs had a median vertical feature residual of 0 px. ORB descriptor-ratio matches, filtered by fundamental-matrix RANSAC (1 px), gave 1,611 inliers on RVC4 (95th percentile residual 0.264 px) and 1,536 on RVC2 (95th percentile below 0.001 px). These are static-scene alignment checks, not a sensor accuracy specification.
-
-Real-world metric scale still needs validation against measured-distance targets, including off-axis points. Standalone packaging was not exercised in this run.

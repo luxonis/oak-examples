@@ -68,5 +68,3 @@ This is the repository reference for comparing CREStereo neural stereo matching 
 - `Common failure meaning:` the chosen model is unsupported for the platform, the device lacks stereo cameras, or the requested FPS/model size is too heavy for the hardware
 
 - Confirm both metric-depth streams and rectified previews update. Inspect vertical residuals and validate scale against known distances and off-axis points before claiming accuracy. The model must emit horizontal disparity in input-pixel units at the input resolution.
-
-- The final RVC2 capture streamed both depth outputs at 320×240, then reported a device watchdog crash (error 9001) after the requested shutdown. This teardown issue remains unresolved; the run validates output production, not clean shutdown or long-term stability.

@@ -59,15 +59,3 @@ oakctl app run .
 ```
 
 This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
-
-## U03 validation
-
-On 1 November 2026, this example was run in host mode on an office OAK4-D (RVC4, Luxonis OS 1.40.0) and OAK-D-PRO-W-POE (RVC2), with DepthAI 3.11.0 and depthai-nodes 0.7.0. Both pipelines streamed frames and their processing outputs during bounded 15–20 second captures. Devices were selected from discovery after checking stereo cameras and calibration; devices running other applications were excluded.
-
-Both devices produced inference passthrough frames, combined views and annotation topics. The office captures did not establish a valid single-face spatial measurement. Five geometry regression tests cover synthetic known depths (1, 2 and 5 meters), off-axis points, invalid/near-zero disparity, vertical mismatch and uint16 depth limits:
-
-```bash
-python3 -m unittest discover -s tests -p test_rectified_geometry.py
-```
-
-Real-world metric scale still needs validation against measured-distance targets, including off-axis points. Standalone packaging was not exercised in this run.
