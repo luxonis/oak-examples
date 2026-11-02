@@ -35,7 +35,9 @@ Open **http://localhost:8082** in the Visualizer:
 
 - `Input-N`: individual camera streams.
 - `Stitched` and `PanoramaDetections`: full panorama and detection overlays.
-- `Inference` and `Patcher`: resized inference canvas and its detection overlays.
+
+The resized inference canvas stays internal. Only the panorama detection stream
+is published, so each object has one label and box.
 
 Press **r** to reset registration after moving cameras, **q** or Ctrl-C to stop.
 
@@ -65,6 +67,33 @@ seam choices, and synchronization options beyond this example.
 The native panorama is BGR888i and carries its virtual-camera transformation.
 ImageManip resizes it for tiled inference and selects BGR888p for RVC2 or
 BGR888i for RVC4. Timestamp-matched references and native
-`ImgDetections.transformTo()` map tile detections to the inference canvas for
-NMS, then back to the full panorama for display. Camera sources may span multiple
+`ImgDetections.transformTo()` map tile detections directly to the full panorama
+before NMS and display. Camera sources may span multiple
 devices; the first device selects the inference model platform.
+
+Inference uses native `dai.node.DetectionNetwork`; NMS uses native
+`dai.beta.node.ImgDetectionsFilter` on the host. Tiling, cropping and timestamp
+gathering use `depthai-nodes`. The small merge helper preserves the matched
+reference transformation when moving detections from tiles to the panorama.
+
+
+### Performance measurement
+
+Measured on 2026-11-02 against commit `0f17e5fd9`, using DepthAI 3.11.0,
+depthai-nodes 0.7.0, a Ryzen 7 5800H host and PoE RVC2 inference. Both versions
+received the same captured 1476 × 749 panorama, with two tiles and
+`luxonis/yolov6-nano:r2-coco-512x288`. Each version/rate had two 20-second
+measurement windows after five seconds of warm-up, in before/after/after/before
+order. Values below average the two runs; latency averages their medians.
+
+| Requested FPS | Output FPS before → after | Detection latency before → after | Host CPU before → after |
+| --- | --- | --- | --- |
+| 5 | 5.0 → 5.0 | 126 → 119 ms | 12.1% → 10.1% |
+| 20 | 15.6 → 15.7 | 1486 → 1478 ms | 33.9% → 29.4% |
+
+CPU percentages are relative to one logical core and cover the benchmark process.
+Latency runs from panorama submission to final detections. Capture, stitching,
+and Visualizer work are excluded. Detection samples matched between versions.
+The native path used about 13–16% less CPU, with no meaningful throughput gain;
+the small latency differences were within the variation between runs. At a
+requested 20 FPS, both paths queued frames because inference could not keep up.

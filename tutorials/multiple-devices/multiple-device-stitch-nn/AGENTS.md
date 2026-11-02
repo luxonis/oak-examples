@@ -27,7 +27,7 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native beta S
 - `Runs on:` host mode only, with at least two camera sources across RVC2, RVC4, or mixed devices
 - `Requires:` overlapping textured FOV, static cameras, host CPU headroom, and DepthAI 3.11.0 with OpenCV support
 - `Input:` live `CAM_A` by default; ordered device IDs/IPs and sockets are selectable
-- `Output:` `Input-N`, full `Stitched`, resized `Inference`, `Patcher` and `PanoramaDetections` topics
+- `Output:` `Input-N`, full `Stitched` and `PanoramaDetections` topics
 - `Models:` YOLOv6 YAMLs in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
@@ -44,8 +44,9 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native beta S
 - [main.py](main.py) opens the selected first device as the default inference device and adds the remaining devices to the same pipeline. Camera nodes are explicitly assigned to devices.
 - Native host `dai.beta.node.Stitching` owns synchronization, visual registration, cached composition, seams and virtual-camera metadata. `r` calls `resetTransform()`.
 - Host ImageManip resizes the full BGR888i panorama into a fixed platform-appropriate BGR inference canvas while preserving transformation metadata.
-- Tiling, FrameCropper, ParsingNeuralNetwork, GatherData, MergeImgDetections and NMS produce canvas detections. MergeImgDetections uses native transformTo against the timestamp-matched reference, both before NMS and when mapping back to the full panorama.
+- Tiling and FrameCropper feed a native `dai.node.DetectionNetwork` on the first device. GatherData and MergeImgDetections map its tile detections directly to the timestamp-matched full panorama, then native host `dai.beta.node.ImgDetectionsFilter` applies NMS. No second gathering/remapping stage is needed.
 - The Visualizer owns display. The main loop only processes pipeline tasks and handles r/q; camera focus stays at its default.
+- Keep the resized inference canvas internal. Publish only `PanoramaDetections` in the `Panorama` group with `Stitched`; publishing canvas detections too draws duplicate labels and boxes.
 
 ## Constraints
 
@@ -57,6 +58,7 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native beta S
 - RVC2 inference uses BGR888p; RVC4 uses BGR888i.
 - Perspective projection requires a combined field of view below 180°. The 4096x2048 panorama limit rejects oversized registrations rather than resizing them. ImageManip and NN crop sizes are independently bounded.
 - Both dependency versions are pinned because Stitching is beta. Stitching parameters are constants in main.py, not diagnostic CLI options.
+- The pinned release's native filter has one input and performs NMS after tile remapping. Keep GatherData/MergeImgDetections: the newer develop filter has a different multi-input API and suppresses duplicates only across separate input keys, so it cannot replace this chain directly.
 
 ## Related Examples
 
@@ -68,7 +70,7 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native beta S
 
 - `Run:` `oakctl run-script python main.py --devices LEFT_ID RIGHT_ID`
 - `Single-device sensors:` `python main.py --devices ID --sockets CAM_B CAM_C`
-- `Capture:` `oakctl inspect frames Stitched --count 2 --out evidence/panorama --timeout 30s`; similarly capture Inference and use `oakctl inspect dump PanoramaDetections --count 2 --timeout 30s`
+- `Capture:` `oakctl inspect frames Stitched --count 2 --out evidence/panorama --timeout 30s` and `oakctl inspect dump PanoramaDetections --count 2 --timeout 30s`
 - `Platforms:` validate the normal main.py on an available RVC2 and RVC4, sequentially. The generic repository runner skips this multi-device example; no per-example test harness is required.
 - `Recalculate:` focus the Visualizer and press `r`
 - `Success looks like:` the Visualizer shows a stitched panorama with detection overlays, and pressing `r` recomputes alignment

@@ -8,8 +8,6 @@ import depthai as dai
 from depthai_nodes.node import (
     FrameCropper,
     GatherData,
-    ImgDetectionsFilter,
-    ParsingNeuralNetwork,
     Tiling,
 )
 from utils.arguments import initialize_argparser
@@ -66,32 +64,22 @@ def add_inference(pipeline, panorama, source_count, fps):
         )
         .build(inputImage=manip.out)
     )
-    detector = pipeline.create(ParsingNeuralNetwork).build(
-        input=cropper.out, nnSource=archive
-    )
+    detector = pipeline.create(dai.node.DetectionNetwork).build(cropper.out, archive)
+    # Map every tile directly to its matched panorama before suppressing duplicates.
     gathered = pipeline.create(GatherData).build(
         inputData=detector.out,
-        inputReference=manip.out,
+        inputReference=panorama,
         cameraFps=fps,
         waitCountFn=lambda _: tiles.tileCount,
     )
     merged = pipeline.create(MergeImgDetections).build(input=gathered.out)
-    filtered = (
-        pipeline.create(ImgDetectionsFilter)
-        .useNms(
-            confThresh=0.1,
-            iouThresh=0.2,
-        )
-        .build(input=merged.out)
-    )
-    full_group = pipeline.create(GatherData).build(
-        inputData=filtered.out,
-        inputReference=panorama,
-        cameraFps=fps,
-        waitCountFn=lambda _: 1,
-    )
-    full = pipeline.create(MergeImgDetections).build(input=full_group.out)
-    return manip.out, filtered.out, full.out
+    filtered = pipeline.create(dai.beta.node.ImgDetectionsFilter)
+    filtered.setRunOnHost(True)
+    filtered.initialConfig.nmsDisabled = False
+    filtered.initialConfig.nmsConfidenceThreshold = 0.1
+    filtered.initialConfig.nmsIouThreshold = 0.2
+    merged.out.link(filtered.input)
+    return filtered.output
 
 
 def main():
@@ -128,16 +116,15 @@ def main():
         stitch.setSeamFinder(dai.beta.node.Stitching.SeamFinder.DP_COLOR)
         stitch.setSyncThreshold(timedelta(milliseconds=100))
 
-        canvas, detections, full_detections = add_inference(
+        full_detections = add_inference(
             pipeline,
             stitch.out,
             len(outputs),
             args.fps_limit,
         )
-        visualizer.addTopic("Stitched", stitch.out)
-        visualizer.addTopic("Inference", canvas)
-        visualizer.addTopic("Patcher", detections)
-        visualizer.addTopic("PanoramaDetections", full_detections)
+        # Publish one detection stream to avoid drawing the same objects twice.
+        visualizer.addTopic("Stitched", stitch.out, group="Panorama")
+        visualizer.addTopic("PanoramaDetections", full_detections, group="Panorama")
 
         pipeline.start()
         visualizer.registerPipeline(pipeline)
