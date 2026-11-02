@@ -7,6 +7,7 @@ Guidance for agents that are adding, removing, moving, or materially changing ex
 - Prefer adapting the closest existing example over creating a new one from scratch.
 - Use concise `kebab-case` directory names for new examples.
 - New examples on `main` should use DepthAI v3 patterns.
+- Use `snake_case` for Python variables, parameters, functions, and custom node ports. Preserve SDK/API spellings, `PascalCase` class names, `UPPER_SNAKE_CASE` constants, and conventional mathematical symbols.
 - Keep required runtime dependencies in the example's `requirements.txt`.
 - Use the DepthAI Visualizer for visualization unless the example specifically requires another UI or output path.
 - Keep media assets small and store demo media in `/media` when adding human-facing README material.

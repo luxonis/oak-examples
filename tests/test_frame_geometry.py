@@ -114,7 +114,7 @@ def test_p2p_rejects_invalid_depth():
 def test_wls_metric_depth_is_independent_of_subpixel_scale(disparity_scale):
     filt = wls.Filter(8000, 1.5)
     values = np.array([[10 * disparity_scale, 0, -disparity_scale]], dtype=np.int16)
-    filt.wlsFilter = SimpleNamespace(
+    filt.wls_filter = SimpleNamespace(
         setLambda=lambda _: None, setSigmaColor=lambda _: None, filter=lambda *_: values
     )
     _, depth = filt.filter(
@@ -156,7 +156,7 @@ def test_volume_projection_uses_current_cloud_transformation():
         "measurement_node",
     )
     transform = frame(320, 240).getTransformation()
-    host = SimpleNamespace(transformation=transform, imgW=320, imgH=240)
+    host = SimpleNamespace(transformation=transform, image_width=320, image_height=240)
     projected = module.MeasurementNode._proj_cam_to_rgb_norm(
         host, [[100, 200, 2000], [0, 0, -1]]
     )

@@ -13,12 +13,12 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
     def __init__(self):
         dai.node.ThreadedHostNode.__init__(self)
-        self.inputPCL = self.createInput()
-        self.inputRGB = self.createInput()
-        self.inputDet = self.createInput()
+        self.input_pcl = self.createInput()
+        self.input_rgb = self.createInput()
+        self.input_detections = self.createInput()
 
-        self.outputANN = self.createOutput()
-        self.outputANNCuboid = self.createOutput()
+        self.output_annotations = self.createOutput()
+        self.output_cuboid_annotations = self.createOutput()
 
         self.fitter = CuboidFitter()
         self.cloud_transformation = None
@@ -120,7 +120,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
             self.fit = False
             return
 
-        dimensions, corners = self.fitter.calculate_dimensions_corners_MAD()
+        dimensions, corners = self.fitter.calculate_dimensions_corners_mad()
 
         # print('Dimensions: ', dimensions)
 
@@ -192,9 +192,9 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
     def run(self):
         while self.isRunning():
-            pcl_msg = self.inputPCL.get()
-            rgb_msg = self.inputRGB.get()
-            det_msg = self.inputDet.get()
+            pcl_msg = self.input_pcl.get()
+            rgb_msg = self.input_rgb.get()
+            det_msg = self.input_detections.get()
 
             if pcl_msg is None or rgb_msg is None or det_msg is None:
                 print(
@@ -206,29 +206,29 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
             assert isinstance(pcl_msg, dai.PointCloudData)
             assert isinstance(rgb_msg, dai.ImgFrame)
             assert isinstance(det_msg, dai.ImgDetections)
-            inPointCloud: dai.PointCloudData = pcl_msg
-            inRGB: dai.ImgFrame = rgb_msg
+            in_point_cloud: dai.PointCloudData = pcl_msg
+            in_rgb: dai.ImgFrame = rgb_msg
             parser_output: dai.ImgDetections = det_msg
 
             try:
-                points, colors = inPointCloud.getPointsRGB()
+                points, colors = in_point_cloud.getPointsRGB()
                 if points is None:
                     print("AnnotationNode: Empty PCL points array.")
                     continue
 
-                width, height = inPointCloud.getWidth(), inPointCloud.getHeight()
-                self.cloud_transformation = inPointCloud.getTransformation()
-                self.image_transformation = inRGB.getTransformation()
+                width, height = in_point_cloud.getWidth(), in_point_cloud.getHeight()
+                self.cloud_transformation = in_point_cloud.getTransformation()
+                self.image_transformation = in_rgb.getTransformation()
                 rgba_img = colors.reshape(height, width, 4)
                 bgr_img = cv2.cvtColor(rgba_img, cv2.COLOR_BGRA2BGR)
                 mask = parser_output.getCvSegmentationMask()
                 detections = parser_output.detections
                 mask_full = reverse_resize_and_pad(
-                    mask, (width, height), (inRGB.getWidth(), inRGB.getHeight())
+                    mask, (width, height), (in_rgb.getWidth(), in_rgb.getHeight())
                 )  # This is still a heavy operation
 
-                timestamp = inPointCloud.getTimestamp()
-                seq_num = inPointCloud.getSequenceNum()
+                timestamp = in_point_cloud.getTimestamp()
+                seq_num = in_point_cloud.getSequenceNum()
 
                 self.helper_det = AnnotationHelper()
                 self.helper_cuboid = AnnotationHelper()
@@ -239,12 +239,12 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
                 ann_msg = self.helper_det.build(timestamp, seq_num)
                 ann_msg_cuboid = self.helper_cuboid.build(timestamp, seq_num)
 
-                self.outputANN.send(ann_msg)
-                self.outputANNCuboid.send(ann_msg_cuboid)
+                self.output_annotations.send(ann_msg)
+                self.output_cuboid_annotations.send(ann_msg_cuboid)
 
             except Exception as e:
                 print(
-                    f"AnnotationNode: Error during processing frame (Seq {inRGB.getSequenceNum()}): {e}"
+                    f"AnnotationNode: Error during processing frame (Seq {in_rgb.getSequenceNum()}): {e}"
                 )
                 import traceback
 

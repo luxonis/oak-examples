@@ -126,11 +126,14 @@ class CalibrationNode(dai.node.HostNode):
         self.trans_vec = tvec
 
         # Calculate transformation matrices
-        rotM, _ = cv2.Rodrigues(
+        rotation_matrix, _ = cv2.Rodrigues(
             self.rot_vec
         )  # Convert rotation vector to rotation matrix
         self.world_to_cam = np.vstack(
-            (np.hstack((rotM, self.trans_vec.reshape(3, 1))), np.array([0, 0, 0, 1]))
+            (
+                np.hstack((rotation_matrix, self.trans_vec.reshape(3, 1))),
+                np.array([0, 0, 0, 1]),
+            )
         )
         self.cam_to_world = np.linalg.inv(self.world_to_cam)
 

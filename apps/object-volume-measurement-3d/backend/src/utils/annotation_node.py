@@ -58,7 +58,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         self._last_dims = None
         self._last_vol = None
 
-    def setLabelEncoding(self, label_encoding: Dict[int, str]) -> None:
+    def set_label_encoding(self, label_encoding: Dict[int, str]) -> None:
         """Sets the label encoding.
 
         @param label_encoding: The label encoding with labels as keys and label names as
@@ -69,24 +69,24 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             raise ValueError("label_encoding must be a dictionary.")
         self._label_encoding = label_encoding
 
-    def setSelectionPoint(self, nx: float, ny: float) -> None:
+    def set_selection_point(self, nx: float, ny: float) -> None:
         nx = float(max(0.0, min(1.0, nx)))
         ny = float(max(0.0, min(1.0, ny)))
         self._selection_point = (nx, ny)
 
-    def clearSelection(self) -> None:
+    def clear_selection(self) -> None:
         self._selection_point = None
         print("Selection cleared.")
 
-    def setKeepTopOnly(self, keep_top: bool) -> None:
+    def set_keep_top_only(self, keep_top: bool) -> None:
         """If True, keep only the highest-confidence detection under the click."""
         self._keep_top_only = bool(keep_top)
 
-    def requestPlaneCapture(self, enable: bool = True) -> None:
+    def request_plane_capture(self, enable: bool = True) -> None:
         """Stream full depth until MeasurementNode ends or cancels capture."""
         self._plane_capture = bool(enable)
 
-    def clearCachedMeasurements(self):
+    def clear_cached_measurements(self):
         self._last_dims = None
         self._last_vol = None
 
@@ -102,7 +102,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         label_encoding: Optional[Dict[int, str]] = None,
     ) -> "AnnotationNode":
         if label_encoding is not None:
-            self.setLabelEncoding(label_encoding)
+            self.set_label_encoding(label_encoding)
 
         detections.link(self.in_detections)
 
@@ -148,24 +148,26 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         return self.point_in_convex_quad(sx_rgb, sy_rgb, pts_rgb_norm)
 
     def _prepare_mask_transform(
-        self, src_T: dai.ImgTransformation, dst_T: dai.ImgTransformation
+        self,
+        source_transformation: dai.ImgTransformation,
+        destination_transformation: dai.ImgTransformation,
     ):
         """Precompute homography to warp NN-space masks into RGB-space.
 
         Args:
-          src_T: ImgTransformation for the NN input space (sensor→NN)
-          dst_T: ImgTransformation for the RGB image space (sensor→RGB)
+          source_transformation: ImgTransformation for the NN input space (sensor→NN)
+          destination_transformation: ImgTransformation for the RGB image space (sensor→RGB)
         """
-        A = np.array(src_T.getMatrix(), dtype=np.float32)
-        B = np.array(dst_T.getMatrix(), dtype=np.float32)
+        A = np.array(source_transformation.getMatrix(), dtype=np.float32)
+        B = np.array(destination_transformation.getMatrix(), dtype=np.float32)
 
         # NN -> RGB
         try:
-            self._H_nn_to_rgb = B @ np.linalg.inv(A)
+            self._homography_nn_to_rgb = B @ np.linalg.inv(A)
         except np.linalg.LinAlgError:
-            self._H_nn_to_rgb = B @ np.linalg.pinv(A)
+            self._homography_nn_to_rgb = B @ np.linalg.pinv(A)
 
-        dw, dh = dst_T.getSize()
+        dw, dh = destination_transformation.getSize()
         self._dst_size = (int(dw), int(dh))
 
     def _mask_nn_to_rgb(self, mask_src_2d: np.ndarray) -> np.ndarray:
@@ -180,7 +182,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
         return cv2.warpPerspective(
             mask,
-            self._H_nn_to_rgb,
+            self._homography_nn_to_rgb,
             (dst_w, dst_h),
             flags=cv2.INTER_NEAREST,
             borderValue=-1,
@@ -248,7 +250,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         # to NN pixels
         P = np.array([[u * sw, v * sh, 1.0] for (u, v) in pts_norm], dtype=np.float32).T
         # homography NN->RGB
-        Q = self._H_nn_to_rgb @ P
+        Q = self._homography_nn_to_rgb @ P
         Q /= Q[2:3, :] + 1e-12
         # to RGB-normalized
         U = (Q[0, :] / float(dw)).clip(0, 1)
@@ -295,15 +297,15 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             H, W = rgb.shape[:2]
 
             # Note: for temp sync of pcl and MODE messages in measurement node (to do)
-            rgbF = dai.ImgFrame()
-            rgbF.setType(img_msg.getType())
-            rgbF.setWidth(W)
-            rgbF.setHeight(H)
-            rgbF.setData(img_msg.getData())
-            rgbF.setTimestamp(depth_msg.getTimestamp())
-            rgbF.setTimestampDevice(depth_msg.getTimestampDevice())
-            rgbF.setSequenceNum(depth_msg.getSequenceNum())
-            rgbF.setTransformation(img_msg.getTransformation())
+            rgb_frame = dai.ImgFrame()
+            rgb_frame.setType(img_msg.getType())
+            rgb_frame.setWidth(W)
+            rgb_frame.setHeight(H)
+            rgb_frame.setData(img_msg.getData())
+            rgb_frame.setTimestamp(depth_msg.getTimestamp())
+            rgb_frame.setTimestampDevice(depth_msg.getTimestampDevice())
+            rgb_frame.setSequenceNum(depth_msg.getSequenceNum())
+            rgb_frame.setTransformation(img_msg.getTransformation())
 
             if self._src_trans is None or self._dst_trans is None:
                 self._src_trans = det_msg.getTransformation()
@@ -326,7 +328,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                         img_msg.getTimestamp(), img_msg.getSequenceNum()
                     )
                 )
-                self.out_segm.send(rgbF)
+                self.out_segm.send(rgb_frame)
                 self.out_segm_depth.send(depth_msg)  # full-scene depth
                 continue
 
@@ -350,7 +352,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
                 self._send_mode(self.MODE_NOSELECTION, depth_msg)
                 self.out_ann.send(ann_msg)
-                self.out_segm.send(rgbF)
+                self.out_segm.send(rgb_frame)
                 self.out_segm_depth.send(depth_msg)
                 continue
 
@@ -377,11 +379,11 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
                 self._send_mode(self.MODE_NOSELECTION, depth_msg)
                 self.out_ann.send(ann_msg)
-                self.out_segm.send(rgbF)
+                self.out_segm.send(rgb_frame)
                 self.out_segm_depth.send(depth_msg)
 
-                self.clearSelection()
-                self.clearCachedMeasurements()
+                self.clear_selection()
+                self.clear_cached_measurements()
 
                 continue
 
@@ -434,21 +436,21 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 depth_u16 = np.ascontiguousarray(depth_map, dtype=np.uint16)
                 depth_u16[~keep] = 0
 
-                depthF = dai.ImgFrame()
-                depthF.setType(dai.ImgFrame.Type.RAW16)
-                depthF.setWidth(W)
-                depthF.setHeight(H)
-                depthF.setData(depth_u16.tobytes())
-                depthF.setTimestamp(depth_msg.getTimestamp())
-                depthF.setTimestampDevice(depth_msg.getTimestampDevice())
-                depthF.setSequenceNum(depth_msg.getSequenceNum())
-                depthF.setTransformation(depth_msg.getTransformation())
+                depth_frame = dai.ImgFrame()
+                depth_frame.setType(dai.ImgFrame.Type.RAW16)
+                depth_frame.setWidth(W)
+                depth_frame.setHeight(H)
+                depth_frame.setData(depth_u16.tobytes())
+                depth_frame.setTimestamp(depth_msg.getTimestamp())
+                depth_frame.setTimestampDevice(depth_msg.getTimestampDevice())
+                depth_frame.setSequenceNum(depth_msg.getSequenceNum())
+                depth_frame.setTransformation(depth_msg.getTransformation())
 
                 ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
-                self._send_mode(self.MODE_MEASURE, depthF)
+                self._send_mode(self.MODE_MEASURE, depth_frame)
                 self.out_ann.send(ann_msg)
-                self.out_segm.send(rgbF)
-                self.out_segm_depth.send(depthF)
+                self.out_segm.send(rgb_frame)
+                self.out_segm_depth.send(depth_frame)
                 continue
 
             # No valid instance under click - show all (signal NOSELECTION)
@@ -463,5 +465,5 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
             self._send_mode(self.MODE_NOSELECTION, depth_msg)
             self.out_ann.send(ann_msg)
-            self.out_segm.send(rgbF)
+            self.out_segm.send(rgb_frame)
             self.out_segm_depth.send(depth_msg)

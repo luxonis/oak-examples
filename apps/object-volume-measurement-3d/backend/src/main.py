@@ -105,7 +105,7 @@ with dai.Pipeline(device) as pipeline:
 
     input_node.link(nn_with_parser.inputs["images"])
 
-    textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
+    text_input_queue = nn_with_parser.inputs["texts"].createInputQueue()
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
 
     det_process_filter = (
@@ -161,14 +161,14 @@ with dai.Pipeline(device) as pipeline:
             class_names=CLASS_NAMES,
             max_num_classes=MAX_NUM_CLASSES,
         )
-        inputNNData = dai.NNData()
-        inputNNData.addTensor(
+        input_nn_data = dai.NNData()
+        input_nn_data.addTensor(
             "texts", text_features, dataType=dai.TensorInfo.DataType.FP16
         )
-        textInputQueue.send(inputNNData)
+        text_input_queue.send(input_nn_data)
 
         det_process_filter.keepLabels(labels=[i for i in range(len(CLASS_NAMES))])
-        annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
+        annotation_node.set_label_encoding({k: v for k, v in enumerate(CLASS_NAMES)})
         print(f"Classes set to: {CLASS_NAMES}")
 
     def conf_threshold_update_service(new_conf_threshold: float):
@@ -180,7 +180,7 @@ with dai.Pipeline(device) as pipeline:
     def selection_service(clicks: dict):
         """Changes selected object based on the user click"""
         if clicks.get("clear"):
-            annotation_node.clearSelection()
+            annotation_node.clear_selection()
             return {"ok": True, "cleared": True}
         try:
             x = float(clicks["x"])
@@ -188,11 +188,11 @@ with dai.Pipeline(device) as pipeline:
         except Exception as e:
             return {"ok": False, "error": f"bad payload: {e}"}
 
-        annotation_node.setSelectionPoint(x, y)
-        annotation_node.setKeepTopOnly(True)
+        annotation_node.set_selection_point(x, y)
+        annotation_node.set_keep_top_only(True)
 
         measurement_node.reset_measurements()
-        annotation_node.clearCachedMeasurements()
+        annotation_node.clear_cached_measurements()
         print(f"Selection point set to ({x:.3f}, {y:.3f})")
         return {"ok": True}
 
@@ -227,9 +227,11 @@ with dai.Pipeline(device) as pipeline:
     print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
-    inputNNData = dai.NNData()
-    inputNNData.addTensor("texts", text_features, dataType=dai.TensorInfo.DataType.FP16)
-    textInputQueue.send(inputNNData)
+    input_nn_data = dai.NNData()
+    input_nn_data.addTensor(
+        "texts", text_features, dataType=dai.TensorInfo.DataType.FP16
+    )
+    text_input_queue.send(input_nn_data)
 
     print("Press 'q' to stop")
 

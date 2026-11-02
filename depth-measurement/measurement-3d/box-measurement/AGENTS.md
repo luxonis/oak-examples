@@ -72,7 +72,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 - `To swap the model:` replace the YAML/model pair in [depthai_models/](depthai_models/) and keep the same parser contract
 - `To reuse only the measurement host logic:` keep [utils/box_processing_node.py](utils/box_processing_node.py) and feed it your own point cloud plus detections
-- `To remove the cuboid overlay:` keep `outputANN` and drop the `outputANNCuboid` topic
+- `To remove the cuboid overlay:` keep `output_annotations` and drop the `output_cuboid_annotations` topic
 - `To test alignment changes:` start from the `PointCloud` and `ImageAlign` branch in [main.py](main.py)
 
 ## Constraints

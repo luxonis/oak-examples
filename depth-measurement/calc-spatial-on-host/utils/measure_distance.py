@@ -118,7 +118,7 @@ class MeasureDistance(dai.node.HostNode):
         self._roi = roi
         return self
 
-    def setAveragingMethod(self, method) -> None:
+    def set_averaging_method(self, method) -> None:
         self._averaging_method = method
 
     def process(self, depth_frame: dai.ImgFrame) -> None:
@@ -127,13 +127,15 @@ class MeasureDistance(dai.node.HostNode):
         depth = depth_frame.getFrame()
 
         # Calculate the average depth in the ROI.
-        depthROI = self._roi.get_frame_roi(depth)
-        inRange = (self._threshold_low <= depthROI) & (depthROI <= self._threshold_high)
+        depth_roi = self._roi.get_frame_roi(depth)
+        in_range = (self._threshold_low <= depth_roi) & (
+            depth_roi <= self._threshold_high
+        )
 
-        if inRange.any():
-            averageDepth: float = self._averaging_method(depthROI[inRange])
+        if in_range.any():
+            average_depth: float = self._averaging_method(depth_roi[in_range])
         else:
-            averageDepth = np.nan
+            average_depth = np.nan
 
         centroid = Point2d(
             int((self._roi.xmax + self._roi.xmin) / 2),
@@ -144,7 +146,7 @@ class MeasureDistance(dai.node.HostNode):
         # +X right, +Y down, +Z forward, including its actual crop/alignment.
         k_inv = np.asarray(depth_frame.getTransformation().getIntrinsicMatrixInv())
         ray = k_inv @ np.array([centroid.x, centroid.y, 1.0])
-        xyz = ray * (averageDepth / ray[2])
+        xyz = ray * (average_depth / ray[2])
         spatial_distance = SpatialDistance(centroid, dai.Point3f(*xyz))
         spatial_distance.setTimestamp(depth_frame.getTimestamp())
         spatial_distance.setTimestampDevice(depth_frame.getTimestampDevice())
@@ -158,8 +160,8 @@ class MeasureDistance(dai.node.HostNode):
             self._roi = rois[-1]
         # print("ROI updated")
 
-    def setLowerThreshold(self, threshold_low):
+    def set_lower_threshold(self, threshold_low):
         self._threshold_low = threshold_low
 
-    def setUpperThreshold(self, threshold_high):
+    def set_upper_threshold(self, threshold_high):
         self._threshold_high = threshold_high
