@@ -22,7 +22,7 @@ Here is a list of all available parameters:
 -d DEVICE, --device DEVICE
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                      FPS limit for the model runtime. (default: 2 for RVC2 and 3 for RVC4)
+                      FPS limit for the model runtime. (default: 2 for RVC2 and 5 for RVC4)
 ```
 
 - `<DEVICE_FILTER_ENV>`: DepthAI environment variable used for filtering the devices. Usable variables are `DEPTHAI_DEVICE_NAME_LIST` and `DEPTHAI_PLATFORM`. For usage examples see the [subsection below](#examples).

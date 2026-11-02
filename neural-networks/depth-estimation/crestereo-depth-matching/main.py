@@ -28,7 +28,7 @@ elif args.model not in supported_models[platform]:
     raise ValueError(f"Model {args.model} is not supported on {platform} platform.")
 
 if args.fps_limit is None:
-    args.fps_limit = 2 if platform == "RVC2" else 3
+    args.fps_limit = 2 if platform == "RVC2" else 5
     print(
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
