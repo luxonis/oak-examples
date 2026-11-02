@@ -76,11 +76,13 @@ with dai.Pipeline(device) as pipeline:
     crop_node = (
         pipeline.create(FrameCropper)
         .fromImgDetections(
-            inputImgDetections=det_nn.out,
+            inputImgDetections=detections_filter.out,  # one crop per person, in the order GatherData pairs them
             outputSize=(
                 rec_model_nn_archive.getInputWidth(),
                 rec_model_nn_archive.getInputHeight(),
             ),
+            # AnnotationNode maps keypoints back over the whole padded box, so the crop must not cut any part of it
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
             padding=PADDING,
         )
         .build(
