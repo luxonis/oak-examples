@@ -60,6 +60,7 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native Stitch
 - Perspective projection requires a combined field of view below 180°. The 4096x2048 panorama limit rejects oversized registrations rather than resizing them. ImageManip and NN crop sizes are independently bounded.
 - Requirements pin `depthai==3.12.0.dev0+d4cb5b0f547f42ad39312c0dec48802b41028fa7` and `depthai-nodes==0.7.0`, and include the Luxonis snapshot index. Stitching parameters are constants in main.py, not diagnostic CLI options.
 - Keep GatherData/MergeImgDetections and the depthai-nodes NMS filter: the snapshot's native `dai.node.ImgDetectionsFilter` suppresses duplicates only across separate input keys, so applying it to one merged tile stream would leave duplicates.
+- Prefer wired host networking for network cameras. Check the actual route to each device; connecting Ethernet does not migrate an existing Wi-Fi connection. Slow transport or processing can create stale-frame queues. Restart after changing the route and lower FPS when measuring performance.
 
 ## Related Examples
 
@@ -75,4 +76,5 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native Stitch
 - `Platforms:` validate the normal main.py on an available RVC2 and RVC4, sequentially. The generic repository runner skips this multi-device example; no per-example test harness is required.
 - `Recalculate:` focus the Visualizer and press `r`
 - `Success looks like:` the Visualizer shows a stitched panorama with detection overlays, and pressing `r` recomputes alignment
+- `Performance:` measure frame/message timing as well as process liveness. A two-RVC4, one-CAM_A-per-device 360p run reached 10 FPS over Ethernet; do not generalize that measurement to other rigs.
 - `Common failure meaning:` no panorama usually means insufficient overlap/texture or no synchronized groups; inspect source topics first
