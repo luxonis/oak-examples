@@ -3,4 +3,5 @@ depthai-nodes==0.7.0
 opencv-python-headless~=4.10.0
 foxglove-websocket==0.1.2
 numpy>=1.22
-open3d==0.18.0
+open3d==0.18.0; python_version < "3.12"
+open3d==0.20.0; python_version >= "3.12"

@@ -1,5 +1,6 @@
 depthai==3.11.0
 depthai-nodes==0.7.0
 numpy<2.0.0
-open3d==0.18.0
+open3d==0.18.0; python_version < "3.12"
+open3d==0.20.0; python_version >= "3.12"
 opencv-python-headless==4.10.0.84
