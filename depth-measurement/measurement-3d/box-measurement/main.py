@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import timedelta
 
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
@@ -81,17 +82,17 @@ with dai.Pipeline(device) as p:
     box_processing = p.create(BoxProcessingNode)
     box_processing.intrinsics = read_intrinsics(device, NN_WIDTH, NN_HEIGHT)
 
-    pcl.outputPointCloud.link(box_processing.inputPCL)
-    nn.passthrough.link(box_processing.inputRGB)
-    nn.out.link(box_processing.inputDet)
+    # Pair the cloud and detections with their original, undistorted RGB frame.
+    sync = p.create(dai.node.Sync)
+    sync.setRunOnHost(True)
+    sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
+    sync.setSyncAttempts(-1)
+    pcl.outputPointCloud.link(sync.inputs["pcl"])
+    color_output.link(sync.inputs["rgb"])
+    nn.out.link(sync.inputs["detections"])
+    sync.out.link(box_processing.inputSynced)
 
-    outputToVisualize = color.requestOutput(
-        (640, 400),
-        type=dai.ImgFrame.Type.NV12,
-        fps=args.fps_limit,
-    )
-
-    visualizer.addTopic("Video Stream", outputToVisualize, "images")
+    visualizer.addTopic("Video Stream", box_processing.outputRGB, "images")
     visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
     visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
     visualizer.addTopic("Pointcloud", pcl.outputPointCloud, "point_clouds")
