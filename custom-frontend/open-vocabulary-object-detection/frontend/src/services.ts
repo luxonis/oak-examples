@@ -22,6 +22,28 @@ export const ACTIVE_SERVICES = [
 
 type ServiceBody = Record<string, unknown> | string | number;
 
+export const QNN_PREPARATION_EVENT = 'qnn-preparation';
+const QNN_SERVICES = new Set<CustomService>([
+	'Class Update Service',
+	'Image Upload Service',
+	'BBox Prompt Service',
+	'Delete Image Prompt Service',
+]);
+const pendingQnnRequests = new Set<symbol>();
+
+function emitQnnPreparation() {
+	window.dispatchEvent(
+		new CustomEvent(QNN_PREPARATION_EVENT, {
+			detail: pendingQnnRequests.size > 0,
+		}),
+	);
+}
+
+export function clearQnnPreparation() {
+	pendingQnnRequests.clear();
+	emitQnnPreparation();
+}
+
 export function fetchCustomService(
 	connection: DAIConnection | null,
 	service: CustomService,
@@ -39,9 +61,27 @@ export function postToCustomService(
 	body: unknown,
 	onResponse: (response: DAIResponse<unknown>) => void = () => {},
 ) {
-	void connection?.postToService(
-		service as unknown as DAIService,
-		body as ServiceBody,
-		onResponse,
-	);
+	if (!connection) return;
+	const requestId = QNN_SERVICES.has(service) ? Symbol(service) : null;
+	if (requestId) {
+		pendingQnnRequests.add(requestId);
+		emitQnnPreparation();
+	}
+	const finish = () => {
+		if (requestId && pendingQnnRequests.delete(requestId)) emitQnnPreparation();
+	};
+	try {
+		const request = connection.postToService(
+			service as unknown as DAIService,
+			body as ServiceBody,
+			(response) => {
+				finish();
+				onResponse(response);
+			},
+		);
+		void Promise.resolve(request).catch(finish);
+	} catch (error) {
+		finish();
+		throw error;
+	}
 }

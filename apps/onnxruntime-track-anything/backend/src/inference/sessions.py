@@ -18,7 +18,10 @@ class QnnSessionManager:
     def get(self, name):
         """Get or create a QNN session identified by ``model_family/graph_name``."""
         if name not in self.sessions:
-            self.progress(f"Loading {name} on QNN…")
+            self.progress(
+                f"Preparing {name} for QNN… First use may take a few minutes "
+                "while the model graph is optimized."
+            )
             folder, filename = name.split("/")
             path = str(self.root / f"{folder}-onnx-float" / f"{filename}.onnx")
 
@@ -37,6 +40,7 @@ class QnnSessionManager:
                 session_options=options,
             )
             self.sessions[name] = session
+            self.progress(f"{name} ready on QNN.")
 
         return self.sessions[name]
 

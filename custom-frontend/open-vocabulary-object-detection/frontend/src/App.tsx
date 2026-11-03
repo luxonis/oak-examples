@@ -6,7 +6,12 @@ import { ClassSelector } from './ClassSelector.tsx';
 import { ConfidenceSlider } from './ConfidenceSlider.tsx';
 import { ImageUploader } from './ImageUploader.tsx';
 import { useNotifications } from './Notifications.tsx';
-import { fetchCustomService, postToCustomService } from './services.ts';
+import {
+	QNN_PREPARATION_EVENT,
+	clearQnnPreparation,
+	fetchCustomService,
+	postToCustomService,
+} from './services.ts';
 
 type CurrentParams = {
 	confidence_threshold: number;
@@ -29,6 +34,7 @@ function App() {
 	const connection = useDaiConnection();
 	const { notify } = useNotifications();
 	const [paramsLoaded, setParamsLoaded] = useState(false);
+	const [qnnPreparing, setQnnPreparing] = useState(false);
 	const previousConnectedRef = useRef<boolean | null>(null);
 
 	const [confidence, setConfidence] = useState<number>(0.1);
@@ -79,8 +85,17 @@ function App() {
 	}, [connection.daiConnection, current_params_setter]);
 
 	useEffect(() => {
+		const onPreparation = (event: Event) => {
+			setQnnPreparing((event as CustomEvent<boolean>).detail);
+		};
+		window.addEventListener(QNN_PREPARATION_EVENT, onPreparation);
+		return () => window.removeEventListener(QNN_PREPARATION_EVENT, onPreparation);
+	}, []);
+
+	useEffect(() => {
 		if (!connection.connected) {
 			setParamsLoaded(false);
+			clearQnnPreparation();
 			return;
 		}
 		console.log('[Init] Requesting current params from backend...');
@@ -487,11 +502,16 @@ function App() {
 					custom UI. Define classes via text prompts or image crops, adjust
 					confidence, and visualize results live.
 				</p>
+			{qnnPreparing && (
+				<output className="rounded-md border border-border bg-muted p-3 text-sm" aria-live="polite">
+					Preparing the prompt model for QNN. First use of a prompt size may take a few minutes while its graph is optimized.
+				</output>
+			)}
 				{/* Show loading until params are initialized from backend */}
 				{!paramsLoaded ? (
 					<div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
 						<CircleLoader />
-						<span>Awaiting device...</span>
+						<span>Starting device. Initial QNN model preparation may take a few minutes.</span>
 					</div>
 				) : (
 					<>

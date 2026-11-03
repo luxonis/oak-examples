@@ -37,6 +37,14 @@ logger = logging.getLogger(__name__)
 _real_inference_session = onnxruntime.InferenceSession
 _in_router = threading.local()
 _installed = False
+_preparing = 0
+_preparing_lock = threading.Lock()
+
+
+def is_preparing() -> bool:
+    """Whether at least one model is being prepared for QNN."""
+    with _preparing_lock:
+        return _preparing > 0
 
 
 def install() -> bool:
@@ -97,17 +105,27 @@ def _try_qnn(path_or_bytes, providers):
         # only reads input shapes, so an HTP compilation would be wasted.
         return None
 
+    global _preparing
     model_path = Path(path_or_bytes)
-    static_path = _static_batch_copy(model_path)
-
+    logger.info(
+        "Preparing %s for QNN; first use may take a few minutes while the model graph is optimized",
+        model_path.name,
+    )
+    with _preparing_lock:
+        _preparing += 1
     t0 = perf_counter()
-    _in_router.active = True
     try:
-        session = onnx_qnn_session(
-            static_path, fp16=True, fallback_to_cpu=not _strict()
-        )
+        static_path = _static_batch_copy(model_path)
+        _in_router.active = True
+        try:
+            session = onnx_qnn_session(
+                static_path, fp16=True, fallback_to_cpu=not _strict()
+            )
+        finally:
+            _in_router.active = False
     finally:
-        _in_router.active = False
+        with _preparing_lock:
+            _preparing -= 1
     logger.info(
         "ONNX session for %s ready in %.1f s (providers: %s)",
         model_path,
