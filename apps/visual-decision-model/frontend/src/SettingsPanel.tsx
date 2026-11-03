@@ -19,6 +19,8 @@ type SettingsPanelProps = {
 	setQuestions: Dispatch<SetStateAction<Draft[]>>;
 	savingDetection: boolean;
 	savingDecision: boolean;
+	classesDirty: boolean;
+	questionsDirty: boolean;
 	validQuestions: boolean;
 	error: string;
 	applyDetection: () => Promise<void>;
@@ -46,6 +48,8 @@ export function SettingsPanel({
 	setQuestions,
 	savingDetection,
 	savingDecision,
+	classesDirty,
+	questionsDirty,
 	validQuestions,
 	error,
 	applyDetection,
@@ -97,14 +101,23 @@ export function SettingsPanel({
 				value={iou}
 				onChange={setIou}
 			/>
+			<p className="muted">
+				Confidence and IoU apply after you stop adjusting.
+			</p>
 			<Button
-				disabled={!connected || savingDetection || state?.detection.updating}
+				disabled={
+					!connected ||
+					!classesDirty ||
+					savingDetection ||
+					state?.detection.updating
+				}
 				onClick={applyDetection}
 			>
-				{state?.detection.updating
-					? 'Updating classes…'
-					: 'Apply detection settings'}
+				{state?.detection.updating ? 'Updating classes…' : 'Apply classes'}
 			</Button>
+			{classesDirty && (
+				<p className="status-note">Class edits are not applied yet.</p>
+			)}
 			{state?.detection.error && (
 				<p className="error">{state.detection.error}</p>
 			)}
@@ -128,7 +141,7 @@ export function SettingsPanel({
 					void applyDecision(
 						!state?.decision.enabled,
 						state?.decision.questions ?? questions,
-						state?.decision.refresh ?? refresh,
+						refresh,
 					)
 				}
 			>
@@ -136,7 +149,7 @@ export function SettingsPanel({
 			</Button>
 			<SettingsSlider
 				id="refresh"
-				label="Target refresh per object"
+				label="Capture interval"
 				min={0.5}
 				max={30}
 				step={0.5}
@@ -145,8 +158,9 @@ export function SettingsPanel({
 				onChange={setRefresh}
 			/>
 			<p className="muted">
-				Best effort. If visible objects exceed model capacity, actual refresh
-				takes longer. No old crops are queued.
+				YOLO-E keeps running. At each interval, the latest detections and their
+				frame are captured for background decisions. Busy intervals replace
+				older pending captures. The interval applies after you stop adjusting.
 			</p>
 			<div className="section-heading">
 				<h2>Questions</h2>
@@ -190,11 +204,16 @@ export function SettingsPanel({
 				Add question
 			</Button>
 			<Button
-				disabled={!connected || savingDecision || !validQuestions}
+				disabled={
+					!connected || savingDecision || !validQuestions || !questionsDirty
+				}
 				onClick={() => void applyDecision()}
 			>
-				Apply decision settings
+				Apply questions
 			</Button>
+			{questionsDirty && (
+				<p className="status-note">Question edits are not applied yet.</p>
+			)}
 			{error && (
 				<p className="error" role="alert">
 					{error}

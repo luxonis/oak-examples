@@ -72,6 +72,10 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._nn.setNumInferenceThreads(1)
         self._nn.getParser(0).setConfidenceThreshold(confidence)
 
+        # A slow detector must drop stale input instead of back-pressuring the
+        # camera output that also feeds the independent encoded preview.
+        self._nn.inputs["images"].setBlocking(False)
+        self._nn.inputs["images"].setMaxSize(1)
         input_frame.link(self._nn.inputs["images"])
 
         # Detection filter

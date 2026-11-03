@@ -9,79 +9,28 @@ def validate_refresh(value):
         or not math.isfinite(value)
         or not 0.5 <= value <= 30
     ):
-        raise ValueError("Target refresh must be between 0.5 and 30 seconds.")
+        raise ValueError("Capture interval must be between 0.5 and 30 seconds.")
     return float(value)
 
 
-def box_iou(a, b):
-    left, top = max(a[0], b[0]), max(a[1], b[1])
-    right, bottom = min(a[2], b[2]), min(a[3], b[3])
-    intersection = max(0, right - left) * max(0, bottom - top)
-    area_a = max(0, a[2] - a[0]) * max(0, a[3] - a[1])
-    area_b = max(0, b[2] - b[0]) * max(0, b[3] - b[1])
-    union = area_a + area_b - intersection
-    return intersection / union if union > 0 else 0.0
-
-
-def match_observations(tracks, observations, now, next_id, threshold=0.25):
-    """Assign stable IDs by class and box overlap without a device tracker.
+def choose_detection(detections, tracks):
+    """Prefer an unseen object, then the least recently evaluated object.
 
     Args:
-        tracks: Current tracked objects keyed by ID.
-        observations: YOLO-E detections from one frame.
-        now: Monotonic time of that frame.
-        next_id: ID available for a new object.
-        threshold: Minimum overlap for reusing an ID.
+        detections: Observations paired with one captured frame.
+        tracks: Current tracks holding each object's last inference time.
 
     Returns:
-        The matched observations and the next available ID.
+        The next detection to evaluate, or ``None`` if the batch is empty.
     """
-    used = set()
-    matched = []
-    for obs in sorted(observations, key=lambda item: item["confidence"], reverse=True):
-        candidates = (
-            (box_iou(obs["box"], track["box"]), track_id)
-            for track_id, track in tracks.items()
-            if track_id not in used
-            and now - track["seen"] < 1.5
-            and track["label"] == obs["label"]
-        )
-        overlap, track_id = max(candidates, default=(0.0, -1))
-        if overlap < threshold:
-            track_id = next_id
-            next_id += 1
-        used.add(track_id)
-        matched.append({**obs, "id": track_id})
-    return matched, next_id
-
-
-def choose_track(tracks, now, refresh):
-    """Choose an unseen track first, then the stalest due track.
-
-    Tracks are current observations only. There is no image or request queue.
-
-    Args:
-        tracks: Current tracked objects keyed by ID.
-        now: Current monotonic time.
-        refresh: Minimum time between decisions for one object.
-
-    Returns:
-        The selected due track, or ``None`` if none is due.
-    """
-    due = [
-        track
-        for track in tracks.values()
-        if now - track["seen"] < 1.5 and now - track["last_started"] >= refresh
-    ]
-    if not due:
-        return None
     return min(
-        due,
-        key=lambda track: (
-            track["last_started"] != 0,
-            track["last_started"],
-            track["id"],
+        detections,
+        key=lambda obs: (
+            tracks.get(obs["id"], {}).get("last_started", 0) != 0,
+            tracks.get(obs["id"], {}).get("last_started", 0),
+            obs["id"],
         ),
+        default=None,
     )
 
 

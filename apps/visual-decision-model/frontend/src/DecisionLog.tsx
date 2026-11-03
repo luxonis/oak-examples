@@ -1,8 +1,11 @@
+import { memo } from 'react';
 import { LogEntry } from './LogEntry';
 import type { Job } from './types';
 
 /** Display the most recent immutable decision jobs and their exact inputs. */
-export function DecisionLog({ history }: { history: Job[] }) {
+export const DecisionLog = memo(function DecisionLog({
+	history,
+}: { history: Job[] }) {
 	return (
 		<section className="history" aria-labelledby="history-title">
 			<div className="section-heading">
@@ -18,4 +21,4 @@ export function DecisionLog({ history }: { history: Job[] }) {
 			)}
 		</section>
 	);
-}
+});

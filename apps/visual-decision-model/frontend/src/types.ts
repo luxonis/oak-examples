@@ -20,6 +20,7 @@ export type Result = {
 
 export type Job = {
 	id: string;
+	revision: number;
 	time: string;
 	track_id: number;
 	class_name: string;
@@ -34,6 +35,7 @@ export type Job = {
 
 export type State = {
 	history_revision: number;
+	history_reset?: boolean;
 	has_frame: boolean;
 	tracks: Track[];
 	history?: Job[];

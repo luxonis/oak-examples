@@ -19,7 +19,7 @@ from decision import validate_questions
 from detector.nn_detection_node import NNDetectionNode
 from images import jpeg_data_url
 from runtime import Runtime
-from scheduler import choose_track, match_observations, pixel_box, validate_refresh
+from scheduler import choose_detection, pixel_box, validate_refresh
 
 
 logging.basicConfig(level=logging.INFO)
@@ -43,36 +43,66 @@ DEFAULT_QUESTIONS = [
 
 
 class ObservationNode(dai.node.HostNode):
-    """Receive each YOLO-E detection batch with its source frame."""
+    """Pair a high-resolution camera frame with tracked detections."""
 
     def __init__(self):
         super().__init__()
         self.app = None
 
-    def build(self, frame, detections, app):
+    def build(self, frame, tracklets, app):
         self.app = app
-        self.link_args(frame, detections)
+        self.link_args(frame, tracklets)
+        for input_queue in self.getInputs():
+            input_queue.setBlocking(False)
+            input_queue.setMaxSize(4)
         return self
 
-    def process(self, frame, detections):
+    def process(self, frame, tracklets):
+        """Remap current track boxes to the exact 1080p camera frame."""
+        mapped = tracklets.transformTo(frame.getTransformation())
         observations = []
-        for detection in detections.detections:
-            label = int(detection.label)
+        for tracklet in mapped.tracklets:
+            if tracklet.status not in (
+                dai.Tracklet.TrackingStatus.NEW,
+                dai.Tracklet.TrackingStatus.TRACKED,
+            ):
+                continue
+            detection = tracklet.srcImgDetection
+            label = int(tracklet.label)
+            roi = tracklet.roi
+            if not roi.isNormalized():
+                roi = roi.normalize(frame.getWidth(), frame.getHeight())
             observations.append(
                 {
+                    "id": int(tracklet.id),
                     "label": label,
                     "class_name": getattr(detection, "labelName", "")
                     or self.app.class_name(label),
                     "confidence": float(detection.confidence),
                     "box": [
-                        float(detection.xmin),
-                        float(detection.ymin),
-                        float(detection.xmax),
-                        float(detection.ymax),
+                        float(roi.x),
+                        float(roi.y),
+                        float(roi.x + roi.width),
+                        float(roi.y + roi.height),
                     ],
                 }
             )
-        self.app.observe(frame.getCvFrame(), observations)
+        self.app.observe(frame, observations)
+
+
+class OverlayNode(dai.node.HostNode):
+    """Map detector boxes from the letterboxed input onto the encoded video frame."""
+
+    def build(self, frame, detections):
+        self.link_args(frame, detections)
+        for input_queue in self.getInputs():
+            input_queue.setBlocking(False)
+            input_queue.setMaxSize(4)
+        return self
+
+    def process(self, frame, detections):
+        """Publish annotations in the paired 1080p frame's coordinates."""
+        self.out.send(detections.transformTo(frame.getTransformation()))
 
 
 class DecisionApp:
@@ -92,12 +122,14 @@ class DecisionApp:
         self.refresh = 2.0
         self.questions = validate_questions(DEFAULT_QUESTIONS)
         self.tracks = {}
-        self.frame = None
         self.frame_seen = 0.0
+        self.next_capture_at = 0.0
+        self.capture_number = 0
+        self.pending_snapshot = None
+        self.generation = 0
         self.history = deque(maxlen=20)
         self.history_revision = 0
         self.completions = deque(maxlen=20)
-        self.next_track_id = 1
 
     def class_name(self, label):
         with self.lock:
@@ -108,30 +140,23 @@ class DecisionApp:
             )
 
     def observe(self, frame, observations):
-        """Pair each detection batch with its exact camera frame.
+        """Track detections and retain one paired frame at each capture interval.
 
         Args:
-            frame: BGR frame that produced ``observations``.
+            frame: DepthAI frame that produced ``observations``.
             observations: Parsed YOLO-E boxes from that frame.
         """
         now = time.monotonic()
         with self.lock:
-            paired_frame = frame.copy()
-            self.frame = paired_frame
             self.frame_seen = now
-            matched, self.next_track_id = match_observations(
-                self.tracks,
-                observations,
-                now,
-                self.next_track_id,
-            )
-            for obs in matched:
-                if pixel_box(obs["box"], frame.shape[1], frame.shape[0]) is None:
+            valid = []
+            for obs in observations:
+                if pixel_box(obs["box"], frame.getWidth(), frame.getHeight()) is None:
                     continue
+                valid.append(obs)
                 old = self.tracks.get(obs["id"], {})
                 self.tracks[obs["id"]] = {
                     **obs,
-                    "frame": paired_frame,
                     "seen": now,
                     "last_started": old.get("last_started", 0),
                     "last_result": old.get("last_result"),
@@ -140,6 +165,24 @@ class DecisionApp:
             for track_id, track in list(self.tracks.items()):
                 if now - track["seen"] > 1.5:
                     del self.tracks[track_id]
+
+            if self.enabled and not self.class_updating and now >= self.next_capture_at:
+                self.next_capture_at = now + self.refresh
+                self.capture_number += 1
+                # Keep only the latest complete detection/frame pair. The model
+                # worker converts the frame to BGR after leaving this callback.
+                self.pending_snapshot = (
+                    {
+                        "frame": frame,
+                        "detections": valid,
+                        "questions": json.loads(json.dumps(self.questions)),
+                        "generation": self.generation,
+                        "capture_number": self.capture_number,
+                        "time": datetime.now(timezone.utc).isoformat(),
+                    }
+                    if valid
+                    else None
+                )
 
     def detection_config(self, message):
         """Validate and apply YOLO-E classes and thresholds from the UI.
@@ -183,6 +226,8 @@ class DecisionApp:
                 if classes != self.classes:
                     self.class_updating = True
                     self.detection_error = None
+                    self.generation += 1
+                    self.pending_snapshot = None
                     threading.Thread(
                         target=self._update_classes, args=(classes,), daemon=True
                     ).start()
@@ -196,6 +241,7 @@ class DecisionApp:
             with self.lock:
                 self.classes = classes
                 self.tracks.clear()
+                self.next_capture_at = 0.0
             logger.info("YOLO-E classes changed: %s", classes)
         except Exception as exc:
             with self.lock:
@@ -223,11 +269,20 @@ class DecisionApp:
             refresh = validate_refresh(message.get("refresh"))
             questions = validate_questions(message.get("questions"))
             with self.lock:
-                if questions != self.questions:
+                questions_changed = questions != self.questions
+                settings_changed = questions_changed or refresh != self.refresh
+                toggled = message["enabled"] != self.enabled
+                if questions_changed:
                     for track in self.tracks.values():
                         track["last_started"] = 0
                         track["last_result"] = None
                         track["last_completed"] = None
+                if settings_changed or toggled:
+                    # Discard a pending snapshot and suppress any in-flight
+                    # result from the previous settings or running period.
+                    self.generation += 1
+                    self.pending_snapshot = None
+                    self.next_capture_at = 0.0
                 self.enabled = message["enabled"]
                 self.refresh = refresh
                 self.questions = questions
@@ -262,7 +317,7 @@ class DecisionApp:
             completions = [t for t in self.completions if now - t <= 10]
             state = {
                 "history_revision": self.history_revision,
-                "has_frame": self.frame is not None and now - self.frame_seen < 1.5,
+                "has_frame": now - self.frame_seen < 1.5,
                 "tracks": tracks,
                 "detection": {
                     "classes": list(self.classes),
@@ -275,50 +330,66 @@ class DecisionApp:
                     "enabled": self.enabled,
                     "refresh": self.refresh,
                     "questions": self.questions,
-                    "actual_per_second": round(len(completions) / 10, 1),
+                    "actual_per_second": round(len(completions) / 10, 1)
+                    if self.enabled
+                    else 0.0,
                 },
             }
-            if (
-                not isinstance(message, dict)
-                or message.get("history_revision") != self.history_revision
-            ):
+            since = (
+                message.get("history_revision") if isinstance(message, dict) else None
+            )
+            if type(since) is not int or since < 0 or since > self.history_revision:
                 state["history"] = list(self.history)
+                state["history_reset"] = True
+            elif since != self.history_revision:
+                state["history"] = [
+                    job for job in self.history if job["revision"] > since
+                ]
+                state["history_reset"] = False
         state["model"] = self.runtime.state()
         return state
 
-    def _next_job(self):
-        """Select one due track and keep its source frame with the new job."""
-        now = time.monotonic()
+    def _next_snapshot(self):
+        """Take the latest captured detection batch when the model is ready."""
+        with self.lock:
+            if not self.enabled or not self.runtime.state()["ready"]:
+                return None
+            snapshot = self.pending_snapshot
+            self.pending_snapshot = None
+            return snapshot
+
+    def _next_job(self, snapshot):
+        """Choose the least recently evaluated crop from one captured frame."""
         with self.lock:
             if (
                 not self.enabled
-                or not self.runtime.state()["ready"]
-                or self.frame is None
-                or now - self.frame_seen > 1.5
+                or snapshot["generation"] != self.generation
+                or snapshot["capture_number"] != self.capture_number
+                or not snapshot["detections"]
             ):
                 return None
-            track = choose_track(self.tracks, now, self.refresh)
-            if track is None:
-                return None
-            track["last_started"] = now
+            observation = choose_detection(snapshot["detections"], self.tracks)
+            snapshot["detections"].remove(observation)
+            track = self.tracks.get(observation["id"])
+            if track is not None:
+                track["last_started"] = time.monotonic()
             job = {
                 "id": uuid.uuid4().hex,
-                "time": datetime.now(timezone.utc).isoformat(),
-                "track_id": track["id"],
-                "class_name": track["class_name"],
-                "confidence": track["confidence"],
-                "box": list(track["box"]),
-                "questions": json.loads(json.dumps(self.questions)),
-                "state": "running",
+                "time": snapshot["time"],
+                "track_id": observation["id"],
+                "class_name": observation["class_name"],
+                "confidence": observation["confidence"],
+                "box": list(observation["box"]),
+                "questions": snapshot["questions"],
+                "state": "done",
                 "source_image": None,
                 "crop_image": None,
                 "result": None,
                 "error": None,
             }
-            self.history.appendleft(job)
-            return job, track["frame"].copy()
+            return job
 
-    def _infer(self, job, frame):
+    def _infer(self, job, frame, generation):
         """Evaluate one crop and retain the source image and result for the log.
 
         Args:
@@ -343,11 +414,10 @@ class DecisionApp:
                 (0, 180, 255),
                 2,
             )
-            source_image = jpeg_data_url(marked)
+            source_image = jpeg_data_url(marked, max_edge=1920)
             crop_image = jpeg_data_url(crop)
-            with self.lock:
-                job["source_image"] = source_image
-                job["crop_image"] = crop_image
+            job["source_image"] = source_image
+            job["crop_image"] = crop_image
             prepared = time.monotonic()
             result = self.runtime.decide(
                 f"Decide about the detected {job['class_name']} shown in this crop.",
@@ -357,6 +427,8 @@ class DecisionApp:
             result["preparation_ms"] = round((prepared - started) * 1000, 1)
             result["total_ms"] = round((time.monotonic() - started) * 1000, 1)
             with self.lock:
+                if not self.enabled or generation != self.generation:
+                    return
                 job.update(state="done", result=result)
                 track = self.tracks.get(job["track_id"])
                 if track:
@@ -364,6 +436,8 @@ class DecisionApp:
                     track["last_completed"] = time.monotonic()
                 self.completions.append(time.monotonic())
                 self.history_revision += 1
+                job["revision"] = self.history_revision
+                self.history.appendleft(job)
             logger.info(
                 "[DECISION] %s",
                 json.dumps(
@@ -375,18 +449,28 @@ class DecisionApp:
             )
         except Exception as exc:
             with self.lock:
+                if not self.enabled or generation != self.generation:
+                    return
                 job.update(state="error", error=str(exc))
                 self.history_revision += 1
+                job["revision"] = self.history_revision
+                self.history.appendleft(job)
             logger.exception("Decision failed for track %s", job["track_id"])
 
     def schedule(self):
-        """Run one decision at a time, choosing fresh crops on each iteration."""
+        """Process crops from the latest captured batch in the background."""
         while not self.stop.is_set():
-            selected = self._next_job()
-            if selected is None:
-                self.stop.wait(0.1)
+            snapshot = self._next_snapshot()
+            if snapshot is None:
+                self.stop.wait(0.05)
                 continue
-            self._infer(*selected)
+            try:
+                frame = snapshot["frame"].getCvFrame()
+            except Exception:
+                logger.exception("Could not read captured decision frame")
+                continue
+            while (job := self._next_job(snapshot)) is not None:
+                self._infer(job, frame, snapshot["generation"])
 
     def shutdown(self, *_args):
         logger.info("Stopping app")
@@ -413,14 +497,15 @@ class DecisionApp:
         try:
             with dai.Pipeline(device) as pipeline:
                 camera = pipeline.create(dai.node.Camera).build()
-                frame = camera.requestOutput(
+                detector_frame = camera.requestOutput(
                     size=(640, 640),
                     type=dai.ImgFrame.Type.BGR888i,
+                    resizeMode=dai.ImgResizeMode.LETTERBOX,
                     fps=10,
                 )
-                # Publish an encoded preview; keep BGR frames for detection and crops.
+                # The same 1080p output feeds the encoder and interval-selected crops.
                 video = camera.requestOutput(
-                    size=(640, 640),
+                    size=(1920, 1080),
                     type=dai.ImgFrame.Type.NV12,
                     fps=10,
                 )
@@ -429,20 +514,34 @@ class DecisionApp:
                     fps=10,
                     profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
                 )
+                encoder.input.setBlocking(False)
+                encoder.input.setMaxSize(1)
                 video.link(encoder.input)
                 self.detector = pipeline.create(NNDetectionNode).build(
-                    frame,
+                    detector_frame,
                     archive,
                     prompts,
                     self.classes,
                     self.confidence,
                     self.iou,
                 )
-                pipeline.create(ObservationNode).build(
-                    frame, self.detector.detections, self
+                tracker = pipeline.create(dai.node.ObjectTracker)
+                tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
+                tracker.setTrackerIdAssignmentPolicy(
+                    dai.TrackerIdAssignmentPolicy.UNIQUE_ID
+                )
+                tracker.setTrackingPerClass(True)
+                tracker.setTrackletBirthThreshold(1)
+                tracker.setTrackletMaxLifespan(10)
+                detector_frame.link(tracker.inputDetectionFrame)
+                detector_frame.link(tracker.inputTrackerFrame)
+                self.detector.detections.link(tracker.inputDetections)
+                pipeline.create(ObservationNode).build(video, tracker.out, self)
+                overlay = pipeline.create(OverlayNode).build(
+                    video, self.detector.detections
                 )
                 remote.addTopic("Video", encoder.out)
-                remote.addTopic("Annotations", self.detector.detections_extended)
+                remote.addTopic("Annotations", overlay.out)
 
                 pipeline.start()
                 logger.info("Pipeline started.")

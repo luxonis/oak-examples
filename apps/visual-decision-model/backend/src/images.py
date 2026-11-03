@@ -38,10 +38,15 @@ def validate_request(message):
     return context.strip(), decision, list(references)
 
 
-def jpeg_data_url(frame):
-    """Downsize a BGR frame to the model input size and encode it as JPEG."""
+def jpeg_data_url(frame, max_edge=MAX_EDGE):
+    """Encode a BGR frame, optionally limiting its longest edge.
+
+    Args:
+        frame: Source or crop in BGR format.
+        max_edge: Maximum output edge; defaults to the d3-lite image input limit.
+    """
     height, width = frame.shape[:2]
-    ratio = min(1, MAX_EDGE / max(height, width))
+    ratio = min(1, max_edge / max(height, width))
     if ratio < 1:
         frame = cv2.resize(
             frame,

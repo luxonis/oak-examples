@@ -1,41 +1,143 @@
 # Visual Decision Model
 
-This standalone RVC4 example shows how to use a decision model on camera images. YOLO-E finds selected objects in the live stream, and d3-lite answers typed questions about each tracked detection crop. The default demo finds people and asks whether each person is wearing a hat. Its frontend uses Luxonis components and provides text-class, confidence, IoU, decision enablement, per-object refresh, and question controls.
+This standalone RVC4 example is a starting point for applications that use a
+**visual decision model**. [d3-lite](https://huggingface.co/vllm-sr/d3-lite)
+applies VLM knowledge to user-defined questions about an image and returns
+type-safe, structured decisions. You define the question, answer type, and
+answer criteria; the backend validates the model's response before showing it.
+Questions can cover any visual task expressible as Yes/No, choice, or an ordered
+score. This demo uses YOLO-E to supply object crops from a live 1080p stream,
+with a default question about whether a person wears a hat.
 
-The scheduler runs one decision at a time. It tries never-evaluated objects first, then the oldest result that is due. A host-side IoU matcher gives detections stable IDs. Each crop comes from the frame paired with its YOLO-E detection; old crops are never queued. The refresh slider is a target: when detections exceed model capacity, actual refresh is slower. The UI shows each visible object's last result and age.
+The app frontend provides controls for:
 
-Each of the last 20 inference entries contains a full source frame with the selected box, the exact JPEG crop sent to d3-lite, YOLO-E class/confidence, the submitted questions, answer probabilities and latency. History is held in memory and clears on app restart. There are no generated explanations or calibrated accuracy claims.
+- Choosing detection classes and adjusting confidence and IoU thresholds
+- Starting or pausing decisions and setting the capture interval
+- Editing up to four Yes/No, choice, or ordered-score questions
+- Reviewing visible objects and the latest 20 decision inferences
 
-## Run
+> **Note:** RVC4 standalone mode only. Requires Luxonis OS 1.40 or newer.
 
-Requires an RVC4 OAK device, `oakctl`, and network access during the first app build for the pinned model and prompt assets. Tested on an OAK4-D R9 with Luxonis OS 1.45.0. From this directory:
+## Demo
+
+![TODO](TODO)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    UI["Frontend<br/>Video, controls, and decision log"]
+
+    subgraph OAK["OAK RVC4"]
+        Camera["Camera"]
+        Video["1920 × 1080 · 10 FPS"]
+        DetectorFrame["640 × 640 letterbox · 10 FPS"]
+        Encoder["H.264 encoder"]
+        YOLO["Zoo YOLO-E<br/>SNPE on DSP"]
+        Tracker["DepthAI ObjectTracker"]
+        Overlay["Remap detection boxes"]
+        Snapshot["Latest paired frame<br/>and tracked boxes"]
+        Worker["Background crop worker"]
+        Decision["llama-server<br/>d3-lite · Hexagon HTP0"]
+
+        Camera --> Video --> Encoder
+        Camera --> DetectorFrame --> YOLO
+        YOLO --> Tracker
+        YOLO --> Overlay
+        Video --> Overlay
+        Video --> Snapshot
+        Tracker --> Snapshot --> Worker
+        Worker -->|JPEG crop + questions| Decision
+    end
+
+    Encoder -->|Live stream| UI
+    Overlay -->|Annotations| UI
+    UI -->|Classes and thresholds| YOLO
+    UI -->|Questions and interval| Worker
+    Decision -->|Probabilities and timing| UI
+```
+
+The live video and decision work use separate paths. Detection boxes are
+remapped from YOLO-E's letterboxed input to the 1080p video for the overlay.
+ObjectTracker supplies IDs for scheduling decisions; the crop itself comes
+from the 1080p frame paired with those tracked boxes. d3-lite does not need
+tracklets to evaluate an image, but IDs help distribute requests among visible
+objects and attach recent answers to them.
+
+## Features
+
+- **Reusable decision-model pattern**
+
+  - Define the question and answer criteria, submit an image crop, validate the
+    typed result, and keep the exact input alongside its probabilities.
+  - The included question templates cover a hat check (Yes/No), a person's
+    posture (choice), and face visibility (ordered score).
+  - YOLO-E is the input source in this demo. The decision question and result
+    path can be adapted to another detector or image source.
+
+- **Detection controls**
+
+  - Enter up to 16 comma-separated text classes. The default is `person`.
+  - Confidence defaults to **0.35** and IoU to **0.50**. Sliders apply after
+    you stop adjusting them; class edits require **Apply classes**.
+  - YOLO-E keeps running when decisions are paused.
+
+- **Decision controls**
+
+  - Decisions start paused. The capture interval defaults to **2 seconds**
+    and can be set from **0.5 to 30 seconds**.
+  - Add one to four questions about each crop. Each question has an instruction
+    and answer descriptions; the supported types are **Yes/No probability**,
+    **choice**, and **ordered score**. Question edits require **Apply questions**.
+  - All questions for one crop are sent in a single model request. Pausing
+    discards pending captures and prevents an in-flight result from entering
+    the log after the pause takes effect.
+
+- **Bounded background processing**
+
+  - At each interval, the app captures the latest frame and its tracked
+    detections. One worker evaluates crops sequentially, favoring objects
+    that have not been evaluated recently.
+  - A newer capture replaces a pending one and ends processing of remaining
+    crops from an older capture. When inference takes longer than the interval,
+    some captures or objects are skipped; no image backlog grows.
+  - The encoded live stream continues independently of decision inference.
+
+- **Decision inference log**
+
+  - Each of the latest 20 entries shows the full 1080p source frame with the
+    selected box, the exact JPEG crop sent to d3-lite, YOLO-E class and
+    confidence, submitted questions, answer probabilities, and timing.
+  - Crops retain their aspect ratio and are downscaled to at most **448 pixels**
+    on the longest edge. History stays in memory and clears on app restart.
+    The frontend fetches new entries after its initial load.
+
+## Usage
+
+You need an RVC4 OAK device reachable through `oakctl`. Follow the
+[OAK and oakctl setup guide](https://docs.luxonis.com/software-v3/oak-apps/oakctl)
+if the device is not configured yet.
+
+The app uses `luxonis/oakapp-base:1.5.2-llamacpp` and needs the device's
+Hexagon runtime mount and FastRPC devices. The first build or start may need
+internet access to obtain the base image, Zoo model, d3-lite weights, and
+YOLO-E prompt assets. d3-lite weights and vision projector are downloaded and
+SHA-256 verified during the container build; subsequent runs use the assets
+in the app image.
+
+### Standalone mode (RVC4)
+
+From this example's directory, run:
 
 ```bash
 oakctl app run . -d <DEVICE_IP> --detach
 ```
 
-Open the frontend URL printed by `oakctl`. To work on the frontend locally, use Node 22 or newer:
+Open the frontend URL printed by `oakctl` (typically
+`https://<DEVICE_IP>:9000/`). Wait for the model status to show **Ready**,
+then select classes, configure questions, and press **Start decisions**.
 
-```bash
-cd frontend
-npm ci
-npm run dev -- --host 127.0.0.1
-```
+### Remote access
 
-Open `http://localhost:4173/?ws_url=ws://<DEVICE_IP>:8765`.
-
-## Model and runtime
-
-- YOLO-E uses the pinned RVC4 Zoo model descriptor in `backend/src/depthai_models/` and the text-prompt embedding approach from `apps/data-collection`. The preview is H.264 encoded before being published as the `Video` topic; detections are published separately as `Annotations`.
-- d3-lite uses the pinned Q8_0 model and projector checksums in `backend/src/models.py`. Assets are downloaded and verified during container construction.
-- The official `luxonis/oakapp-base:1.5.2-llamacpp` image supplies llama.cpp 0.7.0. The backend starts `llama-server` on loopback and calls `/v1/systemone`; d3 model and projector request HTP0. The YOLO-E text prompt encoder runs on CPU only when classes change.
-- The decision model supports Yes/No, choice, and ordered score questions. One crop request may include one to four questions. Every question sees that same crop.
-
-## Checks
-
-```bash
-python3 -m unittest discover -s backend/tests -v
-cd frontend && npm run lint && npm run build
-```
-
-See `docs/brief.md` and `docs/plans/current.md` for the first-demo scope and validation plan.
+1. You can upload oakapp to Luxonis Hub via oakctl
+2. And then you can just remotely open App UI via App detail

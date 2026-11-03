@@ -3,7 +3,6 @@ entrypoint = ["/entrypoint.sh", "python3.12", "-u", "/app/backend/src/main.py"]
 app_version = "1.0.0"
 
 prepare_container = [
-    { type = "COPY", source = "./backend/model-license", target = "/opt/d3-models/licenses" },
     { type = "COPY", source = "./backend/src/models.py", target = "./backend/src/models.py" },
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
     { type = "RUN", command = "python3.12 -m pip install -r /app/backend/requirements.txt --break-system-packages" },
