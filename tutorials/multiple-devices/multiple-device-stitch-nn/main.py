@@ -8,6 +8,7 @@ import depthai as dai
 from depthai_nodes.node import (
     FrameCropper,
     GatherData,
+    ImgDetectionsFilter,
     Tiling,
 )
 from utils.arguments import initialize_argparser
@@ -73,13 +74,13 @@ def add_inference(pipeline, panorama, source_count, fps):
         waitCountFn=lambda _: tiles.tileCount,
     )
     merged = pipeline.create(MergeImgDetections).build(input=gathered.out)
-    filtered = pipeline.create(dai.beta.node.ImgDetectionsFilter)
-    filtered.setRunOnHost(True)
-    filtered.initialConfig.nmsDisabled = False
-    filtered.initialConfig.nmsConfidenceThreshold = 0.1
-    filtered.initialConfig.nmsIouThreshold = 0.2
-    merged.out.link(filtered.input)
-    return filtered.output
+    # Native 3.12 filtering only suppresses between inputs, not within this merge.
+    filtered = (
+        pipeline.create(ImgDetectionsFilter)
+        .useNms(confThresh=0.1, iouThresh=0.2)
+        .build(input=merged.out)
+    )
+    return filtered.out
 
 
 def main():
@@ -105,15 +106,17 @@ def main():
                 visualizer.addTopic(f"Input-{len(outputs)}", output)
                 outputs.append(output)
 
-        stitch = pipeline.create(dai.beta.node.Stitching).build(outputs)
-        stitch.setMode(dai.beta.node.Stitching.Mode.PANORAMA)
+        stitch = pipeline.create(dai.node.Stitching).build(outputs)
+        stitch.setMode(dai.node.Stitching.Mode.PANORAMA)
+        # 3.12 defaults to calibrated composition; this example registers from images.
+        stitch.setUseInputCalibration(False)
         # Stitching runs on host by default, supporting RVC2 and RVC4 inputs.
         # Native detection transformTo requires a perspective projection.
         stitch.setCameraModel(dai.CameraModel.Perspective)
         stitch.setContinuous(False)
         stitch.setEstimationFrames(3)
         stitch.setMaxPanoramaSize(4096, 2048)
-        stitch.setSeamFinder(dai.beta.node.Stitching.SeamFinder.DP_COLOR)
+        stitch.setSeamFinder(dai.node.Stitching.SeamFinder.DP_COLOR)
         stitch.setSyncThreshold(timedelta(milliseconds=100))
 
         full_detections = add_inference(

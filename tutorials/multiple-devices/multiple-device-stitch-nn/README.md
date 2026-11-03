@@ -12,6 +12,8 @@ selected device. This example has no standalone deployment path.
 ## Run
 
 Requires Python >=3.10 and the pinned dependencies in `requirements.txt`.
+The requirements select DepthAI snapshot
+`3.12.0.dev0+d4cb5b0f547f42ad39312c0dec48802b41028fa7` from the Luxonis snapshot index.
 Native host stitching needs DepthAI with OpenCV support, enabled by default.
 
 ```bash
@@ -19,15 +21,15 @@ python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 
-# Overlapping cameras, in left-to-right order:
-oakctl run-script python main.py --devices LEFT_DEVICE_ID RIGHT_DEVICE_ID
-
-# Or overlapping sensors on one device:
-oakctl run-script python main.py --devices DEVICE_ID --sockets CAM_B CAM_C
+# Two physical devices with overlapping views, in left-to-right order:
+oakctl run-script python main.py --devices LEFT_DEVICE_ID RIGHT_DEVICE_ID --sockets CAM_A
 ```
 
-Select at least two camera sources. `--devices` accepts device IDs or IPs;
-`--sockets` defaults to CAM_A and applies to each selected device.
+Pass both device IDs or IPs after `--devices`. With `--sockets CAM_A`, this
+selects one camera on each device, for two sources total. `--sockets` defaults to
+CAM_A and applies to every selected device: `--sockets CAM_B CAM_C` on two
+devices would select four sources. To diagnose stitching with two sensors on
+just one device, use `--devices DEVICE_ID --sockets CAM_B CAM_C` instead.
 Use `-fps` to change the capture rate (default 10) and `-is` to change the
 input resolution (default 360p). Run `python main.py --help` for choices.
 
@@ -43,10 +45,12 @@ Press **r** to reset registration after moving cameras, **q** or Ctrl-C to stop.
 
 ## How stitching works
 
-Native `dai.beta.node.Stitching` synchronizes the inputs internally. This example
+Native `dai.node.Stitching` synchronizes the inputs internally. This example
 uses PANORAMA mode, evaluates three valid registration candidates, and reuses
 the strongest transform for subsequent frames. Failed candidates do not count;
 no panorama is emitted until registration succeeds.
+`setUseInputCalibration(False)` explicitly selects image-content registration;
+the snapshot defaults to calibrated composition.
 
 The settings in `main.py` use a perspective projection, DP_COLOR seams, a
 4096x2048 maximum panorama size, and a 100ms synchronization threshold.
@@ -71,7 +75,9 @@ BGR888i for RVC4. Timestamp-matched references and native
 before NMS and display. Camera sources may span multiple
 devices; the first device selects the inference model platform.
 
-Inference uses native `dai.node.DetectionNetwork`; NMS uses native
-`dai.beta.node.ImgDetectionsFilter` on the host. Tiling, cropping and timestamp
-gathering use `depthai-nodes`. The small merge helper preserves the matched
-reference transformation when moving detections from tiles to the panorama.
+Inference uses native `dai.node.DetectionNetwork`. Tiling, cropping, timestamp
+gathering and host NMS use `depthai-nodes`. Its `ImgDetectionsFilter.useNms()`
+suppresses duplicates within the merged tile detections; the snapshot's native
+filter only suppresses duplicates between separate inputs. The small merge helper
+preserves the matched reference transformation when moving detections from tiles
+to the panorama.
