@@ -15,7 +15,7 @@ Standalone RVC4 decision-model example that evaluates YOLO-E detection crops wit
 
 ## Quick Facts
 
-- `Category:` `apps/yoloe-d3-decisions`
+- `Category:` `apps/visual-decision-model`
 - `Shape:` `frontend`
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)

@@ -1,4 +1,4 @@
-# 2026-11-02 · YOLO-E crop decisions
+# 2026-11-02 · Visual Decision Model
 
 ## First demo
 

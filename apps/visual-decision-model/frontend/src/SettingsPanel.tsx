@@ -56,7 +56,7 @@ export function SettingsPanel({
 		<aside className="prompt-panel">
 			<div className="panel-intro">
 				<div className="section-heading">
-					<h1>Visual Decisions</h1>
+					<h1>Visual Decision Model</h1>
 					<Badge intent="gray" variant="light" label="d3-lite" />
 				</div>
 				<p className="muted">

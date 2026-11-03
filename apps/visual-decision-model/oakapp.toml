@@ -1,4 +1,4 @@
-identifier = "com.example.apps.yoloe-d3-decisions"
+identifier = "com.example.apps.visual-decision-model"
 entrypoint = ["/entrypoint.sh", "python3.12", "-u", "/app/backend/src/main.py"]
 app_version = "1.0.0"
 

@@ -1,4 +1,4 @@
-# Visual Decisions
+# Visual Decision Model
 
 This standalone RVC4 example shows how to use a decision model on camera images. YOLO-E finds selected objects in the live stream, and d3-lite answers typed questions about each tracked detection crop. The default demo finds people and asks whether each person is wearing a hat. Its frontend uses Luxonis components and provides text-class, confidence, IoU, decision enablement, per-object refresh, and question controls.
 
