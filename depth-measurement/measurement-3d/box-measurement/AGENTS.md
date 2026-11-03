@@ -107,5 +107,4 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Video Stream`, `Box Detections`, `Cuboid Fit`, and `Pointcloud`, and detected boxes receive dimension labels when the fit succeeds
 - `Failure feedback:` a detected box shows `measurement unavailable` and the specific depth, plane-fit, or dimension failure in the `Box Detections` overlay on `Video Stream`
-- `Without hardware:` `python3 -m unittest discover -s tests` from this example directory checks synthetic plane fitting and failure labels using the example dependencies
 - `Common failure meaning:` stereo alignment is poor, the device lacks the expected camera topology, the model bundle is unavailable, or the cuboid fit is failing on noisy depth
