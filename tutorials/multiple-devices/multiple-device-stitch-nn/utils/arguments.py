@@ -20,6 +20,11 @@ def initialize_argparser():
     )
     parser.add_argument("-fps", "--fps_limit", type=int, default=10)
     parser.add_argument(
+        "--show-inputs",
+        action="store_true",
+        help="Show individual camera streams alongside the stitched panorama for debugging",
+    )
+    parser.add_argument(
         "-is",
         "--input_size",
         default="360p",

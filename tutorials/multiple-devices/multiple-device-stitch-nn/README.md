@@ -36,10 +36,16 @@ just one device, use `--devices DEVICE_ID --sockets CAM_B CAM_C` instead.
 Use `-fps` to change the capture rate (default 10) and `-is` to change the
 input resolution (default 360p). Run `python main.py --help` for choices.
 
-Open **http://localhost:8082** in the Visualizer:
+Open **http://localhost:8082** in the Visualizer. By default, it shows only the
+`Stitched` panorama with `PanoramaDetections` overlays.
 
-- `Input-N`: individual camera streams.
-- `Stitched` and `PanoramaDetections`: full panorama and detection overlays.
+To inspect the individual camera views as well, add `--show-inputs`:
+
+```bash
+oakctl run-script python main.py --devices LEFT_DEVICE_ID RIGHT_DEVICE_ID --sockets CAM_A --show-inputs
+```
+
+This also publishes `Input-0`, `Input-1`, and any additional source streams.
 
 The resized inference canvas stays internal. Only the panorama detection stream
 is published, so each object has one label and box.
@@ -69,7 +75,7 @@ flowchart LR
 
 1. **Select the sources.** Each requested socket creates a camera on each
    selected device. With two device IDs and `CAM_A`, there are two sources.
-   `Input-0` and `Input-1` show them before stitching.
+   With `--show-inputs`, `Input-0` and `Input-1` show them before stitching.
 2. **Register and compose.** Stitching groups frames by timestamp, finds shared
    image features, and estimates how the views fit together. Once registration
    succeeds, it reuses the transform to compose subsequent panoramas.
@@ -106,7 +112,8 @@ Synchronization groups frames by timestamp and does not align camera exposures.
 
 Use rigidly mounted cameras with substantial overlap and textured scenes.
 Wide baselines and nearby objects can cause parallax. If registration fails,
-check the input streams and camera placement; there is no concatenation fallback.
+rerun with `--show-inputs` and check the input streams and camera placement;
+there is no concatenation fallback.
 See the [Stitching documentation](https://docs.luxonis.com/software-v3/depthai/depthai-components/host_nodes/stitching)
 for calibrated panorama composition, cylindrical/360° views, planar projection,
 seam choices, and synchronization options beyond this example.
@@ -158,6 +165,10 @@ Ethernet; it is an example measurement, not a guaranteed rate for other rigs.
 
 ## Troubleshooting
 
+For registration problems, rerun with `--show-inputs` to inspect the source views.
+Without that flag, only the panorama and its detection overlay are published, so
+there is no image to display until registration succeeds.
+
 | What you see                                                | What to check                                                                                                                                                                                                                                        |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Input streams appear, but no panorama                       | Let exposure settle, then check that neighboring views share substantial, textured, well-lit background. Keep the cameras still. Three valid registration candidates are needed; failed candidates do not count.                                     |
@@ -169,6 +180,7 @@ Ethernet; it is an example measurement, not a guaranteed rate for other rigs.
 | Attribute errors or deprecated beta-node warnings           | Install this directory's pinned requirements into the same environment used to run the example. The filter and Stitching APIs differ across DepthAI versions.                                                                                        |
 
 Registration has no timeout or concatenation fallback: unsuccessful registration
-leaves the input topics available but emits no panorama or detections. Pressing
+emits no panorama or detections. Input topics remain available with
+`--show-inputs`. Pressing
 **r** discards the cached composition and starts registration again; it does not
 calibrate the cameras.

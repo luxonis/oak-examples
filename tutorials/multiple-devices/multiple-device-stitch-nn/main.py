@@ -103,7 +103,8 @@ def main():
                     dai.ImgResizeMode.CROP,
                     fps=args.fps_limit,
                 )
-                visualizer.addTopic(f"Input-{len(outputs)}", output)
+                if args.show_inputs:
+                    visualizer.addTopic(f"Input-{len(outputs)}", output)
                 outputs.append(output)
 
         stitch = pipeline.create(dai.node.Stitching).build(outputs)
