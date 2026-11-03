@@ -129,9 +129,6 @@ with dai.Pipeline(device) as pipeline:
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
 
-    # PointCloud node for the segmented PCL: colored, organized (one point per
-    # pixel) and directly in centimeters, the unit the measurements are reported
-    # in, so MeasurementNode needs no host-side unit conversion.
     pcl_seg = pipeline.create(dai.node.PointCloud)
     pcl_seg.initialConfig.setOrganized(True)
     pcl_seg.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)

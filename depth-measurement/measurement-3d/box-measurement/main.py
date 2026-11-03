@@ -47,9 +47,6 @@ with dai.Pipeline(device) as p:
     )
     depth.setAlignTo(color_output)
 
-    # PointCloud node: organized (one point per pixel, same layout as the frames),
-    # colored point cloud directly in centimeters, the unit the cuboid fitter
-    # reports in, so no host-side unit conversion is needed.
     pcl = p.create(dai.node.PointCloud)
     pcl.initialConfig.setOrganized(True)
     pcl.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)

@@ -26,9 +26,6 @@ with dai.Pipeline(device) as pipeline:
     depth.build(dai.node.Depth.Algorithm.AUTO, size=IMG_SHAPE)
     depth.setAlignTo(cam_out)
 
-    # PointCloud node: depth -> XYZ points; linking an aligned RGB888i frame to
-    # inputColor gives a colored point cloud. The length unit is configurable on
-    # the node; the Visualizer expects millimeters (the default).
     pcl = pipeline.create(dai.node.PointCloud)
     pcl.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
     depth.depth.link(pcl.inputDepth)
