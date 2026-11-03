@@ -90,21 +90,6 @@ class ObservationNode(dai.node.HostNode):
         self.app.observe(frame, observations)
 
 
-class OverlayNode(dai.node.HostNode):
-    """Map detector boxes from the letterboxed input onto the encoded video frame."""
-
-    def build(self, frame, detections):
-        self.link_args(frame, detections)
-        for input_queue in self.getInputs():
-            input_queue.setBlocking(False)
-            input_queue.setMaxSize(4)
-        return self
-
-    def process(self, frame, detections):
-        """Publish annotations in the paired 1080p frame's coordinates."""
-        self.out.send(detections.transformTo(frame.getTransformation()))
-
-
 class DecisionApp:
     """Own the detector, decision scheduler, and frontend service state."""
 
@@ -502,12 +487,14 @@ class DecisionApp:
                     type=dai.ImgFrame.Type.BGR888i,
                     resizeMode=dai.ImgResizeMode.LETTERBOX,
                     fps=10,
+                    enableUndistortion=True,
                 )
                 # The same 1080p output feeds the encoder and interval-selected crops.
                 video = camera.requestOutput(
                     size=(1920, 1080),
                     type=dai.ImgFrame.Type.NV12,
                     fps=10,
+                    enableUndistortion=True,
                 )
                 encoder = pipeline.create(dai.node.VideoEncoder)
                 encoder.setDefaultProfilePreset(
@@ -517,6 +504,7 @@ class DecisionApp:
                 encoder.input.setBlocking(False)
                 encoder.input.setMaxSize(1)
                 video.link(encoder.input)
+
                 self.detector = pipeline.create(NNDetectionNode).build(
                     detector_frame,
                     archive,
@@ -525,6 +513,7 @@ class DecisionApp:
                     self.confidence,
                     self.iou,
                 )
+
                 tracker = pipeline.create(dai.node.ObjectTracker)
                 tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
                 tracker.setTrackerIdAssignmentPolicy(
@@ -535,13 +524,15 @@ class DecisionApp:
                 tracker.setTrackletMaxLifespan(10)
                 detector_frame.link(tracker.inputDetectionFrame)
                 detector_frame.link(tracker.inputTrackerFrame)
+
                 self.detector.detections.link(tracker.inputDetections)
                 pipeline.create(ObservationNode).build(video, tracker.out, self)
-                overlay = pipeline.create(OverlayNode).build(
-                    video, self.detector.detections
-                )
+
+                overlay = pipeline.create(dai.node.Align)
+                self.detector.detections.link(overlay.input)
+                video.link(overlay.inputAlignTo)
                 remote.addTopic("Video", encoder.out)
-                remote.addTopic("Annotations", overlay.out)
+                remote.addTopic("Annotations", overlay.outputAligned)
 
                 pipeline.start()
                 logger.info("Pipeline started.")

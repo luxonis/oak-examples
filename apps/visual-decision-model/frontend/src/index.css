@@ -29,6 +29,10 @@ h2 {
 	font-size: 15px;
 	font-weight: 650;
 }
+.tracks-panel .section-heading h2,
+.history > .section-heading h2 {
+	font-size: 17px;
+}
 
 .workspace {
 	display: grid;
@@ -155,6 +159,13 @@ h2 {
 	margin-top: 28px;
 	container-type: inline-size;
 }
+.history-list {
+	position: relative;
+}
+.history-list.is-scrollable {
+	overflow-y: auto;
+	scrollbar-gutter: stable;
+}
 .result-card,
 .empty {
 	margin-bottom: 16px;
@@ -166,6 +177,9 @@ h2 {
 .result-card {
 	content-visibility: auto;
 	contain-intrinsic-size: auto 640px;
+}
+.history-list.is-scrollable .result-card:nth-child(-n + 5) {
+	content-visibility: visible;
 }
 .empty {
 	padding: 40px 24px;
@@ -198,12 +212,15 @@ h2 {
 	min-width: 0;
 }
 .log-question {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: baseline;
+	column-gap: 12px;
 	margin-bottom: 18px;
 	padding-bottom: 16px;
 	border-bottom: 1px solid #e4e8ed;
 }
 .log-question h3 {
-	margin-bottom: 10px;
 	font-size: 14px;
 }
 .log-timing {
@@ -213,12 +230,13 @@ h2 {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
-	gap: 16px;
+	justify-content: flex-end;
+	gap: 6px;
 	overflow-wrap: anywhere;
 }
 .score strong {
-	font-size: 36px;
-	font-weight: 650;
+	font-size: 14px;
+	font-weight: 700;
 	font-variant-numeric: tabular-nums;
 }
 .score span,
@@ -228,6 +246,7 @@ h2 {
 }
 .probabilities {
 	display: grid;
+	grid-column: 1 / -1;
 	gap: 12px;
 	margin-top: 16px;
 }
@@ -311,6 +330,13 @@ meter::-webkit-meter-optimum-value {
 	}
 	.log-answers {
 		grid-column: auto;
+	}
+	.log-question {
+		grid-template-columns: 1fr;
+	}
+	.score {
+		justify-content: flex-start;
+		margin-top: 6px;
 	}
 }
 

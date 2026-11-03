@@ -35,7 +35,7 @@ flowchart LR
         Encoder["H.264 encoder"]
         YOLO["Zoo YOLO-E<br/>SNPE on DSP"]
         Tracker["DepthAI ObjectTracker"]
-        Overlay["Remap detection boxes"]
+        Overlay["DepthAI Align<br/>boxes and masks"]
         Snapshot["Latest paired frame<br/>and tracked boxes"]
         Worker["Background crop worker"]
         Decision["llama-server<br/>d3-lite · Hexagon HTP0"]
@@ -57,8 +57,8 @@ flowchart LR
     Decision -->|Probabilities and timing| UI
 ```
 
-The live video and decision work use separate paths. Detection boxes are
-remapped from YOLO-E's letterboxed input to the 1080p video for the overlay.
+The live video and decision work use separate paths. DepthAI's Align node maps YOLO-E boxes and segmentation masks
+from the letterboxed detector input to the 1080p video for the overlay.
 ObjectTracker supplies IDs for scheduling decisions; the crop itself comes
 from the 1080p frame paired with those tracked boxes. d3-lite does not need
 tracklets to evaluate an image, but IDs help distribute requests among visible

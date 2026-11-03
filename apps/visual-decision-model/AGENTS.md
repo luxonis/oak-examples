@@ -26,7 +26,9 @@ Standalone RVC4 starting point for visual decision-model apps: d3-lite applies V
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Runs on:` RVC4 standalone only
 - `Input:` camera at 1920 × 1080 and 640 × 640 letterbox, up to 16 text classes (default `person`), confidence/IoU, 0.5–30 s capture interval, one to four typed questions
-- `Output:` validated Yes/No, choice, or score decisions with probabilities; H.264 `Video`, remapped `Annotations`, track status, and a 20-entry source/crop log
+- `Output:` validated Yes/No, choice, or score decisions with probabilities;
+  H.264 `Video`, aligned boxes and masks in `Annotations`, track status, and a
+  20-entry source/crop log
 - `Models:` Zoo YOLO-E v8 L FP16 on SNPE/DSP; d3-lite Q8_0 and matching vision projector through llama-server/Hexagon HTP0
 
 ## Read First
@@ -46,8 +48,9 @@ Standalone RVC4 starting point for visual decision-model apps: d3-lite applies V
 
 ## Architecture
 
-- The camera emits 640 × 640 letterboxed BGR at 10 FPS for Zoo YOLO-E and
-  ObjectTracker, plus 1920 × 1080 NV12 at 10 FPS for H.264 `Video` and crops.
+- The camera emits undistorted 640 × 640 letterboxed BGR at 10 FPS for Zoo
+  YOLO-E and ObjectTracker, plus undistorted 1920 × 1080 NV12 at 10 FPS for
+  H.264 `Video` and crops.
   Encoder and detector inputs drop stale frames instead of blocking the camera.
 - YOLO-E runs through DepthAI's SNPE/DSP backend. The text encoder uses ONNX
   Runtime's CPU provider when classes change; its embeddings feed YOLO-E.
@@ -56,9 +59,9 @@ Standalone RVC4 starting point for visual decision-model apps: d3-lite applies V
   `ObservationNode` pairs tracklets with their 1080p frame and maps their boxes
   with DepthAI transformation metadata. It retains only an interval-selected
   frame and observations; pixel conversion runs later in the worker.
-- `OverlayNode` separately maps filtered detections to the paired 1080p frame
-  before publishing `Annotations`. The live overlay shows detector boxes;
-  decision scheduling uses tracker IDs and boxes.
+- DepthAI `Align` maps detection boxes and embedded segmentation masks to the
+  paired 1080p video before publishing `Annotations`. Decision scheduling
+  uses tracker IDs and boxes from the separate observation path.
 - One background worker chooses unseen or least recently evaluated objects
   from the latest capture. It sends one crop with all configured questions to
   llama-server's loopback `/v1/systemone` endpoint. A newer capture replaces
@@ -131,8 +134,8 @@ Standalone RVC4 starting point for visual decision-model apps: d3-lite applies V
   `prepare_container`. Zoo YOLO-E and text prompt assets may need network or
   cache access at first start. Keep the pinned descriptor, prompt encoder,
   and model assets consistent when changing versions.
-- `Video` is encoded H.264; `Annotations` carries remapped detections. The
-  browser renders both. The frontend never calls llama-server directly.
+- `Video` is encoded H.264; `Annotations` carries aligned detections and masks.
+  The browser renders both. The frontend never calls llama-server directly.
 - `Decision State` uses a history revision so large source/crop images are
   sent only on initial load or for new entries. Service callbacks must keep
   accepting the expected JSON payloads when frontend controls change.
@@ -150,17 +153,18 @@ Standalone RVC4 starting point for visual decision-model apps: d3-lite applies V
 
 - `Run:` `oakctl app run . -d <device-ip> --detach`
 - `Success looks like:` live `Video` and `Annotations` continue during
-  decisions; boxes align on 1080p video; tracked objects produce source/crop
-  logs with the exact d3 input and answers; class, threshold, question, and
-  interval controls work; no new prediction appears after pause.
+  decisions; boxes and segmentation masks align on 1080p video; tracked
+  objects produce source/crop logs with the exact d3 input and answers; class,
+  threshold, question, and interval controls work; no new prediction appears
+  after pause.
 - `Checks:` compile the backend source, run frontend lint/build, validate
   repository AGENTS/index docs, then inspect live topics and the browser UI.
   This example currently has no dedicated backend test directory.
 - `Common failure meaning:` model build failures may indicate unavailable
   base image or downloads; startup failures may indicate missing Hexagon
   mounts/devices or unavailable Zoo/prompt assets; shifted overlays indicate
-  a missing detection-to-video transformation; stale log entries after pause
-  indicate a generation-invalidation regression.
+  a missing detection-to-video alignment or inconsistent camera undistortion;
+  stale log entries after pause indicate a generation-invalidation regression.
 - `Validation status:` validated through RVC4 standalone execution and
   frontend inspection. Holistic recording/replay remains pending for this
   topology.
