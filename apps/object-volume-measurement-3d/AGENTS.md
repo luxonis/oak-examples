@@ -54,6 +54,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - Detection filtering keeps only the currently active class labels.
 - The annotation node handles segmentation, selection, and display overlays.
 - A `PointCloud` node (organized mode, `setLengthUnit(CENTIMETER)`) creates colored pointcloud output for the segmented region from the masked depth and RGB frames, so the measurement code works in centimeters end to end with no unit conversion.
+- The point cloud explicitly targets `CAM_A` coordinates, matching the intrinsics used by the measurement overlay.
 - The measurement node estimates dimensions and volume, either by oriented bounding box or height-grid over a captured support plane.
 - The frontend controls selection, classes, threshold, and measurement method through services.
 

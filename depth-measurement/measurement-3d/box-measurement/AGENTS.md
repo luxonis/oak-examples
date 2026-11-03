@@ -48,6 +48,7 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - `CAM_A` provides the RGB stream used for display and inference.
 - `Depth` owns depth-source selection and aligns its depth output to RGB before `PointCloud`.
 - `PointCloud` is configured with `setOrganized(True)` so the cloud keeps one point per pixel in frame order (invalid pixels have `z = 0`), and with `setLengthUnit(CENTIMETER)` so the cuboid fitter works and reports in centimeters without any host-side unit conversion.
+- The point cloud explicitly targets `CAM_A` coordinates, matching the intrinsics used to project cuboid corners.
 - A platform-specific box instance-segmentation archive is loaded from [depthai_models/](depthai_models/).
 - `ImageManip` resizes RGB frames to the model input size before `ParsingNeuralNetwork`.
 - The custom [utils/box_processing_node.py](utils/box_processing_node.py) threaded host node receives:

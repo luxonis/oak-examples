@@ -53,6 +53,7 @@ with dai.Pipeline(device) as p:
     pcl = p.create(dai.node.PointCloud)
     pcl.initialConfig.setOrganized(True)
     pcl.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+    pcl.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
     depth.depth.link(pcl.inputDepth)
     color_output.link(pcl.inputColor)
 

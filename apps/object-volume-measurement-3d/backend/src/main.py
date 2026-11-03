@@ -135,6 +135,7 @@ with dai.Pipeline(device) as pipeline:
     pcl_seg = pipeline.create(dai.node.PointCloud)
     pcl_seg.initialConfig.setOrganized(True)
     pcl_seg.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+    pcl_seg.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
     annotation_node.out_segm_depth.link(pcl_seg.inputDepth)
     annotation_node.out_segm.link(pcl_seg.inputColor)
 
