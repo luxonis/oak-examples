@@ -74,7 +74,8 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 - This example depends on OpenCV contrib `ximgproc`, which is a stronger host dependency than the simpler stereo demos.
 - `WLS Raw Depth` is a host-generated BGR visualization derived from filtered disparity, not a raw depth topic.
-- Metric conversion uses the current rectified-right frame’s focal length, calibrated baseline in millimeters, and the configured disparity units per pixel. Update the host conversion scale if changing stereo subpixel settings at runtime.
+- Metric conversion uses the produced disparity frame’s focal length and calibrated baseline in millimeters for the configured `CAM_C` alignment. Rectified-right metadata can describe a different grid after RVC2 decimation/alignment. Changing alignment or using unaligned decimated disparity requires revisiting the relationship between matcher pixel units and output intrinsics.
+- [utils/disparity_units.py](utils/disparity_units.py) includes RVC2 post-processing normalization in the encoded units per pixel. It uses `StereoDepthConfig.getDisparityScale()` when available, with a compatibility calculation for the pinned DepthAI 3.11. Companded disparity is unsupported. Update the conversion scale if changing stereo configuration at runtime.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
 
 ## Non-Obvious Repo Conventions

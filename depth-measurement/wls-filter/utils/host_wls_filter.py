@@ -87,8 +87,9 @@ class WLSFilter(dai.node.HostNode):
     def process(self, disparity: dai.ImgFrame, right: dai.ImgFrame) -> None:
         disparity_frame = disparity.getFrame()
         right_frame = right.getFrame()
-        focal = right.getTransformation().getIntrinsicMatrix()[0][0]
-        # Raw subpixel disparity contains 2**fractional_bits units per pixel.
+        focal = disparity.getTransformation().getIntrinsicMatrix()[0][0]
+        # Use the disparity grid and its effective encoded units. RVC2 device
+        # post-processing may add an integer normalization after subpixel.
         depthScaleFactor = self._baseline * focal * self._disparity_scale
         filteredDisp, depthFrame = self._filter_window.filter(
             disparity_frame, right_frame, depthScaleFactor
@@ -109,7 +110,7 @@ class WLSFilter(dai.node.HostNode):
 
         depth_fr = dai.ImgFrame()
         depth_fr.setCvFrame(color_arr, dai.ImgFrame.Type.BGR888i)
-        depth_fr.setTransformation(right.getTransformation())
+        depth_fr.setTransformation(disparity.getTransformation())
         depth_fr.setTimestamp(right.getTimestamp())
         depth_fr.setTimestampDevice(right.getTimestampDevice())
         depth_fr.setSequenceNum(right.getSequenceNum())

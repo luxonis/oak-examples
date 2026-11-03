@@ -1,6 +1,7 @@
 import cv2
 import depthai as dai
 from utils.host_wls_filter import WLSFilter
+from utils.disparity_units import get_disparity_scale
 from depthai_nodes.node import ApplyDepthColormap
 from utils.arguments import initialize_argparser
 
@@ -39,9 +40,7 @@ with dai.Pipeline(device) as pipeline:
         unit=dai.LengthUnit.MILLIMETER,
     )
     config = stereo.initialConfig
-    disparity_scale = (
-        2 ** config.getSubpixelFractionalBits() if config.getSubpixel() else 1
-    )
+    disparity_scale = get_disparity_scale(config, device.getPlatform())
     wls_filter = pipeline.create(WLSFilter).build(
         disparity=stereo.disparity,
         rectified_right=stereo.rectifiedRight,

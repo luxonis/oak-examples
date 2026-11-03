@@ -36,6 +36,7 @@ distance = load_utils(
     "p2p_utils", "apps/p2p-measurement/backend/src", "distance_calculator"
 )
 wls = load_utils("wls_utils", "depth-measurement/wls-filter", "host_wls_filter")
+wls_units = load_utils("wls_units_utils", "depth-measurement/wls-filter", "disparity_units")
 
 
 def frame(width, height, depth=2000):
@@ -121,6 +122,74 @@ def test_wls_metric_depth_is_independent_of_subpixel_scale(disparity_scale):
         values, np.zeros((1, 3), np.uint8), 75 * 400 * disparity_scale
     )
     assert depth.tolist() == [[3000, 0, 0]]
+
+
+@pytest.mark.parametrize("bits, expected", [(3, 80), (4, 80), (5, 64)])
+def test_wls_accounts_for_rvc2_postprocessing_units(bits, expected):
+    config = dai.StereoDepthConfig()
+    config.setSubpixel(True)
+    config.setSubpixelFractionalBits(bits)
+    config.setMedianFilter(dai.StereoDepthConfig.MedianFilter.MEDIAN_OFF)
+    config.postProcessing.temporalFilter.enable = True
+    config.postProcessing.filteringOrder = [
+        dai.StereoDepthConfig.PostProcessing.Filter.TEMPORAL,
+        *[dai.StereoDepthConfig.PostProcessing.Filter.NONE] * 4,
+    ]
+    assert wls_units.get_disparity_scale(config, dai.Platform.RVC2) == expected
+
+
+@pytest.mark.parametrize("bits, expected", [(3, 8), (5, 64)])
+def test_wls_accounts_for_terminal_median_support(bits, expected):
+    config = dai.StereoDepthConfig()
+    config.setSubpixelFractionalBits(bits)
+    config.setMedianFilter(dai.StereoDepthConfig.MedianFilter.KERNEL_7x7)
+    config.postProcessing.temporalFilter.enable = True
+    config.postProcessing.filteringOrder = [
+        dai.StereoDepthConfig.PostProcessing.Filter.TEMPORAL,
+        dai.StereoDepthConfig.PostProcessing.Filter.MEDIAN,
+        *[dai.StereoDepthConfig.PostProcessing.Filter.NONE] * 3,
+    ]
+    assert wls_units.get_disparity_scale(config, dai.Platform.RVC2) == expected
+
+
+def test_wls_uses_disparity_grid_for_metric_depth_and_output_geometry():
+    disparity = frame(16, 12, depth=800)  # 10 disparity pixels, encoded x80.
+    right = frame(16, 12)
+    transform = right.getTransformation()
+    transform.setIntrinsicMatrix([[800, 0, 12], [0, 800, 8], [0, 0, 1]])
+    right.setTransformation(transform)
+    captured = []
+
+    class CaptureFilter(wls.Filter):
+        def filter(self, *args):
+            result = super().filter(*args)
+            captured.append(result[1])
+            return result
+
+    filt = CaptureFilter(8000, 1.5)
+    filt.wlsFilter = SimpleNamespace(
+        setLambda=lambda _: None,
+        setSigmaColor=lambda _: None,
+        filter=lambda values, _: values,
+    )
+    sent = []
+    output = SimpleNamespace(send=sent.append)
+    host = SimpleNamespace(
+        _filter_window=filt,
+        _baseline=75,
+        _disparity_scale=80,
+        _disp_multiplier=255 / 7600,
+        depth_frame=output,
+        filtered_disp=output,
+        annotations=output,
+    )
+    host.create_img_frame = lambda *args: wls.WLSFilter.create_img_frame(host, *args)
+    wls.WLSFilter.process(host, disparity, right)
+    assert np.all(captured[0] == 3000)
+    np.testing.assert_allclose(
+        sent[0].getTransformation().getIntrinsicMatrix(),
+        disparity.getTransformation().getIntrinsicMatrix(),
+    )
 
 
 def test_calibration_uses_intrinsics_of_received_still():

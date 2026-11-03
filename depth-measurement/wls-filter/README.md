@@ -1,6 +1,8 @@
 ## Host-Side WLS Filtering
 
-This gives an example of doing host-side WLS filtering using the `rectified_right` and `depth` stream from DepthAI Gen3 API.
+This example applies host-side WLS filtering to stereo disparity, using the rectified right image as guidance, and converts the result to depth in millimeters.
+
+On RVC2, post-processing can normalize disparity beyond its subpixel precision. The conversion includes this normalization and uses the disparity frame's intrinsics for the configured CAM_C alignment. It uses `getDisparityScale()` when available, with a compatibility calculation for DepthAI 3.11.
 
 ## Demo
 
