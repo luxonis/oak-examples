@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native host panorama stitching with tiled, on-device YOLO inference."""
+"""Panorama stitching with the DepthAI Stitching node and tiled, on-device YOLO inference."""
 
 from datetime import timedelta
 from pathlib import Path

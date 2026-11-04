@@ -2,12 +2,12 @@
 
 ## Summary
 
-Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native Stitching, then run tiled YOLO inference on the first selected device. Display the panorama and tiled detections through the DepthAI Visualizer.
+Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with the DepthAI `Stitching` node, then run tiled YOLO inference on the first selected device. Display the panorama and tiled detections in the Visualizer.
 
 ## Use This Example When
 
-- You need a host-stitched multi-camera view.
-- You want homography-based stitching plus object detection.
+- You need a multi-camera panorama from the DepthAI `Stitching` node.
+- You want `Stitching` node output combined with tiled object detection.
 - You need a conceptual example for combining multiple devices into one wide scene.
 
 ## Do Not Use This Example When
@@ -67,7 +67,7 @@ Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with native Stitch
 
 - [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you need per-device outputs without stitching
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when you need world-frame fused detections instead of a panorama image
-- [tutorials/qr-with-tiling](https://github.com/luxonis/oak-examples/tree/main/tutorials/qr-with-tiling): use this when you need tiling as the main idea but not multi-device stitching
+- [tutorials/qr-with-tiling](https://github.com/luxonis/oak-examples/tree/main/tutorials/qr-with-tiling): use this when you need tiling as the main idea but not multi-device stitching with the `Stitching` node
 
 ## Validation
 

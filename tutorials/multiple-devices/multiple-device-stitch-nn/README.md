@@ -1,10 +1,10 @@
-# Native panorama stitching with tiled YOLO detection
+# Panorama stitching with the Stitching node and tiled YOLO detection
 
 Combine overlapping camera streams into a panorama, run tiled YOLO inference,
 and display the images and detections in the DepthAI Visualizer.
 
-This example uses **image-content panorama registration** from the
-[Luxonis Stitching documentation](https://docs.luxonis.com/software-v3/depthai/depthai-components/host_nodes/stitching).
+This example uses the DepthAI [`Stitching` node](https://docs.luxonis.com/software-v3/depthai/depthai-components/host_nodes/stitching)
+(`dai.node.Stitching`) with **image-content panorama registration**.
 It requires overlapping, textured views rather than inter-camera calibration.
 Stitching runs on the host for both **RVC2 and RVC4**; YOLO runs on the first
 selected device. This example has no standalone deployment path.
