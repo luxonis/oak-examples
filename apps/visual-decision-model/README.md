@@ -20,7 +20,7 @@ The app frontend provides controls for:
 
 ## Demo
 
-![TODO](TODO)
+![warehouse_decision_model](media/warehouse_decision_model.gif)
 
 ## Architecture
 
@@ -88,7 +88,8 @@ objects and attach recent answers to them.
     and can be set from **0.5 to 30 seconds**.
   - Add one to four questions about each crop. Each question has an instruction
     and answer descriptions; the supported types are **Yes/No probability**,
-    **choice**, and **ordered score**. Question edits require **Apply questions**.
+    **choice**, and **ordered score**. **Apply questions** appears above the
+    editors and is enabled when valid question edits need saving.
   - All questions for one crop are sent in a single model request. Pausing
     discards pending captures and prevents an in-flight result from entering
     the log after the pause takes effect.

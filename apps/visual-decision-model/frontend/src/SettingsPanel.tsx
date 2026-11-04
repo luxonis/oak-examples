@@ -166,6 +166,14 @@ export function SettingsPanel({
 				<h2>Questions</h2>
 				<span>{questions.length} / 4</span>
 			</div>
+			<Button
+				disabled={
+					!connected || savingDecision || !validQuestions || !questionsDirty
+				}
+				onClick={() => void applyDecision()}
+			>
+				Apply questions
+			</Button>
 			{questions.map((question, index) => (
 				<div className="question-card" key={question.id}>
 					<div className="section-heading">
@@ -203,17 +211,6 @@ export function SettingsPanel({
 			>
 				Add question
 			</Button>
-			<Button
-				disabled={
-					!connected || savingDecision || !validQuestions || !questionsDirty
-				}
-				onClick={() => void applyDecision()}
-			>
-				Apply questions
-			</Button>
-			{questionsDirty && (
-				<p className="status-note">Question edits are not applied yet.</p>
-			)}
 			{error && (
 				<p className="error" role="alert">
 					{error}

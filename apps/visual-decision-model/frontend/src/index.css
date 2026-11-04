@@ -76,7 +76,20 @@ h2 {
 	background: #111820;
 }
 .tracks-panel {
+	display: flex;
+	flex-direction: column;
+	height: 300px;
+	min-height: 0;
 	margin-top: 24px;
+}
+.tracks-panel .section-heading {
+	flex: none;
+}
+.tracks-list {
+	min-height: 0;
+	flex: 1;
+	overflow-y: auto;
+	scrollbar-gutter: stable;
 }
 .track-row {
 	display: grid;

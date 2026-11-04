@@ -13,6 +13,20 @@ import type { Draft, Job, State } from './types';
 
 const STREAM_TOPICS = ['Video', 'Annotations'];
 
+/** Compare only the question fields retained by backend validation. */
+function comparableQuestions(items: Decision[]) {
+	return JSON.stringify(
+		items.map((question) => ({
+			type: question.type,
+			instructions: question.instructions.trim(),
+			options: question.options.map((option) => ({
+				label: option.label.trim(),
+				description: option.description.trim(),
+			})),
+		})),
+	);
+}
+
 /** Keep live video subscribed while controls and history change. */
 const LiveStream = memo(function LiveStream() {
 	return (
@@ -257,8 +271,8 @@ export default function App() {
 			.filter(Boolean)
 			.join('\u0000') !== appliedClasses;
 	const questionsDirty =
-		JSON.stringify(questions.map(({ id: _id, ...question }) => question)) !==
-		appliedQuestions;
+		comparableQuestions(questions) !==
+		comparableQuestions(state?.decision.questions ?? []);
 
 	return (
 		<main className="workspace">
@@ -274,24 +288,26 @@ export default function App() {
 							{state?.decision.actual_per_second ?? 0} decisions/s
 						</span>
 					</div>
-					{state?.tracks.length ? (
-						state.tracks.map((track) => (
-							<div className="track-row" key={track.id}>
-								<strong>
-									{track.class_name} #{track.id}
-								</strong>
-								<span>YOLO-E {(track.confidence * 100).toFixed(0)}%</span>
-								<span>
-									{shortAnswer(track.last_result)}
-									{track.decision_age != null
-										? ` · ${track.decision_age.toFixed(1)}s old`
-										: ''}
-								</span>
-							</div>
-						))
-					) : (
-						<div className="empty">Waiting for YOLO-E detections.</div>
-					)}
+					<div className="tracks-list">
+						{state?.tracks.length ? (
+							state.tracks.map((track) => (
+								<div className="track-row" key={track.id}>
+									<strong>
+										{track.class_name} #{track.id}
+									</strong>
+									<span>YOLO-E {(track.confidence * 100).toFixed(0)}%</span>
+									<span>
+										{shortAnswer(track.last_result)}
+										{track.decision_age != null
+											? ` · ${track.decision_age.toFixed(1)}s old`
+											: ''}
+									</span>
+								</div>
+							))
+						) : (
+							<div className="empty">Waiting for YOLO-E detections.</div>
+						)}
+					</div>
 				</section>
 				<DecisionLog history={history} />
 			</section>
