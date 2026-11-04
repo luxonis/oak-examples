@@ -4,9 +4,10 @@ import depthai as dai
 
 
 class CropConfigsCreator(dai.node.HostNode):
-    """A node to create and send a dai.ImageManipConfig crop configuration for each
-    detection in a list of detections. An optional target size and resize mode can be
-    set to ensure uniform crop sizes.
+    """Create upright recognition crops from filtered rotated text detections.
+
+    Expanded rotated boxes are cropped and letterboxed with white padding by
+    default. The axis-aligned outer box is used only for the minimum-size check.
 
     To ensure correct synchronization between the crop configurations and the image,
     ensure "inputConfig.setReusePreviousMessage" is set to False in the dai.ImageManip node.
@@ -23,8 +24,12 @@ class CropConfigsCreator(dai.node.HostNode):
         The size of the source image (width, height).
     target_size : Optional[Tuple[int, int]] = None
         The size of the target image (width, height). If None, crop sizes will not be uniform.
-    resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.STRETCH
+    resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.LETTERBOX
         The resize mode to use when target size is set. Options are: CENTER_CROP, LETTERBOX, NONE, STRETCH.
+    confidence_threshold : float = 0.5
+        Keep detections above this confidence.
+    min_crop_width, min_crop_height : int = 50, 12
+        Minimum expanded outer-box dimensions in source pixels.
     """
 
     def __init__(self) -> None:
@@ -41,6 +46,9 @@ class CropConfigsCreator(dai.node.HostNode):
         self._target_w: int = None
         self._target_h: int = None
         self.resize_mode: dai.ImageManipConfig.ResizeMode = None
+        self.confidence_threshold: float = 0.5
+        self.min_crop_width: int = 50
+        self.min_crop_height: int = 12
 
     @property
     def w(self) -> int:
@@ -83,7 +91,10 @@ class CropConfigsCreator(dai.node.HostNode):
         detections_input: dai.Node.Output,
         source_size: Tuple[int, int],
         target_size: Optional[Tuple[int, int]] = None,
-        resize_mode: dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.STRETCH,
+        resize_mode: dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.LETTERBOX,
+        confidence_threshold: float = 0.5,
+        min_crop_width: int = 50,
+        min_crop_height: int = 12,
     ) -> "CropConfigsCreator":
         """Link the node input and set the correct source and target image sizes.
 
@@ -95,8 +106,12 @@ class CropConfigsCreator(dai.node.HostNode):
             The size of the source image (width, height).
         target_size : Optional[Tuple[int, int]]
             The size of the target image (width, height). If None, crop sizes will not be uniform.
-        resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.STRETCH
+        resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.LETTERBOX
             The resize mode to use when target size is set. Options are: CENTER_CROP, LETTERBOX, NONE, STRETCH.
+        confidence_threshold : float
+            Keep detections above this confidence.
+        min_crop_width, min_crop_height : int
+            Minimum expanded outer-box dimensions in source pixels.
         """
 
         self.w = source_size[0]
@@ -106,7 +121,15 @@ class CropConfigsCreator(dai.node.HostNode):
             self.target_w = target_size[0]
             self.target_h = target_size[1]
 
+        if not 0 <= confidence_threshold <= 1:
+            raise ValueError("confidence_threshold must be between 0 and 1")
+        if min_crop_width < 1 or min_crop_height < 1:
+            raise ValueError("Minimum crop dimensions must be positive")
+
         self.resize_mode = resize_mode
+        self.confidence_threshold = confidence_threshold
+        self.min_crop_width = min_crop_width
+        self.min_crop_height = min_crop_height
 
         self.link_args(detections_input)
 
@@ -133,7 +156,7 @@ class CropConfigsCreator(dai.node.HostNode):
         configs_group = dai.MessageGroup()
         valid_detections = []
         for detection in detections:
-            if detection.confidence > 0.8:
+            if detection.confidence > self.confidence_threshold:
                 rect = detection.getBoundingBox()
                 rect = self._expand_rect(rect)
 
@@ -143,13 +166,17 @@ class CropConfigsCreator(dai.node.HostNode):
                 xmax = int(min(self.w, xmax * self.w))
                 ymax = int(min(self.h, ymax * self.h))
 
-                if xmax - xmin < 50 or ymax - ymin < 12:
+                if (
+                    xmax - xmin < self.min_crop_width
+                    or ymax - ymin < self.min_crop_height
+                ):
                     continue
 
                 valid_detections.append(detection)
 
                 cfg = dai.ImageManipConfig()
-                cfg.addCrop(xmin, ymin, xmax - xmin, ymax - ymin)
+                cfg.addCropRotatedRect(rect, normalizedCoords=True)
+                cfg.setBackgroundColor(255, 255, 255)
 
                 if self.target_w is not None and self.target_h is not None:
                     cfg.setOutputSize(self.target_w, self.target_h, self.resize_mode)
@@ -157,7 +184,9 @@ class CropConfigsCreator(dai.node.HostNode):
                 cfg.setTimestamp(timestamp)
                 cfg.setTimestampDevice(timestamp_device)
                 cfg.setSequenceNum(sequence_num)
-                configs_group[f"cfg_{len(valid_detections) - 1}"] = cfg
+                # MessageGroup iterates keys lexicographically. Fixed-width keys
+                # keep crop output order aligned with valid_detections at 10+ boxes.
+                configs_group[f"cfg_{len(valid_detections) - 1:05d}"] = cfg
 
         configs_group.setTimestamp(timestamp)
         configs_group.setTimestampDevice(timestamp_device)
@@ -179,7 +208,10 @@ class CropConfigsCreator(dai.node.HostNode):
 
     def _expand_rect(self, rect: dai.RotatedRect) -> dai.RotatedRect:
         s = rect.size
-
-        rect.size = dai.Size2f(s.width * 1.03, s.height * 1.10)
-
-        return rect
+        c = rect.center
+        # Keep center and size explicitly normalized for the rotated crop.
+        return dai.RotatedRect(
+            dai.Point2f(c.x, c.y, True),
+            dai.Size2f(s.width * 1.03, s.height * 1.10, True),
+            rect.angle,
+        )

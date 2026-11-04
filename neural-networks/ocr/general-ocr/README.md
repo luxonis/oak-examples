@@ -1,6 +1,6 @@
 # General OCR
 
-We provide here an example for running a two stage text detection and OCR pipeline. This example uses PaddlePaddle [Text Detection](https://models.luxonis.com/luxonis/paddle-text-detection/131d855c-60b1-4634-a14d-1269bb35dcd2) and [Text Recognition](https://models.luxonis.com/luxonis/paddle-text-recognition/9ae12b58-3551-49b1-af22-721ba4bcf269) models from HubAI Model ZOO. The example visualizes the recognized text on an adjacent white image in the locations in which it was detected. This example showcases how a two stage pipeline can easily be built using DepthAI.
+This example runs two-stage text detection and recognition with the existing PaddlePaddle [Text Detection](https://models.luxonis.com/luxonis/paddle-text-detection/131d855c-60b1-4634-a14d-1269bb35dcd2) and [Text Recognition](https://models.luxonis.com/luxonis/paddle-text-recognition/9ae12b58-3551-49b1-af22-721ba4bcf269) models from the Luxonis Model Zoo. It rectifies rotated detections, preserves the aspect ratio of recognition crops with white padding, and draws the recognized text and confidence over the full-resolution source video. The Visualizer exposes `Video` and `Text`.
 
 ## Demo
 
@@ -18,9 +18,17 @@ Here is a list of all available parameters:
 -d DEVICE, --device DEVICE
                     Optional name, DeviceID or IP of the camera to connect to. (default: the first locally available device is used)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                    FPS limit for the model runtime. (default: 5 for both RVC2 and RVC4)
+                    Camera/replay FPS limit. (default: 5 on RVC2, 30 on RVC4)
 -media MEDIA_PATH, --media_path MEDIA_PATH
                     Path to the media file you aim to run the model on. If not set, the model will run on the camera input. (default: None)
+--detection_confidence FLOAT
+                    Minimum confidence for a text crop. (default: 0.5)
+--min_crop_width INT, --min_crop_height INT
+                    Minimum expanded text-box size in source pixels. (default: 50 x 12)
+--recognition_confidence FLOAT
+                    Minimum recognition confidence shown in overlays. (default: 0.25)
+--min_text_length INT
+                    Minimum recognized text length shown in overlays. (default: 1)
 ```
 
 ## Peripheral Mode
@@ -53,6 +61,8 @@ python3 main.py --media <PATH_TO_VIDEO>
 ```
 
 This will run the example with the default device and the video file.
+
+For text-dense scenes, a lower `--fps_limit` may help avoid a recognition backlog because every detected region runs through the recognizer.
 
 ## Standalone Mode (RVC4 only)
 
