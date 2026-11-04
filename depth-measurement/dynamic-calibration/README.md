@@ -2,6 +2,8 @@
 
 This example demonstrates **runtime stereo camera calibration** with the `DynamicCalibration` node, plus a host-side controller/visualizer that overlays helpful UI (help panel, coverage bar, quality/recalibration modals, and a depth ROI HUD).
 
+For automatic on-start or continuous calibration, use the separate [AutoCalibration example](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/auto-calibration).
+
 ## Features
 
 - **Interactive commands**: start/force recalibration, load images, run quality checks, apply/rollback calibrations, and **flash** (EEPROM) new/previous/factory calibration.
