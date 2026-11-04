@@ -2,11 +2,11 @@
 
 ## Summary
 
-This is the minimal RGBD point-cloud reference in the repo. Use it when you need the smallest example that aligns unified depth to a color stream and publishes a point cloud without adding custom host processing or neural inference.
+This is the minimal colored point-cloud reference in the repo. Use it when you need the smallest example that aligns unified depth to a color stream and publishes a point cloud from the `PointCloud` node without adding custom host processing or neural inference.
 
 ## Use This Example When
 
-- You need a clean baseline for `Depth + RGBD + pcl`.
+- You need a clean baseline for `Depth + PointCloud` with an optional color input.
 - You want to align depth to RGB or optionally colorize the point cloud from the right mono camera.
 - You need a point-cloud reference that still works with the Visualizer rather than Open3D.
 - You want a simple starting point before moving to measurement or frontend-heavy examples.
@@ -43,7 +43,8 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 ## Architecture
 
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
-- `RGBD` is used to fuse depth with a selected color source.
+- `PointCloud` projects the aligned depth into 3D; linking the aligned `RGB888i` color stream to `inputColor` produces a colored point cloud.
+- Output points are in millimeters, set explicitly with `setLengthUnit(MILLIMETER)` because the Visualizer assumes millimeters; only valid pixels are kept (`setOrganized` is left `False`).
 - The color source is either:
   - `CAM_A` in RGB mode
   - the right mono camera when `--mono` is set
@@ -54,8 +55,9 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 ## Data Flow
 
 - `Depth -> aligned depth`
-- `CAM_A or right mono -> RGBD.inColor`
-- `aligned depth + color -> RGBD -> pointcloud`
+- `Depth.depth -> PointCloud.inputDepth`
+- `CAM_A or right mono -> PointCloud.inputColor`
+- `PointCloud.outputPointCloud -> pointcloud`
 - `selected color stream -> preview`
 
 ## Modification Guide
@@ -67,7 +69,10 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 ## Common Adaptations
 
 - `To colorize from mono by default:` start from the `--mono` branch in [main.py](main.py)
-- `To reuse this as a point-cloud baseline for another task:` keep the `StereoDepth` and `RGBD` branch and replace the Visualizer topics
+- `To reuse this as a point-cloud baseline for another task:` keep the `Depth` and `PointCloud` branch and replace the Visualizer topics
+- `To get one point per pixel (for mask-based host processing):` call `pcl.initialConfig.setOrganized(True)`
+- `To change units or the output frame:` use `pcl.initialConfig.setLengthUnit(...)` and `pcl.setTargetCoordinateSystem(...)`
+- `To compute the cloud on an RVC4 device instead of the host:` call `pcl.setRunOnHost(False)` (RVC2 supports host mode only)
 - `To add host-side geometry processing:` compare against [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/box-measurement) after this baseline is working
 - `To move to ToF:` use [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/tof-pointcloud) instead
 
@@ -76,20 +81,21 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 - This example assumes a stereo mono pair on `CAM_B` and `CAM_C`.
 - RGB mode assumes the color camera is on `CAM_A`.
 - `device.setIrLaserDotProjectorIntensity(1)` may fail on devices that do not expose that feature.
-- The point cloud is published directly from `RGBD`; there is no host-side filtering or resampling layer here.
+- The point cloud is published directly from `PointCloud.outputPointCloud`; there is no host-side filtering or resampling layer here.
+- The color input must be `RGB888i` with the same size as the depth frame; other types fall back to an uncolored cloud.
 
 ## Non-Obvious Repo Conventions
 
 - `preview` is the selected color stream, not a rendered depth image.
-- The `--mono` flag does not disable RGBD; it changes the colorization source to the right mono camera.
+- The `--mono` flag does not disable colorization; it changes the color source linked to `inputColor` to the right mono camera.
 - [oakapp.toml](oakapp.toml) provides packaging, but this is still a valid peripheral-mode reference.
 
 ## Related Examples
 
-- [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/box-measurement): use this when you need segmentation-driven measurements on top of RGBD point clouds
+- [depth-measurement/measurement-3d/box-measurement](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/box-measurement): use this when you need segmentation-driven measurements on top of colored point clouds
 - [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/tof-pointcloud): use this when the point cloud should come from a ToF sensor
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you need host-side stereo comparison rather than a point cloud
-- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a simpler depth baseline before RGBD fusion
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): use this when you need a simpler depth baseline before point-cloud generation
 
 ## Validation
 

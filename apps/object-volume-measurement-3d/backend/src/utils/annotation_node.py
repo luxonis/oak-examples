@@ -19,8 +19,8 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
     Outputs:
       - out_ann: filtered detections (optionally only the clicked instance)
-      - out_segm: rgb frame for RGBD node
-      - out_segm_depth: masked depth (background set to 0) for RGBD node
+      - out_segm: rgb frame for the PointCloud node (inputColor)
+      - out_segm_depth: masked depth (background set to 0) for the PointCloud node (inputDepth)
       - out_selection: Holds measuring mode value; 1 - object selected; 0 - no selection
     """
 
