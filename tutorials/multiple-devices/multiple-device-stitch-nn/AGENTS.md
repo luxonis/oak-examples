@@ -2,81 +2,75 @@
 
 ## Summary
 
-Stitch overlapping RVC2 and RVC4 camera feeds into a panorama with the DepthAI `Stitching` node, then run tiled YOLO inference on the first selected device. Display the panorama and tiled detections in the Visualizer.
+Calibrate OAK devices with the `MultiDeviceCalibration` node, run YOLO on each device, stitch a calibrated panorama with the `Stitching` node and merge all cameras' detections into it with `ImgDetectionsFilter`.
 
 ## Use This Example When
 
-- You need a multi-camera panorama from the DepthAI `Stitching` node.
-- You want `Stitching` node output combined with tiled object detection.
-- You need a conceptual example for combining multiple devices into one wide scene.
+- You need one panorama from several devices with detections drawn once per object.
+- You want the native multi-device chain: `MultiDeviceCalibration` -> `pipeline.setMultiDeviceCalibration` -> calibrated `Stitching` -> `ImgDetectionsFilter`.
+- You need a reference for remapping and deduplicating detections across cameras.
 
 ## Do Not Use This Example When
 
-- You need calibrated world-frame fusion instead of image stitching.
+- You need calibrated world-frame fusion or depth instead of a 2D panorama.
+- You cannot keep the cameras fixed relative to each other after calibration.
 - You need a packaged or standalone deployment path.
-- You need support for arbitrary camera ordering or moving cameras.
 
 ## Quick Facts
 
 - `Category:` `tutorials/multiple-devices/multiple-device-stitch-nn`
 - `Shape:` `multi-device-host`
-- `Primary task:` stitch multiple device feeds and run tiled YOLO detections over the stitched image
+- `Primary task:` calibrate devices, detect on each camera, stitch a calibrated panorama and merge the detections into it
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` none
 - `Frontend:` none
-- `Runs on:` host mode only, with at least two camera sources across RVC2, RVC4, or mixed devices
-- `Requires:` overlapping textured FOV, static cameras, host CPU headroom, and the pinned DepthAI 3.12 development snapshot with OpenCV support
-- `Input:` live `CAM_A` by default; ordered device IDs/IPs and sockets are selectable
-- `Output:` full `Stitched` and `PanoramaDetections` topics; optional `Input-N` streams with `--show-inputs`
-- `Models:` YOLOv6 YAMLs in [depthai_models/](depthai_models/)
-- `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
+- `Runs on:` host mode only, with at least two devices (RVC2, RVC4 or mixed)
+- `Requires:` overlapping fields of view, a fixed rig, a textured scene during calibration, metric scale from a factory stereo pair on one device or `--known-distance`, `depthai==3.12.0`
+- `Input:` live `CAM_A` of every selected device; the calibration uses `CAM_B`/`CAM_C` where present
+- `Output:` `Stitched` and `PanoramaDetections` topics in the `Panorama` group; `Input-N` and `Detections-N` with `--show-inputs`
+- `Models:` YOLOv6-nano YAMLs in [depthai_models/](depthai_models/)
+- `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection` on port 8082
 
 ## Read First
 
 - [README.md](README.md)
 - [main.py](main.py)
-- [utils/merge_img_detections.py](utils/merge_img_detections.py)
 - [utils/arguments.py](utils/arguments.py)
-- [Current native Stitching documentation](https://docs.luxonis.com/software-v3/depthai/depthai-components/host_nodes/stitching)
+- [Stitching documentation](https://docs.luxonis.com/software-v3/depthai/depthai-components/host_nodes/stitching)
+- `docs/ImgDetectionsFilter.md` and `examples/python/MultiDevice/multi_device_detections_panorama.py` in depthai-core 3.12.0
 
 ## Architecture
 
-- [main.py](main.py) opens the selected first device as the default inference device and adds the remaining devices to the same pipeline. Camera nodes are explicitly assigned to devices.
-- Native host `dai.node.Stitching` owns synchronization, visual registration, cached composition, seams and virtual-camera metadata. Explicit `setUseInputCalibration(False)` preserves image-content registration because this snapshot defaults to calibrated composition. `r` calls `resetTransform()`.
-- Host ImageManip resizes the full BGR888i panorama into a fixed platform-appropriate BGR inference canvas while preserving transformation metadata.
-- Tiling and FrameCropper feed a native `dai.node.DetectionNetwork` on the first device. GatherData and MergeImgDetections map its tile detections directly to the timestamp-matched full panorama, then host `depthai_nodes.node.ImgDetectionsFilter.useNms()` applies per-class NMS. No second gathering/remapping stage is needed.
-- The Visualizer owns display. The main loop only processes pipeline tasks and handles r/q; camera focus stays at its default.
-- Keep the resized inference canvas internal. Publish only `PanoramaDetections` in the `Panorama` group with `Stitched`; publishing canvas detections too draws duplicate labels and boxes.
-- Only the stitched panorama with detection overlays is published by default. `--show-inputs` additionally registers each camera output as `Input-N` for registration troubleshooting.
+- [main.py](main.py) runs two pipelines in sequence. `calibrate()` builds a `dai.beta.node.MultiDeviceCalibration` pipeline when `--calibration` does not exist or `--calibrate` is given: full-resolution `CAM_B`+`CAM_C` (stereo devices) or `CAM_A` at 5 FPS per device, `setSampleCount`, optional `setKnownDistance` between the first cameras of the first two devices, `start` control, result saved with `result.getHandler().toJsonFile()`.
+- `main()` loads the JSON with `dai.beta.MultiDeviceCalibrationHandler` and calls `pipeline.setMultiDeviceCalibration(handler.getGraph())` before creating nodes, so every camera transformation shares one origin.
+- Per device: `Camera(CAM_A)` -> `DetectionNetwork` on that device with an undistorted `ImgFrameCapability` input, plus one undistorted NV12 `requestOutput` view (640x400 times `--panorama-scale`) for the host.
+- Host `Sync` (threshold one frame period) + `MessageDemux` route each device's detections to `ImgDetectionsFilter.inputs["camN"]`; the demux outputs declare `ImgDetections` as datatype. The filter uses `stitch.out` as `inputReference` and `stitch.outSourceMasks["inputN"]` as `inputSourceMasks["camN"]`, confidence >= 0.5, overlap mode NMS (or AVERAGE with `--average`), IoU threshold 0.4.
+- Host `dai.node.Stitching` in `PANORAMA` mode with `setUseInputCalibration(True)`, projection from `--projection` (Cylindrical default), GRAPHCUT_COLOR seams unless `--no-blend`, max size 1600x800 times the scale.
+- Visualizer topics `Stitched` and `PanoramaDetections` share the `Panorama` group; the viewer draws the newest detections over the newest frame, so no extra host synchronization is needed for display.
+- Keys through `visualizer.waitKey`: `1`/`2`/`3` overlap OFF/NMS/AVERAGE, `W`/`S` IoU +/-0.05, `q` quit. Each change sends a complete `ImgDetectionsFilterConfig` on `inputConfig` and prints the new setting.
 
 ## Constraints
 
-- Host-only; RVC2 and RVC4 sources can be mixed. The first selected device determines the inference platform/model.
-- Image-content PANORAMA registration does not require inter-camera calibration. Static, overlapping, textured views are required; wide baselines and nearby objects can cause parallax. Software Sync groups timestamps but does not align camera exposures.
-- Explicit `--devices` is required; `--sockets` applies to each device. Do not select busy devices or change their OS, credentials or persistent settings.
-- The primary example uses two physical devices with `--devices LEFT_ID RIGHT_ID --sockets CAM_A`, one source per device. Two sockets on each of two devices produce four sources; a two-socket run on one device only validates the single-device diagnostic path.
-- There is deliberately no concatenation fallback. Failed registration emits no panorama/detections; input topics are available only when `--show-inputs` is supplied.
-- Use Perspective panorama projection: native transformTo rejects Equirectangular. CoordinatesMapper is intentionally avoided because depthai-nodes 0.7.0 rejects it on RVC2.
-- RVC2 inference uses BGR888p; RVC4 uses BGR888i.
-- Perspective projection requires a combined field of view below 180°. The 4096x2048 panorama limit rejects oversized registrations rather than resizing them. ImageManip and NN crop sizes are independently bounded.
-- Requirements pin `depthai==3.12.0.dev0+d4cb5b0f547f42ad39312c0dec48802b41028fa7` and `depthai-nodes==0.7.0`, and include the Luxonis snapshot index. Stitching parameters are constants in main.py, not diagnostic CLI options.
-- Keep GatherData/MergeImgDetections and the depthai-nodes NMS filter: the snapshot's native `dai.node.ImgDetectionsFilter` suppresses duplicates only across separate input keys, so applying it to one merged tile stream would leave duplicates.
-- Prefer wired host networking for network cameras. Check the actual route to each device; connecting Ethernet does not migrate an existing Wi-Fi connection. Slow transport or processing can create stale-frame queues. Restart after changing the route and lower FPS when measuring performance.
+- Host-only; the networks run on the devices, everything else on the host. `createImplicitDevice=False`; devices are added explicitly from `--devices` and camera/network nodes are bound to them.
+- Keep `pipeline.setMultiDeviceCalibration()` before `pipeline.start()`; calibration and panorama cannot share one pipeline because the calibration node is one-shot and host-only.
+- Device order does not matter for the panorama; the calibration graph defines the geometry. All selected devices must appear in the calibration JSON, otherwise redo it with `--calibrate`.
+- Detection inputs must stay synchronized upstream: the filter consumes one message per linked key and does not compare timestamps itself. Keep `--sync-threshold-ms` within one frame period.
+- `ImgDetectionsFilter dropping rounds until a valid reference arrives` is logged once at startup until the first panorama; if it persists, the stitcher is not producing output (missing frames or a calibration that does not cover a device).
+- Perspective projection needs a combined field of view below 180 degrees; Cylindrical and Equirectangular also handle wide rigs. Oversized panoramas are rejected, not resized.
+- Parallax from nearby objects and partial objects at a camera edge remain; the filter merges boxes by overlap only, not by depth.
+- Requirements pin `depthai==3.12.0` from PyPI (no snapshot index, no depthai-nodes). `MultiDeviceCalibration` is still under `dai.beta` in that release.
+- The generated `calibration.json` is git-ignored; do not commit rig-specific calibrations.
+- Prefer wired networking for network cameras; two 1280x800 NV12 views at 10 FPS are light, higher `--panorama-scale` or FPS scale the traffic.
 
 ## Related Examples
 
 - [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you need per-device outputs without stitching
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when you need world-frame fused detections instead of a panorama image
-- [tutorials/qr-with-tiling](https://github.com/luxonis/oak-examples/tree/main/tutorials/qr-with-tiling): use this when you need tiling as the main idea but not multi-device stitching with the `Stitching` node
+- [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration): use this when you need the marker-based world-frame calibration files for spatial fusion
 
 ## Validation
 
-- `Two-device run:` `oakctl run-script python main.py --devices LEFT_ID RIGHT_ID --sockets CAM_A`
-- `Single-device diagnostic only:` `python main.py --devices ID --sockets CAM_B CAM_C`
-- `Input diagnostics:` add `--show-inputs` to publish source views; the default UI should show only one stitched-image panel with its detection overlays.
-- `Capture:` `oakctl inspect frames Stitched --count 2 --out evidence/panorama --timeout 30s` and `oakctl inspect dump PanoramaDetections --count 2 --timeout 30s`
-- `Platforms:` validate the normal main.py on an available RVC2 and RVC4, sequentially. The generic repository runner skips this multi-device example; no per-example test harness is required.
-- `Recalculate:` focus the Visualizer and press `r`
-- `Success looks like:` the Visualizer shows a stitched panorama with detection overlays, and pressing `r` recomputes alignment
-- `Performance:` measure frame/message timing as well as process liveness. A two-RVC4, one-CAM_A-per-device 360p run reached 10 FPS over Ethernet; do not generalize that measurement to other rigs.
-- `Common failure meaning:` no panorama usually means insufficient overlap/texture or no synchronized groups; inspect source topics first
+- `Calibrate and run:` `python3 main.py --devices DEVICE_1 DEVICE_2` (first run calibrates; `Calibration saved to ...` then `Pipeline started.`)
+- `Reuse:` `python3 main.py --devices DEVICE_1 DEVICE_2 --show-inputs` reports `Using calibration ...` and skips the calibration pipeline
+- `Success looks like:` the Visualizer shows one `Stitched` panorama with `PanoramaDetections` overlays, an object in the overlap has one box, and pressing `3` prints `Duplicates: AVERAGE`
+- `Common failure meaning:` `Calibration failed` means insufficient shared texture or missing scale (`--known-distance`); a persistent `dropping rounds` warning means no panorama is produced; misaligned seams mean the rig moved since calibration
