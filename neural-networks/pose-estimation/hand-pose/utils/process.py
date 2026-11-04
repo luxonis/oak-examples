@@ -68,5 +68,7 @@ class ProcessDetections(dai.node.HostNode):
             configs_group[f"cfg_{i}"] = cfg
 
         configs_group.setTimestamp(img_detections.getTimestamp())
+        # FrameCropper syncs this group with the frame on the device, by device timestamp
+        configs_group.setTimestampDevice(img_detections.getTimestampDevice())
         configs_group.setSequenceNum(img_detections.getSequenceNum())
         self.config_output.send(configs_group)
