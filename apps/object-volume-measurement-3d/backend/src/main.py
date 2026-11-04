@@ -5,7 +5,7 @@ import depthai as dai
 
 from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
 
-from utils.helper_functions import extract_text_embeddings, read_intrinsics
+from utils.helper_functions import extract_text_embeddings
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -129,19 +129,19 @@ with dai.Pipeline(device) as pipeline:
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
 
-    # RGBD node for the segmented PCL
-    rgbd_seg = pipeline.create(dai.node.RGBD).build()
-    annotation_node.out_segm.link(rgbd_seg.inColor)
-    annotation_node.out_segm_depth.link(rgbd_seg.inDepth)
+    # Native PointCloud preserves the aligned depth frame transformation.
+    point_cloud = pipeline.create(dai.node.PointCloud)
+    point_cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
+    point_cloud.initialConfig.setOrganized(True)
+    annotation_node.out_segm.link(point_cloud.inputColor)
+    annotation_node.out_segm_depth.link(point_cloud.inputDepth)
 
     # Measurement node
     measurement_node = pipeline.create(MeasurementNode).build(
-        rgbd_seg.pcl, annotation_node.out_selection, imu.out
+        point_cloud.outputPointCloud, annotation_node.out_selection, imu.out
     )
     measurement_node.out_result.link(annotation_node.in_meas_result)
 
-    fx, fy, cx, cy = read_intrinsics(device, 640, 400)
-    measurement_node.setIntrinsics(fx, fy, cx, cy, imgW=640, imgH=400)
     measurement_node.an_node = annotation_node
 
     # Service functions for all functionalities of the frontend
@@ -218,7 +218,7 @@ with dai.Pipeline(device) as pipeline:
 
     visualizer.addTopic("Video", cam_out, "images")
     visualizer.addTopic("Detections", annotation_node.out_ann, "images")
-    visualizer.addTopic("Pointclouds", rgbd_seg.pcl, "point_clouds")
+    visualizer.addTopic("Pointclouds", point_cloud.outputPointCloud, "point_clouds")
     visualizer.addTopic("Measurement Overlay", measurement_node.out_ann, "images")
     visualizer.addTopic("Plane Status", measurement_node.out_plane_status, "images")
 

@@ -60,7 +60,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 ## Modification Guide
 
 - `Safe to change:` initial lambda/sigma defaults, topic names, color maps, stereo confidence defaults
-- `Requires care:` disparity scale assumptions, baseline/FOV math, and OpenCV WLS parameter ranges
+- `Requires care:` disparity scale assumptions, baseline, frame intrinsics, and OpenCV WLS parameter ranges
 - `Likely to break if changed blindly:` the conversion from filtered disparity to host depth in [utils/host_wls_filter.py](utils/host_wls_filter.py), or the expectation that `cv2.ximgproc` is available
 
 ## Common Adaptations
@@ -74,14 +74,15 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 - This example depends on OpenCV contrib `ximgproc`, which is a stronger host dependency than the simpler stereo demos.
 - `WLS Raw Depth` is a host-generated BGR visualization derived from filtered disparity, not a raw depth topic.
-- The host filter currently assumes a fixed `71.86` degree FOV in [utils/host_wls_filter.py](utils/host_wls_filter.py).
+- Metric conversion uses the produced disparity frame’s focal length and calibrated baseline in millimeters for the configured `CAM_C` alignment. Rectified-right metadata can describe a different grid after RVC2 decimation/alignment. Changing alignment or using unaligned decimated disparity requires revisiting the relationship between matcher pixel units and output intrinsics.
+- [utils/disparity_units.py](utils/disparity_units.py) includes RVC2 post-processing normalization in the encoded units per pixel. It uses `StereoDepthConfig.getDisparityScale()` when available, with a compatibility calculation for the pinned DepthAI 3.11. Companded disparity is unsupported. Update the conversion scale if changing stereo configuration at runtime.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
 
 ## Non-Obvious Repo Conventions
 
 - Lowercase `l` decreases lambda and uppercase `L` increases it; the same lowercase/uppercase pattern applies to sigma with `s` and `S`.
 - `WLS Filtered Disparity` is published as raw filtered disparity, while `WLS Colored Disparity` is the separately colorized view.
-- The host node converts the calibration baseline to millimeters internally before deriving depth.
+- The pipeline requests baseline in `LengthUnit.MILLIMETER` and uses calibrated translation for device and host depth conversion. Invalid/nonpositive disparities map to zero depth.
 
 ## Related Examples
 
@@ -92,6 +93,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 ## Validation
 
+- `Hardware check:` Compare filtered depth with a known target distance and repeat after changing the configured subpixel precision.
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows raw disparity, filtered disparity, and WLS annotations, and `l/L/s/S` visibly changes the filtered output

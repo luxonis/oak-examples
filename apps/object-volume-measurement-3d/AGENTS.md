@@ -39,7 +39,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - [backend/src/utils/annotation_node.py](backend/src/utils/annotation_node.py): selection, segmentation, and overlay logic
 - [backend/src/utils/measurement_node.py](backend/src/utils/measurement_node.py): measurement backend
 - [backend/src/utils/PointCloudMeasurement.py](backend/src/utils/PointCloudMeasurement.py): pointcloud measurement helpers
-- [backend/src/utils/helper_functions.py](backend/src/utils/helper_functions.py): text embeddings and intrinsics helpers
+- [backend/src/utils/helper_functions.py](backend/src/utils/helper_functions.py): text embedding helpers
 - [backend/src/utils/arguments.py](backend/src/utils/arguments.py): CLI arguments
 - [frontend/src/App.tsx](frontend/src/App.tsx): combined stream and control layout
 - [frontend/src/ClickOverlay.tsx](frontend/src/ClickOverlay.tsx): click-to-select behavior
@@ -53,7 +53,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
 - Detection filtering keeps only the currently active class labels.
 - The annotation node handles segmentation, selection, and display overlays.
-- An `RGBD` node creates pointcloud output for the segmented region.
+- A native `PointCloud` node creates pointcloud output for the segmented region.
 - The measurement node estimates dimensions and volume, either by oriented bounding box or height-grid over a captured support plane.
 - The frontend controls selection, classes, threshold, and measurement method through services.
 
@@ -61,7 +61,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - `RGB + text embeddings -> ParsingNeuralNetwork -> filtered detections`
 - `RGB + aligned depth + detections -> annotation node -> Detections`
-- `segmented RGB + segmented depth -> RGBD -> Pointclouds`
+- `segmented RGB + segmented depth -> PointCloud -> Pointclouds`
 - `Pointclouds + selection + IMU -> measurement node -> Measurement Overlay + Plane Status`
 
 ## Modification Guide
@@ -82,6 +82,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
+- Projection uses each native PointCloud cloud’s `ImgTransformation.project3DPoint` and image dimensions, including alignment and undistortion. Cloud coordinates are millimeters in the optical frame (+X right, +Y down, +Z forward); dimensions/volume are reported in cm/cm³.
 - [backend/src/utils/arguments.py](backend/src/utils/arguments.py) parses `--ip` and `--port`, but the current backend runtime does not use those values.
 
 ## Non-Obvious Repo Conventions
@@ -100,6 +101,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Validation
 
+- `Hardware check:` Check fitted dimensions against an object of known size at the image center and edges.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose

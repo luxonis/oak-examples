@@ -1,16 +1,15 @@
+import depthai as dai
 import numpy as np
 from typing import List, Tuple
 
 
 class DistanceCalculator:
-    def __init__(self, camera_matrix: np.ndarray, measurement_history_length: int = 20):
-        self.camera_matrix = camera_matrix
-        self.show_confidence_interval = False
+    def __init__(self, measurement_history_length: int = 20):
         self.distances = []
         self.measurement_history_length = measurement_history_length
 
     def calculate_distance(
-        self, points: List[dict], depth_frame: np.ndarray
+        self, points: List[dict], depth_message: dai.ImgFrame
     ) -> Tuple[float, float]:
         """
         Calculate distance between two tracked points using depth data
@@ -23,7 +22,7 @@ class DistanceCalculator:
         point1 = self._get_bbox_center(points[0]["bbox"])
         point2 = self._get_bbox_center(points[1]["bbox"])
 
-        return self._calculate_3d_distance(point1, point2, depth_frame)
+        return self._calculate_3d_distance(point1, point2, depth_message)
 
     def _get_bbox_center(self, bbox: Tuple[int, int, int, int]) -> Tuple[int, int]:
         """Get center point of bounding box"""
@@ -33,9 +32,10 @@ class DistanceCalculator:
         return (center_x, center_y)
 
     def _calculate_3d_distance(
-        self, p1: Tuple[int, int], p2: Tuple[int, int], depth_frame: np.ndarray
+        self, p1: Tuple[int, int], p2: Tuple[int, int], depth_message: dai.ImgFrame
     ) -> Tuple[float, float]:
         """Calculate 3D distance between two points using camera intrinsics"""
+        depth_frame = depth_message.getFrame()
         x1, y1 = p1
         x2, y2 = p2
 
@@ -54,23 +54,14 @@ class DistanceCalculator:
         depth1_m = depth1 / 1000.0
         depth2_m = depth2 / 1000.0
 
-        # Convert pixel coordinates to 3D world coordinates
-        fx, fy = self.camera_matrix[0, 0], self.camera_matrix[1, 1]
-        cx, cy = self.camera_matrix[0, 2], self.camera_matrix[1, 2]
-
-        # 3D coordinates
-        x1_3d = (x1 - cx) * depth1_m / fx
-        y1_3d = (y1 - cy) * depth1_m / fy
-        z1_3d = depth1_m
-
-        x2_3d = (x2 - cx) * depth2_m / fx
-        y2_3d = (y2 - cy) * depth2_m / fy
-        z2_3d = depth2_m
-
-        # Calculate Euclidean distance
-        distance = np.sqrt(
-            (x2_3d - x1_3d) ** 2 + (y2_3d - y1_3d) ** 2 + (z2_3d - z1_3d) ** 2
-        )
+        # Native frame metadata includes alignment, undistortion and resizing.
+        # Rays use optical coordinates (+X right, +Y down, +Z forward).
+        k_inv = np.asarray(depth_message.getTransformation().getIntrinsicMatrixInv())
+        ray1 = k_inv @ np.array([x1, y1, 1.0])
+        ray2 = k_inv @ np.array([x2, y2, 1.0])
+        p1_3d = ray1 * (depth1_m / ray1[2])
+        p2_3d = ray2 * (depth2_m / ray2[2])
+        distance = np.linalg.norm(p2_3d - p1_3d)
 
         # Store for statistics
         if distance > 0:
@@ -87,11 +78,3 @@ class DistanceCalculator:
     def clear_distances(self):
         """Clear stored distance measurements"""
         self.distances.clear()
-
-    def toggle_confidence_interval(self):
-        """Toggle confidence interval display"""
-        self.show_confidence_interval = not self.show_confidence_interval
-
-    def get_average_distance(self) -> float:
-        """Get average of all stored distances"""
-        return np.mean(self.distances) if self.distances else 0

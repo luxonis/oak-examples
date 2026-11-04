@@ -5,8 +5,6 @@ from typing import List, Tuple, Optional
 from depthai_nodes.utils import AnnotationHelper
 from .distance_calculator import DistanceCalculator
 
-Point = Tuple[int, int]
-
 POINT_COLOR = (0, 0.75, 1.0, 1.0)  # Brighter blue
 POINT_FILL_COLOR = POINT_COLOR
 BBOX_COLOR = POINT_COLOR
@@ -37,12 +35,11 @@ class PointTracker(dai.node.HostNode):
         self.input_rgb = self.createInput()
         self.input_depth = self.createInput()
         self.output_annotations = self.createOutput()
-        self.output_distance = self.createOutput()
 
         self.points: List[dict] = []
         self.max_points = 2
-        self.camera_matrix: Optional[np.ndarray] = None
-        self.distance_calculator: Optional[DistanceCalculator] = None
+        self.distance_calculator = DistanceCalculator()
+        self.has_invalid_depth = False
 
         self.current_frame: Optional[np.ndarray] = None
         self.prev_frame: Optional[np.ndarray] = None
@@ -58,23 +55,18 @@ class PointTracker(dai.node.HostNode):
         self.link_args(rgb_stream, depth_stream)
         return self
 
-    def set_camera_matrix(self, camera_matrix: np.ndarray):
-        self.camera_matrix = camera_matrix
-        if self.distance_calculator is None:
-            self.distance_calculator = DistanceCalculator(camera_matrix)
-
     def set_mode(self, mode: int):
         if mode == 2:
             self.clear_points()
         self.mode = self.modes[mode]
-        if self.distance_calculator:
-            self.distance_calculator.clear_distances()
+        self.distance_calculator.clear_distances()
 
     def set_frame(self, frame: np.ndarray):
         self.prev_frame = self.current_frame
         self.current_frame = frame.copy() if frame is not None else None
 
-    def add_point(self, x: float, y: float, frame_width: int, frame_height: int):
+    def add_point(self, x: float, y: float):
+        frame_width, frame_height = self.frame_width, self.frame_height
         pixel_x = int(x * frame_width)
         pixel_y = int(y * frame_height)
 
@@ -128,7 +120,7 @@ class PointTracker(dai.node.HostNode):
             try:
                 tracker.init(frame_for_tracker, bbox)
                 success = True
-            except Exception as e:
+            except Exception:
                 success = False
 
             if success:
@@ -227,7 +219,7 @@ class PointTracker(dai.node.HostNode):
             if self.mode["tracking"] == 2 or (self.mode["tracking"] == 1 and i == 1):
                 try:
                     success, new_bbox = tracker.update(self.current_frame)
-                except Exception as e:
+                except Exception:
                     continue
 
                 if success and not self._is_bbox_out_of_frame(new_bbox):
@@ -310,8 +302,7 @@ class PointTracker(dai.node.HostNode):
         self.latest_distance = None
         self.latest_std_dev = None
         self.has_invalid_depth = False
-        if self.distance_calculator:
-            self.distance_calculator.clear_distances()
+        self.distance_calculator.clear_distances()
 
     def get_latest_distance(self):
         return {
@@ -321,49 +312,7 @@ class PointTracker(dai.node.HostNode):
             "has_invalid_depth": self.has_invalid_depth,
         }
 
-    def calculate_distance_3d(
-        self, p1: Point, p2: Point, depth_frame: np.ndarray
-    ) -> Tuple[float, bool]:
-        if self.camera_matrix is None:
-            print("Camera matrix is not set")
-            return -1.0, False
-
-        x1, y1 = p1
-        x2, y2 = p2
-
-        depth1 = (
-            depth_frame[y1, x1]
-            if y1 < depth_frame.shape[0] and x1 < depth_frame.shape[1]
-            else 0
-        )
-        depth2 = (
-            depth_frame[y2, x2]
-            if y2 < depth_frame.shape[0] and x2 < depth_frame.shape[1]
-            else 0
-        )
-
-        if depth1 == 0 or depth2 == 0:
-            print("Depth is 0")
-            self.has_invalid_depth = True
-            return -1.0, False
-
-        depth1_m = depth1 / 1000.0
-        depth2_m = depth2 / 1000.0
-
-        u1 = np.array([x1, y1, 1.0])
-        u2 = np.array([x2, y2, 1.0])
-
-        k_inv = np.linalg.inv(self.camera_matrix)
-        p1_3d = np.dot(k_inv, u1) * depth1_m
-        p2_3d = np.dot(k_inv, u2) * depth2_m
-
-        distance = np.linalg.norm(p1_3d - p2_3d)
-
-        return distance, True
-
-    def create_annotations(
-        self, rgb_msg, depth_frame: np.ndarray
-    ) -> dai.ImgAnnotations:
+    def create_annotations(self, rgb_msg) -> dai.ImgAnnotations:
         helper = AnnotationHelper()
 
         for i, point_data in enumerate(self.points):
@@ -418,31 +367,36 @@ class PointTracker(dai.node.HostNode):
     def process(self, rgb_msg, depth_msg):
         try:
             if rgb_msg is not None and depth_msg is not None:
+                self.frame_width = rgb_msg.getWidth()
+                self.frame_height = rgb_msg.getHeight()
                 rgb_frame = rgb_msg.getCvFrame()
                 if rgb_frame is not None:
                     bgr_frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
                     self.set_frame(bgr_frame)
                     self.update_tracking()
 
-                depth_frame = depth_msg.getFrame()
-                annotations = self.create_annotations(rgb_msg, depth_frame)
+                annotations = self.create_annotations(rgb_msg)
                 self.output_annotations.send(annotations)
 
-                if len(self.points) == 2 and self.distance_calculator:
+                if len(self.points) == 2:
                     distance, std_dev = self.distance_calculator.calculate_distance(
-                        self.points, depth_frame
+                        self.points, depth_msg
                     )
 
                     if distance > 0:
                         self.latest_distance = distance
                         self.latest_std_dev = std_dev
                         self.has_invalid_depth = False
-
-                pass
+                    else:
+                        self.latest_distance = None
+                        self.latest_std_dev = None
+                        self.has_invalid_depth = True
             else:
                 self.latest_distance = None
                 self.latest_std_dev = None
                 self.has_invalid_depth = False
 
         except Exception as e:
-            pass
+            self.latest_distance = None
+            self.has_invalid_depth = True
+            print(f"PointTracker processing failed: {e}")

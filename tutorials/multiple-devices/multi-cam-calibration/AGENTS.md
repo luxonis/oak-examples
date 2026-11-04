@@ -44,7 +44,8 @@ This is the repository reference for generating per-device extrinsic calibration
 
 - [main.py](main.py) discovers multiple devices, creates one pipeline per device, and cycles calibration focus with keyboard input.
 - [utils/calibration_node.py](utils/calibration_node.py) requests a `3840x2160` still, finds checkerboard corners, runs `solvePnP`, and saves the resulting transforms.
-- The saved outputs include `world_to_cam`, `cam_to_world`, the original `rvec` and `tvec`, and the still-image intrinsics used for the solve.
+- The saved outputs include `world_to_cam`, `cam_to_world`, the original `rvec` and `tvec`, and the captured still frame’s native intrinsics used for the solve. Both preview and still are explicitly undistorted; zero distortion coefficients are intentional.
+- Checkerboard translations are meters; camera coordinates are optical (+X right, +Y down, +Z forward). The current preview’s native `project3DPoint` draws world axes without scaling still-image pixels.
 - [pattern.pdf](pattern.pdf) matches the default checkerboard configuration declared in [utils/calibration_node.py](utils/calibration_node.py).
 
 ## Constraints
@@ -62,6 +63,7 @@ This is the repository reference for generating per-device extrinsic calibration
 
 ## Validation
 
+- `Hardware check:` Capture a checkerboard pose and verify that preview axes stay on the board across devices and preview aspect ratios.
 - `Run:` `python3 main.py`
 - `Controls:` press `a` to change the selected device and `c` to capture/calibrate
 - `Success looks like:` terminal output reports successful pose estimation and `calibration_data/extrinsics_<MXID>.npz` files appear

@@ -51,12 +51,7 @@ class CalibrationNode(dai.node.HostNode):
         self.intrinsic_mat_still: Optional[np.ndarray] = (
             None  # For high-res still image
         )
-        self.device: Optional[dai.Device] = None
         self.mxid: Optional[str] = None
-        self.preview_width: int = 0
-        self.preview_height: int = 0
-        self.still_width: int = 3840
-        self.still_height: int = 2160
         self.control_q: Optional[dai.InputQueue] = None
         self.still_q = None
 
@@ -69,22 +64,11 @@ class CalibrationNode(dai.node.HostNode):
     def build(
         self,
         preview_input: dai.Node.Output,
-        intrinsic_mat_still: np.ndarray,
         device: dai.Device,
-        preview_width: int,
-        preview_height: int,
-        still_width: int = 3840,
-        still_height: int = 2160,
         control_q: Optional[dai.InputQueue] = None,
         still_q=None,
     ) -> "CalibrationNode":
-        self.intrinsic_mat_still = intrinsic_mat_still
-        self.device = device
         self.mxid = device.getDeviceId()
-        self.preview_width = preview_width
-        self.preview_height = preview_height
-        self.still_width = still_width
-        self.still_height = still_height
         self.control_q = control_q
         self.still_q = still_q
 
@@ -223,6 +207,9 @@ class CalibrationNode(dai.node.HostNode):
                 )
                 return False
 
+            self.intrinsic_mat_still = np.asarray(
+                in_still_msg.getTransformation().getIntrinsicMatrix(), dtype=np.float64
+            )
             raw_cv_frame = in_still_msg.getCvFrame()
             print(
                 f"[{self.mxid}] CalibrationNode: ImgFrame received (type: {in_still_msg.getType()}, size: {in_still_msg.getWidth()}x{in_still_msg.getHeight()})."
@@ -275,8 +262,6 @@ class CalibrationNode(dai.node.HostNode):
             and self.rot_vec is not None
             and self.trans_vec is not None
             and self.intrinsic_mat_still is not None
-            and self.preview_width > 0
-            and self.preview_height > 0
         ):
             axis_length = self.square_size * 2.5
             world_points_axes = np.float32(
@@ -288,31 +273,23 @@ class CalibrationNode(dai.node.HostNode):
                 ]
             )
 
-            img_points_axes_high_res, _ = cv2.projectPoints(
-                world_points_axes,
-                self.rot_vec,
-                self.trans_vec,
-                self.intrinsic_mat_still,
-                self.distortion_coef,
+            # solvePnP uses meters in optical camera coordinates (+X right,
+            # +Y down, +Z forward). Project using this preview's own geometry.
+            rotation, _ = cv2.Rodrigues(self.rot_vec)
+            camera_points = (rotation @ world_points_axes.T).T + self.trans_vec.reshape(
+                3
             )
-
-            scale_x = self.preview_width / self.still_width
-            scale_y = self.preview_height / self.still_height
-
-            scaled_projected_points_for_preview = [
-                [pt[0] * scale_x, pt[1] * scale_y]
-                for pt in img_points_axes_high_res.reshape(-1, 2)
+            transformation = frame_message.getTransformation()
+            width, height = frame_message.getWidth(), frame_message.getHeight()
+            projected = [
+                transformation.project3DPoint(dai.Point3f(*point))
+                for point in camera_points
             ]
-
-            p_origin, p_x, p_y, p_z = np.array(scaled_projected_points_for_preview)
+            p_origin, p_x, p_y, p_z = [np.array([p.x, p.y]) for p in projected]
 
             def to_norm_coords(px_pt: np.ndarray) -> Tuple[float, float]:
-                norm_x = (
-                    np.clip(px_pt[0], 0, self.preview_width - 1) / self.preview_width
-                )
-                norm_y = (
-                    np.clip(px_pt[1], 0, self.preview_height - 1) / self.preview_height
-                )
+                norm_x = np.clip(px_pt[0], 0, width - 1) / width
+                norm_y = np.clip(px_pt[1], 0, height - 1) / height
                 return (float(norm_x), float(norm_y))
 
             try:

@@ -63,8 +63,8 @@ This is the host-side spatial ROI measurement reference in the repo. Use it when
 ## Modification Guide
 
 - `Safe to change:` topic names, ROI step size, averaging method, overlay text
-- `Requires care:` ROI coordinate handling, calibration/FOV math, threshold values, and buffer datatypes between the host nodes
-- `Likely to break if changed blindly:` the angle-based spatial calculation in [utils/measure_distance.py](utils/measure_distance.py) or the custom buffer contract between `ROIControl` and `MeasureDistance`
+- `Requires care:` ROI coordinate handling, per-frame intrinsic math, threshold values, and buffer datatypes between the host nodes
+- `Likely to break if changed blindly:` the per-frame intrinsic spatial calculation in [utils/measure_distance.py](utils/measure_distance.py) or the custom buffer contract between `ROIControl` and `MeasureDistance`
 
 ## Common Adaptations
 
@@ -77,8 +77,8 @@ This is the host-side spatial ROI measurement reference in the repo. Use it when
 
 - The README recommends using at least a `10x10` ROI for reasonable measurements.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
-- The host-side math depends on calibration-derived FOV and image-center assumptions.
-- As currently written, [utils/roi_control.py](utils/roi_control.py) only calls `self.output_roi.send(self._roi)` inside the `f` branch, so the runtime ROI update behavior is narrower than the README implies unless that code is adjusted.
+- Spatial coordinates use each depth frame’s native inverse intrinsic matrix. Depth and XYZ are millimeters in optical coordinates: +X right, +Y down, +Z forward; the overlay displays meters.
+- Every movement or resize key sends a new ROI message to the measurement node.
 
 ## Non-Obvious Repo Conventions
 
@@ -95,6 +95,7 @@ This is the host-side spatial ROI measurement reference in the repo. Use it when
 
 ## Validation
 
+- `Hardware check:` Check ROI coordinates at the center and corners against known target positions, then repeat with another output aspect ratio.
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Depth` plus `Spatial Calculations`, and the overlay displays X/Y/Z values for the current ROI

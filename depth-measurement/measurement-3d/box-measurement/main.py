@@ -4,15 +4,11 @@ import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.box_processing_node import BoxProcessingNode
 from utils.arguments import initialize_argparser
-from utils.helper_functions import read_intrinsics
 
 
 _, args = initialize_argparser()
 EXAMPLE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = EXAMPLE_DIR / "depthai_models"
-
-NN_WIDTH, NN_HEIGHT = 512, 320
-INPUT_SHAPE = (NN_WIDTH, NN_HEIGHT)
 
 IMG_WIDTH, IMG_HEIGHT = 640, 400
 CAMERA_RESOLUTION = (IMG_WIDTH, IMG_HEIGHT)
@@ -41,16 +37,19 @@ with dai.Pipeline(device) as p:
         enableUndistortion=True,
     )
 
-    rgbd = p.create(dai.node.RGBD).build()
+    point_cloud = p.create(dai.node.PointCloud)
+    point_cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
+    # Mask indexing requires one point for every depth pixel.
+    point_cloud.initialConfig.setOrganized(True)
 
     depth = p.create(dai.node.Depth)
     depth.build(
         dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=CAMERA_RESOLUTION
     )
     depth.setAlignTo(color_output)
-    depth.depth.link(rgbd.inDepth)
+    depth.depth.link(point_cloud.inputDepth)
 
-    color_output.link(rgbd.inColor)
+    color_output.link(point_cloud.inputColor)
 
     manip = p.create(dai.node.ImageManip)
     manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
@@ -74,22 +73,16 @@ with dai.Pipeline(device) as p:
     nn.getParser().setIouThreshold(0.5)
 
     box_processing = p.create(BoxProcessingNode)
-    box_processing.intrinsics = read_intrinsics(device, NN_WIDTH, NN_HEIGHT)
 
-    rgbd.pcl.link(box_processing.inputPCL)
+    point_cloud.outputPointCloud.link(box_processing.inputPCL)
     nn.passthrough.link(box_processing.inputRGB)
     nn.out.link(box_processing.inputDet)
 
-    outputToVisualize = color.requestOutput(
-        (640, 400),
-        type=dai.ImgFrame.Type.NV12,
-        fps=args.fps_limit,
-    )
-
-    visualizer.addTopic("Video Stream", outputToVisualize, "images")
+    # Display the exact undistorted image used for geometry and inference.
+    visualizer.addTopic("Video Stream", color_output, "images")
     visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
     visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
-    visualizer.addTopic("Pointcloud", rgbd.pcl, "point_clouds")
+    visualizer.addTopic("Pointcloud", point_cloud.outputPointCloud, "point_clouds")
 
     print("Pipeline created.")
     p.start()
