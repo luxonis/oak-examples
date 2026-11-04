@@ -131,7 +131,8 @@ in the app image.
 From this example's directory, run:
 
 ```bash
-oakctl app run . -d <DEVICE_IP> --detach
+oakctl connect <DEVICE_IP>
+oakctl app run .
 ```
 
 Open the frontend URL printed by `oakctl` (typically
