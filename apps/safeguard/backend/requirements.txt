@@ -1,0 +1,8 @@
+av==17.0.0
+depthai==3.12.0
+depthai-nodes==0.7.0
+numpy>=1.22,<2
+open3d==0.18.0; python_version < "3.12"
+open3d==0.20.0; python_version >= "3.12"
+opencv-python-headless~=4.10.0
+pydantic==2.12.5

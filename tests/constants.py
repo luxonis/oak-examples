@@ -30,6 +30,15 @@ KNOWN_FAILING = {
             ],
         },
     },
+    "apps/safeguard": {
+        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
+        "rules": {
+            "or": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
     "apps/dino-tracking": {
         "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {

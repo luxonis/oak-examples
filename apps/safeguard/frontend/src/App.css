@@ -1,0 +1,105 @@
+.safeguard-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1px minmax(360px, 420px);
+    align-items: start;
+    gap: 24px;
+    min-height: 100vh;
+    padding: 24px;
+    background: #fff;
+    color: #1d2939;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.safeguard-main,
+.safeguard-controls,
+.recent-events {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.safeguard-main { gap: 24px; }
+.safeguard-controls { gap: 20px; padding-right: 8px; text-align: left; }
+.safeguard-divider { width: 1px; min-height: calc(100vh - 48px); background: #e5e5e5; }
+
+.safeguard-viewer {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 6%);
+}
+
+.safeguard-viewer-topbar {
+    display: flex;
+    height: 56px;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.safeguard-viewer-topbar img { width: 120px; height: auto; }
+.safeguard-viewer-topbar span { color: #667085; font-size: 12px; font-weight: 500; }
+
+.stream-container {
+    width: 100%;
+    height: min(68vh, 760px);
+    min-height: 400px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.safeguard-intro h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 32px;
+}
+
+.safeguard-intro p,
+.recent-events-heading p,
+.settings-section-heading p {
+    margin: 0;
+    color: #667085;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 24px;
+}
+
+.recent-events { gap: 16px; padding-bottom: 24px; }
+.recent-events-heading h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; line-height: 28px; }
+
+.safeguard-settings-card,
+.safeguard-event-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 6%);
+}
+
+.settings-section-heading h2 {
+    margin: 0;
+    color: #1d2939;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+}
+
+.safeguard-event-title { color: #1d2939; font-size: 16px; font-weight: 600; }
+
+@media (max-width: 1100px) {
+    .safeguard-layout { grid-template-columns: minmax(0, 1fr); }
+    .safeguard-divider { display: none; }
+    .safeguard-controls { max-width: 640px; padding-right: 0; }
+    .stream-container { height: 58vh; min-height: 340px; }
+}
+
+@media (max-width: 600px) {
+    .safeguard-layout { gap: 20px; padding: 16px; }
+    .safeguard-viewer-topbar span { display: none; }
+}
