@@ -2,326 +2,246 @@
 
 @source "./**/*.{ts,tsx}";
 
-:root {
-	font-family: Inter, system-ui, sans-serif;
-	color: #17202c;
-	background: #f7f8fa;
-}
-body {
-	margin: 0;
-}
-* {
-	box-sizing: border-box;
-}
-.app-shell {
-	min-height: 100vh;
-}
-h1 {
-	font-size: 21px;
-	font-weight: 650;
-	margin: 0;
-	letter-spacing: -.5px;
-}
-.muted {
-	font-size: 13px;
-	color: #738091;
-	margin: 4px 0 0;
-}
-.workspace {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 370px;
-	gap: 28px;
-	padding: 24px;
-	min-height: 100vh;
-	max-width: 2200px;
-	margin: auto;
-}
-.camera-column {
-	min-width: 0;
-}
-.section-heading {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 12px;
-	margin-bottom: 14px;
-}
-h2 {
-	font-size: 15px;
-	font-weight: 650;
-	margin: 0;
-}
-.section-heading > span {
-	color: #7a8797;
-	font-size: 12px;
-}
-.camera-panel {
-	position: relative;
-	background: #111820;
-	border-radius: 10px;
-	overflow: hidden;
-	aspect-ratio: 16 / 9;
-	border: 1px solid #dde3e9;
-}
-.live-stream {
-	width: 100%;
-	height: 100%;
-}
-.stream-hidden {
-	visibility: hidden;
-}
-.snapshot-wrap {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-}
-.selection-surface {
-	position: relative;
-	width: 100%;
-	overflow: hidden;
-	touch-action: none;
-	cursor: crosshair;
-	user-select: none;
-}
-.selection-surface > img {
-	display: block;
-	width: 100%;
-	height: 100%;
-}
-.selection-box {
-	position: absolute;
-	border: 2px solid #00a4ff;
-	background: #00a4ff18;
-	box-shadow: 0 0 0 3000px #0006;
-	pointer-events: none;
-}
-.selection-box span {
-	position: absolute;
-	top: 0;
-	left: 0;
-	color: white;
-	background: #008ce0;
-	padding: 3px 7px;
-	font-size: 11px;
-	white-space: nowrap;
-}
-.camera-controls {
+/*
+ * Shared page layout for the oak-examples frontends; keep this block identical in every
+ * frontend (scripts/check_frontends.py enforces it). The Luxonis libraries load their own
+ * copies of Tailwind's utilities after this file, so a responsive class such as md:flex-row
+ * loses to their .flex-col. Layout that changes with the screen width is plain CSS here.
+ */
+.app-page {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 1rem;
+	min-height: 100vh;
+	padding: 1rem;
 }
-.mode-buttons {
-	display: flex;
-	gap: 8px;
-}
-.camera-controls p {
-	color: #738091;
-	font-size: 12px;
-	margin: 0;
-}
-.control-label {
-	font-size: 13px;
-	font-weight: 600;
-}
-.token-control {
-	display: grid;
-	grid-template-columns: 1fr 90px;
+
+.app-header {
 	align-items: center;
-	gap: 8px;
-}
-.token-control p {
-	grid-column: 1 / -1;
-	margin: 0;
-	font-size: 11px;
-}
-.history-section {
-	margin-top: 24px;
-}
-.history-list {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-.history-item {
-	display: flex;
-	align-items: flex-start;
-	gap: 16px;
-	border: 1px solid #e4e8ed;
-	border-radius: 9px;
-	background: white;
-	padding: 14px;
-}
-.history-item > img {
-	width: 120px;
-	height: 96px;
-	flex-shrink: 0;
-	object-fit: contain;
-	background: #eef1f5;
-	border-radius: 5px;
-}
-.history-content {
-	min-width: 0;
-	flex: 1;
-}
-.history-meta {
 	display: flex;
 	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	justify-content: space-between;
+}
+
+.app-status {
 	align-items: center;
-	gap: 10px;
-	margin-bottom: 8px;
-	font-size: 11px;
-	color: #738091;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
 }
-.history-content h3 {
-	font-size: 13px;
-	font-weight: 600;
-	margin: 0 0 6px;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
+
+.app-main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 1rem;
+	min-height: 0;
 }
-.history-answer,
-.history-pending {
-	margin: 0;
-	font-size: 13px;
-	line-height: 1.6;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-.history-pending {
-	color: #8994a3;
-}
-.history-content .status-note,
-.history-content .error {
-	margin-top: 8px;
-}
-.prompt-panel {
-	align-self: start;
+
+.app-streams {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
-	background: white;
-	padding: 22px;
-	border: 1px solid #e4e8ed;
-	border-radius: 10px;
-	min-height: calc(100vh - 48px);
+	gap: 1rem;
+	height: clamp(16rem, 75vw, 60vh);
+	min-width: 0;
+	position: relative;
 }
-.prompt-panel .section-heading {
-	margin-bottom: 8px;
+
+.app-streams-fit {
+	height: auto;
 }
-.prompt-panel textarea {
-	width: 100%;
-	font-size: 14px;
-	line-height: 1.65;
-	resize: vertical;
+
+.app-streams-fit > * {
+	flex-shrink: 0;
 }
-.prompt-footer {
+
+.app-viewer {
+	aspect-ratio: 16 / 9;
 	display: flex;
-	justify-content: space-between;
-	font-size: 11px;
-	color: #738091;
-	margin-top: -8px;
+	flex-direction: column;
+	max-height: 70vh;
+	min-width: 0;
+	position: relative;
 }
-.answer-section {
-	border-top: 1px solid #e9edf1;
-	padding-top: 18px;
-	margin-top: 4px;
+
+.app-side {
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	gap: 1rem;
+	width: 100%;
 }
-.answer {
-	font-size: 14px;
-	line-height: 1.75;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-	min-height: 130px;
-	max-height: 360px;
+
+.app-side > * {
+	flex-shrink: 0;
+}
+
+.app-loading {
+	border: 1px solid var(--lux-border);
+	border-radius: var(--lux-radius-lg);
+	flex: 1;
+	justify-content: center;
+	padding: 1.5rem;
+	text-align: center;
+}
+
+.app-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	list-style: decimal;
+	padding-left: 1.25rem;
+}
+
+.app-steps ::marker {
+	color: var(--lux-muted-foreground);
+	font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.app-loading * {
+		animation: none;
+	}
+}
+
+@media (min-width: 48rem) {
+	.app-page {
+		height: 100vh;
+	}
+
+	.app-main {
+		flex-direction: row;
+	}
+
+	.app-streams {
+		flex: 1;
+		height: auto;
+	}
+
+	.app-streams-below {
+		overflow-y: auto;
+	}
+
+	.app-side {
+		overflow-y: auto;
+		width: 24rem;
+	}
+}
+
+/* App-specific styles */
+.vlm-viewer {
+	align-items: flex-start;
+	container-type: size;
+	display: flex;
+	height: 100%;
+	justify-content: center;
+}
+
+.vlm-camera {
+	aspect-ratio: 16 / 9;
+	position: relative;
+	width: min(100cqw, calc(100cqh * 16 / 9));
+}
+
+.vlm-live {
+	height: 100%;
+	width: 100%;
+}
+
+.vlm-live-hidden {
+	visibility: hidden;
+}
+
+.vlm-snapshot {
+	align-items: center;
+	background: var(--lux-muted);
+	border-radius: var(--lux-radius-lg);
+	display: flex;
+	inset: 0;
+	overflow: hidden;
+	position: absolute;
+}
+
+.vlm-selection-surface {
+	cursor: crosshair;
+	overflow: hidden;
+	position: relative;
+	touch-action: none;
+	user-select: none;
+	width: 100%;
+}
+
+.vlm-selection-surface > img {
+	display: block;
+	height: 100%;
+	width: 100%;
+}
+
+.vlm-selection-box {
+	background: color-mix(in srgb, var(--lux-primary) 10%, transparent);
+	border: 2px solid var(--lux-primary);
+	box-shadow: 0 0 0 100vmax
+		color-mix(in srgb, var(--lux-foreground) 40%, transparent);
+	pointer-events: none;
+	position: absolute;
+}
+
+.vlm-selection-box > * {
+	left: 0.25rem;
+	position: absolute;
+	top: 0.25rem;
+	white-space: nowrap;
+}
+
+.vlm-history {
+	display: flex;
+	flex-direction: column;
+}
+
+.vlm-history-item {
+	align-items: flex-start;
+	display: flex;
+	gap: 1rem;
+	padding: 1rem 0;
+}
+
+.vlm-history-item:first-child {
+	padding-top: 0;
+}
+
+.vlm-history-item:last-child {
+	padding-bottom: 0;
+}
+
+.vlm-history-item + .vlm-history-item {
+	border-top: 1px solid var(--lux-border);
+}
+
+.vlm-history-item > img {
+	background: var(--lux-muted);
+	border-radius: var(--lux-radius-sm);
+	flex-shrink: 0;
+	height: 6rem;
+	object-fit: contain;
+	width: 7.5rem;
+}
+
+.vlm-token-row {
+	align-items: center;
+	display: grid;
+	gap: 0.5rem;
+	grid-template-columns: 1fr 6rem;
+}
+
+.vlm-answer {
+	max-height: 22.5rem;
+	min-height: 5rem;
 	overflow-y: auto;
 }
-.empty-answer {
-	color: #8994a3;
-}
-.latency-section h2 {
-	font-size: 13px;
-	margin-bottom: 8px;
-}
-.timings {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 12px;
-}
-.timings div {
-	border: 1px solid #e4e8ed;
-	background: #f8fafc;
-	border-radius: 7px;
-	padding: 8px 10px;
-}
-.timings span {
-	display: block;
-	font-size: 11px;
-	color: #738091;
-	margin-bottom: 3px;
-}
-.timings strong {
-	font-size: 17px;
-	font-weight: 600;
-	font-variant-numeric: tabular-nums;
-}
-.timing-note {
-	font-size: 11px;
-	color: #8994a3;
-	line-height: 1.6;
-	margin: 8px 0 0;
-}
-.status-note {
-	color: #7b6a3b;
-	font-size: 12px;
-	line-height: 1.6;
-	margin: 0;
-}
-.error {
-	font-size: 12px;
-	line-height: 1.6;
-	color: #ae293b;
-	background: #fff1f2;
-	border: 1px solid #ffd2d9;
-	border-radius: 6px;
-	padding: 10px;
-}
-@media (max-width: 1000px) {
-	.workspace {
-		grid-template-columns: 1fr;
-		padding: 18px;
-	}
-	.prompt-panel {
-		align-self: start;
-		min-height: auto;
-	}
-}
 
-@media (max-width: 600px) {
-	.history-item {
+@media (max-width: 37.5rem) {
+	.vlm-history-item {
 		flex-direction: column;
 	}
-}
-
-.temperature-control {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-.temperature-label,
-.temperature-scale {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-.temperature-label > span:last-child {
-	font-size: 12px;
-	font-variant-numeric: tabular-nums;
-}
-.temperature-scale {
-	font-size: 11px;
-	color: #738091;
 }

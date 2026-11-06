@@ -1,6 +1,20 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Badge, Button, Input, Slider, Textarea } from '@luxonis/ui-components';
+import {
+	Alert,
+	Badge,
+	Button,
+	Card,
+	Flex,
+	Input,
+	Label,
+	NormalText,
+	Slider,
+	SubHeader,
+	SubLabel,
+	Textarea,
+} from '@luxonis/ui-components';
 import { type PointerEvent, useEffect, useRef, useState } from 'react';
+import { AppShell } from './AppShell.tsx';
 import { callService } from './services';
 
 type Region = { x: number; y: number; width: number; height: number };
@@ -155,17 +169,19 @@ export default function App() {
 		Number.isInteger(tokenLimit) && tokenLimit >= 1 && tokenLimit <= 256;
 	const job = state?.job;
 	return (
-		<main className="app-shell">
-			<div className="workspace">
-				<section className="camera-column">
-					<div className="camera-panel">
-						<div className={`live-stream ${snapshot ? 'stream-hidden' : ''}`}>
+		<AppShell
+			title="llama.cpp VLM"
+			status={<Badge intent="gray" variant="light" label="Qwen3.5-0.8B" />}
+			streams={
+				<div className="vlm-viewer">
+					<div className="vlm-camera">
+						<div className={`vlm-live ${snapshot ? 'vlm-live-hidden' : ''}`}>
 							<Streams allowedTopics={['Video']} defaultTopics={['Video']} />
 						</div>
 						{snapshot && (
-							<div className="snapshot-wrap">
+							<div className="vlm-snapshot">
 								<div
-									className="selection-surface"
+									className="vlm-selection-surface"
 									style={{
 										aspectRatio: `${snapshot.width} / ${snapshot.height}`,
 									}}
@@ -191,7 +207,7 @@ export default function App() {
 									/>
 									{region && (
 										<div
-											className="selection-box"
+											className="vlm-selection-box"
 											style={{
 												left: `${region.x * 100}%`,
 												top: `${region.y * 100}%`,
@@ -199,83 +215,111 @@ export default function App() {
 												height: `${region.height * 100}%`,
 											}}
 										>
-											<span>Selected region</span>
+											<Badge
+												intent="active"
+												variant="filled"
+												label="Selected region"
+											/>
 										</div>
 									)}
 								</div>
 							</div>
 						)}
 					</div>
-					<section className="history-section" aria-labelledby="history-title">
-						<div className="section-heading">
-							<h2 id="history-title">Recent prompts</h2>
-							<span>Last 3 · newest first</span>
-						</div>
-						{state?.history?.length ? (
-							<ol className="history-list">
-								{state.history.map((entry) => (
-									<li key={entry.id} className="history-item">
-										<img
-											src={entry.input_image}
-											alt={`Model input for: ${entry.prompt}`}
-										/>
-										<div className="history-content">
-											<div className="history-meta">
-												<Badge
-													intent="gray"
-													variant="light"
-													label={
-														entry.mode === 'region'
-															? 'Selected region'
-															: 'Full frame'
-													}
-												/>
-												<span>
-													{entry.input_width} × {entry.input_height} px
-												</span>
-											</div>
-											<h3>{entry.prompt}</h3>
-											<p
-												className={
-													entry.text ? 'history-answer' : 'history-pending'
+				</div>
+			}
+			below={
+				<Card
+					title="Recent prompts"
+					subtitle="Last 3, newest first"
+					variant="outline"
+					intent="white"
+				>
+					{state?.history?.length ? (
+						<ol className="vlm-history">
+							{state.history.map((entry) => (
+								<li key={entry.id} className="vlm-history-item">
+									<img
+										src={entry.input_image}
+										alt={`Model input for: ${entry.prompt}`}
+									/>
+									<Flex direction="column" gap="xs" className="min-w-0 flex-1">
+										<Flex direction="row" align="center" gap="xs" wrap="wrap">
+											<Badge
+												intent="gray"
+												variant="light"
+												label={
+													entry.mode === 'region'
+														? 'Selected region'
+														: 'Full frame'
 												}
-											>
-												{entry.text ||
-													(entry.state === 'error'
+											/>
+											<SubLabel
+												text={`${entry.input_width} by ${entry.input_height} px`}
+											/>
+										</Flex>
+										<h4>
+											<NormalText
+												text={entry.prompt}
+												weight="bold"
+												spaces="preserve"
+												break="word"
+											/>
+										</h4>
+										{entry.text ? (
+											<NormalText
+												text={entry.text}
+												spaces="preserve"
+												break="word"
+											/>
+										) : (
+											<Label
+												text={
+													entry.state === 'error'
 														? 'No answer received.'
-														: 'Waiting for the first token…')}
-											</p>
-											{entry.error && <p className="error">{entry.error}</p>}
-											{entry.finish_reason === 'length' && (
-												<p className="status-note">
-													Reached the {entry.max_tokens}-token limit.
-												</p>
-											)}
-										</div>
-									</li>
-								))}
-							</ol>
-						) : (
-							<p className="muted">
-								Your last three prompts and answers will appear here.
-							</p>
-						)}
-					</section>
-				</section>
-				<aside className="prompt-panel">
-					<div>
-						<div className="section-heading">
-							<h1>llama.cpp VLM</h1>
-							<Badge intent="gray" variant="light" label="Qwen3.5 · 0.8B" />
-						</div>
-						<p className="muted">
-							Ask a question about the full frame or a selected region.
-						</p>
-					</div>
-					<div className="camera-controls">
-						<div className="mode-buttons">
+														: 'Waiting for the first token…'
+												}
+											/>
+										)}
+										{entry.error && (
+											<Alert
+												role="note"
+												intent="error"
+												variant="light"
+												description={entry.error}
+											/>
+										)}
+										{entry.finish_reason === 'length' && (
+											<SubLabel
+												text={`Reached the ${entry.max_tokens}-token limit.`}
+											/>
+										)}
+									</Flex>
+								</li>
+							))}
+						</ol>
+					) : (
+						<Label text="Your last three prompts and answers will appear here." />
+					)}
+				</Card>
+			}
+		>
+			<Card
+				title="Prompt"
+				subtitle="Ask a question about the full frame or a selected region."
+				variant="outline"
+				intent="white"
+			>
+				<Flex direction="column" gap="sm">
+					<fieldset className="flex flex-col gap-1">
+						<legend>
+							<Label text="Image input" />
+						</legend>
+						<div className="grid grid-cols-2 gap-2">
 							<Button
 								variant={snapshot ? 'outline' : 'filled'}
+								intent={snapshot ? 'gray' : 'active'}
+								aria-pressed={!snapshot}
 								onClick={() => {
 									setSnapshot(null);
 									setRegion(null);
@@ -286,6 +330,8 @@ export default function App() {
 							</Button>
 							<Button
 								variant={snapshot ? 'filled' : 'outline'}
+								intent={snapshot ? 'active' : 'gray'}
+								aria-pressed={!!snapshot}
 								onClick={capture}
 								disabled={busy || capturing || !state?.has_frame}
 							>
@@ -296,55 +342,59 @@ export default function App() {
 										: 'Select region'}
 							</Button>
 						</div>
-						<p>
-							{snapshot
-								? 'Frozen snapshot · drag a box over the area to analyze.'
-								: 'Live view · Analyze captures the latest full frame.'}
-						</p>
-					</div>
-					<label htmlFor="prompt" className="control-label">
-						Your prompt
-					</label>
-					<Textarea
-						id="prompt"
-						value={prompt}
-						onChange={(event) => setPrompt(event.target.value)}
-						rows={3}
-						maxLength={2000}
-						placeholder="What would you like to know about this image?"
-						disabled={busy}
-					/>
-					<div className="prompt-footer">
-						<span>{snapshot ? 'Selected region' : 'Full frame'}</span>
-						<span>Up to {state?.image_size ?? 448} px longest edge</span>
-					</div>
-					<div className="token-control">
-						<label htmlFor="max-tokens" className="control-label">
-							Maximum output tokens
-						</label>
-						<Input
-							id="max-tokens"
-							type="number"
-							min={1}
-							max={256}
-							step={1}
-							value={tokenValue}
-							onChange={(event) => setMaxTokens(event.target.value)}
-							disabled={busy}
-							aria-invalid={!validTokenLimit}
-							aria-describedby="token-help"
+						<SubLabel
+							text={
+								snapshot
+									? 'Frozen snapshot. Drag a box over the area to analyze.'
+									: 'Live view. Analyze captures the latest full frame.'
+							}
 						/>
-						<p id="token-help" className="muted">
-							1–256 tokens. The answer may finish sooner.
-						</p>
-					</div>
-					<div className="temperature-control">
-						<div className="temperature-label">
-							<span id="temperature-label" className="control-label">
-								Temperature
-							</span>
-							<span>{temperatureValue.toFixed(2)}</span>
+					</fieldset>
+					<Flex direction="column" gap="xs">
+						<label htmlFor="prompt">
+							<Label text="Your prompt" />
+						</label>
+						<Textarea
+							id="prompt"
+							value={prompt}
+							onChange={(event) => setPrompt(event.target.value)}
+							rows={3}
+							maxLength={2000}
+							placeholder="What would you like to know about this image?"
+							disabled={busy}
+						/>
+						<Flex direction="row" justify="between" gap="xs">
+							<SubLabel text={snapshot ? 'Selected region' : 'Full frame'} />
+							<SubLabel
+								text={`Up to ${state?.image_size ?? 448} px longest edge`}
+							/>
+						</Flex>
+					</Flex>
+					<Flex direction="column" gap="xs">
+						<div className="vlm-token-row">
+							<label htmlFor="max-tokens">
+								<Label text="Maximum output tokens" />
+							</label>
+							<Input
+								id="max-tokens"
+								type="number"
+								min={1}
+								max={256}
+								step={1}
+								value={tokenValue}
+								onChange={(event) => setMaxTokens(event.target.value)}
+								disabled={busy}
+								aria-invalid={!validTokenLimit}
+								aria-describedby="token-help"
+							/>
 						</div>
+						<SubLabel
+							id="token-help"
+							text="1–256 tokens. The answer may finish sooner."
+						/>
+					</Flex>
+					<Flex direction="column" gap="xs">
+						<Label id="temperature-label" text="Temperature" />
 						<Slider
 							value={temperatureValue}
 							onChange={setTemperature}
@@ -353,12 +403,12 @@ export default function App() {
 							step={0.05}
 							disabled={busy}
 							aria-labelledby="temperature-label"
+							showLabels
+							minLabelText="Focused"
+							maxLabelText="Varied"
+							valueText={temperatureValue.toFixed(2)}
 						/>
-						<div className="temperature-scale">
-							<span>0 · Focused</span>
-							<span>1 · Varied</span>
-						</div>
-					</div>
+					</Flex>
 					<Button
 						onClick={send}
 						disabled={
@@ -374,73 +424,86 @@ export default function App() {
 						{busy ? 'Analyzing…' : 'Analyze image'}
 					</Button>
 					{(!state?.model.ready || state.model.error) && (
-						<output className="status-note">
-							{state?.model.error ||
+						<Alert
+							role="status"
+							intent={state?.model.error ? 'error' : 'active'}
+							variant="light"
+							description={
+								state?.model.error ||
 								state?.model.status ||
-								'Connecting to the camera…'}
-						</output>
+								'Connecting to the camera…'
+							}
+						/>
 					)}
 					{(error || job?.error) && (
-						<div className="error" role="alert">
-							{error || job?.error}
-						</div>
-					)}
-					<section className="answer-section">
-						<div className="section-heading">
-							<h2>Response</h2>
-							{busy && (
-								<Badge
-									intent="active"
-									variant="light"
-									label={job?.ttft_ms ? 'Generating' : 'Processing image'}
-								/>
-							)}
-						</div>
-						<div
-							className={`answer ${!job?.text ? 'empty-answer' : ''}`}
-							aria-live="polite"
-						>
-							{job?.text ||
-								(busy
-									? 'Waiting for the first token…'
-									: 'The answer will appear here as it is generated.')}
-						</div>
-						{job?.finish_reason === 'length' && (
-							<p className="status-note">
-								Output reached the {job.max_tokens}-token limit. Increase the
-								limit or try a more specific prompt.
-							</p>
-						)}
-					</section>
-					<section className="latency-section" aria-labelledby="latency-title">
-						<h2 id="latency-title">Latency</h2>{' '}
-						<div className="timings">
-							<div>
-								<span>First token</span>
-								<strong>{timeLabel(job?.ttft_ms)}</strong>
-							</div>
-							<div>
-								<span>{busy ? 'Latest token' : 'Last token'}</span>
-								<strong>{timeLabel(job?.total_ms)}</strong>
-							</div>
-						</div>
-						<p className="timing-note">
-							Model request to first and last answer tokens, including vision
-							processing.
-						</p>
-					</section>
-					<div
-						className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${connection.connected ? 'text-success' : 'text-destructive'}`}
-					>
-						<div
-							className={`h-3 w-3 rounded-full ${connection.connected ? 'bg-success' : 'bg-destructive'}`}
+						<Alert
+							intent="error"
+							variant="light"
+							description={error || job?.error}
 						/>
-						<span>
-							{connection.connected ? 'Connected to device' : 'Disconnected'}
-						</span>
+					)}
+				</Flex>
+			</Card>
+			<Card
+				title="Response"
+				variant="outline"
+				intent="white"
+				actions={
+					busy ? (
+						<Badge
+							intent="active"
+							variant="light"
+							label={job?.ttft_ms ? 'Generating' : 'Processing image'}
+						/>
+					) : undefined
+				}
+			>
+				<Flex direction="column" gap="sm">
+					<div className="vlm-answer" aria-live="polite">
+						{job?.text ? (
+							<NormalText text={job.text} spaces="preserve" break="word" />
+						) : (
+							<Label
+								text={
+									busy
+										? 'Waiting for the first token…'
+										: 'The answer will appear here as it is generated.'
+								}
+							/>
+						)}
 					</div>
-				</aside>
-			</div>
-		</main>
+					{job?.finish_reason === 'length' && (
+						<Alert
+							intent="warning"
+							variant="light"
+							description={`Output reached the ${job.max_tokens}-token limit. Increase the limit or try a more specific prompt.`}
+						/>
+					)}
+				</Flex>
+			</Card>
+			<Card title="Latency" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					<dl className="grid grid-cols-2 gap-4">
+						<div>
+							<dt>
+								<SubLabel text="First token" />
+							</dt>
+							<dd>
+								<SubHeader text={timeLabel(job?.ttft_ms)} />
+							</dd>
+						</div>
+						<div>
+							<dt>
+								<SubLabel text={busy ? 'Latest token' : 'Last token'} />
+							</dt>
+							<dd>
+								<SubHeader text={timeLabel(job?.total_ms)} />
+							</dd>
+						</div>
+					</dl>
+					<SubLabel text="Model request to first and last answer tokens, including vision processing." />
+				</Flex>
+			</Card>
+		</AppShell>
 	);
 }
