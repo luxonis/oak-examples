@@ -5,7 +5,6 @@ import depthai as dai
 import numpy as np
 import open3d as o3d
 
-from settings.settings import GroundRefitMode
 from util.ground_alignment import rotation_from_imu, camera_to_ground
 from ..message import PlaneValidity
 
@@ -15,9 +14,8 @@ logger = logging.getLogger(__name__)
 class GroundEstimatorNode(dai.node.ThreadedHostNode):
     """Fit an IMU-validated ground plane and publish ground-aligned obstacles.
 
-    DYNAMIC mode periodically refits the plane. STATIC mode caches a valid
-    plane until measured gravity drifts, suggesting camera movement. Distances
-    and point coordinates are in millimeters.
+    The plane is periodically refit so the camera can be moved. Distances and
+    point coordinates are in millimeters.
     """
 
     REFIT_INTERVAL_FRAMES = 5
@@ -32,7 +30,6 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
 
     # IMU validation
     GRAVITY_ANGLE_THR = 10.0  # max degrees between plane normal and gravity
-    DRIFT_ANGLE_THR = 4.0  # re-estimate if gravity drifted more than this
 
     # Classification
     GROUND_DIST_THR = 45  # mm, max distance from plane to count as ground
@@ -40,18 +37,14 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
     def __init__(self):
         super().__init__()
         self.out_obstacle = self.createOutput()
+        self.out_ground = self.createOutput()
         self.out_plane_valid = self.createOutput()
 
         self._input_pcl = self.createInput()
         self._input_imu = self.createInput()
 
-        self._refit_mode = GroundRefitMode.STATIC
-
         # Cached plane state
         self.plane_eq: np.ndarray | None = None
-        self.gravity_dir_at_estimate: np.ndarray | None = (
-            None  # normalized gravity when plane was estimated
-        )
         self._R: np.ndarray | None = None  # cam -> ground rotation, refreshed on refit
 
         self._pcl = o3d.geometry.PointCloud()
@@ -62,13 +55,11 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
         self,
         pcl: dai.Node.Output,
         imu: dai.Node.Output,
-        refit_mode: GroundRefitMode,
     ) -> "GroundEstimatorNode":
-        """Connect point cloud and IMU streams and select the refit policy."""
+        """Connect point cloud and IMU streams."""
         pcl.link(self._input_pcl)
         imu.link(self._input_imu)
 
-        self._refit_mode = refit_mode
         return self
 
     def run(self) -> None:
@@ -124,11 +115,10 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
             )
             return
 
-        if self._should_attempt_fit(g):
+        if self._is_fit_frame():
             ok = self._fit_plane(points[valid_mask], g)
             if not ok:
                 self.plane_eq = None
-                self.gravity_dir_at_estimate = None
                 self._R = None
 
         if self.plane_eq is None or self._R is None:
@@ -147,6 +137,7 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
         )
 
         obstacle_mask = valid_mask & (np.abs(signed_dist) >= self.GROUND_DIST_THR)
+        ground_mask = valid_mask & ~obstacle_mask
 
         obstacle_points = points[obstacle_mask]
         colors_obstacle = colors[obstacle_mask]
@@ -158,6 +149,16 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
         obstacle_msg.setSequenceNum(pcl_msg.getSequenceNum())
 
         self.out_obstacle.send(obstacle_msg)
+        ground_points = camera_to_ground(points[ground_mask], self._R)
+        ground_colors = np.tile(
+            np.array([80, 200, 80, 255], dtype=np.uint8),
+            (len(ground_points), 1),
+        )
+        ground_msg = dai.PointCloudData()
+        ground_msg.setPointsRGB(ground_points, ground_colors)
+        ground_msg.setTimestamp(pcl_msg.getTimestamp())
+        ground_msg.setSequenceNum(pcl_msg.getSequenceNum())
+        self.out_ground.send(ground_msg)
         self._publish_plane_valid(pcl_msg, True, self.plane_eq, self._R)
 
     def _extract_gravity_vector(self, imu_msg: dai.IMUData) -> np.ndarray | None:
@@ -168,16 +169,6 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
                 return np.array([a.x, a.y, a.z], dtype=np.float32)
         return None
 
-    def _should_attempt_fit(self, g: np.ndarray) -> bool:
-        """Check if this frame should attempt ground plane fitting."""
-        if self._refit_mode == GroundRefitMode.DYNAMIC:
-            return self._is_fit_frame()
-
-        if self.plane_eq is None:
-            return self._is_fit_frame()
-
-        return self._gravity_drift_detected(g)
-
     def _is_fit_frame(self) -> bool:
         self._frames_since_fit_attempt += 1
 
@@ -186,18 +177,6 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
 
         self._frames_since_fit_attempt = 0
         return True
-
-    def _gravity_drift_detected(self, g: np.ndarray) -> bool:
-        """Check if gravity vector has drifted."""
-        if self.gravity_dir_at_estimate is None:
-            return True
-
-        g_n = g / (np.linalg.norm(g) + 1e-9)
-        cos_a = np.clip(np.dot(self.gravity_dir_at_estimate, g_n), -1.0, 1.0)
-        if cos_a < np.cos(np.deg2rad(self.DRIFT_ANGLE_THR)):
-            return True
-
-        return False
 
     def _fit_plane(self, points: np.ndarray, g: np.ndarray) -> bool:
         """Fit a plane with RANSAC and reject candidates inconsistent with gravity.
@@ -250,17 +229,17 @@ class GroundEstimatorNode(dai.node.ThreadedHostNode):
             return False
 
         self.plane_eq = plane_eq
-        self.gravity_dir_at_estimate = g_n
         self._R = R
         return True
 
     def _publish_empty_clouds(self, pcl_msg: dai.PointCloudData) -> None:
         empty_points = np.empty((0, 3), dtype=np.float32)
-        obstacle_msg = dai.PointCloudData()
-        obstacle_msg.setPoints(empty_points)
-        obstacle_msg.setTimestamp(pcl_msg.getTimestamp())
-        obstacle_msg.setSequenceNum(pcl_msg.getSequenceNum())
-        self.out_obstacle.send(obstacle_msg)
+        for output in (self.out_obstacle, self.out_ground):
+            msg = dai.PointCloudData()
+            msg.setPoints(empty_points)
+            msg.setTimestamp(pcl_msg.getTimestamp())
+            msg.setSequenceNum(pcl_msg.getSequenceNum())
+            output.send(msg)
 
     def _publish_plane_valid(
         self,

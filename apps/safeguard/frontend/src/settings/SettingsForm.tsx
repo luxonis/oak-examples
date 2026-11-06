@@ -11,11 +11,9 @@ import {
     GridItem,
     Input,
     ReloadIcon,
-    Select,
     SettingsIcon,
     SubHeader,
     SubLabel,
-    Tooltip,
     useForm,
     type UseFormReturn,
 } from "@luxonis/common-fe-components";
@@ -203,23 +201,6 @@ function SettingsFormInner(props: {
                                 />
                                 <FormField
                                     form={form}
-                                    name="auto_calibration_enabled"
-                                    label="Auto-calibration"
-                                    fullWidth
-                                    render={(field) => (
-                                        <Checkbox
-                                            {...field}
-                                            id={field.name}
-                                            label="Enable auto-calibration"
-                                            disabled={
-                                                props.updateSettingsMutation
-                                                    .isPending
-                                            }
-                                        />
-                                    )}
-                                />
-                                <FormField
-                                    form={form}
                                     name="generic_object_detection_enabled"
                                     label="Generic object detection"
                                     fullWidth
@@ -234,47 +215,6 @@ function SettingsFormInner(props: {
                                             }
                                         />
                                     )}
-                                />
-                                <FormField
-                                    form={form}
-                                    name="ground_refit_mode"
-                                    label="Ground re-fit mode"
-                                    fullWidth
-                                    render={(field) => {
-                                        const detectionDisabled = !form.watch(
-                                            "generic_object_detection_enabled",
-                                        );
-                                        const select = (
-                                            <Select
-                                                {...field}
-                                                disabled={
-                                                    detectionDisabled ||
-                                                    props.updateSettingsMutation
-                                                        .isPending
-                                                }
-                                                items={[
-                                                    { value: "STATIC", component: "Static (fixed camera)" },
-                                                    { value: "DYNAMIC", component: "Dynamic (moving camera)" },
-                                                ]}
-                                            />
-                                        );
-                                        if (detectionDisabled) {
-                                            return (
-                                                <Tooltip content="Enable generic object detection to configure.">
-                                                    {select}
-                                                </Tooltip>
-                                            );
-                                        }
-                                        return select;
-                                    }}
-                                />
-                                <SubLabel
-                                    text={
-                                        <>
-                                            <div><strong>Static (fixed camera):</strong> caches the plane after first detection; re-fits only on IMU drift.</div>
-                                            <div><strong>Dynamic (moving camera):</strong> re-fits the ground plane continuously.</div>
-                                        </>
-                                    }
                                 />
                             </Grid>
                         </Card>
@@ -316,114 +256,6 @@ function SettingsFormInner(props: {
                                     form={form}
                                     name="deescalation_sec"
                                     label="De-escalation (sec)"
-                                    fullWidth
-                                    render={(field) => (
-                                        <Input
-                                            {...field}
-                                            type="number"
-                                            min={1}
-                                            step="1"
-                                            autoComplete="off"
-                                            disabled={
-                                                props.updateSettingsMutation
-                                                    .isPending
-                                            }
-                                        />
-                                    )}
-                                />
-                            </Grid>
-                        </Card>
-                    </GridItem>
-                    <GridItem>
-                        <Card
-                            title={<SectionHeading title="Events" description="Choose which event levels are kept while the app runs." />}
-                            titleSeparator={false}
-                            cardStyles="safeguard-settings-card"
-                            height="full"
-                        >
-                            <Grid
-                                gap="sm"
-                                columns={{
-                                    base: 1,
-                                    md: 2,
-                                }}
-                            >
-                                <FormField
-                                    form={form}
-                                    name="save_warning_events"
-                                    label="Warning events"
-                                    fullWidth
-                                    render={(field) => (
-                                        <Checkbox
-                                            {...field}
-                                            id={field.name}
-                                            label="Keep warning events"
-                                            disabled={
-                                                props.updateSettingsMutation
-                                                    .isPending
-                                            }
-                                        />
-                                    )}
-                                />
-                                <FormField
-                                    form={form}
-                                    name="save_danger_events"
-                                    label="Danger events"
-                                    fullWidth
-                                    render={(field) => (
-                                        <Checkbox
-                                            {...field}
-                                            id={field.name}
-                                            label="Keep danger events"
-                                            disabled={
-                                                props.updateSettingsMutation
-                                                    .isPending
-                                            }
-                                        />
-                                    )}
-                                />
-                                <FormField
-                                    form={form}
-                                    name="event_video_pre_trigger_sec"
-                                    label="Pre-trigger video length (sec)"
-                                    fullWidth
-                                    render={(field) => (
-                                        <Input
-                                            {...field}
-                                            type="number"
-                                            min={0}
-                                            step="1"
-                                            autoComplete="off"
-                                            disabled={
-                                                props.updateSettingsMutation
-                                                    .isPending
-                                            }
-                                        />
-                                    )}
-                                />
-                                <FormField
-                                    form={form}
-                                    name="event_video_max_duration_sec"
-                                    label="Max event video length (sec)"
-                                    fullWidth
-                                    render={(field) => (
-                                        <Input
-                                            {...field}
-                                            type="number"
-                                            min={1}
-                                            step="1"
-                                            autoComplete="off"
-                                            disabled={
-                                                props.updateSettingsMutation
-                                                    .isPending
-                                            }
-                                        />
-                                    )}
-                                />
-                                <FormField
-                                    form={form}
-                                    name="event_retention_count"
-                                    label="Max recent events"
                                     fullWidth
                                     render={(field) => (
                                         <Input

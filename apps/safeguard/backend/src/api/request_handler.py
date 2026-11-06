@@ -1,9 +1,8 @@
-"""Register typed JSON and binary services with the DepthAI remote connection."""
+"""Register typed JSON services with the DepthAI remote connection."""
 
 import inspect
-import json
 import logging
-from typing import Any, Callable, get_args
+from typing import Any, Callable
 
 import depthai as dai
 from pydantic import BaseModel, ValidationError
@@ -37,16 +36,6 @@ def _get_model_type(annotation: Any, label: str) -> type[BaseModel]:
         )
 
     return annotation
-
-
-def _validate_binary_return_type(annotation: Any, label: str) -> None:
-    if annotation is bytes:
-        return
-
-    if set(get_args(annotation)) == {bytes, type(None)}:
-        return
-
-    raise TypeError(f"{label} must be annotated as bytes | None, got {annotation}")
 
 
 def add_request_handler(
@@ -103,54 +92,3 @@ def add_request_handler(
 
     visualizer.registerService(service_name, _handler)
     logger.info(f"Registered service {service_name}")
-
-
-def add_binary_request_handler(
-    visualizer: dai.RemoteConnection,
-    service_name: str,
-    handler: Callable,
-):
-    """Register a service accepting UTF-8 JSON and returning bytes or None.
-
-    The request is validated with the handler's Pydantic parameter type.
-    Invalid requests and callback failures return None.
-    """
-    sig = inspect.signature(handler)
-    params = list(sig.parameters.values())
-    if len(params) != 1:
-        raise TypeError(f"Handler {handler.__name__} must take exactly one parameter")
-
-    payload_type = _get_model_type(
-        params[0].annotation,
-        f"First parameter of {handler.__name__}",
-    )
-    _validate_binary_return_type(
-        sig.return_annotation,
-        f"Return type of {handler.__name__}",
-    )
-
-    def _handler(request: bytes) -> bytes | None:
-        logger.debug(f"Handling binary request for service {service_name}")
-        try:
-            request_json = json.loads(request.decode("utf-8"))
-            validated_request = payload_type.model_validate(request_json)
-            response = handler(validated_request)
-            if response is not None and not isinstance(response, bytes):
-                raise TypeError(
-                    f"Binary handler {handler.__name__} must return bytes | None"
-                )
-            return response
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            logger.exception(
-                f"Error decoding binary request payload for service {service_name}"
-            )
-            return None
-        except ValidationError:
-            logger.exception(f"Error validating request for service {service_name}")
-            return None
-        except Exception:
-            logger.exception(f"Error handling request for service {service_name}")
-            return None
-
-    visualizer.registerBinaryService(service_name, _handler)
-    logger.info(f"Registered binary service {service_name}")

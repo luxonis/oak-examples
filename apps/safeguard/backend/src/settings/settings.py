@@ -1,16 +1,7 @@
 """Runtime configuration for the SafeGuard example (never written to disk)."""
 
 import os
-from enum import Enum
-
 from pydantic import BaseModel, Field, model_validator
-
-
-class GroundRefitMode(str, Enum):
-    """Ground-plane fitting policy for a fixed or moving camera."""
-
-    STATIC = "STATIC"
-    DYNAMIC = "DYNAMIC"
 
 
 class SpatialZone(BaseModel):
@@ -35,16 +26,9 @@ class Settings(BaseModel):
     """Live pipeline settings; changes rebuild the pipeline without persistence."""
 
     fps: int = Field(30, ge=10, le=30)
-    auto_calibration_enabled: bool = True
     generic_object_detection_enabled: bool = False
-    ground_refit_mode: GroundRefitMode = GroundRefitMode.STATIC
     awareness_escalation_sec: int = Field(5, gt=0)
     deescalation_sec: int = Field(5, gt=0)
-    save_warning_events: bool = True
-    save_danger_events: bool = True
-    event_retention_count: int = Field(100, gt=0)
-    event_video_pre_trigger_sec: int = Field(60, ge=0)
-    event_video_max_duration_sec: int = Field(120, gt=0)
     danger_roi: SpatialZone = Field(
         default_factory=lambda: SpatialZone(
             distance_mm=1000, x_min_mm=-500, x_max_mm=500
@@ -60,10 +44,6 @@ class Settings(BaseModel):
     def validate_threshold_order(self) -> "Settings":
         if self.danger_roi.distance_mm >= self.warning_roi.distance_mm:
             raise ValueError("danger distance must be less than warning distance")
-        if self.event_video_max_duration_sec <= self.event_video_pre_trigger_sec:
-            raise ValueError(
-                "max event video duration must exceed pre-trigger duration"
-            )
         return self
 
     @classmethod
@@ -71,16 +51,9 @@ class Settings(BaseModel):
         """Read a small set of SAFEGUARD_* variables once at startup."""
         scalar_vars = {
             "fps": "FPS",
-            "auto_calibration_enabled": "AUTO_CALIBRATION",
             "generic_object_detection_enabled": "GENERIC_OBSTACLES",
-            "ground_refit_mode": "GROUND_REFIT_MODE",
             "awareness_escalation_sec": "AWARENESS_ESCALATION_SEC",
             "deescalation_sec": "DEESCALATION_SEC",
-            "save_warning_events": "SAVE_WARNING_EVENTS",
-            "save_danger_events": "SAVE_DANGER_EVENTS",
-            "event_retention_count": "EVENT_RETENTION_COUNT",
-            "event_video_pre_trigger_sec": "EVENT_VIDEO_PRE_TRIGGER_SEC",
-            "event_video_max_duration_sec": "EVENT_VIDEO_MAX_DURATION_SEC",
         }
         values = {
             field: os.environ[f"SAFEGUARD_{suffix}"]

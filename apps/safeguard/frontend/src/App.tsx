@@ -1,17 +1,10 @@
-import {
-    Alert, Button, Card, CircleLoader, EmptyView, EventsIcon, Flex,
-    Grid, ProvideMultiModalContext,
-    useNewMultiModalContext,
-} from "@luxonis/common-fe-components";
 import { Streams, useDaiConnection } from "@luxonis/depthai-viewer-common";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import "./App.css";
-import { EventCard } from "./events/EventCard";
-import { EventVideoModal, type EventsModalContext } from "./events/EventVideoModal";
-import { useEvents } from "./events/useEvents";
 import SettingsForm from "./settings/SettingsForm";
 
-const STREAM_PANEL_ORDER = ["danger", "color", "grid", "grid_annotations", "pcl"];
+const STREAM_PANEL_ORDER = ["danger", "color", "obstacle_annotations", "grid", "grid_annotations", "pcl"];
+const DEFAULT_TOPICS = new Set(STREAM_PANEL_ORDER);
 const getStreamPanelOrder = (topicName: string) => {
     const order = STREAM_PANEL_ORDER.indexOf(topicName);
     return order === -1 ? Number.MAX_SAFE_INTEGER : order;
@@ -19,59 +12,26 @@ const getStreamPanelOrder = (topicName: string) => {
 
 function LiveStreams() {
     const { connected, topics, toggleTopic } = useDaiConnection();
-    const opened = useRef(false);
+    const opened = useRef(new Set<string>());
 
     useEffect(() => {
-        const color = topics.find(topic => topic.name === "color");
-        if (!connected || !color) {
-            opened.current = false;
+        if (!connected) {
+            opened.current.clear();
             return;
         }
-        if (color.enabled) {
-            opened.current = true;
-        } else if (!opened.current) {
-            opened.current = true;
-            toggleTopic("color");
+        for (const topic of topics) {
+            if (!DEFAULT_TOPICS.has(topic.name) || opened.current.has(topic.name)) continue;
+            opened.current.add(topic.name);
+            if (!topic.enabled) toggleTopic(topic.name);
         }
     }, [connected, topics, toggleTopic]);
 
     return (
         <Streams
-            topicGroups={{ color: "preview", danger: "preview", grid: "grid", grid_annotations: "grid", pcl: "pcl" }}
-            numberOfColumns={1}
+            topicGroups={{ color: "preview", danger: "preview", obstacle_annotations: "preview", grid: "grid", grid_annotations: "grid", pcl: "pcl" }}
+            numberOfColumns={2}
             topicSortingFunction={(a, b) => getStreamPanelOrder(a.name) - getStreamPanelOrder(b.name)}
         />
-    );
-}
-
-function RecentEvents() {
-    const modalContext = useNewMultiModalContext<EventsModalContext>();
-    const [visibleCount, setVisibleCount] = useState(8);
-    const { eventsQuery } = useEvents({ limit: visibleCount });
-    const events = eventsQuery.data?.events ?? [];
-    const totalCount = eventsQuery.data?.total_count ?? 0;
-    return (
-        <ProvideMultiModalContext context={modalContext}>
-            <section className="recent-events">
-                <div className="recent-events-heading">
-                    <h2>Recent events</h2>
-                    <p>Warning and danger captures are kept only while this app is running. Select an event to inspect its video.</p>
-                </div>
-                {eventsQuery.isPending && <Card fullWidth cardStyles="safeguard-event-card"><Flex justifyContent="center" p="md"><CircleLoader /></Flex></Card>}
-                {eventsQuery.error && <Alert variant="light" colorVariant="error" title="Unable to load events" description={eventsQuery.error.message} />}
-                {!eventsQuery.isPending && !eventsQuery.error && events.length === 0 &&
-                    <Card fullWidth cardStyles="safeguard-event-card"><EmptyView icon={EventsIcon} title="No events yet" subtitle="Warning and danger events will appear here." py="lg" /></Card>}
-                {events.length > 0 &&
-                    <Grid gap="md" columns={{ base: 1, md: 2 }}>
-                        {events.map(event =>
-                            <EventCard key={event.id} event={event} onClick={() => modalContext.open("eventVideo", event)} />)}
-                    </Grid>}
-                {totalCount > visibleCount &&
-                    <Button type="button" variant="outline" label={`Show more (${totalCount - visibleCount} remaining)`}
-                        onClick={() => setVisibleCount(count => count + 8)} />}
-            </section>
-            <EventVideoModal />
-        </ProvideMultiModalContext>
     );
 }
 
@@ -82,19 +42,19 @@ function App() {
                 <div className="safeguard-viewer">
                     <header className="safeguard-viewer-topbar">
                         <img src="logo.svg" alt="Luxonis" />
-                        <span>Live camera + alerts</span>
+                        <span>Live camera, ground plane, and proximity alerts</span>
                     </header>
                     <div className="stream-container">
                         <LiveStreams />
                     </div>
+                    <p className="stream-legend">Point cloud: green = ground, orange = warning zone, red = danger zone. Camera boxes mark detected obstacles.</p>
                 </div>
-                <RecentEvents />
             </section>
             <div className="safeguard-divider" aria-hidden="true" />
             <aside className="safeguard-controls">
                 <header className="safeguard-intro">
                     <h1>SafeGuard</h1>
-                    <p>Live proximity monitoring with person segmentation, stereo depth and IMU gravity alignment. The optional generic object path detects obstacles above the ground plane.</p>
+                    <p>Live proximity monitoring with person segmentation, automatic depth selection and IMU gravity alignment. The optional generic object path detects obstacles above the ground plane.</p>
                 </header>
                 <SettingsForm />
             </aside>

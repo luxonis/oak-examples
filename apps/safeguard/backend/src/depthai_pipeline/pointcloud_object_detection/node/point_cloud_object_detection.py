@@ -1,6 +1,6 @@
 import depthai as dai
 
-from settings.settings import GroundRefitMode, SpatialZone
+from settings.settings import SpatialZone
 
 from .ground_estimator_node import GroundEstimatorNode
 from .occupancy_grid_detection import OccupancyGridDetectionNode
@@ -20,13 +20,11 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
         hfov_deg: float,
         danger_zone: SpatialZone,
         warning_zone: SpatialZone,
-        ground_refit_mode: GroundRefitMode = GroundRefitMode.STATIC,
     ) -> None:
         super().__init__()
 
         self._danger_zone = danger_zone
         self._warning_zone = warning_zone
-        self._ground_refit_mode = ground_refit_mode
 
         self._rgbd: dai.node.RGBD = self.createSubnode(dai.node.RGBD).build()
         self._ground: GroundEstimatorNode = self.createSubnode(GroundEstimatorNode)
@@ -48,6 +46,9 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
         self.out_grid = self._occupancy_visualization.out_grid
         self.out_pcl = self._occupancy_visualization.out_pcl
         self.out_grid_annotations = self._occupancy_visualization.out_grid_annotations
+        self.out_obstacle_annotations = (
+            self._occupancy_visualization.out_obstacle_annotations
+        )
 
     def build(
         self,
@@ -64,7 +65,6 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
         self._ground.build(
             pcl=self._rgbd.pcl,
             imu=imu,
-            refit_mode=self._ground_refit_mode,
         )
 
         self._occupancy_detection.build(
@@ -79,6 +79,7 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
             occupancy_mask=self._occupancy_detection.out_occupancy_mask,
             plane_valid=self._ground.out_plane_valid,
             obstacle_pcl=self._ground.out_obstacle,
+            ground_pcl=self._ground.out_ground,
         )
 
         return self

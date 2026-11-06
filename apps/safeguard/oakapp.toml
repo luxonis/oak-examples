@@ -23,7 +23,6 @@ steps = [
 ]
 
 [env]
-DEPTHAI_AUTOCALIBRATION = "OFF"
 PYTHONUNBUFFERED = "1"
 
 [base_image]

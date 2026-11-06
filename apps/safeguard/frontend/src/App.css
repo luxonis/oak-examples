@@ -11,14 +11,13 @@
 }
 
 .safeguard-main,
-.safeguard-controls,
-.recent-events {
+.safeguard-controls {
     display: flex;
     min-width: 0;
     flex-direction: column;
 }
 
-.safeguard-main { gap: 24px; }
+.safeguard-main { min-height: calc(100vh - 48px); }
 .safeguard-controls { gap: 20px; padding-right: 8px; text-align: left; }
 .safeguard-divider { width: 1px; min-height: calc(100vh - 48px); background: #e5e5e5; }
 
@@ -26,6 +25,8 @@
     display: flex;
     min-width: 0;
     flex-direction: column;
+    height: calc(100vh - 48px);
+    min-height: 620px;
     overflow: hidden;
     border: 1px solid #e5e5e5;
     border-radius: 6px;
@@ -48,8 +49,8 @@
 
 .stream-container {
     width: 100%;
-    height: min(68vh, 760px);
-    min-height: 400px;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
     background: #fff;
 }
@@ -62,7 +63,6 @@
 }
 
 .safeguard-intro p,
-.recent-events-heading p,
 .settings-section-heading p {
     margin: 0;
     color: #667085;
@@ -71,11 +71,9 @@
     line-height: 24px;
 }
 
-.recent-events { gap: 16px; padding-bottom: 24px; }
-.recent-events-heading h2 { margin: 0 0 4px; font-size: 18px; font-weight: 600; line-height: 28px; }
+.stream-legend { margin: 0; padding: 8px 16px 12px; color: #667085; font-size: 12px; }
 
-.safeguard-settings-card,
-.safeguard-event-card {
+.safeguard-settings-card {
     border: 1px solid #e5e5e5;
     border-radius: 6px;
     background: #fff;
@@ -90,13 +88,14 @@
     line-height: 24px;
 }
 
-.safeguard-event-title { color: #1d2939; font-size: 16px; font-weight: 600; }
 
 @media (max-width: 1100px) {
     .safeguard-layout { grid-template-columns: minmax(0, 1fr); }
+    .safeguard-main { min-height: 0; }
     .safeguard-divider { display: none; }
     .safeguard-controls { max-width: 640px; padding-right: 0; }
-    .stream-container { height: 58vh; min-height: 340px; }
+    .safeguard-viewer { height: auto; min-height: 0; }
+    .stream-container { flex: none; height: 70vh; min-height: 400px; }
 }
 
 @media (max-width: 600px) {

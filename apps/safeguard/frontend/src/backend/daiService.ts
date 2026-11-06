@@ -19,18 +19,6 @@ export type DAIServiceRequest<TService extends DAIServiceDefinition> = z.input<
 export type DAIServiceResponse<TService extends DAIServiceDefinition> =
     z.output<TService["responseSchema"]>;
 
-export type DAIBinaryServiceDefinition<TRequest extends DAIRequestBody = DAIRequestBody> =
-    {
-        serviceName: string;
-        requestSchema: z.ZodType<TRequest>;
-    };
-
-export type DAIBinaryServiceRequest<
-    TService extends DAIBinaryServiceDefinition,
-> = z.input<TService["requestSchema"]>;
-
-export type DAIBinaryServiceResponse = DataView | null | undefined;
-
 export const getDaiError = (
     serviceName: string,
     response?: DAIResponse<unknown> | null,
@@ -94,22 +82,4 @@ export const runDaiServiceRequest = async <TService extends DAIServiceDefinition
     return service.responseSchema.parse(
         response,
     ) as DAIServiceResponse<TService>;
-};
-
-export const runDaiBinaryServiceRequest = async <
-    TService extends DAIBinaryServiceDefinition,
->(
-    daiConnection: DAIConnection,
-    service: TService,
-    request: DAIBinaryServiceRequest<TService>,
-): Promise<DAIBinaryServiceResponse> => {
-    const validatedRequest = service.requestSchema.parse(request);
-
-    return new Promise<DAIBinaryServiceResponse>((resolve) => {
-        daiConnection.postToServiceRaw(
-            service.serviceName as never,
-            validatedRequest,
-            resolve,
-        );
-    });
 };

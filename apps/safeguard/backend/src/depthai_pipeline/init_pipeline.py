@@ -9,10 +9,8 @@ import depthai as dai
 import numpy as np
 from depthai_nodes.node import ParsingNeuralNetwork
 
-from events.event_store import EventStore
 from depthai_pipeline.common.node.danger_classifier import DangerClassifier
 from depthai_pipeline.common.node.danger_visualizer import DangerVisualizer
-from depthai_pipeline.common.node.event_saver import EventSaver
 from depthai_pipeline.nn_person_detection.node.segmentation_danger_evaluator import (
     SegmentationDangerEvaluator,
 )
@@ -56,7 +54,6 @@ def init_pipeline(
     pipeline: dai.Pipeline,
     settings: Settings,
     visualizer: dai.RemoteConnection,
-    event_store: EventStore,
 ) -> tuple[str, ...]:
     """Attach cameras, assessments, alert state, and Visualizer topics.
 
@@ -64,7 +61,6 @@ def init_pipeline(
         pipeline: DepthAI pipeline to populate.
         settings: Current runtime settings.
         visualizer: Remote connection used to publish topics.
-        event_store: Event history shared across pipeline restarts.
 
     Returns:
         Names of registered topics to remove when the pipeline stops.
@@ -77,32 +73,14 @@ def init_pipeline(
         COLOR_SIZE, fps=settings.fps, enableUndistortion=True
     )
 
-    auto_calib = None
-    if settings.auto_calibration_enabled:
-        auto_calib = pipeline.create(dai.node.AutoCalibration).build(
-            left_cam, right_cam
-        )
-        auto_calib.initialConfig.mode = dai.AutoCalibrationConfig.CONTINUOUS
+    auto_calib = pipeline.create(dai.node.AutoCalibration).build(left_cam, right_cam)
+    auto_calib.initialConfig.mode = dai.AutoCalibrationConfig.CONTINUOUS
 
     preview = color_cam.requestOutput(
         (640, 360),
         type=dai.ImgFrame.Type.RGB888i,
-        fps=min(settings.fps, 15),
+        fps=settings.fps,
         enableUndistortion=True,
-    )
-    # Keep temporary event clips small enough for the app container's /tmp.
-    event_video = color_cam.requestOutput(
-        (640, 360), fps=settings.fps, enableUndistortion=True
-    )
-    color_h264 = pipeline.create(dai.node.VideoEncoder).build(
-        event_video,
-        bitrate=2_000_000,
-        frameRate=settings.fps,
-        profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
-        keyframeFrequency=settings.fps,
-    )
-    color_mjpeg = pipeline.create(dai.node.VideoEncoder).build(
-        event_video, profile=dai.VideoEncoderProperties.Profile.MJPEG
     )
     depth = pipeline.create(dai.node.Depth).build(
         dai.node.Depth.Algorithm.AUTO, fps=settings.fps, size=MONO_SIZE
@@ -162,11 +140,8 @@ def init_pipeline(
     obstacles = None
     if settings.generic_object_detection_enabled:
         pointcloud_size = (COLOR_SIZE[0] // 3, COLOR_SIZE[1] // 3)
-        # Reuse the event stream: RVC4 allows at most three outputs per camera.
-        color_for_pcl_manip = pipeline.create(dai.node.ImageManip)
-        color_for_pcl_manip.initialConfig.setFrameType(dai.ImgFrame.Type.RGB888i)
-        event_video.link(color_for_pcl_manip.inputImage)
-        color_for_pcl = color_for_pcl_manip.out
+        # The preview matches the point-cloud resolution and frame rate.
+        color_for_pcl = preview
         depth_for_pcl = pipeline.create(dai.node.ImageAlign)
         color_for_pcl.link(depth_for_pcl.inputAlignTo)
         depth_output.link(depth_for_pcl.input)
@@ -183,7 +158,6 @@ def init_pipeline(
             hfov_deg=calibration.getFov(dai.CameraBoardSocket.CAM_A, useSpec=True),
             danger_zone=settings.danger_roi,
             warning_zone=settings.warning_roi,
-            ground_refit_mode=settings.ground_refit_mode,
         ).build(
             aligned_depth=depth_for_pcl.outputAligned,
             rgb_image=color_for_pcl,
@@ -211,24 +185,13 @@ def init_pipeline(
         awareness_escalation_frames=settings.awareness_escalation_sec * settings.fps,
     )
     annotations = pipeline.create(DangerVisualizer).build(alert.out)
-    pipeline.create(EventSaver).build(
-        classifications=alert.out,
-        mjpeg_encoded_frames=color_mjpeg.out,
-        h264_encoded_frames=color_h264.out,
-        event_store=event_store,
-        fps=settings.fps,
-        save_warning_events=settings.save_warning_events,
-        save_danger_events=settings.save_danger_events,
-        pre_trigger_duration_seconds=settings.event_video_pre_trigger_sec,
-        max_video_duration_seconds=settings.event_video_max_duration_sec,
-    )
-
     topics = ["color", "danger"]
     visualizer.addTopic("color", preview)
     visualizer.addTopic("danger", annotations.out)
     if obstacles is not None:
         visualizer.addTopic("grid", obstacles.out_grid)
         visualizer.addTopic("grid_annotations", obstacles.out_grid_annotations)
+        visualizer.addTopic("obstacle_annotations", obstacles.out_obstacle_annotations)
         visualizer.addTopic("pcl", obstacles.out_pcl)
-        topics.extend(("grid", "grid_annotations", "pcl"))
+        topics.extend(("grid", "grid_annotations", "obstacle_annotations", "pcl"))
     return tuple(topics)
