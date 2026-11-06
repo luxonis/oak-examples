@@ -1,6 +1,7 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button } from '@luxonis/ui-components';
+import { Card } from '@luxonis/ui-components';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppShell, Steps } from './AppShell.tsx';
 import { ClickCatcher } from './ClickOverlay.tsx';
 import { DistanceDisplay } from './DistanceDisplay.tsx';
 import { postToP2PMeasurementService } from './services.ts';
@@ -73,7 +74,6 @@ function App() {
 	);
 	const [hasInvalidDepth, setHasInvalidDepth] = useState(false);
 	const [trackingEnabled, setTrackingEnabled] = useState(true);
-	const [showInstructions, setShowInstructions] = useState(false);
 	const topicGroups = useMemo(() => ({ images: 'Images', data: 'Data' }), []);
 
 	const clearSelection = useCallback(() => {
@@ -162,88 +162,51 @@ function App() {
 	}, [clearSelection, pointCount]);
 
 	return (
-		<main className="flex h-screen w-screen flex-row gap-6 overflow-auto bg-muted p-6">
-			<div ref={viewerRef} className="relative min-w-[760px] flex-1 shrink-0">
-				<Streams
-					defaultTopics={['Video', 'Depth', 'Point Annotations']}
-					topicGroups={topicGroups}
-				/>
-				<ClickCatcher
-					containerRef={viewerRef}
-					frameWidth={640}
-					frameHeight={400}
-					allowedPanelTitle="Video,Depth"
-					onPointAdded={(count) => {
-						if (count === -1) {
-							setPointCount((previous) => previous + 1);
-						} else {
-							setPointCount(count);
-						}
-					}}
-				/>
-			</div>
-
-			<div className="w-0.5 shrink-0 bg-border" />
-
-			<aside className="flex max-h-full w-[420px] min-w-[360px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
-				<h1 className="text-2xl font-bold">P2P Distance Measurement</h1>
-
-				<section className="rounded-md border border-border bg-card p-4">
-					<button
-						className="flex w-full items-center justify-between text-left"
-						type="button"
-						onClick={() => setShowInstructions((visible) => !visible)}
-					>
-						<h2 className="m-0 font-semibold">Instructions</h2>
-						<span className="text-sm font-semibold text-muted-foreground">
-							{showInstructions ? 'Hide' : 'Show'}
-						</span>
-					</button>
-
-					{showInstructions ? (
-						<ol className="m-0 mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-muted-foreground">
-							<li>Select the first point on the video or depth stream.</li>
-							<li>Select the second point to calculate distance.</li>
-							<li>Wait briefly for the measurement to stabilize.</li>
-							<li>Press Space or right-click to clear points.</li>
-						</ol>
-					) : null}
-				</section>
-
-				<DistanceDisplay
-					distance={currentDistance}
-					stdDeviation={currentStdDeviation}
-					pointCount={pointCount}
-					hasInvalidDepth={hasInvalidDepth}
-					trackingEnabled={trackingEnabled}
-					onToggleTracking={toggleTracking}
-				/>
-
-				<Button
-					className="w-fit"
-					variant="outline"
-					onClick={clearSelection}
-					disabled={pointCount === 0}
-				>
-					Clear Points
-				</Button>
-
-				<div
-					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${
-						connection.connected ? 'text-success' : 'text-destructive'
-					}`}
-				>
-					<div
-						className={`h-3 w-3 rounded-full ${
-							connection.connected ? 'bg-success' : 'bg-destructive'
-						}`}
+		<AppShell
+			title="Point-to-Point Distance Measurement"
+			streams={
+				<div ref={viewerRef} className="relative flex min-h-0 flex-1 flex-col">
+					<Streams
+						defaultTopics={['Video', 'Depth', 'Point Annotations']}
+						topicGroups={topicGroups}
 					/>
-					<span>
-						{connection.connected ? 'Connected to device' : 'Disconnected'}
-					</span>
+					<ClickCatcher
+						containerRef={viewerRef}
+						frameWidth={640}
+						frameHeight={400}
+						allowedPanelTitle="Video,Depth"
+						onPointAdded={(count) => {
+							if (count === -1) {
+								setPointCount((previous) => previous + 1);
+							} else {
+								setPointCount(count);
+							}
+						}}
+					/>
 				</div>
-			</aside>
-		</main>
+			}
+		>
+			<Card title="How to use" variant="outline" intent="white">
+				<Steps
+					items={[
+						'Click the first point on the Video or Depth stream.',
+						'Click the second point to measure the distance between them.',
+						'Wait briefly for the measurement to settle.',
+						'Press Space or right-click the stream to clear the points.',
+					]}
+				/>
+			</Card>
+
+			<DistanceDisplay
+				distance={currentDistance}
+				stdDeviation={currentStdDeviation}
+				pointCount={pointCount}
+				hasInvalidDepth={hasInvalidDepth}
+				trackingEnabled={trackingEnabled}
+				onToggleTracking={toggleTracking}
+				onClear={clearSelection}
+			/>
+		</AppShell>
 	);
 }
 
