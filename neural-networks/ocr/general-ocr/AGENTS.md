@@ -52,7 +52,8 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 - `REQ_WIDTH = 1152` and `REQ_HEIGHT = 640` are chosen to preserve useful detail for the second stage.
 - OCR throughput depends on the number of detected text regions because each region becomes a recognition crop.
 - Preserve the source detection's host timestamp, device timestamp, and sequence number on each crop config, the config group (including empty groups), and filtered detections; `FrameCropper` synchronizes config groups with frames using device timestamps.
-- Keep detection rectangles rotated when generating recognition crops; `getOuterRect()` is used only for the minimum-size filter.
+- Keep detection rectangles rotated when generating recognition crops. For the minimum-size filter, denormalize the rotated rectangle to the source frame before calling `getOuterRect()`; its angle is measured in pixels.
+- For overlays, denormalize a rotated rectangle before calling `getPoints()`, then normalize its pixel corners for `AnnotationHelper`. Calling `getPoints()` directly on a normalized rotated rectangle shears the displayed polygon on a non-square frame.
 - `MessageGroup` iterates keys lexicographically. Keep crop-config keys zero-padded so recognition items align with detections when a frame has 10 or more crops.
 - `OCRAnnotationNode` uses `HostNode.link_args` to match source frames and gathered OCR results by timestamp; it checks sequence numbers before publishing the pair.
 

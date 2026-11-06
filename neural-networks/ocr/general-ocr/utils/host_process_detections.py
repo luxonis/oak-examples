@@ -160,11 +160,13 @@ class CropConfigsCreator(dai.node.HostNode):
                 rect = detection.getBoundingBox()
                 rect = self._expand_rect(rect)
 
-                xmin, ymin, xmax, ymax = rect.getOuterRect()
-                xmin = int(max(0, xmin * self.w))
-                ymin = int(max(0, ymin * self.h))
-                xmax = int(min(self.w, xmax * self.w))
-                ymax = int(min(self.h, ymax * self.h))
+                # The angle is defined in pixels, so compute the outer box
+                # after denormalizing the rotated rectangle.
+                xmin, ymin, xmax, ymax = rect.denormalize(self.w, self.h).getOuterRect()
+                xmin = int(max(0, xmin))
+                ymin = int(max(0, ymin))
+                xmax = int(min(self.w, xmax))
+                ymax = int(min(self.h, ymax))
 
                 if (
                     xmax - xmin < self.min_crop_width

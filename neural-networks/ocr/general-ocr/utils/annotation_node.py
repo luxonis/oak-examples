@@ -38,7 +38,14 @@ class OCRAnnotationNode(dai.node.HostNode):
             text = " ".join(parts)
             scores = [float(score) for score in recognition.scores]
             confidence = min(scores) if scores else 0.0
-            points = detection.getBoundingBox().getPoints()
+            width, height = frame.getWidth(), frame.getHeight()
+            pixel_points = (
+                detection.getBoundingBox().denormalize(width, height).getPoints()
+            )
+            points = [
+                dai.Point2f(point.x / width, point.y / height, True)
+                for point in pixel_points
+            ]
             shown = (
                 bool(text)
                 and len(text) >= self.min_text_length
