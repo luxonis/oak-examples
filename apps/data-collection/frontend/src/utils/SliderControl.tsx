@@ -1,4 +1,4 @@
-import { Slider } from '@luxonis/ui-components';
+import { Flex, Label, Slider } from '@luxonis/ui-components';
 import { type ReactNode, useCallback } from 'react';
 
 export interface SliderControlProps {
@@ -10,7 +10,6 @@ export interface SliderControlProps {
 	max?: number;
 	step?: number;
 	disabled?: boolean;
-	id?: string;
 	'aria-label'?: string;
 }
 
@@ -23,7 +22,6 @@ export function SliderControl({
 	max = 1,
 	step = 0.01,
 	disabled,
-	id,
 	...aria
 }: SliderControlProps) {
 	const commit = useCallback(
@@ -32,14 +30,9 @@ export function SliderControl({
 	);
 
 	return (
-		<div className="flex flex-col gap-2">
-			{label ? (
-				<label htmlFor={id} className="font-medium">
-					{label}
-				</label>
-			) : null}
+		<Flex direction="column" gap="xs">
+			{label ? <Label text={label} /> : null}
 			<Slider
-				id={id}
 				value={value}
 				onChange={onChange}
 				onValueCommit={commit}
@@ -49,6 +42,6 @@ export function SliderControl({
 				disabled={disabled}
 				{...aria}
 			/>
-		</div>
+		</Flex>
 	);
 }

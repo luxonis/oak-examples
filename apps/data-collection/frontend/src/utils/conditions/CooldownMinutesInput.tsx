@@ -1,4 +1,4 @@
-import { Input } from '@luxonis/ui-components';
+import { Flex, Input, Label, SubLabel } from '@luxonis/ui-components';
 import { useId } from 'react';
 
 interface CooldownMinutesInputProps {
@@ -21,13 +21,14 @@ export function CooldownMinutesInput({
 	ariaLabel,
 }: CooldownMinutesInputProps) {
 	const inputId = useId();
+	const errorId = useId();
 
 	return (
-		<div className="flex flex-col gap-2">
-			<label htmlFor={inputId} className="font-medium">
-				{label}
+		<Flex direction="column" gap="xs">
+			<label htmlFor={inputId}>
+				<Label text={label} />
 			</label>
-			<div className="flex items-center gap-3">
+			<Flex direction="row" align="center" gap="xs">
 				<Input
 					id={inputId}
 					className="min-w-0 flex-1"
@@ -40,15 +41,18 @@ export function CooldownMinutesInput({
 					onBlur={onBlur}
 					disabled={disabled}
 					aria-invalid={!valid && !disabled}
+					aria-describedby={valid ? undefined : errorId}
 					aria-label={ariaLabel || 'Cooldown (minutes, max 1 decimal)'}
 				/>
-				<span className="text-muted-foreground">minutes</span>
-			</div>
+				<SubLabel text="minutes" />
+			</Flex>
 			{!valid ? (
-				<span className="text-xs text-destructive">
-					Enter a non-negative number with at most one decimal place.
-				</span>
+				<SubLabel
+					id={errorId}
+					color="error"
+					text="Enter a non-negative number with at most one decimal place."
+				/>
 			) : null}
-		</div>
+		</Flex>
 	);
 }
