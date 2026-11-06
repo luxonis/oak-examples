@@ -36,6 +36,7 @@ SHARED_FILES = [
     SharedFile("src/AppShell.tsx", "custom-frontend/raw-stream/frontend", True),
     SharedFile("src/index.css", "custom-frontend/raw-stream/frontend", True),
     SharedFile("src/Notifications.tsx", "apps/dino-tracking/frontend", False),
+    SharedFile("vite.config.ts", "custom-frontend/raw-stream/frontend", True),
 ]
 
 

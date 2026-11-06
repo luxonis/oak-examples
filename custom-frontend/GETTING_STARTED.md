@@ -58,8 +58,8 @@ Your `package.json` needs the following dependencies and scripts:
 
 ```json
 "dependencies": {
-  "@luxonis/depthai-pipeline-lib": "4.0.0",
-  "@luxonis/depthai-viewer-common": "4.0.0",
+  "@luxonis/depthai-pipeline-lib": "4.2.9",
+  "@luxonis/depthai-viewer-common": "4.2.9",
   "@luxonis/ui-components": "1.3.9",
   "@luxonis/ui-utils": "1.0.7",
   "react": "19.2.5",
