@@ -42,17 +42,20 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 ## Architecture
 
 - A text detector runs on the input stream first.
-- [utils/host_process_detections.py](utils/host_process_detections.py) turns detections into recognition crop configs.
+- [utils/host_process_detections.py](utils/host_process_detections.py) filters detections and turns expanded rotated rectangles into upright, white-letterboxed recognition crop configs.
 - `FrameCropper` extracts word/line crops for the OCR model.
 - `GatherData` associates recognized text back to the original detections.
-- [utils/annotation_node.py](utils/annotation_node.py) renders text overlays, and the video path is encoded before publication.
+- [utils/annotation_node.py](utils/annotation_node.py) uses `HostNode` input synchronization to pair gathered OCR results with full-resolution source frames, then renders box/text overlays; the video path is encoded before publication.
 
 ## Constraints
 
 - `REQ_WIDTH = 1152` and `REQ_HEIGHT = 640` are chosen to preserve useful detail for the second stage.
 - OCR throughput depends on the number of detected text regions because each region becomes a recognition crop.
 - Preserve the source detection's host timestamp, device timestamp, and sequence number on each crop config, the config group (including empty groups), and filtered detections; `FrameCropper` synchronizes config groups with frames using device timestamps.
-- The current example publishes overlay text, not a structured export format.
+- Keep detection rectangles rotated when generating recognition crops. For the minimum-size filter, denormalize the rotated rectangle to the source frame before calling `getOuterRect()`; its angle is measured in pixels.
+- For overlays, denormalize a rotated rectangle before calling `getPoints()`, then normalize its pixel corners for `AnnotationHelper`. Calling `getPoints()` directly on a normalized rotated rectangle shears the displayed polygon on a non-square frame.
+- `MessageGroup` iterates keys lexicographically. Keep crop-config keys zero-padded so recognition items align with detections when a frame has 10 or more crops.
+- `OCRAnnotationNode` uses `HostNode.link_args` to match source frames and gathered OCR results by timestamp; it checks sequence numbers before publishing the pair.
 
 ## Related Examples
 
@@ -63,5 +66,5 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Success looks like:` the Visualizer shows encoded `Video` plus `Text` annotations that follow visible text regions
+- `Success looks like:` the Visualizer shows full-resolution encoded `Video` and upright recognized text in `Text` annotations
 - `Common failure meaning:` crops are not being generated correctly, the detector and recognizer are out of sync, or the scene resolution is too low for the OCR stage
