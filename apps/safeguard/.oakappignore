@@ -1,0 +1,35 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Node.js dependencies are installed during the frontend build
+node_modules/
+
+# Multimedia and local model files
+media/
+*.onnx
+
+# Documentation
+README.md
+AGENTS.md
+
+# Local development and validation
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+frontend/dist/
+frontend/styled-system/
+evidence/
+*.oakapp
+
+# VCS
+.gitignore
+.git/
+.github/
+.gitlab/
+
+# Uncomment a line if the build needs one of these files
+# !**/.mypy_cache/
+# !**/.idea
+# !**/.vscode

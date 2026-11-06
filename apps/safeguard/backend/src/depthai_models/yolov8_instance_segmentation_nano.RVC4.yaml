@@ -1,0 +1,2 @@
+model: luxonis/yolov8-instance-segmentation-nano:coco-512x288
+platform: RVC4
