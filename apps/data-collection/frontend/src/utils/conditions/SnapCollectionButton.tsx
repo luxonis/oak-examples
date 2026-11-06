@@ -15,7 +15,7 @@ export function SnapCollectionButton({
 }: SnapActionButtonProps) {
 	return (
 		<Button
-			className="w-full font-semibold"
+			className="w-full"
 			intent={running ? 'error' : 'active'}
 			onClick={onClick}
 			disabled={disabled}
@@ -25,8 +25,8 @@ export function SnapCollectionButton({
 					? 'Stopping...'
 					: 'Starting...'
 				: running
-					? 'Stop Snapping'
-					: 'Start Snapping'}
+					? 'Stop snapping'
+					: 'Start snapping'}
 		</Button>
 	);
 }

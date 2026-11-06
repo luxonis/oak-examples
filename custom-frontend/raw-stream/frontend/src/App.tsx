@@ -1,19 +1,12 @@
-import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Streams } from '@luxonis/depthai-viewer-common';
+import { AppShell } from './AppShell.tsx';
 import { MessageInput } from './MessageInput.tsx';
 
 function App() {
-	const connection = useDaiConnection();
-
 	return (
-		<main className="flex h-screen w-screen flex-col items-center gap-4 p-4 text-center">
-			<h1 className="text-2xl font-bold">
-				Local Frontend for Visualizer Example
-			</h1>
-
-			<Streams hideToolbar />
-
-			{connection.connected && <MessageInput />}
-		</main>
+		<AppShell title="Raw Stream" streams={<Streams hideToolbar />}>
+			<MessageInput />
+		</AppShell>
 	);
 }
 

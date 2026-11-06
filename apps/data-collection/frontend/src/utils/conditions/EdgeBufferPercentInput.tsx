@@ -1,4 +1,4 @@
-import { Input } from '@luxonis/ui-components';
+import { Flex, Input, Label, SubLabel } from '@luxonis/ui-components';
 import { useId } from 'react';
 
 interface EdgeBufferPercentInputProps {
@@ -17,11 +17,12 @@ export function EdgeBufferPercentInput({
 	disabled,
 }: EdgeBufferPercentInputProps) {
 	const inputId = useId();
+	const helpId = useId();
 
 	return (
-		<div className="flex flex-col gap-2">
-			<label htmlFor={inputId} className="font-medium">
-				Edge buffer (each side) - 0-49%
+		<Flex direction="column" gap="xs">
+			<label htmlFor={inputId}>
+				<Label text="Edge buffer per side (0 to 49%)" />
 			</label>
 			<Input
 				id={inputId}
@@ -36,12 +37,13 @@ export function EdgeBufferPercentInput({
 				onBlur={onBlur}
 				disabled={disabled}
 				aria-invalid={!valid && !disabled}
+				aria-describedby={helpId}
 				aria-label="Lost-in-middle edge buffer percent (0-49)"
 			/>
-			<span className="text-xs text-muted-foreground">
-				We ignore the outer margin on every edge; only losses inside the
-				remaining center fire snaps.
-			</span>
-		</div>
+			<SubLabel
+				id={helpId}
+				text="The outer margin on every edge is ignored. Only losses inside the remaining center fire snaps."
+			/>
+		</Flex>
 	);
 }

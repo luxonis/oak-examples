@@ -1,6 +1,6 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Input } from '@luxonis/ui-components';
-import { useRef, useState } from 'react';
+import { Badge, Button, Flex, Input, Label } from '@luxonis/ui-components';
+import { type FormEvent, useRef, useState } from 'react';
 import { postToObjectVolumeService } from './services.ts';
 
 export function ClassSelector() {
@@ -12,7 +12,8 @@ export function ClassSelector() {
 		'TV',
 	]);
 
-	const handleSendMessage = () => {
+	const handleSendMessage = (event: FormEvent) => {
+		event.preventDefault();
 		if (!inputRef.current) return;
 
 		const updatedClasses = inputRef.current.value
@@ -38,30 +39,37 @@ export function ClassSelector() {
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
-			<h3 className="font-semibold">Update Classes with Text Input:</h3>
-			<div className="rounded-md border border-border bg-card p-4 text-sm">
-				<ul className="m-0 list-disc pl-6">
+		<Flex direction="column" gap="sm">
+			<Flex direction="column" gap="xs">
+				<Label id="ovm-active-classes-label" text="Active classes" />
+				<ul
+					aria-labelledby="ovm-active-classes-label"
+					className="flex flex-wrap gap-2"
+				>
 					{selectedClasses.map((className) => (
-						<li key={className}>{className}</li>
+						<li key={className}>
+							<Badge intent="gray" variant="light" label={className} />
+						</li>
 					))}
 				</ul>
-			</div>
+			</Flex>
 
-			<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-1">
-				<Input
-					className="min-w-0 w-full"
-					type="text"
-					placeholder="person,chair,TV"
-					ref={inputRef}
-				/>
-				<Button
-					className="shrink-0 whitespace-nowrap px-4"
-					onClick={handleSendMessage}
-				>
-					Update Classes
-				</Button>
-			</div>
-		</div>
+			<form onSubmit={handleSendMessage}>
+				<Flex direction="column" gap="xs">
+					<label htmlFor="ovm-class-input">
+						<Label text="New classes, separated by commas" />
+					</label>
+					<div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+						<Input
+							id="ovm-class-input"
+							type="text"
+							placeholder="person, chair, TV"
+							ref={inputRef}
+						/>
+						<Button type="submit">Update classes</Button>
+					</div>
+				</Flex>
+			</form>
+		</Flex>
 	);
 }

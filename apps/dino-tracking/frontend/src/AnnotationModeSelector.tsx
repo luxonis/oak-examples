@@ -1,5 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button } from '@luxonis/ui-components';
+import { Button, Label } from '@luxonis/ui-components';
 import { useNotifications } from './Notifications.tsx';
 import { postToDinoTrackingService } from './services.ts';
 
@@ -12,7 +12,7 @@ type Props = {
 
 const modes: { id: Mode; label: string }[] = [
 	{ id: 'heatmap', label: 'Heatmap' },
-	{ id: 'bbox', label: 'BBoxes' },
+	{ id: 'bbox', label: 'Bounding boxes' },
 ];
 
 export function AnnotationModeSelector({ currentMode, setCurrentMode }: Props) {
@@ -27,7 +27,8 @@ export function AnnotationModeSelector({ currentMode, setCurrentMode }: Props) {
 			return;
 		}
 
-		notify(`Switching to "${mode}"...`, { type: 'info' });
+		const label = modes.find((entry) => entry.id === mode)?.label ?? mode;
+		notify(`Switching to ${label.toLowerCase()}...`, { type: 'info' });
 
 		postToDinoTrackingService(
 			connection.daiConnection,
@@ -36,32 +37,35 @@ export function AnnotationModeSelector({ currentMode, setCurrentMode }: Props) {
 			() => {
 				console.log('[Annotation] BE acknowledged:', mode);
 				setCurrentMode(mode);
-				notify(`Annotation mode set to "${mode}"`, { type: 'success' });
+				notify(`Annotation mode set to ${label.toLowerCase()}`, {
+					type: 'success',
+				});
 			},
 		);
 	};
 
 	return (
-		<div className="flex flex-col gap-3">
-			<h3 className="font-semibold">Annotation mode</h3>
-
-			<div className="grid grid-cols-2 gap-3">
+		<fieldset className="flex flex-col gap-1">
+			<legend>
+				<Label text="Annotation mode" />
+			</legend>
+			<div className="grid grid-cols-2 gap-2">
 				{modes.map(({ id, label }) => {
 					const isActive = id === currentMode;
 
 					return (
 						<Button
 							key={id}
-							variant={isActive ? 'light' : 'filled'}
-							intent={isActive ? 'gray' : 'active'}
+							variant={isActive ? 'filled' : 'outline'}
+							intent={isActive ? 'active' : 'gray'}
+							aria-pressed={isActive}
 							onClick={() => handleClick(id)}
-							disabled={isActive}
 						>
 							{label}
 						</Button>
 					);
 				})}
 			</div>
-		</div>
+		</fieldset>
 	);
 }

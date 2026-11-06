@@ -38,7 +38,7 @@ export function ConfidenceSlider({
 
 	return (
 		<SliderControl
-			label={`Confidence Threshold: ${(value * 100).toFixed(0)}%`}
+			label={`Confidence threshold ${(value * 100).toFixed(0)}%`}
 			value={value}
 			onChange={setValue}
 			onCommit={handleCommit}

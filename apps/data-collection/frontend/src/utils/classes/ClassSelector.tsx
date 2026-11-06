@@ -1,6 +1,14 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Input, useToast } from '@luxonis/ui-components';
-import { useEffect, useRef, useState } from 'react';
+import {
+	Badge,
+	Button,
+	Flex,
+	Input,
+	Label,
+	SubLabel,
+	useToast,
+} from '@luxonis/ui-components';
+import { useEffect, useId, useRef, useState } from 'react';
 import { postToDataCollectionService } from '../../services.ts';
 
 interface ClassSelectorProps {
@@ -16,6 +24,8 @@ export function ClassSelector({ initialClasses }: ClassSelectorProps) {
 		'TV',
 	]);
 	const { toast } = useToast();
+	const inputId = useId();
+	const helpId = useId();
 
 	useEffect(() => {
 		if (initialClasses && initialClasses.length > 0) {
@@ -80,25 +90,40 @@ export function ClassSelector({ initialClasses }: ClassSelectorProps) {
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
-			<h3 className="font-semibold">Update Classes with Text Input:</h3>
-			<ul className="list-disc pl-6">
-				{selectedClasses.map((className) => (
-					<li key={className}>{className}</li>
-				))}
-			</ul>
+		<Flex direction="column" gap="sm">
+			<Flex direction="column" gap="xs">
+				<Label text="Current classes" />
+				<ul className="flex flex-wrap gap-2" aria-label="Current classes">
+					{selectedClasses.map((className) => (
+						<li key={className}>
+							<Badge intent="gray" variant="light" label={className} />
+						</li>
+					))}
+				</ul>
+			</Flex>
 
-			<div className="flex min-w-0 flex-row items-center gap-3 p-1">
-				<Input
-					className="min-w-0 flex-1"
-					type="text"
-					placeholder="person,chair,TV"
-					ref={inputRef}
+			<Flex direction="column" gap="xs">
+				<label htmlFor={inputId}>
+					<Label text="Labels to find" />
+				</label>
+				<Flex direction="row" align="center" gap="xs">
+					<Input
+						id={inputId}
+						className="min-w-0 flex-1"
+						type="text"
+						placeholder="person,chair,TV"
+						aria-describedby={helpId}
+						ref={inputRef}
+					/>
+					<Button className="shrink-0" onClick={handleSendMessage}>
+						Update classes
+					</Button>
+				</Flex>
+				<SubLabel
+					id={helpId}
+					text="Comma separated, for example person, chair, TV."
 				/>
-				<Button className="shrink-0" onClick={handleSendMessage}>
-					Update Classes
-				</Button>
-			</div>
-		</div>
+			</Flex>
+		</Flex>
 	);
 }

@@ -1,11 +1,11 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button } from '@luxonis/ui-components';
+import { Button, Card, Flex } from '@luxonis/ui-components';
 import { useMemo, useRef } from 'react';
+import { AppShell, Steps } from './AppShell.tsx';
 import { ClassSelector } from './ClassSelector.tsx';
 import { ClickCatcher } from './ClickOverlay.tsx';
 import { ConfidenceSlider } from './ConfidenceSlider.tsx';
 import { MeasurementMethodSelector } from './MeasurementMethodSelector.tsx';
-import { TopBar } from './TopBar.tsx';
 import { postToObjectVolumeService } from './services.ts';
 
 function App() {
@@ -23,11 +23,10 @@ function App() {
 	};
 
 	return (
-		<main className="flex h-screen w-screen flex-row gap-6 overflow-auto bg-background p-6">
-			<div className="flex min-w-[760px] flex-1 shrink-0 flex-col overflow-hidden rounded-md border border-border bg-background shadow-sm">
-				<TopBar />
-
-				<div ref={viewerRef} className="relative min-h-0 flex-1">
+		<AppShell
+			title="Object Volume Measurement 3D"
+			streams={
+				<div ref={viewerRef} className="ovm-viewer">
 					<Streams
 						defaultTopics={['Video', 'Pointclouds']}
 						topicGroups={topicGroups}
@@ -40,38 +39,36 @@ function App() {
 						allowedPanelTitle="Video"
 					/>
 				</div>
-			</div>
+			}
+		>
+			<>
+				<Card title="How to use" variant="outline" intent="white">
+					<Steps
+						items={[
+							'Click a detected object in the Video panel to segment it and measure its dimensions and volume.',
+							'Right-click the Video panel, or select Clear selected object, to clear the selection.',
+							'Pick a measurement method to change how the volume is computed.',
+						]}
+					/>
+				</Card>
 
-			<div className="w-0.5 shrink-0 bg-border" />
+				<Card title="Detection" variant="outline" intent="white">
+					<Flex direction="column" gap="sm">
+						<ClassSelector />
+						<ConfidenceSlider initialValue={0.15} />
+					</Flex>
+				</Card>
 
-			<aside className="flex max-h-full w-[420px] min-w-[360px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
-				<h1 className="text-2xl font-bold">Object Volume Measurement 3D</h1>
-				<p className="text-sm leading-6 text-muted-foreground">
-					This example combines a YOLOE segmentation model with DepthAI point
-					clouds to measure real-world objects in 3D. <br />Click any detected object
-					in the Video panel to segment it and get its dimensions and volume.
-				</p>
-
-				<ClassSelector />
-				<ConfidenceSlider initialValue={0.15} />
-
-				<Button className="w-fit" variant="outline" onClick={clearSelection}>
-					Clear Selected Object
-				</Button>
-
-				<MeasurementMethodSelector />
-
-				<div
-					className={`mt-auto border-t border-border pt-4 text-sm ${
-						connection.connected ? 'text-success' : 'text-destructive'
-					}`}
-				>
-					<span>
-						{connection.connected ? 'Connected to device' : 'Disconnected'}
-					</span>
-				</div>
-			</aside>
-		</main>
+				<Card title="Measurement" variant="outline" intent="white">
+					<Flex direction="column" gap="sm">
+						<MeasurementMethodSelector />
+						<Button variant="outline" intent="gray" onClick={clearSelection}>
+							Clear selected object
+						</Button>
+					</Flex>
+				</Card>
+			</>
+		</AppShell>
 	);
 }
 

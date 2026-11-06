@@ -1,3 +1,4 @@
+import { Card, EmptyView, HelpIcon } from '@luxonis/ui-components';
 import { memo, useLayoutEffect, useRef } from 'react';
 import { LogEntry } from './LogEntry';
 import type { Job } from './types';
@@ -32,25 +33,30 @@ export const DecisionLog = memo(function DecisionLog({
 	}, [history]);
 
 	return (
-		<section className="history" aria-labelledby="history-title">
-			<div className="section-heading">
-				<h2 id="history-title">Decision inference log</h2>
-				<span>Last 20 · newest first · memory only</span>
-			</div>
+		<Card
+			className="vdm-history"
+			title="Decision inference log"
+			subtitle="Last 20, newest first, kept in memory only"
+			variant="outline"
+			intent="white"
+		>
 			{history.length ? (
 				<div
 					ref={listRef}
-					className={`history-list${history.length > 5 ? ' is-scrollable' : ''}`}
+					className={`vdm-history-list${history.length > 5 ? ' is-scrollable' : ''}`}
 				>
 					{history.map((job) => (
 						<LogEntry key={job.id} job={job} />
 					))}
 				</div>
 			) : (
-				<div className="empty">
-					Source frames, exact crops and d3-lite answers will appear here.
-				</div>
+				<EmptyView
+					className="vdm-empty"
+					icon={HelpIcon}
+					title="No decisions yet"
+					subtitle="Source frames, exact crops and d3-lite answers will appear here."
+				/>
 			)}
-		</section>
+		</Card>
 	);
 });
