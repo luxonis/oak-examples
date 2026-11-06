@@ -48,12 +48,33 @@
 	position: relative;
 }
 
+.app-streams-fit {
+	height: auto;
+}
+
+.app-streams-fit > * {
+	flex-shrink: 0;
+}
+
+.app-viewer {
+	aspect-ratio: 16 / 9;
+	display: flex;
+	flex-direction: column;
+	max-height: 70vh;
+	min-width: 0;
+	position: relative;
+}
+
 .app-side {
 	display: flex;
 	flex-direction: column;
 	flex-shrink: 0;
 	gap: 1rem;
 	width: 100%;
+}
+
+.app-side > * {
+	flex-shrink: 0;
 }
 
 .app-loading {
@@ -96,6 +117,10 @@
 	.app-streams {
 		flex: 1;
 		height: auto;
+	}
+
+	.app-streams-below {
+		overflow-y: auto;
 	}
 
 	.app-side {

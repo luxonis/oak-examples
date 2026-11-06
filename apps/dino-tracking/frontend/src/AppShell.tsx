@@ -13,11 +13,27 @@ type AppShellProps = {
 	title: string;
 	streams: ReactNode;
 	status?: ReactNode;
+	below?: ReactNode;
+	fitContent?: boolean;
 	children?: ReactNode;
 };
 
-export function AppShell({ title, streams, status, children }: AppShellProps) {
+export function AppShell({
+	title,
+	streams,
+	status,
+	below,
+	fitContent,
+	children,
+}: AppShellProps) {
 	const { connected } = useDaiConnection();
+	const streamsClassName = [
+		'app-streams',
+		below || fitContent ? 'app-streams-fit' : null,
+		below ? 'app-streams-below' : null,
+	]
+		.filter(Boolean)
+		.join(' ');
 
 	return (
 		<div className="app-page">
@@ -36,8 +52,9 @@ export function AppShell({ title, streams, status, children }: AppShellProps) {
 				</div>
 			</header>
 			<main className="app-main">
-				<section className="app-streams" aria-label="Streams">
-					{streams}
+				<section className={streamsClassName} aria-label="Streams">
+					{below ? <div className="app-viewer">{streams}</div> : streams}
+					{below}
 				</section>
 				{children ? <aside className="app-side">{children}</aside> : null}
 			</main>

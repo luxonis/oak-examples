@@ -5,7 +5,8 @@ import { type FormEvent, useState } from 'react';
 type Status =
 	| { kind: 'idle' }
 	| { kind: 'sending' }
-	| { kind: 'answered'; text: string };
+	| { kind: 'answered'; text: string }
+	| { kind: 'failed'; text: string };
 
 export function MessageInput() {
 	const connection = useDaiConnection();
@@ -18,19 +19,26 @@ export function MessageInput() {
 			NonNullable<typeof connection.daiConnection>['postToService']
 		>[0];
 
+		const daiConnection = connection.daiConnection;
+		if (!daiConnection) return;
+
+		const fail = (text: string) => setStatus({ kind: 'failed', text });
 		setStatus({ kind: 'sending' });
-		connection.daiConnection?.postToService(
-			messageService,
-			message,
-			(response) => {
-				setStatus({ kind: 'answered', text: JSON.stringify(response) });
-			},
-		);
+		daiConnection
+			.postToService(
+				messageService,
+				message,
+				(response) => {
+					setStatus({ kind: 'answered', text: JSON.stringify(response) });
+				},
+				(response) => fail(String(response?.error ?? 'No response.')),
+			)
+			.catch((error: unknown) => fail(String(error)));
 		setMessage('');
 	};
 
 	return (
-		<Card title="Message Service" variant="outline" intent="gray">
+		<Card title="Message Service" variant="outline" intent="white">
 			<form onSubmit={handleSubmit}>
 				<Flex direction="column" gap="sm">
 					<label htmlFor="message">
@@ -52,6 +60,9 @@ export function MessageInput() {
 					</Flex>
 					{status.kind === 'answered' ? (
 						<SubLabel text={`Response: ${status.text}`} />
+					) : null}
+					{status.kind === 'failed' ? (
+						<SubLabel color="error" text={`Request failed: ${status.text}`} />
 					) : null}
 				</Flex>
 			</form>
