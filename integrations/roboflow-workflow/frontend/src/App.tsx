@@ -12,8 +12,8 @@ function App() {
 					<Steps
 						items={[
 							'Open a stream with the Streams button in the stream area.',
-							'To switch streams, close the current one with the X button in its toolbar, then pick another.',
-							'Show or hide detection overlays with the filter button in the stream toolbar.',
+							"To switch streams, choose Close Stream in the stream's Stream Settings menu, then pick another.",
+							'Show or hide detection overlays under Annotations in the Stream Settings menu.',
 						]}
 					/>
 				</Flex>
