@@ -1,36 +1,60 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Flex, Input } from '@luxonis/ui-components';
-import { useRef } from 'react';
+import { Button, Card, Flex, Input, SubLabel } from '@luxonis/ui-components';
+import { type FormEvent, useState } from 'react';
+
+type Status =
+	| { kind: 'idle' }
+	| { kind: 'sending' }
+	| { kind: 'answered'; text: string };
 
 export function MessageInput() {
 	const connection = useDaiConnection();
-	const inputRef = useRef<HTMLInputElement>(null);
+	const [message, setMessage] = useState('');
+	const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
-	const handleSendMessage = () => {
-		if (inputRef.current) {
-			const message = inputRef.current.value;
-			const messageService = 'Message Service' as Parameters<
-				NonNullable<typeof connection.daiConnection>['postToService']
-			>[0];
+	const handleSubmit = (event: FormEvent) => {
+		event.preventDefault();
+		const messageService = 'Message Service' as Parameters<
+			NonNullable<typeof connection.daiConnection>['postToService']
+		>[0];
 
-			console.log('Sending message:', message);
-			connection.daiConnection?.postToService(
-				messageService,
-				message,
-				(response) => {
-					console.log('Received response:', response);
-				},
-			);
-
-			inputRef.current.value = '';
-		}
+		setStatus({ kind: 'sending' });
+		connection.daiConnection?.postToService(
+			messageService,
+			message,
+			(response) => {
+				setStatus({ kind: 'answered', text: JSON.stringify(response) });
+			},
+		);
+		setMessage('');
 	};
 
 	return (
-		<Flex direction="row" gap="sm" align="center">
-			<Input type="text" placeholder="Message" ref={inputRef} />
-
-			<Button onClick={handleSendMessage}>Send</Button>
-		</Flex>
+		<Card title="Message Service" variant="outline" intent="gray">
+			<form onSubmit={handleSubmit}>
+				<Flex direction="column" gap="sm">
+					<label htmlFor="message">
+						<SubLabel text="Message sent to the Python backend" />
+					</label>
+					<Flex direction="row" gap="sm" align="center">
+						<Input
+							id="message"
+							value={message}
+							placeholder="Message"
+							onChange={(event) => setMessage(event.target.value)}
+						/>
+						<Button
+							type="submit"
+							disabled={!connection.connected || status.kind === 'sending'}
+						>
+							Send
+						</Button>
+					</Flex>
+					{status.kind === 'answered' ? (
+						<SubLabel text={`Response: ${status.text}`} />
+					) : null}
+				</Flex>
+			</form>
+		</Card>
 	);
 }

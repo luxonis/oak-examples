@@ -30,7 +30,8 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 ## Read First
 
 - [main.py](main.py): pipeline, frontend server startup, topic registration, and service registration
-- [frontend/src/App.tsx](frontend/src/App.tsx): stream rendering and UI shell
+- [frontend/src/App.tsx](frontend/src/App.tsx): stream rendering and the side-column message card
+- [frontend/src/AppShell.tsx](frontend/src/AppShell.tsx) and [frontend/src/index.css](frontend/src/index.css): shared page shell (title, connection badge, streams, side column) copied into every oak-examples custom frontend
 - [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx): frontend service call using `postToService`
 - [frontend/src/main.tsx](frontend/src/main.tsx): `DepthAIContext` and router setup
 - [oakapp.toml](oakapp.toml): static frontend build and standalone entrypoint
@@ -54,7 +55,8 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 
 - `Add a frontend control:` update [frontend/src/App.tsx](frontend/src/App.tsx) or [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx), then add the matching backend service/config handling in [main.py](main.py).
 - `Replace raw stream with NN output:` keep the frontend/server structure and change the pipeline plus registered topics in [main.py](main.py).
-- `Reuse only the frontend shell:` keep [frontend/src/main.tsx](frontend/src/main.tsx), [frontend/src/App.tsx](frontend/src/App.tsx), and the static build path from [oakapp.toml](oakapp.toml).
+- `Reuse only the frontend shell:` keep [frontend/src/main.tsx](frontend/src/main.tsx), [frontend/src/AppShell.tsx](frontend/src/AppShell.tsx), [frontend/src/index.css](frontend/src/index.css), [frontend/src/App.tsx](frontend/src/App.tsx), and the static build path from [oakapp.toml](oakapp.toml).
+- `Add a control card:` put it in the `AppShell` children as a `Card variant="outline" intent="white"`, like the message card in [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx).
 
 ## Constraints
 
