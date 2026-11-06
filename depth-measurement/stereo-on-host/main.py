@@ -1,10 +1,9 @@
-import depthai as dai
-
-from utils.arguments import initialize_argparser
-from utils.host_stereo_sgbm import StereoSGBM
-from utils.host_ssim import SSIM
-from depthai_nodes.node import ApplyDepthColormap
 import cv2
+import depthai as dai
+from depthai_nodes.node import ApplyDepthColormap
+from utils.arguments import initialize_argparser
+from utils.host_ssim import SSIM
+from utils.host_stereo_sgbm import StereoSGBM
 
 RESOLUTION_SIZE = (640, 400)
 
@@ -25,24 +24,8 @@ with dai.Pipeline(device) as pipeline:
     )
     if not depth_enabled:
         raise RuntimeError(
-            "Unable to run this example on device without left & right cameras! (Available cameras: {})".format(
-                cams
-            )
+            f"Unable to run this example on device without left & right cameras! (Available cameras: {cams})"
         )
-
-    calibObj = device.readCalibration()
-
-    stereoSGBM = pipeline.create(StereoSGBM).build(
-        monoLeftOut=left,
-        monoRightOut=right,
-        calibObj=calibObj,
-        device=device,
-        resolution=RESOLUTION_SIZE,
-    )
-    stereoSGBM.inputs["monoLeft"].setBlocking(False)
-    stereoSGBM.inputs["monoLeft"].setMaxSize(2)
-    stereoSGBM.inputs["monoRight"].setBlocking(False)
-    stereoSGBM.inputs["monoRight"].setMaxSize(2)
 
     stereo = pipeline.create(dai.node.StereoDepth).build(
         left=left, right=right, presetMode=dai.node.StereoDepth.PresetMode.FAST_DENSITY
@@ -51,19 +34,31 @@ with dai.Pipeline(device) as pipeline:
     stereo.setExtendedDisparity(False)
     stereo.setSubpixel(True)
 
+    # Both matchers use this calibrated, distortion-corrected geometry.
+    stereo.enableDistortionCorrection(True)
+    stereo.setRectificationUseSpecTranslation(False)
+    stereo.setDisparityToDepthUseSpecTranslation(False)
+    stereo.setDepthAlign(
+        dai.StereoDepthConfig.AlgorithmControl.DepthAlign.RECTIFIED_LEFT
+    )
+    stereo.setRectifyEdgeFillColor(0)
+
+    stereoSGBM = pipeline.create(StereoSGBM).build(
+        stereo.rectifiedLeft, stereo.rectifiedRight
+    )
+
     depth_parser = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
     depth_parser.setColormap(cv2.COLORMAP_JET)
 
     ssim = pipeline.create(SSIM).build(
-        disp_generated=stereo.disparity, disp_calculated=stereoSGBM.raw_disparity_out
+        disp_generated=stereo.disparity,
+        disp_calculated=stereoSGBM.raw_disparity_out,
+        generated_scale=1 << stereo.initialConfig.getSubpixelFractionalBits(),
     )
-    ssim.setMaxGenDisparity(int(stereo.initialConfig.getMaxDisparity()))
-    ssim.setMaxCalDisparity(int(stereoSGBM.max_disparity))
-
-    visualizer.addTopic("Left Cam", stereoSGBM.mono_left)
-    visualizer.addTopic("Right Cam", stereoSGBM.mono_right)
-    visualizer.addTopic("Rectified Left", stereoSGBM.rectified_left)
-    visualizer.addTopic("Rectified Right", stereoSGBM.rectified_right)
+    visualizer.addTopic("Left Cam", left)
+    visualizer.addTopic("Right Cam", right)
+    visualizer.addTopic("Rectified Left", stereo.rectifiedLeft)
+    visualizer.addTopic("Rectified Right", stereo.rectifiedRight)
 
     visualizer.addTopic("Depth generated", depth_parser.out, "depth")
     visualizer.addTopic("Depth SGBM", stereoSGBM.disparity_out, "depth")

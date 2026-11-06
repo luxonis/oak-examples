@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the repo reference for stereo neural inference followed by host-side 3D triangulation. Use it when you need two camera streams, paired detections/keypoints, and approximate XYZ reconstruction from left/right image correspondences.
+This is the repo reference for stereo neural inference followed by host-side 3D triangulation. Use it when you need two camera streams, paired detections/keypoints, and calibrated XYZ reconstruction from left/right image correspondences.
 
 ## Use This Example When
 
@@ -45,13 +45,14 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 ## Architecture
 
 - `populate_pipeline()` builds a left or right camera branch on `CAM_B` or `CAM_C`.
-- Each branch requests frames at the YuNet input size and runs `ParsingNeuralNetwork`.
+- `StereoDepth` supplies distortion-corrected rectified images at YuNet input size, using calibrated translation. A host `RectifiedColor` node replicates mono into the model color format; each branch runs `ParsingNeuralNetwork` on that geometry.
+- The host consumes inference passthrough frames and parsed detections, checks per-camera sequence identity and cross-camera timestamps within 5 ms, and uses rectified-left frame intrinsics.
 - The custom [utils/host_triangulation.py](utils/host_triangulation.py) host node consumes:
   - left camera frames
   - right camera frames
   - left detections
   - right detections
-- Separate `VideoEncoder` branches produce the left, right, and combined display streams for the Visualizer.
+- Raw left, right, and combined frames go to the Visualizer, supporting both platforms without an encoder-dependent format path.
 - The host node emits annotations for:
   - left bounding boxes
   - right bounding boxes
@@ -62,10 +63,9 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 
 ## Data Flow
 
-- `CAM_B -> YuNet -> left detections`
-- `CAM_C -> YuNet -> right detections`
+- `CAM_B/CAM_C -> StereoDepth rectification -> YuNet -> left/right detections`
 - `left/right frames + detections -> Triangulation host node -> overlays + combined frame`
-- `encoded left/right/combined frames + annotations -> Visualizer topics`
+- `raw left/right/combined frames + annotations -> Visualizer topics`
 
 ## Modification Guide
 
@@ -82,14 +82,19 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 
 ## Constraints
 
+- RVC2 YuNet explicitly uses 6-SHAVE superblob variants and one inference thread so the stereo rectification branch fits the resource budget.
+
+- `RectifiedColor` runs on the host because RVC4 `ImageManip` cannot convert StereoDepth RAW8 to the model color format. This adds a host round trip, while retaining geometry and metadata.
+
 - This is a demo association strategy, not a robust multi-face matching system.
-- [utils/host_triangulation.py](utils/host_triangulation.py) only triangulates the first detection pair when detections exist on both sides.
-- [utils/stereo_inference.py](utils/stereo_inference.py) computes disparity from Euclidean pixel distance between keypoint locations, so treat the reported XYZ values as demo outputs rather than a precision spatial reference.
+- Only one face on each side is accepted; multiple faces suppress measurements. This does not guarantee identity association, so use a single-face scene.
+- [utils/stereo_inference.py](utils/stereo_inference.py) uses signed horizontal disparity, calibrated baseline in mm and rectified-left intrinsics. It rejects disparity <= 0.5 px, non-finite points and vertical errors > 3 px. XYZ is in mm in the rectified-left camera frame: X right, Y down, Z forward.
+- It assumes a horizontal stereo pair and corresponding YuNet keypoint indices. Rectification cannot fix incorrect detection association.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
 
 ## Non-Obvious Repo Conventions
 
-- Left/right display topics are encoded with `VideoEncoder`; they are not raw image topics.
+- Left/right display topics use the neural network passthrough frames to preserve the inference geometry.
 - The combined frame is generated on the host with `cv2.addWeighted`.
 - `Measurements Info` is annotation-only text derived from the first keypoint pair, not a structured data stream.
 - [oakapp.toml](oakapp.toml) uses a `runsvdir` service-style entrypoint even though there is no custom frontend.
@@ -107,3 +112,5 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows left, right, and combined views with face boxes, keypoints, disparity lines, and measurement text
 - `Common failure meaning:` the stereo camera topology is missing, the YuNet model bundle is unavailable, or left/right detections are not pairing well enough for triangulation
+
+- Run `python3 -m unittest discover -s tests -p test_rectified_geometry.py` from the repository root for known-depth/off-axis synthetic geometry and invalid correspondence regressions. Validate real scale with measured distances; an office scene alone does not establish accuracy.
