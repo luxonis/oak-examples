@@ -5,38 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Diagnostic data capture</title>
   <style>
-    :root { color-scheme: dark; font: 15px/1.45 system-ui, sans-serif; background: #111820; color: #edf3f7; }
+    :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; background: #0b111b; color: #edf3f7; }
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 18px; }
-    header, .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    header { justify-content: space-between; margin: 0 auto 14px; max-width: 1500px; }
-    h1 { font-size: 1.25rem; margin: 0; }
-    .controls { padding: 12px; border: 1px solid #344452; border-radius: 10px; background: #19232d; }
-    label { display: grid; gap: 4px; color: #bac8d2; font-size: .85rem; }
-    input { min-width: 130px; padding: 8px 10px; border-radius: 6px; border: 1px solid #536573; background: #0f171e; color: inherit; font: inherit; }
-    #output { min-width: min(420px, 80vw); }
-    button { padding: 9px 16px; border: 0; border-radius: 6px; background: #54b6da; color: #07141b; font: inherit; font-weight: 700; cursor: pointer; }
-    button:disabled { opacity: .55; cursor: wait; }
-    #message { min-height: 1.5em; color: #b8dcea; }
-    #details { max-width: 1500px; margin: 10px auto; color: #bac8d2; }
-    #saved { color: #9dd9ae; overflow-wrap: anywhere; }
-    iframe { display: block; width: 100%; height: 75vh; min-height: 380px; margin: 14px auto 0; border: 1px solid #344452; border-radius: 8px; background: #080d11; }
-    @media (max-width: 600px) { body { padding: 10px; } .controls { align-items: stretch; } #output { min-width: 0; width: 100%; } iframe { min-height: 300px; } }
+    body { margin: 0; padding: 20px; }
+    .capture-panel { background: #111b29; border: 1px solid #29374b; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 28px #0002; }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 24px 16px; }
+    .eyebrow { color: #7f96af; font-size: 10px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; margin-bottom: 4px; }
+    h1 { font-size: 21px; font-weight: 650; letter-spacing: -.025em; margin: 0; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; border-radius: 20px; padding: 6px 11px; color: #b7c7da; background: #233145; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .badge::before { content: ''; width: 7px; height: 7px; background: currentColor; border-radius: 50%; }
+    .badge[data-tone="ready"] { background: #113c32; color: #8ce1ba; }
+    .badge[data-tone="busy"] { background: #193b55; color: #89d3f7; }
+    .badge[data-tone="error"] { background: #4b282e; color: #ffafb5; }
+    .device-row { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding: 0 24px 18px; color: #9aadc4; font-size: 12px; }
+    #device-name { color: #d5e1ef; font-weight: 600; }
+    .meta-label { color: #748aa4; margin-right: 5px; }
+    .streams { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+    .stream { background: #1a283b; border: 1px solid #304057; color: #b9cce1; padding: 2px 8px; border-radius: 5px; font-size: 11px; }
+    .controls { display: grid; grid-template-columns: 130px minmax(180px, 1fr) auto; gap: 16px; align-items: end; padding: 20px 24px; background: #152132; border-top: 1px solid #29374b; }
+    label { display: grid; gap: 7px; color: #bacbdf; font-size: 12px; font-weight: 600; }
+    input { width: 100%; min-width: 0; height: 42px; padding: 9px 12px; border-radius: 7px; border: 1px solid #394b64; background: #0d1725; color: #edf3f7; font: 14px system-ui, sans-serif; outline: none; }
+    input:focus { border-color: #69c8ed; box-shadow: 0 0 0 3px #69c8ed20; }
+    #output { font-family: ui-monospace, monospace; font-size: 12px; }
+    button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 42px; padding: 0 22px; border: 1px solid #82d8f7; border-radius: 7px; background: #66c7eb; color: #082032; font: 600 14px system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+    button:hover:not(:disabled) { background: #8fdaf5; }
+    button:focus-visible { outline: 2px solid #b9ecff; outline-offset: 3px; }
+    button:disabled { opacity: .45; cursor: wait; }
+    .capture-icon { width: 10px; height: 10px; background: currentColor; border-radius: 50%; }
+    .status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px; border-top: 1px solid #29374b; color: #a2b7cf; font-size: 12px; }
+    #message { margin: 0; }
+    .host-note { color: #758ca7; white-space: nowrap; }
+    #saved { margin: 0; padding: 12px 24px; border-top: 1px solid #29374b; background: #102d29; color: #a3e5c6; font: 12px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
+    [hidden] { display: none !important; }
+    iframe { display: block; width: 100%; height: 75vh; min-height: 380px; margin: 18px auto 0; border: 1px solid #29374b; border-radius: 12px; background: #080d11; }
+    @media (max-width: 800px) { body { padding: 12px; } .streams { margin-left: 0; width: 100%; } .controls { grid-template-columns: 110px minmax(0, 1fr); } .path-field { grid-column: 1 / -1; grid-row: 1; } button { justify-self: end; } .host-note { display: none; } .panel-heading, .controls { padding: 16px; } .device-row { padding: 0 16px 16px; } .status-row, #saved { padding: 12px 16px; } h1 { font-size: 18px; } }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Diagnostic data capture</h1>
-    <div class="controls">
-      <label>Frame sets<input id="frames" type="number" min="1" step="1" value="5"></label>
-      <label>Output path<input id="output" type="text" autocomplete="off" placeholder="/data/captures/run-001"></label>
-      <button id="start" type="button">Start capture</button>
+  <header class="capture-panel">
+    <div class="panel-heading">
+      <div><div class="eyebrow">OAK diagnostics</div><h1>Data capture</h1></div>
+      <span id="state-badge" class="badge" data-tone="busy">Connecting</span>
     </div>
+    <div class="device-row" aria-label="Connected device">
+      <span id="device-name">Detecting device…</span>
+      <span><span class="meta-label">Device ID</span><span id="device-id">—</span></span>
+      <span><span class="meta-label">OS</span><span id="device-os">—</span></span>
+      <div id="streams" class="streams" aria-label="Available streams"></div>
+    </div>
+    <div class="controls">
+      <label>Frame sets<input id="frames" type="number" min="1" max="10000" step="1" value="5"></label>
+      <label class="path-field">Save to folder<input id="output" type="text" autocomplete="off" spellcheck="false" placeholder="/path/to/captures"></label>
+      <button id="start" type="button" disabled><span class="capture-icon" aria-hidden="true"></span>Start capture</button>
+    </div>
+    <div class="status-row">
+      <p id="message" role="status" aria-live="polite">Connecting to capture app…</p>
+      <span class="host-note">Files saved on this host</span>
+    </div>
+    <p id="saved" hidden></p>
   </header>
   <main>
-    <div id="message" role="status" aria-live="polite">Connecting to capture app…</div>
-    <div id="details"></div>
-    <div id="saved"></div>
     <iframe id="visualizer" title="DepthAI Visualizer" allow="clipboard-read; clipboard-write"></iframe>
   </main>
   <script>
@@ -54,19 +82,34 @@
         byId('frames').value = status.frames || 5;
         initialized = true;
       }
-      const lines = [];
-      for (const [label, value] of [['State', status.state], ['Device', status.device],
-        ['Streams', status.streams], ['Progress', status.progress], ['Details', status.details]]) {
-        if (value !== undefined && value !== null && value !== '')
-          lines.push(`${label}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
+      const device = status.device || {};
+      byId('device-name').textContent = device.name || 'Device unavailable';
+      byId('device-id').textContent = device.id || '—';
+      byId('device-os').textContent = device.os || '—';
+      const labels = {rgb: 'RGB', left: 'Left', right: 'Right', tof_depth: 'ToF depth', tof_confidence: 'ToF confidence'};
+      const streams = Array.isArray(status.streams) ? status.streams : [];
+      const key = streams.join(',');
+      if (byId('streams').dataset.streams !== key) {
+        byId('streams').replaceChildren(...streams.map(name => {
+          const chip = document.createElement('span');
+          chip.className = 'stream';
+          chip.textContent = labels[name] || name;
+          return chip;
+        }));
+        byId('streams').dataset.streams = key;
       }
-      byId('details').textContent = lines.join('  •  ');
-      byId('saved').textContent = status.saved_path ? `${status.state === 'complete' ? 'Saved path' : 'Capture path'}: ${status.saved_path}` : '';
+      const states = {starting: 'Starting', warming_up: 'Warming up', ready: 'Ready', queued: 'Queued', capturing: 'Capturing', saving: 'Saving', complete: 'Capture saved', error: 'Capture failed', incomplete: 'Incomplete'};
+      byId('state-badge').textContent = states[status.state] || 'Connecting';
+      byId('state-badge').dataset.tone = ['ready', 'complete'].includes(status.state) ? 'ready' : ['error', 'incomplete'].includes(status.state) ? 'error' : 'busy';
+      byId('saved').hidden = !status.saved_path;
+      byId('saved').textContent = status.saved_path ? `${status.state === 'complete' ? 'Saved to' : 'Capture folder'}  ${status.saved_path}` : '';
       if (status.state === 'warming_up') show(`Sensors warming up: ${status.warmup_remaining} seconds remaining`);
       else if (status.error) show(status.error);
       else if (status.state === 'capturing') show(`Capturing: ${status.completed_frames}/${status.frames} frame sets`);
       else if (status.state === 'complete') show(`Saved ${status.completed_frames} frame sets. Ready for another capture.`);
       else if (status.state === 'ready') show('Preview is live. Ready to capture.');
+      else if (status.state === 'queued') show('Preparing your capture…');
+      else if (status.state === 'starting') show('Starting camera streams…');
       const busy = status.busy === true || ['starting', 'warming_up', 'queued', 'capturing', 'saving'].includes(status.state);
       start.disabled = busy;
     }
@@ -76,7 +119,12 @@
         const response = await fetch('/api/status', { cache: 'no-store' });
         if (!response.ok) throw new Error(`Status request failed (${response.status})`);
         describe(await response.json());
-      } catch (error) { show(error.message); }
+      } catch (error) {
+        show(error.message);
+        byId('state-badge').textContent = 'Disconnected';
+        byId('state-badge').dataset.tone = 'error';
+        start.disabled = true;
+      }
     }
 
     start.addEventListener('click', async () => {
