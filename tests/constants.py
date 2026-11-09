@@ -167,10 +167,6 @@ KNOWN_FAILING = {
         "reason": "Missing token, please set DEPTHAI_HUB_API_KEY environment variable or use setToken method",
         "rules": {"and": [{"platform": "all"}]},
     },
-    "depth-measurement/measurement-3d/tof-pointcloud": {
-        "reason": "ToF cameras are only of the RVC2 variant",
-        "rules": {"and": [{"platform": ["rvc4"]}]},
-    },
     "depth-measurement/triangulation": {
         "reason": "Can't sync outputs inside Triangulation node",
         "rules": {"and": [{"platform": ["rvc4"]}]},

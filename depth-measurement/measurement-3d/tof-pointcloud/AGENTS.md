@@ -2,101 +2,61 @@
 
 ## Summary
 
-This is the ToF-specific depth and point-cloud tuning demo in the repo. Use it when you need interactive runtime control over ToF filters, side-by-side raw versus filtered point clouds, and a desktop GUI rather than a Visualizer-based stereo example.
+A minimal ToF colorized point-cloud pipeline displayed in the DepthAI Viewer, copied from the DepthAI-core ToF point-cloud example. Use it as a starting point for RGB-aligned ToF point clouds.
 
 ## Use This Example When
 
-- You need a ToF reference rather than a stereo-depth reference.
-- You want to tune ToF image filters and base configuration live from a GUI.
-- You need raw and filtered depth windows plus raw and filtered point-cloud comparison.
-- You want a host-side Open3D desktop workflow.
+- You need ToF depth aligned to a color camera.
+- You want a colorized point cloud in the browser-based Viewer.
 
 ## Do Not Use This Example When
 
-- You need standalone OAK app packaging.
-- You need a Visualizer-based pipeline.
-- You need RGB alignment or stereo disparity.
-- You need a small modular example; this script is intentionally monolithic.
+- You need a ToF-only device without a color camera.
+- You need individual filter controls or standalone packaging.
 
 ## Quick Facts
 
 - `Category:` `depth-measurement/measurement-3d/tof-pointcloud`
-- `Shape:` `script+desktop-ui`
-- `Primary task:` interactive ToF filter tuning with raw versus filtered point-cloud visualization
+- `Shape:` `script`
+- `Primary task:` RGB-aligned ToF point-cloud visualization
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` none
-- `Frontend:` local desktop UI via Tkinter, OpenCV, and Open3D
-- `Runs on:` ToF camera devices only; effectively a host-driven RVC2 workflow
-- `Requires:` ToF hardware, Python desktop environment, OpenGL-capable Open3D setup, and Tkinter/OpenCV support
-- `Input:` raw and filtered ToF depth streams from a `dai.node.ToF` pipeline
-- `Output:` `ToF Raw Depth`, `ToF Filtered Depth`, and two Open3D point-cloud windows
-- `Models:` none
-- `Visualizer / UI:` Tkinter control panel, OpenCV image windows, Open3D visualizers
+- `Runs on:` host Python with RVC2 or RVC4 ToF and color hardware
+- `Requires:` DepthAI and a browser
+- `Output:` Viewer `pcl` topic in the `3d` group at http://localhost:8082
 
 ## Read First
 
-- [README.md](README.md): hardware and host dependency expectations
-- [main.py](main.py): entire application, including GUI, Open3D thread, and ToF pipeline
-- [requirements.txt](requirements.txt): host dependencies needed for this example
+- [main.py](main.py): complete pipeline
+- [README.md](README.md): running the example
+- [requirements.txt](requirements.txt): SDK version
 
 ## Architecture
 
-- The entire example lives in [main.py](main.py).
-- `camera_pipeline()` builds one `dai.node.ToF` pipeline on `CAM_A`.
-- The Tkinter `FilterGUI` owns the runtime controls for:
-  - ToF base configuration
-  - ToF confidence filter
-  - image filters such as speckle, temporal, spatial, and median
-  - point-cloud decimation and max-distance controls
-- A background Open3D thread maintains two independent point-cloud windows:
-  - `RAW Point Cloud`
-  - `FINAL Point Cloud`
-- The main thread runs the GUI; the camera pipeline runs in a daemon thread.
-
-## Data Flow
-
-- `ToF.rawDepth -> ToF Raw Depth window -> RAW point-cloud generator`
-- `ToF.depth -> ToF Filtered Depth window -> FINAL point-cloud generator`
-- `Tkinter controls -> config queues -> ToF node runtime configuration`
-- `stored latest depth frames -> Open3D point-cloud windows`
-
-## Modification Guide
-
-- `Safe to change:` initial filter defaults, point-cloud decimation defaults, max-distance defaults, window titles
-- `Requires care:` the multi-threaded global state for point-cloud updates, camera intrinsics handling, and GUI-to-queue wiring
-- `Likely to break if changed blindly:` the Open3D update thread, Tkinter main-thread ownership, and the assumptions that both raw and filtered depth frames are always available
-
-## Common Adaptations
-
-- `To reuse only the ToF pipeline:` extract `camera_pipeline()` and drop the GUI/Open3D sections
-- `To change default filter behavior:` edit [main.py](main.py) in `get_initial_filter_params()` and the Tkinter variable defaults
-- `To disable point clouds and keep only 2D visualization:` remove the Open3D thread setup and keep the OpenCV windows
-- `To compare against stereo point clouds:` use [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud) as the stereo baseline
+- Based on `depthai-core/examples/python/ToF/tof_pointcloud.py`.
+- ToF uses automatic socket selection, high-range preset, and a requested 30 FPS.
+- Color uses `CAM_A` on RVC4 or `CAM_C` on RVC2, with undistorted 640×400 RGB output.
+- Host `ImageAlign` aligns ToF depth to color; `PointCloud` combines aligned depth and color.
+- `RemoteConnection` publishes the point cloud. Viewer `q` exits the pipeline.
+- [utils/mode_menu.py](utils/mode_menu.py) serves a range selector at port 8082 around the Viewer iframe at port 8083. [utils/mode_menu.html](utils/mode_menu.html) provides Close, Mid, and Far range choices.
+- The menu starts serving only after the pipeline starts and the Viewer is registered, so its iframe cannot load before the Viewer server is ready.
+- Mode changes send a `ToFConfig` with the selected low/mid/high range profile to `tofBaseInputConfig` without restarting the pipeline. RVC2 also receives the corresponding `ImageFiltersConfig` preset; RVC4 uses device processing.
 
 ## Constraints
 
-- The README explicitly notes that standalone mode is not supported here.
-- The example depends on a desktop environment; it is a poor fit for headless or container-only execution.
-- Open3D initialization can fail on unsupported OpenGL/X11 setups; the script prints Linux/WSL guidance when that happens.
-- This is a single large script, so it is less reusable as a code skeleton than the smaller stereo examples.
-- The ToF node is built on `CAM_A`, which is a hardware assumption in the current script.
-
-## Non-Obvious Repo Conventions
-
-- Pressing `p` pauses point-cloud updates, not the camera pipeline itself.
-- Pressing `1` and `2` triggers manual raw or final point-cloud refresh from the latest stored frames.
-- Pressing `v` resets the Open3D views; it does not change ToF filter settings.
-- The GUI root runs on the main thread, while the pipeline and OpenCV handling run in a daemon thread.
+- Requires a color camera at the selected socket as well as ToF.
+- RVC4 ToF depth already includes device processing; this example does not request `rawDepth`.
+- There is no Open3D, OpenCV display, Tkinter UI, or custom confidence filter.
+- The pipeline runs on the host and has no standalone packaging.
+- Both HTTP ports 8082 and 8083, and Viewer WebSocket port 8765, must be accessible when viewing remotely.
 
 ## Related Examples
 
-- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you want a stereo RGBD point-cloud baseline instead of ToF
-- [depth-measurement/wls-filter](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/wls-filter): use this when you want host-side stereo post-processing rather than ToF filtering
-- [depth-measurement/dynamic-calibration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/dynamic-calibration): use this when your goal is stereo calibration workflows rather than ToF tuning
-- [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you want another host-processing depth reference built around stereo disparity instead of ToF point clouds
+- [RGBD point cloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): unified-depth alternative
 
 ## Validation
 
-- `Run:` `python3 main.py`
-- `Success looks like:` the Tkinter control panel opens, OpenCV shows raw and filtered depth, and Open3D shows separate raw and final point clouds
-- `Common failure meaning:` the device is not a ToF camera, Open3D/Tkinter desktop dependencies are missing, or the environment does not support the required graphics stack
+- Run `DEPTHAI_DEVICE_NAME_LIST=<device-ip> python3 main.py`.
+- Open http://localhost:8082 and display the `pcl` topic in 3D.
+- Success: a live colorized point cloud, with no desktop display windows.
+- Switch between Close, Mid, and Far range and confirm the stream continues.
