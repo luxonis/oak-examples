@@ -150,7 +150,8 @@ class CaptureApp:
             if self.state['state'] not in ('ready', 'complete', 'error'):
                 raise RuntimeError('Wait for warmup or the current capture to finish')
             self.requests.put_nowait((frames, output))
-            self.state.update(state='queued', frames=frames, output=output, error=None)
+            self.state.update(state='queued', frames=frames, output=output, error=None,
+                              saved_path=None, completed_frames=0)
         return {'accepted': True, 'frames': frames, 'output': output}
 
     def start_capture(self, frames, output):
@@ -159,6 +160,7 @@ class CaptureApp:
         folder = Path(output) / f'{name}_{self.device.getDeviceId()}_{stamp}'
         folder.mkdir(parents=True, exist_ok=False)
         self.active = folder
+        self.update(saved_path=str(folder), completed_frames=0)
         self.manifest = None
         self.capture_start = time.monotonic()
         self.manifest = dict(schema_version=1, status='capturing', date=datetime.now().astimezone().isoformat(),

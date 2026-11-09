@@ -115,6 +115,15 @@ class CameraRoleTests(unittest.TestCase):
 
 
 class CaptureRequestStateTests(unittest.TestCase):
+    def test_new_request_clears_previous_capture_path_and_progress(self):
+        args = SimpleNamespace(frames=5, output=Path('/tmp/diagnostic'), warmup=5)
+        app = CaptureApp(args, FakeDevice())
+        app.update(state='complete', saved_path='/previous/capture', completed_frames=5)
+        app.request({'frames': 3, 'output': '/tmp/diagnostic'})
+        self.assertEqual(app.status()['state'], 'queued')
+        self.assertIsNone(app.status()['saved_path'])
+        self.assertEqual(app.status()['completed_frames'], 0)
+
     def setUp(self):
         args = SimpleNamespace(frames=5, output=Path("captures"), warmup=5.0)
         self.app = CaptureApp(args, FakeDevice())
