@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diagnostic data capture</title>
+  <style>
+    :root { color-scheme: dark; font: 15px/1.45 system-ui, sans-serif; background: #111820; color: #edf3f7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 18px; }
+    header, .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    header { justify-content: space-between; margin: 0 auto 14px; max-width: 1500px; }
+    h1 { font-size: 1.25rem; margin: 0; }
+    .controls { padding: 12px; border: 1px solid #344452; border-radius: 10px; background: #19232d; }
+    label { display: grid; gap: 4px; color: #bac8d2; font-size: .85rem; }
+    input { min-width: 130px; padding: 8px 10px; border-radius: 6px; border: 1px solid #536573; background: #0f171e; color: inherit; font: inherit; }
+    #output { min-width: min(420px, 80vw); }
+    button { padding: 9px 16px; border: 0; border-radius: 6px; background: #54b6da; color: #07141b; font: inherit; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #message { min-height: 1.5em; color: #b8dcea; }
+    #details { max-width: 1500px; margin: 10px auto; color: #bac8d2; }
+    #saved { color: #9dd9ae; overflow-wrap: anywhere; }
+    iframe { display: block; width: 100%; height: 75vh; min-height: 380px; margin: 14px auto 0; border: 1px solid #344452; border-radius: 8px; background: #080d11; }
+    @media (max-width: 600px) { body { padding: 10px; } .controls { align-items: stretch; } #output { min-width: 0; width: 100%; } iframe { min-height: 300px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Diagnostic data capture</h1>
+    <div class="controls">
+      <label>Frame sets<input id="frames" type="number" min="1" step="1" value="5"></label>
+      <label>Output path<input id="output" type="text" autocomplete="off" placeholder="/data/captures/run-001"></label>
+      <button id="start" type="button">Start capture</button>
+    </div>
+  </header>
+  <main>
+    <div id="message" role="status" aria-live="polite">Connecting to capture app…</div>
+    <div id="details"></div>
+    <div id="saved"></div>
+    <iframe id="visualizer" title="DepthAI Visualizer" allow="clipboard-read; clipboard-write"></iframe>
+  </main>
+  <script>
+    const byId = id => document.getElementById(id);
+    const message = byId('message');
+    const start = byId('start');
+    const visualizerPort = new URLSearchParams(location.search).get('visualizer_port') || '8082';
+    byId('visualizer').src = `http://${location.hostname}:${encodeURIComponent(visualizerPort)}`;
+
+    function show(value) { message.textContent = value == null ? '' : String(value); }
+    let initialized = false;
+    function describe(status) {
+      if (!initialized) {
+        byId('output').value = status.output || '';
+        byId('frames').value = status.frames || 5;
+        initialized = true;
+      }
+      const lines = [];
+      for (const [label, value] of [['State', status.state], ['Device', status.device],
+        ['Streams', status.streams], ['Progress', status.progress], ['Details', status.details]]) {
+        if (value !== undefined && value !== null && value !== '')
+          lines.push(`${label}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);
+      }
+      byId('details').textContent = lines.join('  •  ');
+      byId('saved').textContent = status.saved_path ? `${status.state === 'complete' ? 'Saved path' : 'Capture path'}: ${status.saved_path}` : '';
+      if (status.state === 'warming_up') show(`Sensors warming up: ${status.warmup_remaining} seconds remaining`);
+      else if (status.error) show(status.error);
+      else if (status.state === 'capturing') show(`Capturing: ${status.completed_frames}/${status.frames} frame sets`);
+      else if (status.state === 'complete') show(`Saved ${status.completed_frames} frame sets. Ready for another capture.`);
+      else if (status.state === 'ready') show('Preview is live. Ready to capture.');
+      const busy = status.busy === true || ['starting', 'warming_up', 'queued', 'capturing', 'saving'].includes(status.state);
+      start.disabled = busy;
+    }
+
+    async function poll() {
+      try {
+        const response = await fetch('/api/status', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Status request failed (${response.status})`);
+        describe(await response.json());
+      } catch (error) { show(error.message); }
+    }
+
+    start.addEventListener('click', async () => {
+      const frames = Number(byId('frames').value);
+      const output = byId('output').value.trim();
+      if (!Number.isSafeInteger(frames) || frames < 1 || !output) {
+        show('Enter a positive frame count and an output path.');
+        return;
+      }
+      start.disabled = true;
+      show('Requesting capture…');
+      try {
+        const response = await fetch('/api/capture', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ frames, output })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Capture request failed (${response.status})`);
+        show(result.message || 'Capture queued.');
+        if (result.saved_path) byId('saved').textContent = `Saved path: ${result.saved_path}`;
+        await poll();
+      } catch (error) { show(error.message); start.disabled = false; }
+    });
+
+    poll();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>

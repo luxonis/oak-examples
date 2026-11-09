@@ -1,4 +1,8 @@
 KNOWN_FAILING = {
+    "apps/diagnostic-data-capture": {
+        "reason": "Host capture requires RVC4; standalone storage is not supported",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["standalone"]}]},
+    },
     "apps/focused-vision": {
         "reason": "RVC4 only app",
         "rules": {"and": [{"platform": ["rvc2"]}]},
