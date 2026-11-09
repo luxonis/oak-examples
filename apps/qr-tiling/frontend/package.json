@@ -32,5 +32,10 @@
 		"tailwindcss": "^4.1.13",
 		"typescript": "~5.7.2",
 		"vite": "^6.3.1"
+	},
+	"overrides": {
+		"@luxonis/depthai-viewer-common": {
+			"zod": "^4.6.6"
+		}
 	}
 }
