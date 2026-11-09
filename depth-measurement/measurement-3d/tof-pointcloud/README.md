@@ -1,40 +1,18 @@
-# ToF pointcloud example
+# ToF point cloud in the Viewer
 
-This example shows how to use `depthai`'s ToF node and visualize some of its outputs, including `depth` and `depthRaw`.
-Moreover, this demo also turns the `depth` images into pointclouds which are then visualized, side-by-side with the `depth` frames, using Open3D.
-Finally, through an interactive GUI, one can adjust the ToF's underlying filters, allowing one to get intution of the filtering techniques used or to tune the settings for one's specific needs.
+This example starts from `depthai-core/examples/python/ToF/tof_pointcloud.py`. It aligns ToF depth to a color camera and displays a colorized point cloud in the DepthAI Viewer.
 
-![output](https://github.com/user-attachments/assets/ab978162-cb00-4f95-89b1-f7b06c60fe7c)
-
-**NOTE**: This example requires a ToF camera. You can get one from the official [Luxonis store](https://shop.luxonis.com/products/oak-d-sr-poe).
-
-## Usage
-
-Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
-
-## Peripheral Mode
-
-### Installation
-
-You need to first prepare a **Python >= 3.10** environment (python versions 3.8 - 3.13 should work too) with the following packages installed:
-
-- [DepthAI](https://pypi.org/project/depthai/),
-- [Open3D](https://pypi.org/project/open3d/)
-
-You can install these dependencies and others with:
+## Run
 
 ```bash
 pip install -r requirements.txt
+DEPTHAI_DEVICE_NAME_LIST=10.11.0.180 python3 main.py
 ```
 
-Running in peripheral mode requires a host computer.
+Open **http://localhost:8082** and select the `pcl` topic in the 3D view. Press `q` in the Viewer or Ctrl+C in the terminal to stop.
 
-### Examples
+Use the **ToF mode** selector above the Viewer to switch between **Close range**, **Mid range**, and **Far range** while streaming. These apply the low-, mid-, and high-range ToF presets; Far range is the default. Port 8082 serves the selector page and embeds the Viewer from port 8083.
 
-```bash
-python3 main.py
-```
+The pipeline selects the ToF socket automatically and uses `CAM_A` for color on RVC4, or `CAM_C` on RVC2. The device needs both ToF and a color camera. The default depth profile is high range, with 30 FPS requested and 640×400 color output.
 
-## Standalone Mode (RVC4 only)
-
-> ⚠️ Luxonis ToF cameras are of the RVC2 variant only, standalone mode is not supported.
+This is a host-side example. All display is in the Viewer; there are no desktop display or filter-control windows.

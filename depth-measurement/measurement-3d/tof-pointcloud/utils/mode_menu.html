@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ToF point cloud</title>
+<style>
+  body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: #111827; color: #f9fafb; font: 14px system-ui; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
+  select { padding: 6px; font: inherit; }
+  iframe { flex: 1; width: 100%; border: 0; }
+</style>
+<header>
+  <label for="mode">ToF mode</label>
+  <select id="mode" disabled>
+    <option value="close">Close range</option>
+    <option value="mid">Mid range</option>
+    <option value="far" selected>Far range</option>
+  </select>
+  <span id="status" role="status">Connecting…</span>
+</header>
+<iframe id="viewer" title="DepthAI Viewer" allow="fullscreen"></iframe>
+<script>
+  const viewer = new URL(location.href);
+  viewer.port = '8083';
+  document.getElementById('viewer').src = viewer.href;
+  const mode = document.getElementById('mode');
+  const status = document.getElementById('status');
+  let submitting = false;
+  async function refresh() {
+    if (submitting) return;
+    try {
+      const response = await fetch('/tof-mode');
+      if (!response.ok) throw new Error('Unable to read ToF mode');
+      const state = await response.json();
+      if (submitting) return;
+      mode.value = state.requested;
+      mode.disabled = state.selected !== state.requested;
+      status.textContent = mode.disabled ? 'Applying mode…' : 'Live';
+    } catch (error) {
+      mode.disabled = true;
+      status.textContent = error.message;
+    }
+  }
+  mode.addEventListener('change', async () => {
+    submitting = true;
+    mode.disabled = true;
+    status.textContent = 'Applying mode…';
+    try {
+      const response = await fetch('/tof-mode', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({mode: mode.value})
+      });
+      if (!response.ok) throw new Error('Unable to change ToF mode');
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      submitting = false;
+    }
+  });
+  refresh();
+  setInterval(refresh, 1000);
+</script>
+</html>
