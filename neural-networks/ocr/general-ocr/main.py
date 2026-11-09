@@ -75,7 +75,13 @@ with dai.Pipeline(device) as pipeline:
     # detection processing and crops config creation
     crop_configs_creator = pipeline.create(CropConfigsCreator)
     crop_configs_creator.build(
-        det_nn.out, (REQ_WIDTH, REQ_HEIGHT), (rec_model_w, rec_model_h)
+        det_nn.out,
+        (REQ_WIDTH, REQ_HEIGHT),
+        (rec_model_w, rec_model_h),
+        resize_mode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
+        confidence_threshold=args.detection_confidence,
+        min_crop_width=args.min_crop_width,
+        min_crop_height=args.min_crop_height,
     )
 
     crop_node = (
@@ -102,9 +108,12 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # annotation
-    annotation_node = pipeline.create(OCRAnnotationNode)
-    gather_data_node.out.link(annotation_node.input)
-    det_nn.passthrough.link(annotation_node.passthrough)
+    annotation_node = pipeline.create(OCRAnnotationNode).build(
+        input_node_out,
+        gather_data_node.out,
+        min_confidence=args.recognition_confidence,
+        min_text_length=args.min_text_length,
+    )
 
     # video encoding
     video_encode_manip = pipeline.create(dai.node.ImageManip)
