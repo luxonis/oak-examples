@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the strongest reference in the repo for RGBD box measurement with instance segmentation, point clouds, and host-side cuboid fitting. Use it when you need an app-shaped stereo+RGB measurement pipeline rather than a generic point cloud viewer.
+This is the strongest reference in the repo for RGB-D box measurement with instance segmentation, `PointCloud` node output, and host-side cuboid fitting. Use it when you need an app-shaped stereo+RGB measurement pipeline rather than a generic point cloud viewer.
 
 ## Use This Example When
 
@@ -22,7 +22,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 - `Category:` `depth-measurement/measurement-3d/box-measurement`
 - `Shape:` `script+standalone`
-- `Primary task:` estimate box dimensions from RGBD plus instance segmentation
+- `Primary task:` estimate box dimensions from a colored point cloud plus instance segmentation
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
@@ -46,26 +46,28 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 ## Architecture
 
 - `CAM_A` provides the RGB stream used for display and inference.
-- `Depth` owns depth-source selection and aligns its depth output to RGB before `RGBD`.
+- `Depth` owns depth-source selection and aligns its depth output to RGB before `PointCloud`.
+- `PointCloud` is configured with `setOrganized(True)` so the cloud keeps one point per pixel in frame order (invalid pixels have `z = 0`), and with `setLengthUnit(CENTIMETER)` so the cuboid fitter works and reports in centimeters without any host-side unit conversion.
+- The point cloud explicitly targets `CAM_A` coordinates, matching the intrinsics used to project cuboid corners.
 - A platform-specific box instance-segmentation archive is loaded from [depthai_models/](depthai_models/).
 - `ImageManip` resizes RGB frames to the model input size before `ParsingNeuralNetwork`.
-- The custom [utils/box_processing_node.py](utils/box_processing_node.py) threaded host node receives:
-  - RGBD point clouds
-  - the NN passthrough RGB frame
+- A host-side `Sync` groups the following inputs within half a camera frame interval before passing them to [utils/box_processing_node.py](utils/box_processing_node.py):
+  - organized, colored point clouds from `PointCloud.outputPointCloud`
+  - the original, undistorted `640x400` RGB frame
   - parsed detections and segmentation masks
-- That host node projects the fitted cuboid back into image space and publishes two separate annotation layers.
+- That host node projects the fitted cuboid back into image space and publishes two separate annotation layers, then forwards the matching RGB frame for display. All three outputs use the RGB frame's timestamp and sequence number.
+- Failed measurements show `measurement unavailable` and a reason beside the box, including the number of perpendicular faces fitted. Dimensions are shown only for the current successful fit; they are not cached across detections.
 
 ## Data Flow
 
 - `CAM_A -> ImageManip -> ParsingNeuralNetwork -> detections + segmentation mask`
-- `Depth -> RGBD -> Pointcloud`
-- `pointcloud + NN passthrough + detections -> BoxProcessingNode -> Box Detections + Cuboid Fit`
-- `CAM_A preview -> Video Stream`
+- `Depth + RGB -> PointCloud -> Pointcloud`
+- `pointcloud + original RGB + detections -> Sync -> BoxProcessingNode -> Box Detections + Cuboid Fit + Video Stream`
 
 ## Modification Guide
 
 - `Safe to change:` topic names, FPS limit default, parser thresholds, projector usage, label text
-- `Requires care:` camera sockets, RGB/depth alignment path, model input dimensions, calibration usage, point-cloud color assumptions
+- `Requires care:` camera sockets, RGB/depth alignment path, model input dimensions, calibration usage, point-cloud color assumptions, the point-cloud length unit (the `CuboidFitter` thresholds and labels assume centimeters)
 - `Likely to break if changed blindly:` the fixed `640x400` and `512x320` assumptions in [utils/box_processing_node.py](utils/box_processing_node.py), intrinsics scaling, and mask reprojection logic
 
 ## Common Adaptations
@@ -73,12 +75,13 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 - `To swap the model:` replace the YAML/model pair in [depthai_models/](depthai_models/) and keep the same parser contract
 - `To reuse only the measurement host logic:` keep [utils/box_processing_node.py](utils/box_processing_node.py) and feed it your own point cloud plus detections
 - `To remove the cuboid overlay:` keep `outputANN` and drop the `outputANNCuboid` topic
-- `To test alignment changes:` start from the `RGBD` and `ImageAlign` branch in [main.py](main.py)
+- `To test alignment changes:` start from the `Depth.setAlignTo` and `PointCloud` branch in [main.py](main.py)
 
 ## Constraints
 
 - The README explicitly calls out cuboid-fit instability and dimension jumps; this is a reference demo, not a hardened metrology pipeline.
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
+- The fitter still requires three perpendicular planes. It removes rejected plane candidates from its search cloud so a parallel residual cannot consume every attempt, but this does not guarantee a valid fit on noisy or incomplete depth.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
 - [utils/box_processing_node.py](utils/box_processing_node.py) hardcodes `IMG_WIDTH=640`, `IMG_HEIGHT=400`, `NN_WIDTH=512`, and `NN_HEIGHT=320`.
 - RVC2 disables the median filter path, so stereo behavior differs by platform.
@@ -88,11 +91,12 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 - [oakapp.toml](oakapp.toml) adds a standalone packaging path but does not mean the example is RVC4-only.
 - `Box Detections` and `Cuboid Fit` are separate annotation topics layered over the same preview stream.
 - Intrinsics are read for `CAM_A` at NN resolution, because the cuboid overlay is projected into model-space image coordinates.
-- The point cloud comes from `rgbd.pcl`, not from a custom host reconstruction step.
+- The point cloud comes from `pcl.outputPointCloud`, not from a custom host reconstruction step. [utils/box_processing_node.py](utils/box_processing_node.py) reshapes it to `(IMG_HEIGHT, IMG_WIDTH)`, which only works because the node runs in organized mode.
+- The `Pointcloud` Visualizer topic therefore carries centimeters, while the Visualizer's distance controls assume millimeters.
 
 ## Related Examples
 
-- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need the RGBD + point-cloud baseline without neural inference
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need the `PointCloud` baseline without neural inference
 - [depth-measurement/measurement-3d/tof-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/tof-pointcloud): use this when the depth source should be ToF instead of stereo
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when you only need host-side spatial ROI measurement
 - [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): use this when you need the more app-shaped frontend/backend volume-measurement workflow
@@ -102,4 +106,5 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Video Stream`, `Box Detections`, `Cuboid Fit`, and `Pointcloud`, and detected boxes receive dimension labels when the fit succeeds
+- `Failure feedback:` a detected box shows `measurement unavailable` and the specific depth, plane-fit, or dimension failure in the `Box Detections` overlay on `Video Stream`
 - `Common failure meaning:` stereo alignment is poor, the device lacks the expected camera topology, the model bundle is unavailable, or the cuboid fit is failing on noisy depth

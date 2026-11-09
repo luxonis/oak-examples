@@ -6,6 +6,10 @@ This example showcases one possible approach for measuring the size of a box usi
 
 > **⚠️ Known issue:** Due to current CuboidFitter algorithm limitations, measurements may occasionally jump or skip between frames. Active stereo is crucial for stable results, and you may see some instability, especially on RVC2 devices. In some cases, instability can also be caused by insufficient power supply to the device.
 
+When a box is detected but cannot be measured, its label shows **measurement unavailable** and a reason, such as insufficient valid depth or how many of the three perpendicular faces could be fitted. The confidence score describes detection confidence. Dimensions appear only when the current frame produces a valid cuboid fit.
+
+The video preview uses the same undistorted RGB frame as inference and waits until its measurement overlays are ready, keeping the image and annotations together.
+
 ## Usage
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.

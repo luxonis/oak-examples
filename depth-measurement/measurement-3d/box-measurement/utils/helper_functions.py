@@ -124,6 +124,8 @@ def reverse_resize_and_pad(padded_img, original_size, modified_size):
     ]
 
     # Resize back to original dimensions
-    original_img = cv2.resize(cropped_img, (original_width, original_height))
+    original_img = cv2.resize(
+        cropped_img, (original_width, original_height), interpolation=cv2.INTER_NEAREST
+    )
 
     return original_img
