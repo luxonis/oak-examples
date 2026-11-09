@@ -35,9 +35,7 @@ build_steps = [
 allowed_devices = [{ allow = true, access = "rwm" }]
 
 additional_mounts = [
-    { source = "/dev", target = "/dev", type = "devtmpfs", options = [
-        "mode=777",
-    ] },
+    { source = "/dev", target = "/dev", type = "bind", options = ["bind", "rw"] },
     { source = "/sys/kernel/config", target = "/sys/kernel/config", type = "configfs", options = [                
                 "nosuid",      
                 "noexec",          
