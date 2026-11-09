@@ -25,7 +25,8 @@ prepare_build_container = [
 # Commands to execute after all files (including this TOML) are in /app
 build_steps = [
     "cmake -S /app -B /app/build -DDEPTHAI_ENABLE_CURL=OFF -DDEPTHAI_ENABLE_REMOTE_CONNECTION=OFF -DDEPTHAI_ENABLE_EVENTS_MANAGER=OFF -DDEPTHAI_ENABLE_PROTOBUF=OFF -DDEPTHAI_OPENCV_SUPPORT=OFF -DDEPTHAI_BUILD_EXAMPLES=ON",
-    "cmake --build /app/build --parallel 4",
+    # Parallel jobs compiling against depthai run out of memory on devices with less than 6 GB of RAM.
+    "cmake --build /app/build --parallel $(awk '/MemTotal/ { print ($2 < 6000000 ? 1 : 4) }' /proc/meminfo)",
     "cp /app/build/uvc_example /app/uvc_example",
     "cp /app/build/uvc-gadget/lib/libuvcgadget.so /usr/lib",
     "cp /app/build/uvc-gadget/lib/libuvcgadget.so.0.4.0 /usr/lib",
