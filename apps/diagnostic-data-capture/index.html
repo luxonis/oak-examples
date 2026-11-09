@@ -27,6 +27,9 @@
     .status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px; border-top: 1px solid #29374b; color: #a2b7cf; font-size: 12px; }
     #message { margin: 0; }
     #saved { margin: 0; padding: 12px 24px; border-top: 1px solid #29374b; background: #102d29; color: #a3e5c6; font: 12px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
+    #capture-preview { margin: 0; padding: 16px 24px; border-top: 1px solid #29374b; }
+    #capture-preview img { display: block; max-width: 100%; max-height: 360px; border-radius: 6px; }
+    #capture-preview figcaption { margin-bottom: 8px; color: #9aadc4; font-size: 12px; }
     [hidden] { display: none !important; }
     iframe { display: block; width: 100%; height: 75vh; min-height: 380px; margin: 18px auto 0; border: 1px solid #29374b; border-radius: 12px; background: #080d11; }
     @media (max-width: 800px) { body { padding: 12px; } .controls { grid-template-columns: 110px minmax(0, 1fr); } .path-field { grid-column: 1 / -1; grid-row: 1; } button { justify-self: end; } .panel-heading, .controls { padding: 16px; } .device-row { padding: 0 16px 16px; } .status-row, #saved { padding: 12px 16px; } h1 { font-size: 18px; } }
@@ -51,6 +54,7 @@
       <p id="message" role="status" aria-live="polite">Connecting to capture app…</p>
     </div>
     <p id="saved" hidden></p>
+    <figure id="capture-preview" hidden><figcaption>Saved capture · first frame set</figcaption><a id="preview-link" target="_blank" rel="noopener"><img id="preview-image" alt="Saved capture preview"></a></figure>
   </header>
   <main>
     <iframe id="visualizer" title="DepthAI Visualizer" allow="clipboard-read; clipboard-write"></iframe>
@@ -67,6 +71,9 @@
       byId('status-row').hidden = !message.textContent;
     }
     let initialized = false;
+    let previewPath = null;
+    byId('preview-image').addEventListener('load', () => { byId('capture-preview').hidden = !previewPath; });
+    byId('preview-image').addEventListener('error', () => { byId('capture-preview').hidden = true; });
     function describe(status) {
       if (!initialized) {
         byId('output').value = status.output || '';
@@ -77,12 +84,24 @@
       byId('device-name').textContent = device.name || 'Device unavailable';
       byId('device-id').textContent = device.id || '—';
       byId('device-os').textContent = device.os || '—';
+      const capturePath = status.state === 'complete' ? status.saved_path : null;
+      if (capturePath !== previewPath) {
+        previewPath = capturePath;
+        byId('capture-preview').hidden = true;
+        if (capturePath) {
+          const url = '/api/preview?capture=' + encodeURIComponent(capturePath);
+          byId('preview-link').href = url;
+          byId('preview-image').src = url;
+        } else {
+          byId('preview-image').removeAttribute('src');
+        }
+      }
       byId('saved').hidden = !status.saved_path;
       byId('saved').textContent = status.saved_path ? `${status.state === 'complete' ? 'Saved to' : 'Capture folder'}  ${status.saved_path}` : '';
       if (status.state === 'warming_up') show(`Sensors warming up: ${status.warmup_remaining} seconds remaining`);
       else if (status.error) show(status.error);
       else if (status.state === 'capturing') show(`Capturing: ${status.completed_frames}/${status.frames} frame sets`);
-      else if (status.state === 'complete') show(`Saved ${status.completed_frames} frame sets. Ready for another capture.`);
+      else if (status.state === 'complete') show('');
       else if (status.state === 'ready') show('');
       else if (status.state === 'queued') show('Preparing your capture…');
       else if (status.state === 'starting') show('Starting camera streams…');

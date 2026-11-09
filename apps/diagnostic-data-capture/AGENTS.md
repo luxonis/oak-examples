@@ -20,7 +20,8 @@ Need RVC2, standalone storage, raw ToF, stereo depth generation, hardware synchr
 ## Architecture
 - `main.py`: discovers camera roles, owns pipeline/queues, matches device timestamps, writes native messages/calibration/metadata.
 - `control.py`: loopback stdlib HTTP server; enqueues requests without touching hardware.
-- `index.html`: capture controls, polling and embedded Visualizer.
+- `index.html`: capture controls, polling, saved preview and embedded Visualizer.
+- `preview.py`: builds preview.jpg from the first saved DAI frame set; original frames remain unchanged.
 
 ## Constraints
 - Camera sockets are optional; ToF is detected from sensor type, never treated as RGB.

@@ -17,6 +17,7 @@ os.environ.setdefault('DEPTHAI_TELEMETRY', '0')
 os.environ.setdefault('DEPTHAI_AUTOCALIBRATION', 'OFF')
 import depthai as dai
 from control import ControlServer
+from preview import write_capture_preview
 
 
 
@@ -186,7 +187,7 @@ class CaptureApp:
                           synchronization='host device-timestamp matching', sync_tolerance_ms=self.matcher.tolerance*1000,
                           camera_undistortion=False, tof_grid='standard ToF optical grid (SDK default distortion correction)', tof_profile='MID_RANGE'),
             source_sha256={name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                           for name in ('main.py','control.py','index.html')},
+                           for name in ('main.py','control.py','index.html','preview.py')},
             streams=self.streams, cameras=[dict(socket=f.socket.name,sensor=f.sensorName,name=f.name,
                 width=f.width,height=f.height,types=[x.name for x in f.supportedTypes]) for f in self.features],
             requested_frames=frames, frames=[], capture_seconds=None)
@@ -223,6 +224,12 @@ class CaptureApp:
 
     def finish(self, status, error=None):
         if self.active and self.manifest:
+            if status == 'complete':
+                try:
+                    self.manifest['preview'] = write_capture_preview(self.active, self.manifest)
+                except Exception as exc:
+                    self.manifest['preview_error'] = str(exc)
+                    error = f'Capture saved, but preview could not be generated: {exc}'
             self.manifest.update(status=status, capture_seconds=time.monotonic()-self.capture_start,
                                  finished=datetime.now().astimezone().isoformat())
             if error:

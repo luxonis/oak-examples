@@ -63,6 +63,19 @@ class ControlServer:
                 self._send(status, json.dumps(value, separators=(",", ":")))
 
             def do_GET(self):
+                if urlsplit(self.path).path == "/api/preview":
+                    status = owner.get_status()
+                    folder = status.get('saved_path')
+                    if status.get('state') != 'complete' or not folder:
+                        self._json(404, {"error": "no completed capture preview"})
+                        return
+                    try:
+                        data = (Path(folder) / 'preview.jpg').read_bytes()
+                    except OSError:
+                        self._json(404, {"error": "capture preview unavailable"})
+                        return
+                    self._send(200, data, 'image/jpeg')
+                    return
                 if urlsplit(self.path).path == "/api/status":
                     try:
                         self._json(200, owner.get_status())
