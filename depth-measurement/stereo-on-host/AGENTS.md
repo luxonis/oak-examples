@@ -6,7 +6,7 @@ Host-side stereo benchmark example. It compares device `StereoDepth` disparity a
 
 ## Use This Example When
 
-- You need host-side stereo rectification or `cv2.StereoSGBM` logic.
+- You need calibrated rectified stereo inputs with `cv2.StereoSGBM` logic.
 - You want to compare host stereo matching against device `StereoDepth` output.
 - You need a concrete custom `dai.node.HostNode` reference in a stereo pipeline.
 - You need rectified left/right streams plus a quantitative disparity comparison.
@@ -30,22 +30,22 @@ Host-side stereo benchmark example. It compares device `StereoDepth` disparity a
 ## Read First
 
 - [main.py](main.py): camera sockets, pipeline wiring, stereo configuration, and published topics
-- [utils/host_stereo_sgbm.py](utils/host_stereo_sgbm.py): calibration-based rectification and `cv2.StereoSGBM_create(...)`
+- [utils/host_stereo_sgbm.py](utils/host_stereo_sgbm.py): rectified-frame matching and `cv2.StereoSGBM_create(...)`
 - [utils/host_ssim.py](utils/host_ssim.py): disparity normalization and SSIM annotation output
 - [utils/arguments.py](utils/arguments.py): CLI surface
 
 ## Architecture
 
 - [main.py](main.py) binds the two mono cameras explicitly to `CAM_B` and `CAM_C`.
-- The same mono outputs feed both [utils/host_stereo_sgbm.py](utils/host_stereo_sgbm.py) and the built-in `StereoDepth` node.
-- `StereoSGBM` rectifies frames using device calibration, computes host disparity, and publishes debug streams.
+- The mono outputs feed `StereoDepth`, with calibrated translation, distortion correction and rectified-left alignment explicitly enabled. Its `rectifiedLeft`/`rectifiedRight` feed the host matcher, so both matchers share one geometry.
+- `StereoSGBM` accepts timestamp-matched grayscale rectified frames (within 5 ms), computes host disparity, and preserves left-frame metadata. It does not rectify again.
 - `StereoDepth` uses `FAST_DENSITY`, left-right check, subpixel enabled, and extended disparity disabled.
 - `ApplyColormap` turns device disparity into the `Depth generated` visualization.
 - `SSIM` compares device disparity with raw host disparity and emits the `SSIM score` annotation topic.
 
 ## Data Flow
 
-- `CAM_B/CAM_C -> StereoSGBM host node -> rectified frames + host disparity`
+- `CAM_B/CAM_C -> StereoDepth rectification -> StereoSGBM host node -> host disparity`
 - `CAM_B/CAM_C -> StereoDepth -> ApplyColormap -> Depth generated`
 - `StereoDepth disparity + StereoSGBM raw disparity -> SSIM host node -> SSIM score`
 
@@ -67,7 +67,7 @@ Host-side stereo benchmark example. It compares device `StereoDepth` disparity a
 - Requires readable device calibration.
 - Requires stereo mono cameras on `CAM_B` and `CAM_C`.
 - Not an RGBD example; it does not align depth to RGB.
-- SSIM is host-side and intentionally slower than the main stereo path.
+- SSIM is host-side and intentionally slower than the main stereo path. Both disparities are converted to horizontal pixel units before comparison: device subpixel scale from configuration, OpenCV scale 16. Invalid host values become zero. SSIM includes invalid/occluded areas and is a qualitative similarity score, not metric depth accuracy.
 
 ## Related Examples
 
@@ -81,3 +81,5 @@ Host-side stereo benchmark example. It compares device `StereoDepth` disparity a
 - `Run:` `python3 main.py`
 - `Success looks like:` Visualizer shows `Left Cam`, `Right Cam`, `Rectified Left`, `Rectified Right`, `Depth generated`, `Depth SGBM`, and `SSIM score`
 - `Common failure meaning:` missing stereo cameras, missing calibration, or missing host dependencies such as OpenCV/scikit-image
+
+- Check that rectified image features lie on the same rows, and confirm all seven topics update on RVC2 and RVC4. Compare with a measured-distance scene before claiming metric accuracy.

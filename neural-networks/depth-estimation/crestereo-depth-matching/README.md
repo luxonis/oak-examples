@@ -1,8 +1,8 @@
 # CREStereo: Depth Estimation
 
-This example compares depth derived from neural stereo matching using [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) to output from the unified `Depth` node. The example works on both RVC2 and RVC4.
+This example compares depth derived from neural stereo matching using [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) to classical `StereoDepth` output on the same calibrated, distortion-corrected rectified pair. The example works on both RVC2 and RVC4.
 
-There are 2 available model variants for the [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) model for each platform. If you choose to use a different model please adjust `fps_limit` argument accordingly.
+There are platform-specific model variants for the [CREStereo](https://models.luxonis.com/luxonis/crestereo/4729a8bd-54df-467a-92ca-a8a5e70b52ab) model for each platform. If you choose to use a different model please adjust `fps_limit` argument accordingly.
 
 ## Demo
 
@@ -81,3 +81,5 @@ oakctl app run .
 ```
 
 This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
+
+Depth uses the calibrated baseline and the rectified-left inference frame’s focal length. Values are millimeters, with zero indicating invalid depth. Inspect `Rectified Left` and `Rectified Right` to check alignment. A host color-format adapter replicates rectified mono into the model’s three channels without resizing.
