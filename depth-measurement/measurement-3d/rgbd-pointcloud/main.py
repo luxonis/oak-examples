@@ -14,8 +14,6 @@ if not device.setIrLaserDotProjectorIntensity(1):
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    rgbd = pipeline.create(dai.node.RGBD).build()
-
     if args.mono:
         cam_node = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     else:
@@ -24,15 +22,17 @@ with dai.Pipeline(device) as pipeline:
     cam_out = cam_node.requestOutput(
         IMG_SHAPE, type=dai.ImgFrame.Type.RGB888i, enableUndistortion=True
     )
-    cam_out.link(rgbd.inColor)
-
     depth = pipeline.create(dai.node.Depth)
     depth.build(dai.node.Depth.Algorithm.AUTO, size=IMG_SHAPE)
     depth.setAlignTo(cam_out)
-    depth.depth.link(rgbd.inDepth)
+
+    pcl = pipeline.create(dai.node.PointCloud)
+    pcl.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
+    depth.depth.link(pcl.inputDepth)
+    cam_out.link(pcl.inputColor)
 
     visualizer.addTopic("preview", cam_out)
-    visualizer.addTopic("pointcloud", rgbd.pcl)
+    visualizer.addTopic("pointcloud", pcl.outputPointCloud)
 
     print("Pipeline created.")
     pipeline.start()
