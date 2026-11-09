@@ -1,7 +1,6 @@
 import os
 import depthai as dai
 from typing import List, Optional, Dict, Any
-import numpy as np
 from utils.utility import (
     filter_devices,
     setup_devices,
@@ -38,15 +37,10 @@ def setup_device_pipeline(
     cam_socket = dai.CameraBoardSocket.CAM_A
     camera_object = pipeline.create(dai.node.Camera).build(cam_socket)
     cam_preview = camera_object.requestOutput(
-        (preview_width, preview_height), dai.ImgFrame.Type.NV12
+        (preview_width, preview_height), dai.ImgFrame.Type.NV12, enableUndistortion=True
     )
     cam_high_res = camera_object.requestOutput(
-        (STILL_WIDTH, STILL_HEIGHT), dai.ImgFrame.Type.NV12
-    )
-
-    calib_data = device_instance.readCalibration()
-    intrinsic_mat_still = np.array(
-        calib_data.getCameraIntrinsics(cam_socket, STILL_WIDTH, STILL_HEIGHT)
+        (STILL_WIDTH, STILL_HEIGHT), dai.ImgFrame.Type.NV12, enableUndistortion=True
     )
 
     control_q = camera_object.inputControl.createInputQueue()
@@ -54,12 +48,7 @@ def setup_device_pipeline(
 
     calibration_node = pipeline.create(CalibrationNode).build(
         preview_input=cam_preview,
-        intrinsic_mat_still=intrinsic_mat_still,
         device=device_instance,
-        preview_width=preview_width,
-        preview_height=preview_height,
-        still_width=STILL_WIDTH,
-        still_height=STILL_HEIGHT,
         control_q=control_q,
         still_q=still_q,
     )

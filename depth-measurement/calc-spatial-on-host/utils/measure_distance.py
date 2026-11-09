@@ -1,4 +1,3 @@
-import math
 import depthai as dai
 import numpy as np
 from typing import Tuple
@@ -113,10 +112,8 @@ class MeasureDistance(dai.node.HostNode):
     def build(
         self,
         depth_frames: dai.Node.Output,
-        calib_data: dai.CalibrationHandler,
         roi: RegionOfInterest,
     ) -> "MeasureDistance":
-        self._calib_data = calib_data
         self.link_args(depth_frames)
         self._roi = roi
         return self
@@ -133,13 +130,6 @@ class MeasureDistance(dai.node.HostNode):
         depthROI = self._roi.get_frame_roi(depth)
         inRange = (self._threshold_low <= depthROI) & (depthROI <= self._threshold_high)
 
-        # Required information for calculating spatial coordinates on the host
-        HFOV: float = np.deg2rad(
-            self._calib_data.getFov(
-                dai.CameraBoardSocket(depth_frame.getInstanceNum()), useSpec=False
-            )
-        )
-
         if inRange.any():
             averageDepth: float = self._averaging_method(depthROI[inRange])
         else:
@@ -150,22 +140,12 @@ class MeasureDistance(dai.node.HostNode):
             int((self._roi.ymax + self._roi.ymin) / 2),
         )  # Get centroid of the ROI
 
-        midW = int(depth.shape[1] / 2)  # middle of the depth img width
-        midH = int(depth.shape[0] / 2)  # middle of the depth img height
-        bb_x_pos = centroid.x - midW
-        bb_y_pos = centroid.y - midH
-
-        angle_x = self._calc_angle(depth, bb_x_pos, HFOV)
-        angle_y = self._calc_angle(depth, bb_y_pos, HFOV)
-
-        spatial_distance = SpatialDistance(
-            centroid,
-            dai.Point3f(
-                averageDepth * math.tan(angle_x),
-                -averageDepth * math.tan(angle_y),
-                averageDepth,
-            ),
-        )
+        # Depth is in millimeters. Use the produced depth frame's optical frame:
+        # +X right, +Y down, +Z forward, including its actual crop/alignment.
+        k_inv = np.asarray(depth_frame.getTransformation().getIntrinsicMatrixInv())
+        ray = k_inv @ np.array([centroid.x, centroid.y, 1.0])
+        xyz = ray * (averageDepth / ray[2])
+        spatial_distance = SpatialDistance(centroid, dai.Point3f(*xyz))
         spatial_distance.setTimestamp(depth_frame.getTimestamp())
         spatial_distance.setTimestampDevice(depth_frame.getTimestampDevice())
         spatial_distance.setSequenceNum(depth_frame.getSequenceNum())
@@ -177,9 +157,6 @@ class MeasureDistance(dai.node.HostNode):
         if rois:
             self._roi = rois[-1]
         # print("ROI updated")
-
-    def _calc_angle(self, frame: np.ndarray, offset: int, HFOV: float) -> float:
-        return math.atan(math.tan(HFOV / 2.0) * offset / (frame.shape[1] / 2.0))
 
     def setLowerThreshold(self, threshold_low):
         self._threshold_low = threshold_low

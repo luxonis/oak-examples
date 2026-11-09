@@ -60,8 +60,8 @@ class MeasurementNode(dai.node.ThreadedHostNode):
         self.have_plane = False
         self.measurement_mode = "obb"  # "obb" | "heightgrid"
 
-        # intrinsics for box outline projection
-        self.intrinsics = None
+        # Geometry of the current native point cloud (millimeters, optical coordinates).
+        self.transformation = None
         self.imgW = None
         self.imgH = None
 
@@ -87,11 +87,6 @@ class MeasurementNode(dai.node.ThreadedHostNode):
         measure.link(self.in_enable_measure)
         imu.link(self.in_imu)
         return self
-
-    def setIntrinsics(self, fx, fy, cx, cy, imgW, imgH):
-        self.intrinsics = (float(fx), float(fy), float(cx), float(cy))
-        self.imgW = int(imgW)
-        self.imgH = int(imgH)
 
     def set_measurement_mode(self, method):
         # Service callbacks and plane fitting run on different threads.
@@ -156,17 +151,15 @@ class MeasurementNode(dai.node.ThreadedHostNode):
 
     # ---------------- Projection / overlay helpers ---------------
     def _proj_cam_to_rgb_norm(self, pts_cam):
-        if not self.intrinsics:
+        if self.transformation is None:
             return [None] * len(pts_cam)
-        fx, fy, cx, cy = self.intrinsics
         out = []
         for x, y, z in np.asarray(pts_cam, float):
             if z <= 0:
                 out.append(None)
                 continue
-            u = fx * (x / z) + cx
-            v = fy * (y / z) + cy
-            out.append((u / self.imgW, v / self.imgH))
+            pixel = self.transformation.project3DPoint(dai.Point3f(x, y, z))
+            out.append((pixel.x / self.imgW, pixel.y / self.imgH))
         return out
 
     def _emit_overlay(
@@ -338,6 +331,8 @@ class MeasurementNode(dai.node.ThreadedHostNode):
         self._emit_plane_status(pcl_msg, self.plane_status)
 
     def _process_cloud(self, pcl_msg, mode_val):
+        self.transformation = pcl_msg.getTransformation()
+        self.imgW, self.imgH = self.transformation.getSize()
         # Ignore full-scene clouds already queued when capture was cancelled or finished.
         if mode_val == self.MODE_PLANE:
             if (
