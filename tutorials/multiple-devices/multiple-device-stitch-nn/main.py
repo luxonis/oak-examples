@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
+"""Native host panorama stitching with tiled, on-device YOLO inference."""
 
+from datetime import timedelta
+from pathlib import Path
+
+import depthai as dai
 from depthai_nodes.node import (
-    CoordinatesMapper,
     FrameCropper,
     GatherData,
     ImgDetectionsFilter,
-    ParsingNeuralNetwork,
     Tiling,
 )
 from utils.arguments import initialize_argparser
 from utils.merge_img_detections import MergeImgDetections
-from utils.stitch import Stitch
-import contextlib
-import depthai as dai
-import time
-
-_, args = initialize_argparser()
 
 IMG_SIZES = {
     "2160p": (3840, 2160),
@@ -24,169 +21,129 @@ IMG_SIZES = {
     "480p": (640, 480),
     "360p": (640, 360),
 }
-# Nr of seconds in float to wait before autofocus is turned off after program start and after homography recalculation.
-AF_MSG_DELAY_S = 5.0
-IMG_SHAPE = IMG_SIZES[args.input_size]
-AF_MODE_NAMES = {
-    dai.CameraControl.AutoFocusMode.OFF: "OFF",
-    dai.CameraControl.AutoFocusMode.AUTO: "AUTO",
-}
 
 
-def createPipeline(pipeline):
-    camRgb = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
-    output = camRgb.requestOutput(
-        IMG_SHAPE, dai.ImgFrame.Type.NV12, dai.ImgResizeMode.CROP, fps=args.fps_limit
+def add_inference(pipeline, panorama, source_count, fps):
+    # The first explicitly opened device is the inference device, even in a mixed rig.
+    platform = pipeline.getDefaultDevice().getPlatform()
+    description = dai.NNModelDescription.fromYamlFile(
+        str(
+            Path(__file__).parent
+            / "depthai_models"
+            / f"yolov6_nano.{platform.name}.yaml"
+        )
     )
-    input = camRgb.inputControl.createInputQueue()
-    return pipeline, input, output
-
-
-def send_af_mode(inputs, mode):
-    ctrl = dai.CameraControl()
-    ctrl.setAutoFocusMode(mode)
-    print(f"Setting autofocus mode to {AF_MODE_NAMES[mode]} for {len(inputs)} cameras.")
-    for input in inputs:
-        input.send(ctrl)
-
-
-with contextlib.ExitStack() as stack:
-    visualizer = dai.RemoteConnection(httpPort=8082)
-    deviceInfos = dai.Device.getAllAvailableDevices()
-    print("=== Found devices: ", deviceInfos)
-    inputs = []
-    outputs = []
-    pipelines = []
-
-    for deviceInfo in deviceInfos:
-        pipeline = stack.enter_context(dai.Pipeline())
-        device = pipeline.getDefaultDevice()
-
-        print("===Connected to ", deviceInfo.getDeviceId())
-        mxId = device.getDeviceId()
-        cameras = device.getConnectedCameras()
-        usbSpeed = device.getUsbSpeed()
-        eepromData = device.readCalibration2().getEepromData()
-        print("   >>> Device ID:", mxId)
-        print("   >>> Num of cameras:", len(cameras))
-        if eepromData.boardName != "":
-            print("   >>> Board name:", eepromData.boardName)
-        if eepromData.productName != "":
-            print("   >>> Product name:", eepromData.productName)
-
-        pipeline, input, output = createPipeline(pipeline)
-        pipelines.append(pipeline)
-        outputs.append(output)
-        inputs.append(input)
-
-    platform = device.getPlatform()
-    # Get model based on platform type from yaml file
-    model_description = dai.NNModelDescription.fromYamlFile(
-        f"yolov6_nano.{platform.name}.yaml"
+    archive = dai.NNArchive(dai.getModelFromZoo(description))
+    width, height = archive.getInputSize()
+    canvas = (width + (width // 2) * source_count, height)
+    manip = pipeline.create(dai.node.ImageManip)
+    manip.setRunOnHost(True)
+    manip.initialConfig.setOutputSize(*canvas)
+    manip.initialConfig.setFrameType(
+        dai.ImgFrame.Type.BGR888p
+        if platform == dai.Platform.RVC2
+        else dai.ImgFrame.Type.BGR888i
     )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
+    manip.setMaxOutputFrameSize(canvas[0] * canvas[1] * 3)
+    panorama.link(manip.inputImage)
 
-    # Determine stitched output resolution x = nn y size + (nn_y_size//2)*nr of cameras,
-    #                                      y = y size of nn model
-    out_stitch_res = (
-        nn_archive.getInputSize()[0]
-        + (nn_archive.getInputSize()[0] // 2) * len(outputs),
-        nn_archive.getInputSize()[1],
-    )
-    # Create threaded node pipeline with Stitch class, setting nr on inputs and output resolution
-    # set to NN input resolution
-    stitch_pl = pipeline.create(
-        Stitch, nr_inputs=len(outputs), output_resolution=out_stitch_res
-    )
-    for i, output in enumerate(outputs):
-        # Link each output of a camera to stitching inputs
-        output.link(stitch_pl.inputs[i])
-        # Do not block stream if image queue gets full - less delay in output detection stream
-        stitch_pl.inputs[i].setBlocking(False)
-
-    grid_size = (len(outputs), 1)
-
-    tile_manager = pipeline.create(Tiling).build(
-        canvasShape=out_stitch_res,
+    tiles = pipeline.create(Tiling).build(
+        canvasShape=canvas,
         overlap=0.5,
-        gridSize=grid_size,
+        gridSize=(source_count, 1),
         gridMatrix=None,
         globalDetection=False,
-        resizeShape=nn_archive.getInputSize(),
+        resizeShape=archive.getInputSize(),
+        resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
     )
-
-    tiling_cropper = (
+    cropper = (
         pipeline.create(FrameCropper)
         .fromManipConfigs(
-            inputManipConfigs=tile_manager.out,
-            maxOutputFrameSize=nn_archive.getInputWidth()
-            * nn_archive.getInputHeight()
-            * 3,
+            inputManipConfigs=tiles.out,
+            maxOutputFrameSize=width * height * 3,
             waitForConfig=False,
         )
-        .build(
-            inputImage=stitch_pl.out,
-        )
+        .build(inputImage=manip.out)
     )
-
-    nn = pipeline.create(ParsingNeuralNetwork).build(
-        input=tiling_cropper.out, nnSource=nn_archive
+    detector = pipeline.create(dai.node.DetectionNetwork).build(cropper.out, archive)
+    # Map every tile directly to its matched panorama before suppressing duplicates.
+    gathered = pipeline.create(GatherData).build(
+        inputData=detector.out,
+        inputReference=panorama,
+        cameraFps=fps,
+        waitCountFn=lambda _: tiles.tileCount,
     )
-
-    detections_in_stitched_space = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=stitch_pl.out,
-        fromTransformationInput=nn.out,
-    )
-
-    gathered_detections = pipeline.create(GatherData).build(
-        inputData=detections_in_stitched_space.out,
-        inputReference=stitch_pl.out,
-        cameraFps=args.fps_limit,
-        waitCountFn=lambda _: tile_manager.tileCount,
-    )
-
-    merged_detections = pipeline.create(MergeImgDetections).build(
-        input=gathered_detections.out
-    )
-
-    filtered_detections = (
+    merged = pipeline.create(MergeImgDetections).build(input=gathered.out)
+    # Native 3.12 filtering only suppresses between inputs, not within this merge.
+    filtered = (
         pipeline.create(ImgDetectionsFilter)
-        .useNms(
-            confThresh=0.1,
-            iouThresh=0.2,
-        )
-        .build(input=merged_detections.out)
+        .useNms(confThresh=0.1, iouThresh=0.2)
+        .build(input=merged.out)
     )
+    return filtered.out
 
-    # Show stitched image on visualizer overlayed with nn detections
-    visualizer.addTopic("Stitched", stitch_pl.out_full_res)
-    visualizer.addTopic("Patcher", filtered_detections.out)
 
-    for i, p in enumerate(pipelines):
-        p.start()
+def main():
+    parser, args = initialize_argparser()
+    if len(args.devices) * len(args.sockets) < 2:
+        parser.error("Select at least two camera sources")
 
-    # Register visualizer with the first pipeline
-    visualizer.registerPipeline(pipelines[0])
+    with dai.Pipeline(createImplicitDevice=False) as pipeline:
+        visualizer = dai.RemoteConnection(httpPort=8082)
+        outputs = []
+        for selector in args.devices:
+            device = pipeline.addDevice(dai.DeviceInfo(selector))
+            for socket in args.sockets:
+                camera = pipeline.create(dai.node.Camera, device).build(
+                    getattr(dai.CameraBoardSocket, socket), sensorFps=args.fps_limit
+                )
+                output = camera.requestOutput(
+                    IMG_SIZES[args.input_size],
+                    dai.ImgFrame.Type.NV12,
+                    dai.ImgResizeMode.CROP,
+                    fps=args.fps_limit,
+                )
+                if args.show_inputs:
+                    visualizer.addTopic(f"Input-{len(outputs)}", output)
+                outputs.append(output)
 
-    print("Press 'r' in visualizer to recalculate homography.")
-    print(f"Autofocus will be tuned OFF after {AF_MSG_DELAY_S} seconds")
-    af_start_time = time.time()
-    af_on = True
-    while pipeline.isRunning():
-        pipeline.processTasks()  # run processTasks in every loop since .start() doesn't do it
-        key = visualizer.waitKey(1)
-        if key == ord("q"):
-            print("Got q key from the remote connection!")
-            break
-        if key == ord("r"):
-            print(
-                f"Got r key from the remote connection, recalculating homography. Autofocus will be turned to AUTO for {AF_MSG_DELAY_S}s."
-            )
-            send_af_mode(inputs, dai.CameraControl.AutoFocusMode.AUTO)
-            af_on = True
-            stitch_pl.recalculate_homography()
-            af_start_time = time.time()
-        if af_on and (time.time() - af_start_time > AF_MSG_DELAY_S):
-            # After AF_MSG_DELAY_S seconds send the autofocus off message to all cams to avoid flickering
-            send_af_mode(inputs, dai.CameraControl.AutoFocusMode.OFF)
-            af_on = False
+        stitch = pipeline.create(dai.node.Stitching).build(outputs)
+        stitch.setMode(dai.node.Stitching.Mode.PANORAMA)
+        # 3.12 defaults to calibrated composition; this example registers from images.
+        stitch.setUseInputCalibration(False)
+        # Stitching runs on host by default, supporting RVC2 and RVC4 inputs.
+        # Native detection transformTo requires a perspective projection.
+        stitch.setCameraModel(dai.CameraModel.Perspective)
+        stitch.setContinuous(False)
+        stitch.setEstimationFrames(3)
+        stitch.setMaxPanoramaSize(4096, 2048)
+        stitch.setSeamFinder(dai.node.Stitching.SeamFinder.DP_COLOR)
+        stitch.setSyncThreshold(timedelta(milliseconds=100))
+
+        full_detections = add_inference(
+            pipeline,
+            stitch.out,
+            len(outputs),
+            args.fps_limit,
+        )
+        # Publish one detection stream to avoid drawing the same objects twice.
+        visualizer.addTopic("Stitched", stitch.out, group="Panorama")
+        visualizer.addTopic("PanoramaDetections", full_detections, group="Panorama")
+
+        pipeline.start()
+        visualizer.registerPipeline(pipeline)
+        print("Open http://localhost:8082. Press r to reset stitching, q to quit.")
+        try:
+            while pipeline.isRunning():
+                pipeline.processTasks()
+                key = visualizer.waitKey(1)
+                if key == ord("q"):
+                    break
+                if key == ord("r"):
+                    stitch.resetTransform()
+        except KeyboardInterrupt:
+            pass
+
+
+if __name__ == "__main__":
+    main()

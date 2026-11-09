@@ -1,11 +1,10 @@
 import depthai as dai
-
 from depthai_nodes.message import GatheredData
 from depthai_nodes.node.base_host_node import BaseHostNode
 
 
 class MergeImgDetections(BaseHostNode):
-    """Merge all ImgDetections stored in a GatheredData message into one message."""
+    """Transform each tile to its matched reference frame, then merge detections."""
 
     def build(self, input: dai.Node.Output) -> "MergeImgDetections":
         self.link_args(input)
@@ -17,21 +16,20 @@ class MergeImgDetections(BaseHostNode):
 
         merged = dai.ImgDetections()
         detections = []
+        transformation = msg.reference_data.getTransformation()
         for item in msg.items:
             if not isinstance(item, dai.ImgDetections):
                 raise TypeError(
                     f"Expected GatheredData items to be dai.ImgDetections, got {type(item)}"
                 )
-            detections.extend(item.detections)
+            if item.getTransformation() is None or transformation is None:
+                raise RuntimeError(
+                    "Detection mapping requires source and reference transformations"
+                )
+            detections.extend(item.transformTo(transformation).detections)
 
         merged.detections = detections
-        merged.setSequenceNum(msg.reference_data.getSequenceNum())
-        merged.setTimestamp(msg.reference_data.getTimestamp())
-        merged.setTimestampDevice(msg.reference_data.getTimestampDevice())
-
-        if hasattr(msg.reference_data, "getTransformation"):
-            transformation = msg.reference_data.getTransformation()
-            if transformation is not None:
-                merged.setTransformation(transformation)
+        merged.setBufferMetadataFrom(msg.reference_data)
+        merged.setTransformation(transformation)
 
         self.out.send(merged)
