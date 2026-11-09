@@ -1,6 +1,12 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, useToast } from '@luxonis/ui-components';
-import { type ChangeEvent, useState } from 'react';
+import {
+	Button,
+	Flex,
+	Separator,
+	SubLabel,
+	useToast,
+} from '@luxonis/ui-components';
+import { type ChangeEvent, useRef, useState } from 'react';
 import { postToDataCollectionService } from '../../services.ts';
 
 type Props = {
@@ -18,6 +24,7 @@ export function ImageUploader({
 }: Props) {
 	const connection = useDaiConnection();
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	const { toast } = useToast();
 
 	const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
@@ -90,60 +97,65 @@ export function ImageUploader({
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
-			<h3 className="font-semibold">Update Classes with Image Input:</h3>
-			<div className="flex flex-col gap-3">
-				<span className="text-sm text-muted-foreground">
-					Important: Use Reset View before drawing if the stream is zoomed or
-					panned.
-				</span>
-				<Button
-					className="w-full"
-					variant="outline"
-					onClick={onResetView}
-					disabled={resetViewDisabled}
-				>
-					Reset View
-				</Button>
-			</div>
+		<Flex direction="column" gap="sm">
+			<SubLabel text="Upload an image or draw a box to switch to image mode." />
 
-			<label
-				htmlFor="fileInput"
-				className="cursor-pointer rounded-md border-2 border-dashed border-border bg-muted p-4 text-center transition-colors hover:bg-muted/80"
-			>
-				{selectedFile
-					? selectedFile.name
-					: 'Click here to choose an image file'}
-			</label>
+			<Flex direction="column" gap="xs">
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="image/*"
+					onChange={handleFileSelect}
+					className="hidden"
+				/>
+				<div className="grid grid-cols-2 gap-2">
+					<Button
+						variant="outline"
+						intent="gray"
+						onClick={() => fileInputRef.current?.click()}
+					>
+						Choose image
+					</Button>
+					<Button onClick={handleUpload}>Upload image</Button>
+				</div>
+				<SubLabel
+					aria-live="polite"
+					text={selectedFile ? selectedFile.name : 'No image selected'}
+				/>
+			</Flex>
 
-			<input
-				id="fileInput"
-				type="file"
-				accept="image/*"
-				onChange={handleFileSelect}
-				className="hidden"
-			/>
+			<Separator />
 
-			<div className="flex flex-row flex-wrap items-center gap-3">
-				<Button onClick={handleUpload}>Upload Image</Button>
-				<span className="text-muted-foreground">or</span>
-				<Button
-					variant="outline"
-					disabled={drawBBoxDisabled}
-					onClick={() => {
-						console.log('[BBox] Button clicked: enabling drawing overlay');
-						onDrawBBox?.();
-						toast({
-							description:
-								'Drawing mode enabled. Reset the view first if the stream is zoomed or panned.',
-							colorVariant: 'gray',
-							duration: 'long',
-						});
-					}}
-				>
-					Draw Bounding Box
-				</Button>
-			</div>
-		</div>
+			<Flex direction="column" gap="xs">
+				<SubLabel text="Reset the view before drawing if the stream is zoomed or panned." />
+				<div className="grid grid-cols-2 gap-2">
+					<Button
+						variant="outline"
+						intent="gray"
+						onClick={onResetView}
+						disabled={resetViewDisabled}
+					>
+						Reset view
+					</Button>
+					<Button
+						variant="outline"
+						intent="gray"
+						disabled={drawBBoxDisabled}
+						onClick={() => {
+							console.log('[BBox] Button clicked: enabling drawing overlay');
+							onDrawBBox?.();
+							toast({
+								description:
+									'Drawing mode enabled. Reset the view first if the stream is zoomed or panned.',
+								colorVariant: 'gray',
+								duration: 'long',
+							});
+						}}
+					>
+						Draw bounding box
+					</Button>
+				</div>
+			</Flex>
+		</Flex>
 	);
 }

@@ -1,3 +1,4 @@
+import { Card, Separator, SubHeader, SubLabel } from '@luxonis/ui-components';
 import type { EmotionName, FaceStats } from './useFacePoll_load.tsx';
 
 const EMOTION_ORDER: EmotionName[] = [
@@ -17,50 +18,37 @@ export function StatsBanner({ stats }: { stats?: FaceStats }) {
 	const emotions = stats.emotions ?? {};
 
 	return (
-		<div className="flex flex-wrap items-center gap-4 border-b border-border bg-background/90 px-4 py-3">
-			<StatItem value={stats.age.toFixed(1)} label="Average Age" />
-
-			<div className="hidden self-stretch border-l border-border md:block" />
-
-			<StatItem
-				value={`${stats.males.toFixed(1)}%`}
-				label="Male"
-				valueClassName="text-info"
-			/>
-			<StatItem
-				value={`${stats.females.toFixed(1)}%`}
-				label="Female"
-				valueClassName="text-accent"
-			/>
-
-			<div className="hidden self-stretch border-l border-border md:block" />
-
-			{EMOTION_ORDER.map((emotion) => (
-				<StatItem
-					key={emotion}
-					value={`${(emotions[emotion] ?? 0).toFixed(1)}%`}
-					label={emotion}
-				/>
-			))}
-		</div>
+		<Card title="Statistics" variant="outline" intent="white">
+			<div className="flex flex-col gap-4">
+				<dl className="grid grid-cols-3 gap-x-4 gap-y-3">
+					<StatItem value={stats.age.toFixed(1)} label="Average age" />
+					<StatItem value={`${stats.males.toFixed(1)}%`} label="Male" />
+					<StatItem value={`${stats.females.toFixed(1)}%`} label="Female" />
+				</dl>
+				<Separator />
+				<dl className="grid grid-cols-4 gap-x-4 gap-y-3">
+					{EMOTION_ORDER.map((emotion) => (
+						<StatItem
+							key={emotion}
+							value={`${(emotions[emotion] ?? 0).toFixed(1)}%`}
+							label={emotion}
+						/>
+					))}
+				</dl>
+			</div>
+		</Card>
 	);
 }
 
-function StatItem({
-	value,
-	label,
-	valueClassName = '',
-}: {
-	value: string;
-	label: string;
-	valueClassName?: string;
-}) {
+function StatItem({ value, label }: { value: string; label: string }) {
 	return (
-		<div className="flex min-w-20 flex-col items-center text-center">
-			<div className={`text-base font-bold ${valueClassName}`}>
-				{value}
-			</div>
-			<div className="text-xs font-semibold text-muted-foreground">{label}</div>
+		<div className="flex min-w-0 flex-col">
+			<dt>
+				<SubLabel text={label} />
+			</dt>
+			<dd>
+				<SubHeader text={value} />
+			</dd>
 		</div>
 	);
 }

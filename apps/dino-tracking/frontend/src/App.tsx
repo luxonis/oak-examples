@@ -1,5 +1,5 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button } from '@luxonis/ui-components';
+import { Button, Card, Flex } from '@luxonis/ui-components';
 import {
 	type MouseEvent,
 	useCallback,
@@ -9,6 +9,7 @@ import {
 	useState,
 } from 'react';
 import { AnnotationModeSelector } from './AnnotationModeSelector.tsx';
+import { AppShell, LoadingState, Steps } from './AppShell.tsx';
 import { ConfidenceSlider } from './ConfidenceSlider.tsx';
 import { useNotifications } from './Notifications.tsx';
 import { OutlinesToggle } from './OutlinesToggle.tsx';
@@ -219,75 +220,55 @@ export default function App() {
 	}, [connection.connected, notify]);
 
 	return (
-		<main className="flex h-screen w-screen flex-row gap-6 p-6">
-			<div className="relative min-w-0 flex-1 overflow-hidden">
-				{streamEverAvailable ? (
+		<AppShell
+			title="Dino Tracker"
+			streams={
+				streamEverAvailable ? (
 					<Streams
 						topicOnClickHandlersMap={clickHandlers}
 						defaultTopics={['Video']}
 					/>
 				) : (
-					<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-						Downloading neural network models and waiting for video stream...
-					</div>
-				)}
-			</div>
-
-			<div className="w-0.5 shrink-0 bg-border" />
-
-			<aside className="flex max-h-full w-[380px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
-				<h1 className="text-2xl font-bold">Dino Tracker</h1>
-
-				<ol className="list-decimal space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
-					<li>Turn on outlines to see FastSAM segments.</li>
-					<li>Click on the stream to select what to track.</li>
-					<li>
-						Choose how to visualize tracking (heatmap or bounding boxes) and, in
-						BBox mode, tune the confidence slider.
-					</li>
-				</ol>
-
-				<OutlinesToggle
-					enabled={outlinesEnabled}
-					setEnabled={setOutlinesEnabled}
-				/>
-
-				<p className="text-sm text-muted-foreground">
-					Click once on the object in the stream.
-				</p>
-
-				<AnnotationModeSelector
-					currentMode={annotationMode}
-					setCurrentMode={setAnnotationMode}
-				/>
-
-				<Button
-					variant="outline"
-					onClick={handleClearSelection}
-					disabled={!hasSelection}
-				>
-					Clear Selection
-				</Button>
-
-				{annotationMode === 'bbox' ? (
-					<ConfidenceSlider value={threshold} setValue={setThreshold} />
-				) : null}
-
-				<div
-					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${
-						connection.connected ? 'text-success' : 'text-destructive'
-					}`}
-				>
-					<div
-						className={`h-3 w-3 rounded-full ${
-							connection.connected ? 'bg-success' : 'bg-destructive'
-						}`}
+					<LoadingState
+						title="Waiting for the video stream"
+						subtitle="The app downloads its neural network models before the first frame."
 					/>
-					<span>
-						{connection.connected ? 'Connected to device' : 'Disconnected'}
-					</span>
-				</div>
-			</aside>
-		</main>
+				)
+			}
+		>
+			<Card title="How to use" variant="outline" intent="white">
+				<Steps
+					items={[
+						'Turn on outlines to see FastSAM segments.',
+						'Click the object you want to track in the stream.',
+						'Pick heatmap or bounding boxes. In bounding box mode, tune the confidence threshold.',
+					]}
+				/>
+			</Card>
+
+			<Card title="Tracking" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					<OutlinesToggle
+						enabled={outlinesEnabled}
+						setEnabled={setOutlinesEnabled}
+					/>
+					<AnnotationModeSelector
+						currentMode={annotationMode}
+						setCurrentMode={setAnnotationMode}
+					/>
+					{annotationMode === 'bbox' ? (
+						<ConfidenceSlider value={threshold} setValue={setThreshold} />
+					) : null}
+					<Button
+						variant="outline"
+						intent="gray"
+						onClick={handleClearSelection}
+						disabled={!hasSelection}
+					>
+						Clear selection
+					</Button>
+				</Flex>
+			</Card>
+		</AppShell>
 	);
 }

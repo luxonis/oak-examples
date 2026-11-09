@@ -1,247 +1,229 @@
 @import "tailwindcss";
+
 @source "./**/*.{ts,tsx}";
 
-.app-shell {
-	height: 100dvh;
-	padding: 24px;
-}
-.workspace {
+/*
+ * Shared page layout for the oak-examples frontends; keep this block identical in every
+ * frontend (scripts/check_frontends.py enforces it). The Luxonis libraries load their own
+ * copies of Tailwind's utilities after this file, so a responsive class such as md:flex-row
+ * loses to their .flex-col. Layout that changes with the screen width is plain CSS here.
+ */
+.app-page {
 	display: flex;
-	height: 100%;
-	gap: 24px;
+	flex-direction: column;
+	gap: 1rem;
+	min-height: 100vh;
+	padding: 1rem;
 }
-.camera-column {
+
+.app-header {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	justify-content: space-between;
+}
+
+.app-status {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.app-main {
+	display: flex;
 	flex: 1;
-	min-width: 0;
+	flex-direction: column;
+	gap: 1rem;
 	min-height: 0;
 }
-.camera-panel {
-	position: relative;
-	height: 100%;
-	overflow: hidden;
-}
-.live-stream {
-	width: 100%;
-	height: 100%;
-}
-.stream-hidden {
-	visibility: hidden;
-}
-.snapshot-wrap {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	container-type: size;
-	background: var(--lux-muted);
-}
-.selection-surface {
-	position: relative;
-	touch-action: none;
-	cursor: crosshair;
-}
-.selection-surface img {
-	width: 100%;
-	display: block;
-	user-select: none;
-}
-.selection-surface .mask-preview {
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-}
-.prompt-point {
-	position: absolute;
-	transform: translate(-50%, -50%);
-	border: 2px solid white;
-	background: var(--lux-primary);
-	color: white;
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	display: grid;
-	place-content: center;
-	font-weight: 700;
-	font-size: 13px;
-	pointer-events: none;
-}
-.prompt-point.negative {
-	background: var(--lux-destructive);
-}
-.selection-box {
-	position: absolute;
-	border: 2px solid var(--lux-primary);
-	background: color-mix(in srgb, var(--lux-primary) 15%, transparent);
-	pointer-events: none;
-}
-.controls {
+
+.app-streams {
 	display: flex;
 	flex-direction: column;
-	gap: 20px;
-	width: 404px;
+	gap: 1rem;
+	height: clamp(16rem, 75vw, 60vh);
+	min-width: 0;
+	position: relative;
+}
+
+.app-streams-fit {
+	height: auto;
+}
+
+.app-streams-fit > * {
 	flex-shrink: 0;
-	overflow-y: auto;
-	padding: 0 8px 0 24px;
-	border-left: 2px solid var(--lux-border);
-	text-align: left;
 }
-.title-row {
+
+.app-viewer {
+	aspect-ratio: 16 / 9;
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	flex-wrap: wrap;
+	flex-direction: column;
+	max-height: 70vh;
+	min-width: 0;
+	position: relative;
 }
-.sidebar-header h1 {
-	font-size: 24px;
-	font-weight: 700;
-}
-.controls h2 {
-	font-size: 14px;
-	font-weight: 600;
-	margin-bottom: 10px;
-}
-.controls section {
-	padding-bottom: 20px;
-	border-bottom: 1px solid var(--lux-border);
-}
-.muted {
-	font-size: 14px;
-	line-height: 1.5;
-	color: var(--lux-muted-foreground);
-	margin: 8px 0 12px;
-}
-.sidebar-header .muted {
-	margin-bottom: 0;
-}
-.button-row,
-.segmented {
+
+.app-side {
 	display: flex;
-	gap: 8px;
+	flex-direction: column;
+	flex-shrink: 0;
+	gap: 1rem;
+	width: 100%;
 }
-.segmented {
-	margin: 12px 0;
+
+.app-side > * {
+	flex-shrink: 0;
 }
-.button-row > button,
-.segmented > button {
+
+.app-loading {
+	border: 1px solid var(--lux-border);
+	border-radius: var(--lux-radius-lg);
 	flex: 1;
+	justify-content: center;
+	padding: 1.5rem;
+	text-align: center;
 }
-.toggle-row {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 12px;
-	font-size: 14px;
-	padding: 8px 0;
-}
-.metrics-bar {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 12px;
-}
-.metrics-bar div,
-.stage-grid div {
+
+.app-steps {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 0.25rem;
+	list-style: decimal;
+	padding-left: 1.25rem;
 }
-.metrics-bar span,
-.metrics-bar small {
-	font-size: 11px;
+
+.app-steps ::marker {
 	color: var(--lux-muted-foreground);
+	font-size: 0.875rem;
 }
-.metrics-bar strong {
-	font-size: 16px;
-	font-weight: 600;
-	font-variant-numeric: tabular-nums;
-}
-.metrics-bar small {
-	display: block;
-	font-weight: 400;
-}
-.footnote,
-.runtime-details p {
-	font-size: 12px;
-	color: var(--lux-muted-foreground);
-	line-height: 1.5;
-	margin: 10px 0;
-}
-.runtime-details summary {
-	font-size: 13px;
-	cursor: pointer;
-}
-.stage-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 12px;
-	margin: 12px 0;
-	font-size: 12px;
-}
-.status-card {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 12px;
-	color: var(--lux-muted-foreground);
-	margin-top: auto;
-}
-.status-dot {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background: var(--lux-success);
-	flex-shrink: 0;
-}
-.spinner {
-	width: 13px;
-	height: 13px;
-	border: 2px solid var(--lux-border);
-	border-top-color: var(--lux-primary);
-	border-radius: 50%;
-	animation: spin 1s linear infinite;
-	flex-shrink: 0;
-}
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-.error {
-	font-size: 13px;
-	color: var(--lux-destructive);
-	overflow-wrap: anywhere;
-}
-@media (max-width: 800px) {
-	.app-shell {
-		height: auto;
-		min-height: 100dvh;
-		padding: 16px;
-	}
-	.workspace {
-		flex-direction: column;
-		gap: 20px;
-	}
-	.camera-column {
-		flex: none;
-		height: 55dvh;
-		min-height: 260px;
-	}
-	.controls {
-		width: 100%;
-		overflow: visible;
-		border-left: 0;
-		border-top: 2px solid var(--lux-border);
-		padding: 20px 0 0;
+
+@media (prefers-reduced-motion: reduce) {
+	.app-loading * {
+		animation: none;
 	}
 }
 
-.selection-disabled {
+@media (min-width: 48rem) {
+	.app-page {
+		height: 100vh;
+	}
+
+	.app-main {
+		flex-direction: row;
+	}
+
+	.app-streams {
+		flex: 1;
+		height: auto;
+	}
+
+	.app-streams-below {
+		overflow-y: auto;
+	}
+
+	.app-side {
+		overflow-y: auto;
+		width: 24rem;
+	}
+}
+
+/* App-specific styles */
+.track-camera {
+	flex: 1;
+	min-height: 0;
+	position: relative;
+}
+
+.track-live {
+	height: 100%;
+	width: 100%;
+}
+
+.track-live-hidden {
+	visibility: hidden;
+}
+
+.track-snapshot {
+	align-items: center;
+	background: var(--lux-muted);
+	border-radius: var(--lux-radius-lg);
+	container-type: size;
+	display: flex;
+	inset: 0;
+	justify-content: center;
+	position: absolute;
+}
+
+.track-surface {
+	cursor: crosshair;
+	position: relative;
+	touch-action: none;
+}
+
+.track-surface-disabled {
 	cursor: not-allowed;
 }
-.selection-expired {
-	font-size: 13px;
-	line-height: 1.5;
-	margin-top: 12px;
-	color: var(--lux-destructive);
+
+.track-surface img {
+	display: block;
+	user-select: none;
+	width: 100%;
+}
+
+.track-surface .track-mask {
+	inset: 0;
+	pointer-events: none;
+	position: absolute;
+}
+
+.track-point {
+	align-items: center;
+	background: var(--lux-primary);
+	border: 2px solid var(--lux-background);
+	border-radius: 50%;
+	color: var(--lux-primary-foreground);
+	display: flex;
+	height: 1.25rem;
+	justify-content: center;
+	pointer-events: none;
+	position: absolute;
+	transform: translate(-50%, -50%);
+	width: 1.25rem;
+}
+
+.track-point svg {
+	height: 0.875rem;
+	width: 0.875rem;
+}
+
+.track-point-exclude {
+	background: var(--lux-destructive);
+	color: var(--lux-destructive-foreground);
+}
+
+.track-point-exclude::before {
+	background: currentColor;
+	border-radius: 1px;
+	content: "";
+	height: 2px;
+	width: 0.625rem;
+}
+
+.track-box {
+	background: color-mix(in srgb, var(--lux-primary) 15%, transparent);
+	border: 2px solid var(--lux-primary);
+	pointer-events: none;
+	position: absolute;
+}
+
+.track-metrics {
+	display: grid;
+	gap: 0.75rem;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.track-stages {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
 }

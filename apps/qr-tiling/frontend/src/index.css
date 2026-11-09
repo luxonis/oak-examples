@@ -1,3 +1,179 @@
 @import "tailwindcss";
 
 @source "./**/*.{ts,tsx}";
+
+/*
+ * Shared page layout for the oak-examples frontends; keep this block identical in every
+ * frontend (scripts/check_frontends.py enforces it). The Luxonis libraries load their own
+ * copies of Tailwind's utilities after this file, so a responsive class such as md:flex-row
+ * loses to their .flex-col. Layout that changes with the screen width is plain CSS here.
+ */
+.app-page {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-height: 100vh;
+	padding: 1rem;
+}
+
+.app-header {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	justify-content: space-between;
+}
+
+.app-status {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.app-main {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: 1rem;
+	min-height: 0;
+}
+
+.app-streams {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	height: clamp(16rem, 75vw, 60vh);
+	min-width: 0;
+	position: relative;
+}
+
+.app-streams-fit {
+	height: auto;
+}
+
+.app-streams-fit > * {
+	flex-shrink: 0;
+}
+
+.app-viewer {
+	aspect-ratio: 16 / 9;
+	display: flex;
+	flex-direction: column;
+	max-height: 70vh;
+	min-width: 0;
+	position: relative;
+}
+
+.app-side {
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	gap: 1rem;
+	width: 100%;
+}
+
+.app-side > * {
+	flex-shrink: 0;
+}
+
+.app-loading {
+	border: 1px solid var(--lux-border);
+	border-radius: var(--lux-radius-lg);
+	flex: 1;
+	justify-content: center;
+	padding: 1.5rem;
+	text-align: center;
+}
+
+.app-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	list-style: decimal;
+	padding-left: 1.25rem;
+}
+
+.app-steps ::marker {
+	color: var(--lux-muted-foreground);
+	font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.app-loading * {
+		animation: none;
+	}
+}
+
+@media (min-width: 48rem) {
+	.app-page {
+		height: 100vh;
+	}
+
+	.app-main {
+		flex-direction: row;
+	}
+
+	.app-streams {
+		flex: 1;
+		height: auto;
+	}
+
+	.app-streams-below {
+		overflow-y: auto;
+	}
+
+	.app-side {
+		overflow-y: auto;
+		width: 24rem;
+	}
+}
+
+/* App-specific styles */
+
+.qr-grid {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.qr-tile {
+	align-items: center;
+	aspect-ratio: 1;
+	background: var(--lux-background);
+	border: 1px solid var(--lux-border);
+	border-radius: var(--lux-radius-sm);
+	color: var(--lux-foreground);
+	cursor: pointer;
+	display: flex;
+	justify-content: center;
+}
+
+.qr-tile[data-tone="active"] {
+	background: var(--lux-intent-active-soft);
+	border-color: var(--lux-intent-active-border);
+}
+
+.qr-tile[data-tone="success"] {
+	background: var(--lux-intent-success-soft);
+	border-color: var(--lux-intent-success-border);
+}
+
+.qr-tile[data-tone="warning"] {
+	background: var(--lux-intent-warning-soft);
+	border-color: var(--lux-intent-warning-border);
+}
+
+.qr-tile[data-tone="error"] {
+	background: var(--lux-intent-error-soft);
+	border-color: var(--lux-intent-error-border);
+}
+
+.qr-tile[aria-pressed="true"] {
+	border-color: var(--lux-primary);
+	box-shadow: 0 0 0 1px var(--lux-primary);
+}
+
+.qr-tile:focus-visible {
+	outline: 2px solid var(--lux-ring);
+	outline-offset: 2px;
+}
