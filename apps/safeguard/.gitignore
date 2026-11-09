@@ -1,0 +1,10 @@
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+__pycache__/
+*.pyc
+.ruff_cache/
+.venv/
+evidence/
+docs/
+*.oakapp
