@@ -11,9 +11,15 @@ FPS = 30.0
 SIZE = (640, 400)
 
 MODES = {
-    "close": (dai.ToFConfig.Profile.LOW_RANGE, dai.ImageFiltersPresetMode.TOF_LOW_RANGE),
+    "close": (
+        dai.ToFConfig.Profile.LOW_RANGE,
+        dai.ImageFiltersPresetMode.TOF_LOW_RANGE,
+    ),
     "mid": (dai.ToFConfig.Profile.MID_RANGE, dai.ImageFiltersPresetMode.TOF_MID_RANGE),
-    "far": (dai.ToFConfig.Profile.HIGH_RANGE, dai.ImageFiltersPresetMode.TOF_HIGH_RANGE),
+    "far": (
+        dai.ToFConfig.Profile.HIGH_RANGE,
+        dai.ImageFiltersPresetMode.TOF_HIGH_RANGE,
+    ),
 }
 
 
@@ -29,13 +35,15 @@ def main():
                 RGB_SOCKET = dai.CameraBoardSocket.CAM_A
 
             color = p.create(dai.node.Camera).build(RGB_SOCKET, sensorFps=FPS)
-            colorOut = color.requestOutput(SIZE, fps=FPS, type=dai.ImgFrame.Type.RGB888i, enableUndistortion=True)
+            colorOut = color.requestOutput(
+                SIZE, fps=FPS, type=dai.ImgFrame.Type.RGB888i, enableUndistortion=True
+            )
 
             tof = p.create(dai.node.ToF)
             tof.build(
                 boardSocket=dai.CameraBoardSocket.AUTO,
                 presetMode=dai.ImageFiltersPresetMode.TOF_HIGH_RANGE,
-                fps=FPS
+                fps=FPS,
             )
 
             align = p.create(dai.node.ImageAlign)
@@ -50,8 +58,11 @@ def main():
             colorOut.link(pc.inputColor)
 
             base_config_queue = tof.tofBaseInputConfig.createInputQueue()
-            filter_config_queue = (tof.imageFiltersInputConfig.createInputQueue()
-                                   if device.getPlatform() == dai.Platform.RVC2 else None)
+            filter_config_queue = (
+                tof.imageFiltersInputConfig.createInputQueue()
+                if device.getPlatform() == dai.Platform.RVC2
+                else None
+            )
             remote = dai.RemoteConnection(httpPort=8083)
             remote.addTopic("pcl", pc.outputPointCloud, "3d")
 

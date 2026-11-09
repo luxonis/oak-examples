@@ -30,14 +30,21 @@ class MenuHandler(BaseHTTPRequestHandler):
         if self.path == "/":
             self.reply(200, self.server.markup, "text/html; charset=utf-8")
         elif self.path == "/tof-mode":
-            self.reply(200, json.dumps({"selected": self.server.selected,
-                                        "requested": self.server.requested}).encode())
+            self.reply(
+                200,
+                json.dumps(
+                    {
+                        "selected": self.server.selected,
+                        "requested": self.server.requested,
+                    }
+                ).encode(),
+            )
         else:
-            self.reply(404, b'{}')
+            self.reply(404, b"{}")
 
     def do_POST(self):
         if self.path != "/tof-mode":
-            self.reply(404, b'{}')
+            self.reply(404, b"{}")
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -50,7 +57,7 @@ class MenuHandler(BaseHTTPRequestHandler):
             self.reply(400, b'{"error":"Invalid ToF mode"}')
             return
         self.server.requested = mode
-        self.reply(200, b'{}')
+        self.reply(200, b"{}")
 
     def log_message(self, format, *args):
         pass
