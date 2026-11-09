@@ -19,6 +19,22 @@ import depthai as dai
 from control import ControlServer
 
 
+
+def preview_frame(frame):
+    """Adapt GRAY8 for the bundled Visualizer without mutating saved messages."""
+    if frame.getType() != dai.ImgFrame.Type.GRAY8:
+        return frame
+    # GRAY8 and RAW8 both carry one byte per pixel. The bundled viewer accepts
+    # RAW8 (mono8), but rejects the GRAY8 enum used by Camera.requestOutput.
+    preview = dai.ImgFrame()
+    preview.setBufferMetadataFrom(frame)
+    preview.setWidth(frame.getWidth())
+    preview.setHeight(frame.getHeight())
+    preview.setType(dai.ImgFrame.Type.RAW8)
+    preview.setData(frame.getData())
+    return preview
+
+
 def positive_int(value):
     n = int(value)
     if n < 1 or n > 10000:
@@ -241,26 +257,30 @@ class CaptureApp:
             if not outputs:
                 raise RuntimeError('No supported cameras connected')
             queues = {name:out.createOutputQueue(maxSize=8, blocking=False) for name,out in outputs.items()}
-            if visualizer:
-                for name,out in outputs.items():
-                    visualizer.addTopic(name, out, 'Capture streams')
+            preview_queues = {}
             self.matcher = FrameMatcher(outputs, 0.5/a.fps)
             self.update(streams=list(outputs), state='warming_up')
             pipeline.start()
             print('Pipeline started.', flush=True)
-            if visualizer:
-                visualizer.registerPipeline(pipeline)
-                server = ControlServer('127.0.0.1', a.port, a.visualizer_port, self.status, lambda frames, output: self.request(dict(frames=frames, output=output)))
-                server.start()
-                print(f'Capture GUI: {server.url}', flush=True)
             first_seen = {}
             last_seen = {}
             auto_requested = False
             try:
+                if visualizer:
+                    visualizer.registerPipeline(pipeline)
+                    for name in outputs:
+                        preview_queues[name] = visualizer.addTopic(
+                            name, 'Capture streams', maxSize=2, blocking=False)
+                    server = ControlServer('127.0.0.1', a.port, a.visualizer_port, self.status, lambda frames, output: self.request(dict(frames=frames, output=output)))
+                    server.start()
+                    print(f'Capture GUI: {server.url}', flush=True)
                 while pipeline.isRunning():
                     now = time.monotonic()
                     for name,q in queues.items():
-                        for msg in q.tryGetAll():
+                        messages = q.tryGetAll()
+                        if messages and name in preview_queues:
+                            preview_queues[name].send(preview_frame(messages[-1]))
+                        for msg in messages:
                             first_seen.setdefault(name, now)
                             last_seen[name] = now
                             if self.active and msg.getTimestamp().total_seconds() > self.trigger_timestamp:
@@ -310,6 +330,9 @@ class CaptureApp:
                     self.finish('incomplete','Application stopped before capture completed')
                 if server:
                     server.close()
+                if visualizer:
+                    for name in preview_queues:
+                        visualizer.removeTopic(name)
 
 
 def main():

@@ -12,7 +12,30 @@ sys.path.insert(0, str(APP_DIR))
 
 import depthai as dai
 from control import ControlServer
-from main import CaptureApp, FrameMatcher, camera_roles
+from main import CaptureApp, FrameMatcher, camera_roles, preview_frame
+
+
+class PreviewEncodingTests(unittest.TestCase):
+    def test_gray_preview_preserves_pixels_and_original_capture_message(self):
+        frame = dai.ImgFrame()
+        frame.setWidth(4)
+        frame.setHeight(2)
+        frame.setType(dai.ImgFrame.Type.GRAY8)
+        frame.setSequenceNum(42)
+        frame.setData([0, 1, 2, 3, 4, 5, 254, 255])
+        preview = preview_frame(frame)
+        self.assertEqual(preview.getType(), dai.ImgFrame.Type.RAW8)
+        self.assertEqual(frame.getType(), dai.ImgFrame.Type.GRAY8)
+        self.assertEqual(preview.getData().tolist(), frame.getData().tolist())
+        self.assertEqual((preview.getWidth(), preview.getHeight()), (4, 2))
+        self.assertEqual(preview.getSequenceNum(), 42)
+        self.assertIsNot(preview, frame)
+
+    def test_supported_preview_types_are_not_copied_or_changed(self):
+        for typ in (dai.ImgFrame.Type.NV12, dai.ImgFrame.Type.RAW16, dai.ImgFrame.Type.RAW8):
+            frame = dai.ImgFrame()
+            frame.setType(typ)
+            self.assertIs(preview_frame(frame), frame)
 
 
 class FakeFrame:

@@ -35,7 +35,7 @@ OAK-..._<serial>_<date>/
   tof_confidence/tof_confidence_<timestamp>.dai
 ```
 
-Only detected streams are present. Files use native `ImgFrame.save()` serialization, preserving pixel type, geometry, timestamps and exposure metadata. Read with `frame = dai.ImgFrame(); frame.load(path)`. `calib.json` is the original EEPROM calibration. Stereo images are grayscale, unrectified, full-FOV images; RGB is NV12. The standard ToF optical grid (including SDK default distortion correction) is recorded and is not aligned to a camera. No stereo depth, disparity, rectified images or ToF raw data are captured.
+Only detected streams are present. Files use native `ImgFrame.save()` serialization, preserving pixel type, geometry, timestamps and exposure metadata. Read with `frame = dai.ImgFrame(); frame.load(path)`. `calib.json` is the original EEPROM calibration. Stereo images are grayscale, unrectified, full-FOV images; RGB is NV12. Preview-only copies label grayscale as RAW8 for compatibility with the bundled Visualizer; saved messages retain their original GRAY8 type. The standard ToF optical grid (including SDK default distortion correction) is recorded and is not aligned to a camera. No stereo depth, disparity, rectified images or ToF raw data are captured.
 
 Host matching groups frames by device timestamps within half a frame interval. This is software synchronization, not hardware exposure synchronization. Actual timestamps, sequence IDs, sizes and group skew are recorded. Shared numeric filename keys allow existing capture/replay tools to pair left and right. Slow transport can skip frames; this diagnostic app promises the requested number of matched sets, not uninterrupted video. Warmup starts after every stream has delivered its first frame.
 
