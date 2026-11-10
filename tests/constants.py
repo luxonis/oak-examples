@@ -66,6 +66,10 @@ KNOWN_FAILING = {
             ],
         },
     },
+    "apps/ffc-multi-camera-recorder": {
+        "reason": "Built and tested for RVC4 (OAK4-FFC) only",
+        "rules": {"and": [{"platform": ["rvc2"]}]},
+    },
     "apps/onnxruntime-track-anything": {
         "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {"and": [{"platform": ["rvc2"]}]},
