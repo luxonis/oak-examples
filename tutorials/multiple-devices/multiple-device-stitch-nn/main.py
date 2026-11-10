@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from depthai_nodes.node import (
-    CoordinatesMapper,
     FrameCropper,
     GatherData,
     ImgDetectionsFilter,
@@ -133,13 +132,8 @@ with contextlib.ExitStack() as stack:
         input=tiling_cropper.out, nnSource=nn_archive
     )
 
-    detections_in_stitched_space = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=stitch_pl.out,
-        fromTransformationInput=nn.out,
-    )
-
     gathered_detections = pipeline.create(GatherData).build(
-        inputData=detections_in_stitched_space.out,
+        inputData=nn.out,
         inputReference=stitch_pl.out,
         cameraFps=args.fps_limit,
         waitCountFn=lambda _: tile_manager.tileCount,

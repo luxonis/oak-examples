@@ -25,14 +25,6 @@ class VisualizeLicensePlates(dai.node.ThreadedHostNode):
             crop_detections = self.lp_crop_detections.get().detections
 
             for detection, lp_detection in zip(detections, crop_detections):
-                x_min = int(detection.xmin * frame_w)
-                y_min = int(detection.ymin * frame_h)
-                x_max = int(detection.xmax * frame_w)
-                y_max = int(detection.ymax * frame_h)
-
-                vehicle_w = x_max - x_min
-                vehicle_h = y_max - y_min
-
                 ocr_message = self.ocr_results.get()
                 text = "".join(ocr_message.classes)
                 license_plate = self.lp_crop_images.get().getCvFrame()
@@ -40,10 +32,10 @@ class VisualizeLicensePlates(dai.node.ThreadedHostNode):
                 if len(text) < 5:
                     continue
 
-                lp_x_min = int(lp_detection.xmin * vehicle_w) + x_min
-                lp_y_min = int(lp_detection.ymin * vehicle_h) + y_min
-                lp_x_max = int(lp_detection.xmax * vehicle_w) + x_min
-                lp_y_max = int(lp_detection.ymax * vehicle_h) + y_min
+                lp_x_min = int(lp_detection.xmin * frame_w)
+                lp_y_min = int(lp_detection.ymin * frame_h)
+                lp_x_max = int(lp_detection.xmax * frame_w)
+                lp_y_max = int(lp_detection.ymax * frame_h)
 
                 lp_x_min = np.clip(lp_x_min, 0, frame_w)
                 lp_y_min = np.clip(lp_y_min, 0, frame_h)
@@ -63,6 +55,8 @@ class VisualizeLicensePlates(dai.node.ThreadedHostNode):
                     1,
                 )
                 crop_region = frame[lp_y_max : lp_y_max + 24, lp_x_min : lp_x_min + 80]
+                if crop_region.size == 0:
+                    continue
                 lp_text = np.concatenate((license_plate, white_frame), axis=0)
                 lp_text = cv2.resize(
                     lp_text, (crop_region.shape[1], crop_region.shape[0])
@@ -79,4 +73,6 @@ class VisualizeLicensePlates(dai.node.ThreadedHostNode):
             img.setCvFrame(frame, frame_type)
             img.setTimestamp(ts)
             img.setTimestampDevice(frame_message.getTimestampDevice())
+            img.setSequenceNum(frame_message.getSequenceNum())
+            img.setTransformation(frame_message.getTransformation())
             self.out.send(img)

@@ -72,19 +72,23 @@ def main():
             size=constants.camera.resolution,
             type=dai.ImgFrame.Type.BGR888i,
             fps=constants.camera.fps,
+            enableUndistortion=True,
         )
 
-        segmentation_rgb = camera.requestOutput(
-            size=constants.nn.segmentation.input_size,
-            type=dai.ImgFrame.Type.BGR888i,
-            fps=constants.camera.fps,
-        )
-
-        dino_rgb = camera.requestOutput(
-            size=constants.nn.dino.input_size,
-            type=dai.ImgFrame.Type.BGR888i,
-            fps=constants.camera.fps,
-        )
+        segmentation_manip = pipeline.create(dai.node.ImageManip)
+        dino_manip = pipeline.create(dai.node.ImageManip)
+        for manip, size in (
+            (segmentation_manip, constants.nn.segmentation.input_size),
+            (dino_manip, constants.nn.dino.input_size),
+        ):
+            manip.initialConfig.setOutputSize(
+                *size, dai.ImageManipConfig.ResizeMode.STRETCH
+            )
+            manip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
+            manip.setMaxOutputFrameSize(size[0] * size[1] * 3)
+            rgb_sensor.link(manip.inputImage)
+        segmentation_rgb = segmentation_manip.out
+        dino_rgb = dino_manip.out
 
         segmentation_nn = pipeline.create(ParsingNeuralNetwork).build(
             input=segmentation_rgb, nnSource=constants.nn.segmentation.model_name

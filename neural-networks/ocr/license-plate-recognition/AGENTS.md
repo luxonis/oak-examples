@@ -41,6 +41,9 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 ## Architecture
 
+- Apply plate trimming through `setOuterBoundingBox()` before remapping. Assigning legacy coordinate fields alone leaves the native parser's stored rectangle unchanged.
+
+- The Script crop stages use ImgTransformation.remapRectTo() to map detector boxes into the actual source frame, including nested plate crops. Plate overlays consume those source-frame coordinates directly; crop configs, filtered messages, and rendered frames retain timestamps and sequence numbers. The RVC4-only restriction remains.
 - A first-stage vehicle detector runs on a very large source frame.
 - Script nodes generate crop configs for vehicles and then for license plates inside those vehicle crops.
 - A second detector finds plates inside each vehicle crop.
@@ -61,6 +64,7 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 ## Validation
 
+- `Geometry checks:` Check nonzero-offset vehicle/plate crops, letterboxed detector inputs, edge-clipped plates, and a second source resolution. Verify crop-to-OCR ordering and compare crop/message timestamps.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `License Plates` with detected vehicles, plates, and OCR text merged into one output
 - `Common failure meaning:` the device is not RVC4, the scene resolution is too poor for the crop cascade, or one of the scripted crop stages is no longer aligned with the model outputs

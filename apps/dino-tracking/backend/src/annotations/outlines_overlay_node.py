@@ -2,6 +2,7 @@ import cv2
 import depthai as dai
 import numpy as np
 from depthai_nodes.node.base_host_node import BaseHostNode
+from depthai_nodes.node.utils.message_remapping import remap_message
 
 
 class OutlinesOverlay(BaseHostNode):
@@ -31,13 +32,18 @@ class OutlinesOverlay(BaseHostNode):
             return
 
         assert isinstance(segmentation, dai.SegmentationMask)
+        segmentation = remap_message(
+            segmentation,
+            segmentation.getTransformation(),
+            frame_msg.getTransformation(),
+        )
         mask = segmentation.getCvMask()
 
         frame = frame_msg.getCvFrame()
         H, W = frame.shape[:2]
 
         if mask.shape != (H, W):
-            mask = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)
+            raise ValueError("Outline mask must be aligned to the display frame")
 
         mask = mask.astype(np.uint16)
 
@@ -52,7 +58,6 @@ class OutlinesOverlay(BaseHostNode):
     def _send(self, frame: np.ndarray, ref_msg: dai.ImgFrame):
         out = dai.ImgFrame()
         out.setCvFrame(frame, self._img_frame_type)
-        out.setSequenceNum(ref_msg.getSequenceNum())
-        out.setTimestamp(ref_msg.getTimestamp())
-        out.setTimestampDevice(ref_msg.getTimestampDevice())
+        out.setBufferMetadataFrom(ref_msg)
+        out.setTransformation(ref_msg.getTransformation())
         self.out.send(out)

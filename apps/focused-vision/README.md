@@ -9,6 +9,10 @@ using person detection and tiling.
 
 > **Note:** This example works only on RVC4 in standalone mode.
 
+In the two-stage and tiling branches, dai.node.Align remaps each native face-detection message to high-resolution RGB before GatherData. The collection adapters retain their existing reference and crop association; containers are never passed to Align.
+
+Align caches the latest target transformation with `inputAlignTo.setWaitForMessage(False)`, allowing every tile/crop to emit without waiting for another camera frame. Its detection input uses `input.setBlocking(True)` so bursts apply backpressure instead of dropping crop results before collection.
+
 ## Demo
 
 ![focused-vision](media/demo.gif)

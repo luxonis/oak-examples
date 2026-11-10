@@ -6,6 +6,10 @@ By default FPS limit for RVC2 is 6FPS and for RVC4 is 30FPS. You can change this
 
 After the pose estimation we also apply some logic to recognize the hand gestures. The gestures are: FIST, OK, PEACE, ONE, TWO, THREE, FOUR, and FIVE.
 
+Native Keypoints and palm detections are transformed to the displayed source frame before drawing and gesture recognition. The hand rectangle is remapped from the actual crop extent, including rotation; annotation metadata follows the original detections.
+
+Crop configs and their group retain the detections' host/device timestamps and sequence number so FrameCropper can synchronize each hand crop with its camera frame.
+
 ## Demo
 
 [![Hand pose estimation](media/hand-pose.gif)](media/hand-pose.gif)

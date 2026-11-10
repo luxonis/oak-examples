@@ -1,19 +1,3 @@
-def denormalize_detection(detection: ImgDetection, width: int, height: int):
-    x_min, y_min, x_max, y_max = (
-        detection.xmin,
-        detection.ymin,
-        detection.xmax,
-        detection.ymax,
-    )
-
-    x_min = int(x_min * width)
-    y_min = int(y_min * height)
-    x_max = int(x_max * width)
-    y_max = int(y_max * height)
-
-    return x_min, y_min, x_max, y_max
-
-
 try:
     while True:
         frame = node.inputs["frame_input"].get()
@@ -26,13 +10,8 @@ try:
         valid_detections = []
         valid_crops = []
         for d in detections:
-            x_min, y_min, x_max, y_max = denormalize_detection(d, frame_w, frame_h)
-            w = x_max - x_min
-            h = y_max - y_min
-
-            license_plate_detections = (
-                node.inputs["license_plate_detections"].get().detections
-            )
+            plate_message = node.inputs["license_plate_detections"].get()
+            license_plate_detections = plate_message.detections
 
             if len(license_plate_detections) == 0:
                 continue
@@ -43,30 +22,28 @@ try:
             if license_plate_detection.confidence < 0.5:
                 continue
 
-            license_plate_detection.xmin = license_plate_detection.xmin * 1.02
-            license_plate_detection.ymin = license_plate_detection.ymin * 1.03
-            license_plate_detection.xmax = license_plate_detection.xmax * 0.98
-            license_plate_detection.ymax = license_plate_detection.ymax * 0.97
-
-            lp_x_min, lp_y_min, lp_x_max, lp_y_max = denormalize_detection(
-                license_plate_detection, w, h
+            license_plate_detection.setOuterBoundingBox(
+                license_plate_detection.xmin * 1.02,
+                license_plate_detection.ymin * 1.03,
+                license_plate_detection.xmax * 0.98,
+                license_plate_detection.ymax * 0.97,
             )
-            lp_w = lp_x_max - lp_x_min
-            lp_h = lp_y_max - lp_y_min
 
-            crop_x_min = max(0, min(lp_x_min + x_min, frame_w))
-            crop_y_min = max(0, min(lp_y_min + y_min, frame_h))
-            crop_w = max(0, min(lp_w, frame_w - crop_x_min))
-            crop_h = max(0, min(lp_h, frame_h - crop_y_min))
-
-            if crop_w <= 40 or crop_h <= 10:
+            plate_rect = plate_message.getTransformation().remapRectTo(
+                frame.getTransformation(), license_plate_detection.getBoundingBox()
+            )
+            pixel_rect = plate_rect.denormalize(frame_w, frame_h)
+            if pixel_rect.size.width <= 40 or pixel_rect.size.height <= 10:
                 continue
 
+            license_plate_detection.setBoundingBox(plate_rect)
             cfg = ImageManipConfig()
-            cfg.addCrop(crop_x_min, crop_y_min, crop_w, crop_h)
+            cfg.addCropRotatedRect(plate_rect, normalizedCoords=True)
             cfg.setReusePreviousImage(False)
             cfg.setOutputSize(320, 48)
             cfg.setTimestamp(detections_message.getTimestamp())
+            cfg.setTimestampDevice(detections_message.getTimestampDevice())
+            cfg.setSequenceNum(detections_message.getSequenceNum())
 
             valid_detections.append(d)
             valid_crops.append(license_plate_detection)
@@ -76,10 +53,16 @@ try:
         valid_detections_msg = ImgDetections()
         valid_detections_msg.detections = valid_detections
         valid_detections_msg.setTimestamp(detections_message.getTimestamp())
+        valid_detections_msg.setTimestampDevice(detections_message.getTimestampDevice())
+        valid_detections_msg.setSequenceNum(detections_message.getSequenceNum())
+        valid_detections_msg.setTransformation(frame.getTransformation())
 
         valid_crops_msg = ImgDetections()
         valid_crops_msg.detections = valid_crops
         valid_crops_msg.setTimestamp(detections_message.getTimestamp())
+        valid_crops_msg.setTimestampDevice(detections_message.getTimestampDevice())
+        valid_crops_msg.setSequenceNum(detections_message.getSequenceNum())
+        valid_crops_msg.setTransformation(frame.getTransformation())
         node.warn("sending vehicle crop config")
         node.outputs["output_valid_crops"].send(valid_crops_msg)
         node.outputs["output_valid_detections"].send(valid_detections_msg)

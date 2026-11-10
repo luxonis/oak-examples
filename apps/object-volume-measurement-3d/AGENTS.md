@@ -49,6 +49,9 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Architecture
 
+- Extract rotated-box corners in RGB pixels before normalizing them for selection/drawing. Rotating normalized rectangles distorts geometry on non-square frames.
+
+- A host Sync groups RGB, detections, and aligned depth. The annotation node uses depthai-nodes `remap_message` to remap native detections and resample instance masks to the undistorted RGB frame, including rotated crops. Selection and contours use that geometry directly; background ID 255 never selects a measurement region. RGB and depth keep their own metadata, and mode messages use the RGB reference used by RGBD.
 - RGB from `CAM_A` is resized and aligned with depth from `dai.node.Depth`.
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
 - Detection filtering keeps only the currently active class labels.
@@ -79,6 +82,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Constraints
 
+- The upstream Sync and RGBD internal Sync share the device timestamp source and half-frame tolerance. RGB and depth retain their original timestamps.
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
@@ -100,6 +104,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Validation
 
+- `Geometry checks:` Check instance ID 0 and background clicks, object/depth boundaries, plane capture, and changed letterboxing/source resolution. Mask and depth pixels must agree and selection modes must carry RGB timestamps.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose

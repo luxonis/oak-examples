@@ -10,7 +10,6 @@ class AnnotationNode(dai.node.HostNode):
         self.out_pose_annotations = self.createOutput()
         self.connection_pairs = [[]]
         self.valid_labels = [0]
-        self.padding = 0.1
         self.keypoint_conf_threshold = 0.5
 
     def build(
@@ -18,13 +17,10 @@ class AnnotationNode(dai.node.HostNode):
         gather_data_msg: dai.Node.Output,
         connection_pairs: List[List[int]],
         valid_labels: List[int],
-        padding: Optional[float] = None,
         keypoint_conf_threshold: Optional[float] = None,
     ) -> "AnnotationNode":
         self.connection_pairs = connection_pairs
         self.valid_labels = valid_labels
-        if padding:
-            self.padding = padding
         if keypoint_conf_threshold:
             self.keypoint_conf_threshold = keypoint_conf_threshold
         self.link_args(gather_data_msg)
@@ -40,36 +36,16 @@ class AnnotationNode(dai.node.HostNode):
 
         annotations = AnnotationHelper()
 
-        for img_detection_msg, keypoints_msg in zip(
-            img_detections_msg.detections, keypoints_msg_list
-        ):
-            xmin, ymin, xmax, ymax = (
-                img_detection_msg.xmin,
-                img_detection_msg.ymin,
-                img_detection_msg.xmax,
-                img_detection_msg.ymax,
+        for keypoints_msg in keypoints_msg_list:
+            keypoints_msg = keypoints_msg.transformTo(
+                img_detections_msg.getTransformation()
             )
-
-            slope_x = (xmax + self.padding) - (xmin - self.padding)
-            slope_y = (ymax + self.padding) - (ymin - self.padding)
             xs = []
             ys = []
             confidences = []
             for keypoint_msg in keypoints_msg.getKeypoints():
-                x = min(
-                    max(
-                        xmin - self.padding + slope_x * keypoint_msg.imageCoordinates.x,
-                        0.0,
-                    ),
-                    1.0,
-                )
-                y = min(
-                    max(
-                        ymin - self.padding + slope_y * keypoint_msg.imageCoordinates.y,
-                        0.0,
-                    ),
-                    1.0,
-                )
+                x = keypoint_msg.imageCoordinates.x
+                y = keypoint_msg.imageCoordinates.y
                 xs.append(x)
                 ys.append(y)
                 confidences.append(keypoint_msg.confidence)
@@ -94,4 +70,6 @@ class AnnotationNode(dai.node.HostNode):
             sequence_num=img_detections_msg.getSequenceNum(),
         )
 
+        img_annotations_msg.setBufferMetadataFrom(img_detections_msg)
+        img_annotations_msg.setTransformation(img_detections_msg.getTransformation())
         self.out_pose_annotations.send(img_annotations_msg)

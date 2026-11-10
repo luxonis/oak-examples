@@ -55,9 +55,10 @@ class QRScanner(dai.node.HostNode):
                     qr_det.label = decoded_text
             qr_dets.detections.append(qr_det)
 
-        qr_dets.setSequenceNum(detections.getSequenceNum())
-        qr_dets.setTimestamp(detections.getTimestamp())
+        qr_dets.setBufferMetadataFrom(detections)
         grid_annot = self.draw_grid(frame, detections.getTimestamp())
+        grid_annot.setBufferMetadataFrom(preview)
+        grid_annot.setTransformation(preview.getTransformation())
         self.out_grid.send(grid_annot)
         self.out.send(qr_dets)
 

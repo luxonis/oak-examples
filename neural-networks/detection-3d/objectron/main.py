@@ -95,7 +95,6 @@ with dai.Pipeline(device) as pipeline:
     annotation_node = pipeline.create(AnnotationNode).build(
         gathered_data=gather_data.out,
         connection_pairs=connection_pairs,
-        padding=PADDING,
     )
 
     # visualization

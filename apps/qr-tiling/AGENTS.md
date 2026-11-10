@@ -50,19 +50,22 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Architecture
 
+- Align caches the latest target transformation with `inputAlignTo.setWaitForMessage(False)`, allowing every tile/crop to emit without waiting for another camera frame. Its detection input uses `input.setBlocking(True)` so bursts apply backpressure instead of dropping crop results before collection.
+- The tile grid remaps each corner from the actual high-resolution frame transformation to the display frame, including rotated/cropped views.
+- dai.node.Align remaps each native tile detection to the high-resolution QR-decoder frame before MessageCollector, merge, and NMS. The merged message inherits the aligned leaf transformation because Collection has no transformation of its own.
 - One RGB camera produces a high-resolution NN stream and a lower-resolution display stream.
 - `FPSController` gates the frame rate for both paths.
 - `Tiling` generates manip configs for tiled crops over the high-resolution image.
 - `FrameCropper` extracts the tiles.
 - A parsing NN runs QR detection per tile.
-- Detection collections are remapped into display space, merged, filtered with NMS, and optionally decoded.
+- Native tile detections are remapped before collection, merged, filtered with NMS, and optionally decoded.
 - `PipelineHealthMonitor` feeds safe FPS targets back into the controller as tile count changes.
 - A tile-grid overlay is rendered onto the display stream, then encoded for frontend viewing.
 
 ## Data Flow
 
-- `RGB high-res -> Tiling -> FrameCropper -> QR detector NN -> collected detections`
-- `collected detections -> coordinate remap -> merge -> NMS -> QRDecoder -> Visualizations`
+- `RGB high-res -> Tiling -> FrameCropper -> QR detector NN -> Align -> collected detections`
+- `collected detections -> merge -> NMS -> QRDecoder -> Visualizations`
 - `RGB display -> TileGridOverlay -> VideoEncoder -> Video`
 - `pipeline health -> FPSController target_fps`
 - `frontend services -> tiling config / decode state -> backend`
@@ -103,6 +106,7 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Validation
 
+- `Geometry checks:` Change the grid and overlap while scanning QR codes at tile boundaries. Check merged metadata and decoder crops at a second sensor resolution.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend loads current tiling settings, changing rows or columns updates the backend, and QR detections remain stable while FPS adjusts under higher load
 - `Common failure meaning:` the static frontend was not built, `libzbar` or model assets are unavailable, or the tiling/state service contract drifted

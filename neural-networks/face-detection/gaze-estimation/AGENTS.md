@@ -41,6 +41,9 @@ This is the repository reference for a multi-input, three-stage gaze estimation 
 
 ## Architecture
 
+- A device Script forwards only source dimensions, transformation, and timing metadata to the crop-control host node; image pixels stay on the existing image branches. Create its empty message with `ImgFrame(0)` because RVC2 Script bindings require an explicit payload size.
+- LandmarksProcessing's host Sync explicitly uses device timestamps: RVC2 Script timestamp getters expose device time, whereas NN detections also carry converted host timestamps.
+- LandmarksProcessing synchronizes detections with the original source frame and uses native transformTo() before constructing face/eye crops. Source dimensions come from that frame; normalized eye coordinates are converted to source pixels once, including during replay.
 - YuNet detects faces first.
 - [utils/process_keypoints.py](utils/process_keypoints.py) converts detections into left-eye, right-eye, and face crop configs.
 - A head-pose model runs on face crops, and [utils/host_concatenate_head_pose.py](utils/host_concatenate_head_pose.py) merges its yaw/pitch/roll outputs.
@@ -52,7 +55,7 @@ This is the repository reference for a multi-input, three-stage gaze estimation 
 - This is a multi-input pipeline with several blocking/max-size settings; it is much easier to break than the simpler two-stage face examples.
 - Host-created config groups, crop configs, tensors, and annotations must preserve both the source timestamp and device timestamp so downstream nodes can synchronize them with camera frames.
 - RVC4 uses a larger requested source resolution than RVC2 in [main.py](main.py).
-- Replay or camera sizing changes can invalidate the crop logic if done blindly.
+- Replay and camera inputs must preserve their transformations; crop geometry follows the actual source frame.
 
 ## Related Examples
 
@@ -62,6 +65,7 @@ This is the repository reference for a multi-input, three-stage gaze estimation 
 
 ## Validation
 
+- `Geometry checks:` Use replay at a second resolution and change detector preprocessing to letterbox. Check both eye crops and face crops at noncentral positions, and retain original timestamps/sequence numbers.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `Video` and `Gaze`, and gaze overlays follow visible faces
 - `Common failure meaning:` the eye/face crop logic drifted, the multi-input tensor wiring is out of sync, or the replay sizing is incompatible with the crop pipeline

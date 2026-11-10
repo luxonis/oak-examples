@@ -42,8 +42,11 @@ This is the repository reference for tiling-based QR detection with host-side de
 
 ## Architecture
 
+- The decoded QR results, their visualization message, and grid annotations preserve source host/device timestamps and sequence numbers; the grid also carries the preview transformation.
+
+- GatherData keeps each original image as its reference. MergeImgDetections calls native transformTo(reference.getTransformation()) on each tile before merging and NMS. This thin container adapter also supports replay geometry without requiring calibrated Align extrinsics.
 - [main.py](main.py) splits each frame into overlapping tiles with `Tiling`, crops them with `FrameCropper`, and runs QRDet on each tile.
-- `CoordinatesMapper`, `GatherData`, and [utils/merge_img_detections.py](utils/merge_img_detections.py) merge tile detections back into image space.
+- `GatherData` and [utils/merge_img_detections.py](utils/merge_img_detections.py) merge tile detections back into image space.
 - `ImgDetectionsFilter.useNms()` suppresses duplicate tile detections after merging.
 - [utils/host_qr_scanner.py](utils/host_qr_scanner.py) optionally decodes each detected QR crop with `pyzbar` and emits both annotation output and grid visualization.
 
@@ -61,6 +64,7 @@ This is the repository reference for tiling-based QR detection with host-side de
 
 ## Validation
 
+- `Geometry checks:` Check live input and replay, empty tiles, tile-boundary QR codes, letterboxing/rotation, and a second input size. Confirm crop association and original timestamps survive merging.
 - `Run:` `python3 main.py`
 - `Larger grid:` `python3 main.py -r 3 -c 3`
 - `Success looks like:` the Visualizer shows `Video`, `Visualizations`, and `Tiling grid`, and decoded QR labels appear when `pyzbar` is available

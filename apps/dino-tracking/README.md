@@ -13,6 +13,10 @@ This application demonstrates interactive, similarity-based object tracking usin
 
 ![](media/DinoDemo.gif)
 
+Segmentation and DINO inputs are stretched from the same display frame, preserving its field of view for normalized click/grid indexing. The preview explicitly enables undistortion, and depthai-nodes `remap_message` resamples outline masks to it, including rotated crops; selection and rendered-frame transformations are preserved. Grid interpolation remains intentional within this shared field of view.
+
+Both model inputs come from this undistorted preview. The shared affine mask remapper requires the same source camera and distortion geometry; it does not project between cameras.
+
 ## Pipeline Graph
 
 ![](media/DinoGraph.png)

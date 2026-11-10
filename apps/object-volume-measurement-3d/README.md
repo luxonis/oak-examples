@@ -7,6 +7,12 @@ The frontend is built with `@luxonis/depthai-viewer-common` package, and combine
 
 > **Note:** This example works only on RVC4 in standalone mode.
 
+A host Sync groups RGB, detections, and aligned depth. The annotation node uses depthai-nodes `remap_message` to remap native detections and resample instance masks to the undistorted RGB frame, including rotated crops. Selection and contours use that geometry directly; background ID 255 never selects a measurement region. RGB and depth keep their own metadata, and mode messages use the RGB reference used by RGBD.
+
+The upstream Sync and RGBD internal Sync share the device timestamp source and half-frame tolerance. RGB and depth retain their original timestamps.
+
+Rotated-box corners are computed in RGB pixels before normalization so selection and drawing agree on non-square frames.
+
 ## Demo
 
 ![extended-3d-measurement](media/demo.gif)

@@ -2,6 +2,8 @@
 
 Object detection models usually require smaller frame for inferencing (eg. `512x288`). Instead of displaying bounding boxes on such small frames, you could also stream higher resolution frames and display bounding boxes on these frames. There are several approaches to achieving that, and this example will go over some of them. It uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) model for object detection.
 
+The cropped detections are remapped to the full frame with `dai.node.Align`, using the actual crop transformation. Align runs on the host on RVC2.
+
 ## Demo
 
 ### 1. Passthrough

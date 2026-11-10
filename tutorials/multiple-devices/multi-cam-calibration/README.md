@@ -19,6 +19,8 @@ The core extrinsic calibration uses OpenCV as follows:
    - The computed pose (`rvec`, `tvec`) is saved.
    - For display, [`cv2.projectPoints`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga1019495a2c8d1743ed5cc23fa0daff8c) is used. It takes the 3D coordinates of the world axes (defined at the checkerboard's origin), the calculated `rvec` and `tvec`, and the camera's high-resolution intrinsic matrix to project these axes onto the 2D image plane. These projected 2D points are then scaled and normalized for drawing on the live preview.
 
+The still frame supplies its actual transformation and intrinsics for pose estimation. Projected axes are remapped to the current preview with ImgTransformation.remapPointTo(), preserving crops, aspect ratio, and distortion differences. This is same-camera image remapping; saved world-frame conventions are unchanged.
+
 ## Demo
 
 Program will also print USB speed, and connected cameras for each connected device before starting the pipeline. Output example for having connected OAK-D S2, OAK-D PRO

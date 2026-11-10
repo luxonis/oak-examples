@@ -63,10 +63,8 @@ class ProcessDetections(dai.node.HostNode):
                 dai.ImageManipConfig.ResizeMode.STRETCH,
             )
             cfg.setReusePreviousImage(False)
-            cfg.setTimestamp(img_detections.getTimestamp())
-            cfg.setSequenceNum(img_detections.getSequenceNum())
+            cfg.setBufferMetadataFrom(img_detections)
             configs_group[f"cfg_{i}"] = cfg
 
-        configs_group.setTimestamp(img_detections.getTimestamp())
-        configs_group.setSequenceNum(img_detections.getSequenceNum())
+        configs_group.setBufferMetadataFrom(img_detections)
         self.config_output.send(configs_group)

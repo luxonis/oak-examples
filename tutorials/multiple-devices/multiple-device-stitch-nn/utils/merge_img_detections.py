@@ -5,7 +5,7 @@ from depthai_nodes.node.base_host_node import BaseHostNode
 
 
 class MergeImgDetections(BaseHostNode):
-    """Merge all ImgDetections stored in a GatheredData message into one message."""
+    """Remap each tile within the virtual panorama and merge the detections."""
 
     def build(self, input: dai.Node.Output) -> "MergeImgDetections":
         self.link_args(input)
@@ -22,7 +22,9 @@ class MergeImgDetections(BaseHostNode):
                 raise TypeError(
                     f"Expected GatheredData items to be dai.ImgDetections, got {type(item)}"
                 )
-            detections.extend(item.detections)
+            detections.extend(
+                item.transformTo(msg.reference_data.getTransformation()).detections
+            )
 
         merged.detections = detections
         merged.setSequenceNum(msg.reference_data.getSequenceNum())

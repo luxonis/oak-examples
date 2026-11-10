@@ -40,6 +40,7 @@ This is the repository reference for two-stage animal pose estimation. Use it wh
 
 ## Architecture
 
+- Each native Keypoints message is transformed to the first-stage detections frame before drawing. Annotation geometry comes from the actual crop transformation, independently of crop padding, and source metadata is preserved.
 - The wildlife detector runs first.
 - `ImgDetectionsFilter` keeps only `VALID_LABELS = [0]` in the current code path.
 - `FrameCropper` extracts padded crops for the superanimal pose model.
@@ -59,6 +60,7 @@ This is the repository reference for two-stage animal pose estimation. Use it wh
 
 ## Validation
 
+- `Geometry checks:` Check multiple animals, edge-clipped crops, letterboxing, rotation, and a second source resolution. Each skeleton must remain associated with its crop.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows animal detections and pose skeletons on the same stream
 - `Common failure meaning:` the wildlife detector is not finding the intended class, or the fixed label/padding assumptions do not match the chosen scene

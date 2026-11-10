@@ -4,6 +4,10 @@ This example uses [QRDet](https://models.luxonis.com/luxonis/qrdet/d1183a0f-e9a0
 
 **NOTE**: Due to missing bindings for RVC2, this example only works on OAK4 devices.
 
+GatherData keeps each original image as its reference. MergeImgDetections calls native transformTo(reference.getTransformation()) on each tile before merging and NMS. This thin container adapter also supports replay geometry without requiring calibrated Align extrinsics.
+
+QR results and grid annotations retain source host/device timestamps and sequence numbers; the grid also retains the preview transformation.
+
 ## Demo
 
 ![example](media/example.gif)

@@ -6,6 +6,10 @@ This example showcases one possible approach for measuring the size of a box usi
 
 > **⚠️ Known issue:** Due to current CuboidFitter algorithm limitations, measurements may occasionally jump or skip between frames. Active stereo is crucial for stable results, and you may see some instability, especially on RVC2 devices. In some cases, instability can also be caused by insufficient power supply to the device.
 
+The processing node uses depthai-nodes `remap_message` to resample the instance mask and remap detections to the same undistorted RGB stream used by RGBD and the preview, including rotated crops. A host Sync groups the cloud, RGB, and detections within 1 ms. Mask indexing requires an organized cloud of matching dimensions; cuboid projection uses the current RGB transformation intrinsics.
+
+DepthAI 3.11 Align does not preserve arbitrary mask rotations. The shared host remapper is the fallback for same-camera crops, resize, letterbox, and rotation; keep both source and target undistorted.
+
 ## Usage
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.

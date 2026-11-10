@@ -29,9 +29,7 @@ class MergeImgDetections(BaseHostNode):
         merged.setTimestamp(msg.getTimestamp())
         merged.setTimestampDevice(msg.getTimestampDevice())
 
-        if hasattr(msg, "getTransformation"):
-            transformation = msg.getTransformation()
-            if transformation is not None:
-                merged.setTransformation(transformation)
+        if msg.items:
+            merged.setTransformation(msg.items[0].getTransformation())
 
         self.out.send(merged)
