@@ -76,6 +76,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Constraints
 
+- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - This example is RVC4 standalone only.
 - The backend defaults to `15` FPS when no limit is provided.
 - Measurement quality depends on valid aligned depth for both points.

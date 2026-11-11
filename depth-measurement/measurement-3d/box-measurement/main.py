@@ -84,6 +84,7 @@ with dai.Pipeline(device) as p:
         (640, 400),
         type=dai.ImgFrame.Type.NV12,
         fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
     visualizer.addTopic("Video Stream", outputToVisualize, "images")

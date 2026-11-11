@@ -73,10 +73,11 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 - `To swap the model:` replace the YAML/model pair in [depthai_models/](depthai_models/) and keep the same parser contract
 - `To reuse only the measurement host logic:` keep [utils/box_processing_node.py](utils/box_processing_node.py) and feed it your own point cloud plus detections
 - `To remove the cuboid overlay:` keep `outputANN` and drop the `outputANNCuboid` topic
-- `To test alignment changes:` start from the `RGBD` and `ImageAlign` branch in [main.py](main.py)
+- `To test alignment changes:` start from the `Depth.setAlignTo(...)` and `RGBD` wiring in [main.py](main.py)
 
 ## Constraints
 
+- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - The README explicitly calls out cuboid-fit instability and dimension jumps; this is a reference demo, not a hardened metrology pipeline.
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.

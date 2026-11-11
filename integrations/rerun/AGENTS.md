@@ -46,8 +46,7 @@ This is the repository reference for streaming DepthAI data into Rerun Viewer. U
 - `main.py` always creates an RGB stream from `CAM_A`.
 - Optional mono streams from `CAM_B/C` are added when `--left`, `--right`, or `--pointcloud` requires them.
 - Point-cloud mode builds:
-  - `Depth`
-  - `ImageAlign` aligned to RGB
+  - `Depth` aligned to RGB through `setAlignTo(...)`
   - `PointCloud`
 - The custom [utils/host_rerun.py](utils/host_rerun.py) threaded host node consumes the selected streams and logs them into Rerun.
 - Viewer startup is controlled before the pipeline runs:
@@ -75,7 +74,11 @@ This is the repository reference for streaming DepthAI data into Rerun Viewer. U
 
 ## Constraints
 
+- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - The example always creates the RGB stream from `CAM_A`; there is no no-color mode.
+- Keep `pipeline.processTasks(waitForTasks=False)` non-blocking so Python host-node threads can acquire the GIL.
+- Keep `PointCloud.initialConfig.setOrganized(True)` so each point retains its pixel index for color lookup.
+- Keep the RGB alignment reference undistorted when point-cloud mode is enabled.
 - `Pointcloud` logging uses the latest color frame for coloring and assumes that RGB and point-cloud frame layout stay compatible.
 - [utils/host_rerun.py](utils/host_rerun.py) flips the X axis because the returned point cloud is currently reversed.
 - [oakapp.toml](oakapp.toml) hardcodes `--serve 9090 -fps 20`, which is more opinionated than the README’s generic examples.

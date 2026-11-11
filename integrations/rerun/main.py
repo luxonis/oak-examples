@@ -18,7 +18,10 @@ def main():
 
         rgb = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
         rgb_out = rgb.requestOutput(
-            resolution, fps=args.fps_limit, type=dai.ImgFrame.Type.NV12
+            resolution,
+            fps=args.fps_limit,
+            type=dai.ImgFrame.Type.NV12,
+            enableUndistortion=args.pointcloud,
         )
 
         left_out = None
@@ -39,6 +42,7 @@ def main():
             depth.setAlignTo(rgb_out)
 
             pcl = pipeline.create(dai.node.PointCloud)
+            pcl.initialConfig.setOrganized(True)
             depth.depth.link(pcl.inputDepth)
             pcl_out = pcl.outputPointCloud
 
@@ -53,7 +57,7 @@ def main():
         pipeline.start()
         print("Pipeline started.")
         while pipeline.isRunning():
-            pipeline.processTasks(waitForTasks=True)
+            pipeline.processTasks(waitForTasks=False)
             time.sleep(0.001)
 
 

@@ -79,6 +79,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Constraints
 
+- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.

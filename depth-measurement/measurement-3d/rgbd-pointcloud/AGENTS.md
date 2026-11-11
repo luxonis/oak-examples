@@ -47,8 +47,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 - The color source is either:
   - `CAM_A` in RGB mode
   - the right mono camera when `--mono` is set
-- RVC4 uses `ImageAlign` to align depth to the chosen color stream.
-- RVC2 uses `stereo.inputAlignTo` instead of a separate `ImageAlign` node.
+- `Depth.setAlignTo(cam_out)` owns platform-specific alignment to the chosen color stream.
 - The Visualizer receives both the color preview and the generated point cloud.
 
 ## Data Flow
@@ -73,6 +72,7 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 ## Constraints
 
+- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - This example assumes a stereo mono pair on `CAM_B` and `CAM_C`.
 - RGB mode assumes the color camera is on `CAM_A`.
 - `device.setIrLaserDotProjectorIntensity(1)` may fail on devices that do not expose that feature.
