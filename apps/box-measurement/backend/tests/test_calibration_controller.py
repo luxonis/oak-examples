@@ -223,7 +223,7 @@ class CalibrationControllerTests(unittest.TestCase):
         self.controller.set_preview_active(False)
 
     def services(self):
-        from test_app_services import RemoteServices
+        from remote_services import RemoteServices
 
         from app import App
 

@@ -136,7 +136,7 @@ class App:
         controller.set_distance_offset(request.offset_mm)
         return EmptyBody()
 
-    def _create_pipeline(self) -> None:
+    def _create_pipeline(self) -> dai.Pipeline:
         pipeline = dai.Pipeline()
         self._support_plane, self._box_measurer = init_pipeline(
             pipeline=pipeline,
@@ -152,6 +152,7 @@ class App:
         except Exception:
             self._stop_pipeline()
             raise
+        return pipeline
 
     def _stop_pipeline(self) -> None:
         controller = self._support_plane
@@ -168,18 +169,16 @@ class App:
         signal.signal(signal.SIGTERM, self._handle_stop_signal)
 
         try:
-            self._create_pipeline()
+            pipeline = self._create_pipeline()
 
             while True:
                 if self._shutdown_event.is_set():
                     break
-                if self._pipeline is None:
-                    raise RuntimeError("Pipeline runtime is not initialized")
-                if not self._pipeline.isRunning():
+                if not pipeline.isRunning():
                     logger.info("Pipeline is no longer running")
                     break
 
-                self._pipeline.processTasks()
+                pipeline.processTasks()
 
                 key = self.visualizer.waitKey(1)
                 if key == ord("q"):

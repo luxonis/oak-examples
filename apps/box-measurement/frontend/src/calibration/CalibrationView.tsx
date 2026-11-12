@@ -10,6 +10,11 @@ import {
 import { Streams } from "@luxonis/depthai-viewer-common";
 import StatusDot from "../components/StatusDot";
 import {
+    CALIBRATION_TOPICS,
+    SUPPORT_PLANE_PREVIEW_TOPIC,
+    sortTopicsBy,
+} from "../streamTopics";
+import {
     CALIBRATION_STATE_COLOR,
     CALIBRATION_STATUS_TEXT,
 } from "./calibrationState";
@@ -17,14 +22,6 @@ import {
     useSupportPlaneCalibration,
     useSupportPlanePreview,
 } from "./useSupportPlaneCalibration";
-
-// Only the preview topic is shown while calibrating.
-const STREAM_PANEL_ORDER = ["Support plane preview"];
-
-const getStreamPanelOrder = (topicName: string) => {
-    const order = STREAM_PANEL_ORDER.indexOf(topicName);
-    return order === -1 ? Number.MAX_SAFE_INTEGER : order;
-};
 
 const mmToCm = (mm: number | null | undefined) =>
     mm === null || mm === undefined ? null : mm / 10;
@@ -171,16 +168,14 @@ function CalibrationView() {
                 width="full"
             >
                 <Streams
-                    defaultTopics={STREAM_PANEL_ORDER}
-                    allowedTopics={STREAM_PANEL_ORDER}
+                    defaultTopics={CALIBRATION_TOPICS}
+                    allowedTopics={CALIBRATION_TOPICS}
                     topicGroups={{
-                        "Support plane preview": "Support plane preview",
+                        [SUPPORT_PLANE_PREVIEW_TOPIC]:
+                            SUPPORT_PLANE_PREVIEW_TOPIC,
                     }}
                     numberOfColumns={1}
-                    topicSortingFunction={(a, b) =>
-                        getStreamPanelOrder(a.name) -
-                        getStreamPanelOrder(b.name)
-                    }
+                    topicSortingFunction={sortTopicsBy(CALIBRATION_TOPICS)}
                 />
             </Flex>
         </Flex>

@@ -1,4 +1,3 @@
-BOX_MODEL_SLUG = "luxonis/box-instance-segmentation:512x320"
 NEURAL_DEPTH_MODEL = "NEURAL_DEPTH_768X480"
 
 COLOR_RESOLUTION = (1920, 1080)

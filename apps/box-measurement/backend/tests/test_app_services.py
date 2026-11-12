@@ -5,18 +5,12 @@ from unittest.mock import patch
 
 import depthai as dai
 
+from remote_services import RemoteServices
+
 from app import App
 
 
-class RemoteServices:
-    def __init__(self, **kwargs):
-        self.services = {}
-
-    def registerService(self, name, handler):
-        self.services[name] = handler
-
-
-class ConfidenceServiceTests(unittest.TestCase):
+class AppServicesTests(unittest.TestCase):
     def setUp(self):
         remote = patch.object(dai, "RemoteConnection", RemoteServices)
         remote.start()

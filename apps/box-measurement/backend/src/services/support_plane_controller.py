@@ -91,7 +91,7 @@ class SupportPlaneController:
             return
 
     def close(self) -> None:
-        """Detach before pipeline replacement, without waiting for an executing fit."""
+        """Detach on app shutdown, without waiting for an executing fit."""
         with self._lock:
             if self._closed.is_set():
                 return

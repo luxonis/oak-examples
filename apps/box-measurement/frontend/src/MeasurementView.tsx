@@ -3,13 +3,12 @@ import { Streams } from "@luxonis/depthai-viewer-common";
 import DistanceOffsetButton from "./calibration/DistanceOffsetButton";
 import { useSupportPlaneCalibration } from "./calibration/useSupportPlaneCalibration";
 import DetectionSettingsButton from "./detection/DetectionSettingsButton";
-
-const STREAM_PANEL_ORDER = ["Color stream", "Detections"];
-
-const getStreamPanelOrder = (topicName: string) => {
-    const order = STREAM_PANEL_ORDER.indexOf(topicName);
-    return order === -1 ? Number.MAX_SAFE_INTEGER : order;
-};
+import {
+    COLOR_STREAM_TOPIC,
+    DETECTIONS_TOPIC,
+    MEASUREMENT_TOPICS,
+    sortTopicsBy,
+} from "./streamTopics";
 
 function MeasurementView() {
     const { statusQuery, retryMutation, distanceOffsetMutation } =
@@ -19,7 +18,12 @@ function MeasurementView() {
 
     return (
         <Flex direction="column" width="full" alignItems="center" gap="md">
-            <Flex width="full" justifyContent="flex-end" gap="sm" flexWrap="wrap">
+            <Flex
+                width="full"
+                justifyContent="flex-end"
+                gap="sm"
+                flexWrap="wrap"
+            >
                 {cameraDistanceMm !== null ? (
                     <DistanceOffsetButton
                         cameraDistanceCm={cameraDistanceMm / 10}
@@ -66,16 +70,13 @@ function MeasurementView() {
                 width="full"
             >
                 <Streams
-                    defaultTopics={STREAM_PANEL_ORDER}
+                    defaultTopics={MEASUREMENT_TOPICS}
                     topicGroups={{
-                        "Color stream": "preview",
-                        Detections: "preview",
+                        [COLOR_STREAM_TOPIC]: "preview",
+                        [DETECTIONS_TOPIC]: "preview",
                     }}
                     numberOfColumns={1}
-                    topicSortingFunction={(a, b) =>
-                        getStreamPanelOrder(a.name) -
-                        getStreamPanelOrder(b.name)
-                    }
+                    topicSortingFunction={sortTopicsBy(MEASUREMENT_TOPICS)}
                 />
             </Flex>
         </Flex>
