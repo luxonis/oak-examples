@@ -12,6 +12,7 @@ from typing import Callable
 
 _INDEX = Path(__file__).with_name("index.html")
 _MAX_BODY = 4096
+_LOOPBACK_NAMES = {"127.0.0.1", "localhost", "::1"}
 
 
 class ControlServer:
@@ -21,9 +22,14 @@ class ControlServer:
     work belongs in the app's main loop, not in an HTTP request thread.
     """
 
-    def __init__(self, host="127.0.0.1", port=8083, visualizer_port=8082,
-                 get_status: Callable[[], dict] | None = None,
-                 request_capture: Callable[[int, str], dict] | None = None):
+    def __init__(
+        self,
+        host="127.0.0.1",
+        port=8083,
+        visualizer_port=8082,
+        get_status: Callable[[], dict] | None = None,
+        request_capture: Callable[[int, str], dict] | None = None,
+    ):
         self.host = host
         self.port = int(port)
         self.visualizer_port = int(visualizer_port)
@@ -49,7 +55,9 @@ class ControlServer:
         class Handler(BaseHTTPRequestHandler):
             server_version = "DiagnosticCaptureControl/1.0"
 
-            def _send(self, status, body, content_type="application/json; charset=utf-8"):
+            def _send(
+                self, status, body, content_type="application/json; charset=utf-8"
+            ):
                 data = body if isinstance(body, bytes) else body.encode("utf-8")
                 self.send_response(status)
                 self.send_header("Content-Type", content_type)
@@ -65,16 +73,16 @@ class ControlServer:
             def do_GET(self):
                 if urlsplit(self.path).path == "/api/preview":
                     status = owner.get_status()
-                    folder = status.get('saved_path')
-                    if status.get('state') != 'complete' or not folder:
+                    folder = status.get("saved_path")
+                    if status.get("state") != "complete" or not folder:
                         self._json(404, {"error": "no completed capture preview"})
                         return
                     try:
-                        data = (Path(folder) / 'preview.jpg').read_bytes()
+                        data = (Path(folder) / "preview.jpg").read_bytes()
                     except OSError:
                         self._json(404, {"error": "capture preview unavailable"})
                         return
-                    self._send(200, data, 'image/jpeg')
+                    self._send(200, data, "image/jpeg")
                     return
                 if urlsplit(self.path).path == "/api/status":
                     try:
@@ -112,14 +120,28 @@ class ControlServer:
                     return
                 try:
                     payload = json.loads(self.rfile.read(length))
+                    if not isinstance(payload, dict):
+                        raise ValueError("request body must be a JSON object")
                     frames = payload["frames"]
                     output = payload["output"]
-                    if (not isinstance(payload, dict) or isinstance(frames, bool)
-                            or not isinstance(frames, int) or frames <= 0
-                            or not isinstance(output, str) or not output.strip()
-                            or len(output) > 2048):
-                        raise ValueError("frames must be a positive integer and output a non-empty path")
-                except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+                    if (
+                        isinstance(frames, bool)
+                        or not isinstance(frames, int)
+                        or frames <= 0
+                        or not isinstance(output, str)
+                        or not output.strip()
+                        or len(output) > 2048
+                    ):
+                        raise ValueError(
+                            "frames must be a positive integer and output a non-empty path"
+                        )
+                except (
+                    UnicodeDecodeError,
+                    json.JSONDecodeError,
+                    KeyError,
+                    TypeError,
+                    ValueError,
+                ) as exc:
                     self._json(400, {"error": str(exc) or "invalid request"})
                     return
                 try:
@@ -131,17 +153,24 @@ class ControlServer:
                 except Exception as exc:
                     self._json(500, {"error": str(exc)})
                 else:
-                    self._json(202, result if isinstance(result, dict) else {"accepted": True})
+                    self._json(
+                        202, result if isinstance(result, dict) else {"accepted": True}
+                    )
 
             def _same_origin(self):
+                # Accept any loopback name and port, so localhost and SSH port
+                # forwards work; a loopback Host still rejects DNS rebinding.
                 host = self.headers.get("Host", "").lower()
                 origin = self.headers.get("Origin", "")
                 try:
                     parsed = urlsplit(origin)
-                    expected_host = owner._authority().lower()
-                    return (parsed.scheme == "http" and parsed.netloc.lower() == host
-                            and host == expected_host and not parsed.username
-                            and not parsed.password)
+                    return (
+                        parsed.scheme == "http"
+                        and parsed.netloc.lower() == host
+                        and parsed.hostname in _LOOPBACK_NAMES
+                        and not parsed.username
+                        and not parsed.password
+                    )
                 except (ValueError, TypeError):
                     return False
 
@@ -152,18 +181,11 @@ class ControlServer:
 
         self._server = ThreadingHTTPServer((self.host, self.port), Handler)
         self._server.daemon_threads = True
-        self._thread = threading.Thread(target=self._server.serve_forever,
-                                        name="capture-control-http", daemon=True)
+        self._thread = threading.Thread(
+            target=self._server.serve_forever, name="capture-control-http", daemon=True
+        )
         self._thread.start()
         return self
-
-    def _authority(self):
-        if self._server is None:
-            host, port = self.host, self.port
-        else:
-            host, port = self._server.server_address[:2]
-        shown_host = f"[{host}]" if ":" in host and not host.startswith("[") else host
-        return f"{shown_host}:{port}"
 
     def close(self):
         if self._server is None:

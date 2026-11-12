@@ -101,11 +101,10 @@
       if (status.state === 'warming_up') show(`Sensors warming up: ${status.warmup_remaining} seconds remaining`);
       else if (status.error) show(status.error);
       else if (status.state === 'capturing') show(`Capturing: ${status.completed_frames}/${status.frames} frame sets`);
-      else if (status.state === 'complete') show('');
-      else if (status.state === 'ready') show('');
+      else if (status.state === 'complete' || status.state === 'ready') show('');
       else if (status.state === 'queued') show('Preparing your capture…');
       else if (status.state === 'starting') show('Starting camera streams…');
-      const busy = status.busy === true || ['starting', 'warming_up', 'queued', 'capturing', 'saving'].includes(status.state);
+      const busy = ['starting', 'warming_up', 'queued', 'capturing'].includes(status.state);
       start.disabled = busy;
     }
 
@@ -136,8 +135,7 @@
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || `Capture request failed (${response.status})`);
-        show(result.message || 'Capture queued.');
-        if (result.saved_path) byId('saved').textContent = `Saved path: ${result.saved_path}`;
+        show('Capture queued.');
         await poll();
       } catch (error) { show(error.message); start.disabled = false; }
     });

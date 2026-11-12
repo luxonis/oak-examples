@@ -1,5 +1,6 @@
-"""Device-free tests for timestamp matching, camera roles, and capture control."""
+"""Device-free tests for arguments, camera roles, and capture control."""
 
+import argparse
 import http.client
 import json
 from pathlib import Path
@@ -7,12 +8,13 @@ import sys
 from types import SimpleNamespace
 import unittest
 
-APP_DIR = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(APP_DIR))
-
 import depthai as dai
+
+# Make the standalone example modules importable during test discovery.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from control import ControlServer
-from main import CaptureApp, FrameMatcher, camera_roles, preview_frame
+from main import CaptureApp, camera_roles, image_width, preview_frame
 
 
 class PreviewEncodingTests(unittest.TestCase):
@@ -32,18 +34,32 @@ class PreviewEncodingTests(unittest.TestCase):
         self.assertIsNot(preview, frame)
 
     def test_supported_preview_types_are_not_copied_or_changed(self):
-        for typ in (dai.ImgFrame.Type.NV12, dai.ImgFrame.Type.RAW16, dai.ImgFrame.Type.RAW8):
+        for typ in (
+            dai.ImgFrame.Type.NV12,
+            dai.ImgFrame.Type.RAW16,
+            dai.ImgFrame.Type.RAW8,
+        ):
             frame = dai.ImgFrame()
             frame.setType(typ)
             self.assertIs(preview_frame(frame), frame)
 
 
-class FakeFrame:
-    def __init__(self, timestamp):
-        self.timestamp = timestamp
+class WidthArgumentTests(unittest.TestCase):
+    def test_accepts_whole_pixel_widths(self):
+        self.assertEqual(image_width("2"), 2)
+        self.assertEqual(image_width("20000"), 20000)
 
-    def getTimestampDevice(self):
-        return SimpleNamespace(total_seconds=lambda: self.timestamp)
+    def test_explains_invalid_widths(self):
+        for value, reason in (
+            ("1", "at least 2 pixels"),
+            ("0", "at least 2 pixels"),
+            ("640.5", "whole number of pixels"),
+            ("wide", "whole number of pixels"),
+        ):
+            with self.subTest(value=value), self.assertRaisesRegex(
+                argparse.ArgumentTypeError, reason
+            ):
+                image_width(value)
 
 
 class FakeCalibration:
@@ -71,54 +87,29 @@ class FakeDevice:
         return "fake-os"
 
 
-class MatcherTests(unittest.TestCase):
-    def test_takes_frames_within_skew_tolerance(self):
-        matcher = FrameMatcher(("left", "right"), 0.01)
-        left, right = FakeFrame(1.0), FakeFrame(1.009)
-        matcher.add("left", left)
-        matcher.add("right", right)
-
-        group = matcher.take()
-
-        self.assertIs(group["left"], left)
-        self.assertIs(group["right"], right)
-        self.assertIsNone(matcher.take())
-
-    def test_drops_oldest_frame_when_skew_exceeds_tolerance(self):
-        matcher = FrameMatcher(("left", "right"), 0.01)
-        stale, aligned = FakeFrame(2.0), FakeFrame(2.02)
-        newer_left, right = FakeFrame(2.015), FakeFrame(2.021)
-        matcher.add("left", stale)
-        matcher.add("left", newer_left)
-        matcher.add("right", right)
-
-        group = matcher.take()
-
-        self.assertIs(group["left"], newer_left)
-        self.assertIs(group["right"], right)
-        self.assertIsNone(matcher.take())
-
-    def test_each_stream_buffer_is_bounded(self):
-        matcher = FrameMatcher(("left", "right"), 0.01)
-        frames = [FakeFrame(float(i)) for i in range(10)]
-        for frame in frames:
-            matcher.add("left", frame)
-
-        self.assertEqual(len(matcher.buffers["left"]), 8)
-        self.assertIs(matcher.buffers["left"][0], frames[2])
-
-
 class CameraRoleTests(unittest.TestCase):
     def test_optional_rgb_stereo_and_tof_roles(self):
         features = [
-            SimpleNamespace(socket=dai.CameraBoardSocket.CAM_B, name="mono-left",
-                            supportedTypes=[dai.CameraSensorType.MONO]),
-            SimpleNamespace(socket=dai.CameraBoardSocket.CAM_C, name="mono-right",
-                            supportedTypes=[dai.CameraSensorType.MONO]),
-            SimpleNamespace(socket=dai.CameraBoardSocket.CAM_A, name="color",
-                            supportedTypes=[dai.CameraSensorType.COLOR]),
-            SimpleNamespace(socket=dai.CameraBoardSocket.CAM_D, name="tof",
-                            supportedTypes=[dai.CameraSensorType.TOF]),
+            SimpleNamespace(
+                socket=dai.CameraBoardSocket.CAM_B,
+                name="mono-left",
+                supportedTypes=[dai.CameraSensorType.MONO],
+            ),
+            SimpleNamespace(
+                socket=dai.CameraBoardSocket.CAM_C,
+                name="mono-right",
+                supportedTypes=[dai.CameraSensorType.MONO],
+            ),
+            SimpleNamespace(
+                socket=dai.CameraBoardSocket.CAM_A,
+                name="color",
+                supportedTypes=[dai.CameraSensorType.COLOR],
+            ),
+            SimpleNamespace(
+                socket=dai.CameraBoardSocket.CAM_D,
+                name="tof",
+                supportedTypes=[dai.CameraSensorType.TOF],
+            ),
         ]
 
         roles = camera_roles(features, FakeCalibration())
@@ -128,24 +119,32 @@ class CameraRoleTests(unittest.TestCase):
 
     def test_available_stereo_cameras_do_not_require_rgb_or_tof(self):
         features = [
-            SimpleNamespace(socket=dai.CameraBoardSocket.CAM_B, name="left",
-                            supportedTypes=[dai.CameraSensorType.MONO]),
-            SimpleNamespace(socket=dai.CameraBoardSocket.CAM_C, name="right",
-                            supportedTypes=[dai.CameraSensorType.MONO]),
+            SimpleNamespace(
+                socket=dai.CameraBoardSocket.CAM_B,
+                name="left",
+                supportedTypes=[dai.CameraSensorType.MONO],
+            ),
+            SimpleNamespace(
+                socket=dai.CameraBoardSocket.CAM_C,
+                name="right",
+                supportedTypes=[dai.CameraSensorType.MONO],
+            ),
         ]
 
-        self.assertEqual(set(camera_roles(features, FakeCalibration())), {"left", "right"})
+        self.assertEqual(
+            set(camera_roles(features, FakeCalibration())), {"left", "right"}
+        )
 
 
 class CaptureRequestStateTests(unittest.TestCase):
     def test_new_request_clears_previous_capture_path_and_progress(self):
-        args = SimpleNamespace(frames=5, output=Path('/tmp/diagnostic'), warmup=5)
+        args = SimpleNamespace(frames=5, output=Path("/tmp/diagnostic"), warmup=5)
         app = CaptureApp(args, FakeDevice())
-        app.update(state='complete', saved_path='/previous/capture', completed_frames=5)
-        app.request({'frames': 3, 'output': '/tmp/diagnostic'})
-        self.assertEqual(app.status()['state'], 'queued')
-        self.assertIsNone(app.status()['saved_path'])
-        self.assertEqual(app.status()['completed_frames'], 0)
+        app.update(state="complete", saved_path="/previous/capture", completed_frames=5)
+        app.request({"frames": 3, "output": "/tmp/diagnostic"})
+        self.assertEqual(app.status()["state"], "queued")
+        self.assertIsNone(app.status()["saved_path"])
+        self.assertEqual(app.status()["completed_frames"], 0)
 
     def setUp(self):
         args = SimpleNamespace(frames=5, output=Path("captures"), warmup=5.0)
@@ -164,12 +163,18 @@ class CaptureRequestStateTests(unittest.TestCase):
         self.assertTrue(result["accepted"])
         self.assertEqual(result["frames"], 3)
         self.assertEqual(self.app.status()["state"], "queued")
-        self.assertEqual(self.app.requests.get_nowait(), (3, str(Path("/tmp/example").resolve())))
+        self.assertEqual(
+            self.app.requests.get_nowait(), (3, str(Path("/tmp/example").resolve()))
+        )
 
     def test_request_rejects_bad_counts_and_empty_output(self):
         self.app.update(state="ready")
-        for request in ({"frames": True}, {"frames": 0}, {"frames": 10001},
-                        {"frames": 2, "output": "  "}):
+        for request in (
+            {"frames": True},
+            {"frames": 0},
+            {"frames": 10001},
+            {"frames": 2, "output": "  "},
+        ):
             with self.subTest(request=request), self.assertRaises(ValueError):
                 self.app.request(request)
 
@@ -186,9 +191,12 @@ class ControlHTTPTests(unittest.TestCase):
             self.status.update(state="queued", frames=frames, output=output)
             return {"accepted": True, "frames": frames, "output": output}
 
-        self.server = ControlServer(port=0, visualizer_port=8123,
-                                    get_status=lambda: dict(self.status),
-                                    request_capture=request_capture).start()
+        self.server = ControlServer(
+            port=0,
+            visualizer_port=8123,
+            get_status=lambda: dict(self.status),
+            request_capture=request_capture,
+        ).start()
         self.host, self.port = self.server._server.server_address[:2]
 
     def tearDown(self):
@@ -208,8 +216,11 @@ class ControlHTTPTests(unittest.TestCase):
 
     def post(self, value, origin=None, host=None, content_type="application/json"):
         body = json.dumps(value).encode()
-        headers = {"Content-Type": content_type, "Content-Length": str(len(body)),
-                   "Host": host or f"{self.host}:{self.port}"}
+        headers = {
+            "Content-Type": content_type,
+            "Content-Length": str(len(body)),
+            "Host": host or f"{self.host}:{self.port}",
+        }
         if origin is not None:
             headers["Origin"] = origin
         return self.request("POST", "/api/capture", body, headers)
@@ -218,7 +229,7 @@ class ControlHTTPTests(unittest.TestCase):
         status, body = self.request("GET", "/api/status")
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body), self.status)
-        self.assertIn(f"visualizer_port=8123", self.server.url)
+        self.assertIn("visualizer_port=8123", self.server.url)
         status, body = self.request("GET", "/")
         self.assertEqual(status, 200)
         self.assertIn(b"DepthAI Visualizer", body)
@@ -226,41 +237,87 @@ class ControlHTTPTests(unittest.TestCase):
 
     def test_valid_capture_request_is_queued_after_warmup(self):
         self.status["state"] = "ready"
-        status, body = self.post({"frames": 4, "output": " /tmp/run "}, origin=self.origin)
+        status, body = self.post(
+            {"frames": 4, "output": " /tmp/run "}, origin=self.origin
+        )
 
         self.assertEqual(status, 202)
-        self.assertEqual(json.loads(body), {"accepted": True, "frames": 4, "output": "/tmp/run"})
+        self.assertEqual(
+            json.loads(body), {"accepted": True, "frames": 4, "output": "/tmp/run"}
+        )
         self.assertEqual(self.calls, [(4, "/tmp/run")])
         self.assertEqual(self.status["state"], "queued")
 
     def test_warmup_and_active_capture_conflicts_return_409(self):
         for state in ("warming_up", "capturing"):
             self.status["state"] = state
-            status, body = self.post({"frames": 1, "output": "/tmp/run"}, origin=self.origin)
+            status, body = self.post(
+                {"frames": 1, "output": "/tmp/run"}, origin=self.origin
+            )
             self.assertEqual(status, 409)
             self.assertIn(b"warmup", body)
+
+    def test_accepts_localhost_and_port_forwarded_origins(self):
+        self.status["state"] = "ready"
+        for authority in (f"localhost:{self.port}", "localhost:9000", "127.0.0.1:9000"):
+            with self.subTest(authority=authority):
+                status, _ = self.post(
+                    {"frames": 1, "output": "/tmp/run"},
+                    origin=f"http://{authority}",
+                    host=authority,
+                )
+                self.assertEqual(status, 202)
+                self.status["state"] = "ready"
 
     def test_rejects_cross_origin_and_missing_origin_posts(self):
         value = {"frames": 1, "output": "/tmp/run"}
         self.assertEqual(self.post(value, origin="http://attacker.invalid")[0], 403)
         self.assertEqual(self.post(value)[0], 403)
-        self.assertEqual(self.post(value, origin=self.origin, host="attacker.invalid")[0], 403)
+        self.assertEqual(
+            self.post(value, origin=self.origin, host="attacker.invalid")[0], 403
+        )
+        # DNS rebinding: a foreign name resolving to loopback has matching Origin and Host.
+        self.assertEqual(
+            self.post(
+                value,
+                origin=f"http://attacker.invalid:{self.port}",
+                host=f"attacker.invalid:{self.port}",
+            )[0],
+            403,
+        )
         self.assertEqual(self.calls, [])
 
     def test_rejects_invalid_payload_and_content_type(self):
-        for value in ({"frames": True, "output": "/tmp/run"},
-                      {"frames": 0, "output": "/tmp/run"},
-                      {"frames": 2, "output": " "}, []):
+        for value in (
+            {"frames": True, "output": "/tmp/run"},
+            {"frames": 0, "output": "/tmp/run"},
+            {"frames": 2, "output": " "},
+            [],
+        ):
             with self.subTest(value=value):
                 self.assertEqual(self.post(value, origin=self.origin)[0], 400)
-        self.assertEqual(self.post({"frames": 1, "output": "/tmp/run"}, origin=self.origin,
-                                   content_type="text/plain")[0], 415)
+        self.assertEqual(
+            self.post(
+                {"frames": 1, "output": "/tmp/run"},
+                origin=self.origin,
+                content_type="text/plain",
+            )[0],
+            415,
+        )
 
     def test_rejects_oversized_payload(self):
         body = b" " * 4097
-        status, _ = self.request("POST", "/api/capture", body,
-            {"Host": f"{self.host}:{self.port}", "Origin": self.origin,
-             "Content-Type": "application/json", "Content-Length": str(len(body))})
+        status, _ = self.request(
+            "POST",
+            "/api/capture",
+            body,
+            {
+                "Host": f"{self.host}:{self.port}",
+                "Origin": self.origin,
+                "Content-Type": "application/json",
+                "Content-Length": str(len(body)),
+            },
+        )
         self.assertEqual(status, 413)
 
 

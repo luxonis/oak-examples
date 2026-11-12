@@ -10,7 +10,7 @@ Use Python 3.10+ and install `requirements.txt` in your environment. Connect an 
 python main.py --device 10.11.0.33 --output /path/to/captures
 ```
 
-Open **http://127.0.0.1:8083**. After at least five seconds of live sensor warmup, choose the output directory and frame count and click **Start capture**. The default is five frame sets. The page shows completion and the absolute saved path. Streams remain live during and after capture. Press Ctrl+C in the terminal to exit. The output path is on the computer running Python.
+Open **http://127.0.0.1:8083** (or `localhost`, including through an SSH port forward). After at least five seconds of live sensor warmup, choose the output directory and frame count and click **Start capture**. The default is five frame sets. The page shows completion and the absolute saved path. Streams remain live during and after capture. Press Ctrl+C in the terminal to exit. The output path is on the computer running Python.
 
 With exactly one discoverable camera, `--device` can be omitted. Use `--expected-id SERIAL` to reject an unexpected device at an IP. Check camera occupancy before connecting; the example does not stop other applications.
 
@@ -38,7 +38,7 @@ OAK-..._<serial>_<date>/
 
 Only detected streams are present. `preview.jpg` shows the first saved frame set and appears below the saved path in the GUI. It is a thumbnail contact sheet; DAI files retain the original pixel data. Files use native `ImgFrame.save()` serialization, preserving pixel type, geometry, timestamps and exposure metadata. Read with `frame = dai.ImgFrame(); frame.load(path)`. `calib.json` is the original EEPROM calibration. Stereo images are grayscale, unrectified, full-FOV images; RGB is NV12. Preview-only copies label grayscale as RAW8 for compatibility with the bundled Visualizer; saved messages retain their original GRAY8 type. The standard ToF optical grid (including SDK default distortion correction) is recorded and is not aligned to a camera. No stereo depth, disparity, rectified images or ToF raw data are captured.
 
-Host matching groups frames by device timestamps within half a frame interval. This is software synchronization, not hardware exposure synchronization. Actual timestamps, sequence IDs, sizes and group skew are recorded. Shared numeric filename keys allow existing capture/replay tools to pair left and right. Slow transport can skip frames; this diagnostic app promises the requested number of matched sets, not uninterrupted video. Warmup starts after every stream has delivered its first frame.
+A host-side DepthAI `Sync` node groups frames by device timestamps within half a frame interval, so only complete matched sets are saved. This groups frames in software; it does not synchronize exposures in hardware. Actual timestamps, sequence IDs, sizes and group skew are recorded. Shared numeric filename keys allow existing capture/replay tools to pair left and right. Slow transport can skip frames; this diagnostic app promises the requested number of matched sets, not uninterrupted video. Warmup starts after every stream has delivered its first frame.
 
 `metadata.json` records device name/ID, OS, SDK, sensors, settings, file paths, duration and completion state. A capture is valid only when `status` is `complete` and all requested sets are present. Partial/error captures remain available for diagnostics and are explicitly labelled.
 
