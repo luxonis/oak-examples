@@ -2,6 +2,8 @@
 
 Preview connected RVC4 cameras in DepthAI Visualizer and save short captures on the host or directly on an RVC4 device. RGB, left, right and ToF sensors are optional. The app detects each connected camera; no StereoDepth node is created. ToF saves processed MID_RANGE depth and confidence, not raw superframes.
 
+![Diagnostic capture controls and live RGB, right and left camera streams](media/img1.png)
+
 ## Run on the host
 
 Use Python 3.10+ and install `requirements.txt` in your environment. Connect an idle RVC4 device, then run:
