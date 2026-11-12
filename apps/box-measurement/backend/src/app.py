@@ -10,9 +10,7 @@ from api.request_handler import EmptyBody, add_request_handler
 from config import DEFAULT_DETECTION_CONFIDENCE_THRESHOLD
 from depthai_pipeline.init_pipeline import init_pipeline
 from services.support_plane_controller import SupportPlaneController
-from services.application_logging import ApplicationLoggingService
 from solutions_sdk.box_measurement import BoxMeasurer
-from util.pipeline_latency_tracker import PipelineLatencyTracker
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +24,13 @@ class SetSupportPlaneDistanceOffsetRequest(BaseModel):
 
 
 class App:
-    def __init__(self, application_logging: ApplicationLoggingService):
+    def __init__(self) -> None:
         self.visualizer = dai.RemoteConnection(httpPort=8082)
         self._detection_confidence_threshold = DEFAULT_DETECTION_CONFIDENCE_THRESHOLD
         self._shutdown_event = threading.Event()
         self._pipeline: dai.Pipeline | None = None
         self._support_plane: SupportPlaneController | None = None
         self._box_measurer: BoxMeasurer | None = None
-        self._pipeline_latency_tracker: PipelineLatencyTracker | None = None
 
         add_request_handler(
             self.visualizer,
@@ -141,12 +138,7 @@ class App:
 
     def _create_pipeline(self) -> None:
         pipeline = dai.Pipeline()
-        pipeline.enablePipelineDebugging(True)
-        (
-            self._pipeline_latency_tracker,
-            self._support_plane,
-            self._box_measurer,
-        ) = init_pipeline(
+        self._support_plane, self._box_measurer = init_pipeline(
             pipeline=pipeline,
             confidence_threshold=self._detection_confidence_threshold,
             visualizer=self.visualizer,
@@ -181,14 +173,13 @@ class App:
             while True:
                 if self._shutdown_event.is_set():
                     break
-                if self._pipeline is None or self._pipeline_latency_tracker is None:
+                if self._pipeline is None:
                     raise RuntimeError("Pipeline runtime is not initialized")
                 if not self._pipeline.isRunning():
                     logger.info("Pipeline is no longer running")
                     break
 
                 self._pipeline.processTasks()
-                self._pipeline_latency_tracker.check()
 
                 key = self.visualizer.waitKey(1)
                 if key == ord("q"):

@@ -1,14 +1,11 @@
 """The detection-confidence services validate, apply and keep the threshold in memory."""
 
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 import depthai as dai
 
 from app import App
-from services.application_logging import ApplicationLoggingService
 
 
 class RemoteServices:
@@ -24,16 +21,12 @@ class RemoteServices:
 
 class ConfidenceServiceTests(unittest.TestCase):
     def setUp(self):
-        directory = tempfile.TemporaryDirectory()
-        self.addCleanup(directory.cleanup)
         remote = patch.object(dai, "RemoteConnection", RemoteServices)
         remote.start()
         self.addCleanup(remote.stop)
-        self.logging = ApplicationLoggingService(Path(directory.name))
-        self.addCleanup(self.logging.handler.close)
 
     def services(self):
-        return App(self.logging).visualizer.services
+        return App().visualizer.services
 
     def test_set_threshold_is_reported_by_get(self):
         services = self.services()
