@@ -3,7 +3,6 @@
 import tempfile
 import time
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 import depthai as dai
@@ -230,7 +229,6 @@ class CalibrationControllerTests(unittest.TestCase):
         from test_confidence_service import RemoteServices
 
         from app import App
-        from services.application_logging import ApplicationLoggingService
         from settings import settings_store
 
         for item in (
@@ -239,9 +237,7 @@ class CalibrationControllerTests(unittest.TestCase):
         ):
             item.start()
             self.addCleanup(item.stop)
-        logging = ApplicationLoggingService(Path(self.directory.name))
-        self.addCleanup(logging.handler.close)
-        app = App(logging)
+        app = App()
         app._support_plane = self.controller
         return app.visualizer.services
 

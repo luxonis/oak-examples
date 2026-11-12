@@ -8,7 +8,6 @@ import depthai as dai
 from api.request_handler import EmptyBody, add_request_handler
 from depthai_pipeline.init_pipeline import VISUALIZER_TOPICS, init_pipeline
 from services.support_plane_controller import SupportPlaneController
-from services.application_logging import ApplicationLoggingService
 from settings.settings import (
     SetDetectionConfidenceThresholdRequest,
     SetSupportPlaneDistanceOffsetRequest,
@@ -16,13 +15,12 @@ from settings.settings import (
 )
 from settings.settings_store import SettingsStore
 from solutions_sdk.box_measurement import BoxMeasurer
-from util.pipeline_latency_tracker import PipelineLatencyTracker
 
 logger = logging.getLogger(__name__)
 
 
 class App:
-    def __init__(self, application_logging: ApplicationLoggingService):
+    def __init__(self) -> None:
         self.settings_store = SettingsStore()
         self.visualizer = dai.RemoteConnection(httpPort=8082)
         self._update_settings_event = threading.Event()
@@ -30,7 +28,6 @@ class App:
         self._pipeline: dai.Pipeline | None = None
         self._support_plane: SupportPlaneController | None = None
         self._box_measurer: BoxMeasurer | None = None
-        self._pipeline_latency_tracker: PipelineLatencyTracker | None = None
 
         add_request_handler(self.visualizer, "getSettings", self._get_settings)
         add_request_handler(self.visualizer, "updateSettings", self._update_settings)
@@ -148,12 +145,7 @@ class App:
             f"Creating pipeline with settings: {settings.model_dump(mode='json')}"
         )
         pipeline = dai.Pipeline()
-        pipeline.enablePipelineDebugging(True)
-        (
-            self._pipeline_latency_tracker,
-            self._support_plane,
-            self._box_measurer,
-        ) = init_pipeline(
+        self._support_plane, self._box_measurer = init_pipeline(
             pipeline=pipeline,
             settings=settings,
             visualizer=self.visualizer,
@@ -187,7 +179,6 @@ class App:
         self._pipeline = None
         self._support_plane = None
         self._box_measurer = None
-        self._pipeline_latency_tracker = None
 
     def _restart_pipeline(self) -> None:
         self._stop_pipeline()
@@ -203,14 +194,13 @@ class App:
             while True:
                 if self._shutdown_event.is_set():
                     break
-                if self._pipeline is None or self._pipeline_latency_tracker is None:
+                if self._pipeline is None:
                     raise RuntimeError("Pipeline runtime is not initialized")
                 if not self._pipeline.isRunning():
                     logger.info("Pipeline is no longer running")
                     break
 
                 self._pipeline.processTasks()
-                self._pipeline_latency_tracker.check()
 
                 if self._update_settings_event.is_set():
                     logger.info("Applying updated settings by recreating the pipeline")

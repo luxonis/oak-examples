@@ -9,10 +9,8 @@ from solutions_sdk.box_measurement import (
 )
 from depthai_pipeline.node.support_plane_preview import SupportPlanePreview
 from services.support_plane_controller import SupportPlaneController
-from depthai_pipeline.node.latency_meter import LatencyMeter
 from settings.settings import Settings
 from util.device_support import check_device_supported
-from util.pipeline_latency_tracker import PipelineLatencyTracker
 
 from config import NEURAL_DEPTH_MODEL, COLOR_RESOLUTION, MONO_RESOLUTION
 
@@ -29,7 +27,7 @@ def init_pipeline(
     pipeline: dai.Pipeline,
     settings: Settings,
     visualizer: dai.RemoteConnection,
-) -> tuple[PipelineLatencyTracker, SupportPlaneController, BoxMeasurer]:
+) -> tuple[SupportPlaneController, BoxMeasurer]:
     fps = settings.fps
     device = pipeline.getDefaultDevice()
     check_device_supported(device)
@@ -113,37 +111,9 @@ def init_pipeline(
         rgbd.pcl, (nn_width, nn_height), support_plane
     )
 
-    # Latency tacking
-    nn_depth_align_latency_meter = pipeline.create(LatencyMeter).build(
-        nn_depth_align.outputAligned, name="NN Aligned Depth"
-    )
-    color_h264_latency_meter = pipeline.create(LatencyMeter).build(
-        color_h264.out, name="Color H264"
-    )
-    rgbd_pcl_latency_meter = pipeline.create(LatencyMeter).build(
-        rgbd.pcl, name="RGBD PCL"
-    )
-    box_measurements_latency_meter = pipeline.create(LatencyMeter).build(
-        box_measurement.out, name="Box Measurements"
-    )
-
-    latency_meters = [
-        nn_depth_align_latency_meter,
-        color_h264_latency_meter,
-        rgbd_pcl_latency_meter,
-        box_measurements_latency_meter,
-    ]
-
-    latency_tracker = PipelineLatencyTracker(
-        pipeline=pipeline,
-        latency_meters=latency_meters,
-        report_interval_seconds=60,
-        show_top_n_nodes=10,
-    )
-
     # Visualizer topics
     visualizer.addTopic(VISUALIZER_TOPICS["color"], color_h264.out)
     visualizer.addTopic(VISUALIZER_TOPICS["detections"], box_measurement.out)
     visualizer.addTopic(VISUALIZER_TOPICS["plane_preview_pcl"], plane_preview.out)
 
-    return latency_tracker, support_plane, box_measurement
+    return support_plane, box_measurement

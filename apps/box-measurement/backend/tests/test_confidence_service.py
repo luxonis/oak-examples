@@ -2,13 +2,11 @@
 
 import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 import depthai as dai
 
 from app import App
-from services.application_logging import ApplicationLoggingService
 from settings import settings_store
 
 
@@ -30,9 +28,7 @@ class ConfidenceServiceTests(unittest.TestCase):
             patch.object(dai, "RemoteConnection", RemoteServices),
             patch.object(settings_store, "STORAGE_BASE_PATH", directory),
         ):
-            logging = ApplicationLoggingService(Path(directory))
-            self.addCleanup(logging.handler.close)
-            app = App(logging)
+            app = App()
             services = app.visualizer.services
             for threshold in (0, 1, 0.63):
                 self.assertEqual(
@@ -52,7 +48,7 @@ class ConfidenceServiceTests(unittest.TestCase):
                         {"threshold": threshold}
                     ),
                 )
-            restored = App(logging)
+            restored = App()
             self.assertEqual(
                 restored.visualizer.services["getSettings"]({})[
                     "detection_confidence_threshold"
@@ -66,9 +62,7 @@ class ConfidenceServiceTests(unittest.TestCase):
             patch.object(dai, "RemoteConnection", RemoteServices),
             patch.object(settings_store, "STORAGE_BASE_PATH", directory),
         ):
-            logging = ApplicationLoggingService(Path(directory))
-            self.addCleanup(logging.handler.close)
-            services = App(logging).visualizer.services
+            services = App().visualizer.services
             for name in (
                 "getEvents",
                 "deleteEvent",
