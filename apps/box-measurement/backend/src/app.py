@@ -15,13 +15,11 @@ from api.events import (
     get_events,
 )
 from api.event_export import EventExportRequestHandler
-from api.recordings import get_recording_file, get_recordings
 from api.request_handler import (
     EmptyBody,
     add_binary_request_handler,
     add_request_handler,
 )
-from api.storage_info import get_storage_info
 from config import STORAGE_BASE_PATH
 from depthai_pipeline.init_pipeline import VISUALIZER_TOPICS, init_pipeline
 from services.support_plane_controller import SupportPlaneController
@@ -29,7 +27,6 @@ from services.application_logging import ApplicationLoggingService
 from services.event_cleaner import EventCleaner
 from services.event_deletion_gate import EventDeletionGate
 from services.event_export.coordinator import EventExportCoordinator
-from services.recording_cleaner import RecordingCleaner
 from settings.settings import (
     SetDetectionConfidenceThresholdRequest,
     SetSupportPlaneDistanceOffsetRequest,
@@ -51,7 +48,6 @@ class App:
         self.event_export_coordinator = EventExportCoordinator(
             self.settings_store, self.event_deletion_gate, application_logging
         )
-        self.recording_cleaner = RecordingCleaner(self.settings_store)
         self._update_settings_event = threading.Event()
         self._shutdown_event = threading.Event()
         self._pipeline: dai.Pipeline | None = None
@@ -69,11 +65,6 @@ class App:
         add_request_handler(self.visualizer, "getEvents", get_events)
         add_request_handler(self.visualizer, "deleteEvent", self._delete_event)
         add_binary_request_handler(self.visualizer, "getEventFile", get_event_file)
-        add_request_handler(self.visualizer, "getRecordings", get_recordings)
-        add_binary_request_handler(
-            self.visualizer, "getRecordingFile", get_recording_file
-        )
-        add_request_handler(self.visualizer, "getStorageInfo", get_storage_info)
         EventExportRequestHandler(self.event_export_coordinator, self.visualizer)
         self._register_support_plane_services()
 
@@ -278,7 +269,6 @@ class App:
 
         self._log_storage_space()
         self.event_cleaner.start()
-        self.recording_cleaner.start()
         try:
             self._restart_pipeline()
 
@@ -307,4 +297,3 @@ class App:
         finally:
             self._stop_pipeline()
             self.event_cleaner.stop()
-            self.recording_cleaner.stop()

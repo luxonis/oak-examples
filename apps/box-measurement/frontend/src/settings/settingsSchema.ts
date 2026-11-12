@@ -39,9 +39,6 @@ export const settingsSchema = z
         event_storage_max_gb: z.coerce.number().positive(),
         event_video_pre_trigger_sec: z.coerce.number().int().gte(0),
         event_video_duration_sec: z.coerce.number().int().positive(),
-        continuous_recording_enabled: z.boolean(),
-        continuous_recording_chunk_length_sec: z.coerce.number().int().positive(),
-        continuous_recording_max_storage_gb: z.coerce.number().positive(),
     })
     .strict()
     .superRefine(addSettingsCrossFieldIssues);

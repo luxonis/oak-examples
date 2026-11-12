@@ -10,7 +10,6 @@ import App from "./App.tsx";
 import CalibrationPage from "./calibration/CalibrationPage.tsx";
 import EventsPage from "./events/EventsPage.tsx";
 import "./index.css";
-import RecordingsPage from "./recordings/RecordingsPage.tsx";
 import ParamRouter from "./routing/ParamRouter.tsx";
 import SettingsPage from "./settings/SettingsPage.tsx";
 
@@ -33,7 +32,6 @@ createRoot(document.getElementById("root")!).render(
                                     routes={{
                                         "/": <App />,
                                         "/events": <EventsPage />,
-                                        "/recordings": <RecordingsPage />,
                                         "/calibration": <CalibrationPage />,
                                         "/settings": <SettingsPage />,
                                     }}
