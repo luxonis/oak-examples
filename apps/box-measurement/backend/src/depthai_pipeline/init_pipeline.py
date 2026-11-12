@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 VISUALIZER_TOPICS = {
     "color": "Color stream",
     "detections": "Detections",
-    "plane_preview_pcl": "Support surface preview",
+    "plane_preview_pcl": "Support plane preview",
 }
 
 

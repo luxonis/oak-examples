@@ -20,7 +20,7 @@ import { MAX_DISTANCE_OFFSET_CM } from "./useSupportPlaneCalibration";
 const OFFSET_STEP_CM = 0.1;
 
 type DistanceOffsetButtonProps = {
-    /** Detected camera-to-surface distance along the optical axis. */
+    /** Detected camera-to-support-plane distance along the optical axis. */
     cameraDistanceCm: number;
     offsetCm: number;
     onApply: (offsetCm: number, onSuccess: () => void) => void;
@@ -117,13 +117,13 @@ function DistanceOffsetButton({
                                 text={
                                     <>
                                         <strong>How to measure:</strong> Measure
-                                        from the camera to the surface along the
+                                        from the camera to the support plane along the
                                         camera’s viewing direction.
                                     </>
                                 }
                             />
                             <SubLabel text="Offset = measured distance − detected distance." />
-                            <SubLabel text="Positive values move the reference surface farther away." />
+                            <SubLabel text="Positive values move the support plane farther away." />
                         </Flex>
                         <Flex direction="column" gap="xs">
                             <Flex

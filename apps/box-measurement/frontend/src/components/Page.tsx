@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Flex } from "@luxonis/common-fe-components";
-import TopNav from "./TopNav";
+import { Flex, Header } from "@luxonis/common-fe-components";
 
 type PageProps = {
     children: ReactNode;
@@ -10,7 +9,9 @@ type PageProps = {
 function Page({ children }: PageProps) {
     return (
         <Flex direction="column" minH="100vh">
-            <TopNav />
+            <Flex p="xs" alignItems="center" borderBottom="border.base">
+                <Header text="Box Measurement" />
+            </Flex>
             <Flex direction="column" flex="1" p="md">
                 <main>{children}</main>
             </Flex>

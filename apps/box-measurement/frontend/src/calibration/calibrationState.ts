@@ -7,10 +7,10 @@ export const CALIBRATION_STATES = [
 export type CalibrationState = (typeof CALIBRATION_STATES)[number];
 
 export const CALIBRATION_STATUS_TEXT: Record<CalibrationState, string> = {
-    SEARCHING: "Searching for a support surface…",
+    SEARCHING: "Searching for a support plane…",
     AWAITING_CONFIRMATION:
-        "Confirm that the highlighted surface is where boxes will be placed.",
-    CONFIRMED: "Support surface confirmed.",
+        "Confirm that the highlighted support plane is where boxes will be placed.",
+    CONFIRMED: "Support plane confirmed.",
 };
 
 // Mirrors the colours SupportPlaneCalibration paints onto the preview cloud
@@ -21,22 +21,8 @@ export const CALIBRATION_STATE_COLOR: Partial<
     CONFIRMED: "rgb(0, 255, 0)",
 };
 
-/** Colour of the nav badge shown while calibration needs the operator. */
-export const CALIBRATION_ATTENTION_COLOR = "rgb(255, 140, 0)";
-
 /** Measurements are only produced once a support plane is confirmed. */
 export function isCalibrated(state: CalibrationState | undefined): boolean {
     return state === "CONFIRMED";
 }
 
-/** Signed distance offset, e.g. "+2.0 cm". */
-export function formatOffsetCm(offsetCm: number): string {
-    return `${offsetCm > 0 ? "+" : ""}${offsetCm.toFixed(1)} cm`;
-}
-
-// Whether to actively draw the operator's attention to calibration.
-export function needsCalibrationAttention(
-    state: CalibrationState | undefined,
-): boolean {
-    return state === "SEARCHING" || state === "AWAITING_CONFIRMATION";
-}

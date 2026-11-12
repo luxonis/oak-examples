@@ -91,7 +91,7 @@ export const useSupportPlanePreview = () => {
         );
 
         return () => {
-            // Publish the preview cloud only while the calibration page requests it.
+            // Publish the preview cloud only while the calibration view requests it.
             setPreviewActive(false).catch(() => {});
         };
     }, [daiConnection, isServiceAdvertised]);
@@ -99,7 +99,7 @@ export const useSupportPlanePreview = () => {
     return error;
 };
 
-// Status-only view of the calibration. Shared by the nav badge and the home banner.
+// Status-only view of the calibration. Picks the view in App.
 export const useSupportPlaneCalibrationStatus = () =>
     useDaiQuery({
         service: getStatusService,

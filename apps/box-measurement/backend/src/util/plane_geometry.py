@@ -29,7 +29,7 @@ def apply_distance_offset(plane_eq: np.ndarray, offset_mm: float) -> np.ndarray:
     height_mm = abs(float(plane_eq[3])) / float(np.linalg.norm(plane_eq[:3]))
     corrected_height_mm = height_mm + offset_mm * abs(float(normal[2]))
     if not np.isfinite(corrected_height_mm) or corrected_height_mm <= 0:
-        raise ValueError("Offset would move the support surface behind the camera")
+        raise ValueError("Offset would move the support plane behind the camera")
 
     d = float(np.copysign(corrected_height_mm, plane_eq[3]))
     return np.array([*normal, d], dtype=np.float32)
