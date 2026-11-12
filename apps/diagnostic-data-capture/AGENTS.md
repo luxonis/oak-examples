@@ -38,6 +38,7 @@ Need RVC2, raw ToF, stereo depth generation, hardware synchronization or sustain
 - Standalone control requests accept same-origin device IP URLs, not arbitrary hostnames. Hub/WebRTC capture controls are not implemented.
 - Keep internal ports 8083 (controls), 8082 (Visualizer), and 8765 (WebSocket) aligned with the proxy.
 - ZIP contents come only from a completed capture manifest plus calibration/metadata/preview; never expose arbitrary paths or directory listings.
+- Show the download button only in standalone mode; host captures already save on the computer running Python.
 - Handle SIGTERM through the normal cleanup path for partial-capture metadata and device release.
 - Camera sockets are optional; ToF is detected from sensor type, never treated as RGB.
 - Never introduce StereoDepth or save raw ToF in this example.

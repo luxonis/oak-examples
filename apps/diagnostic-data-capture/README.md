@@ -48,7 +48,7 @@ Stop the development app with Ctrl+C in the attached oakctl session, or:
 oakctl app stop 000 -d CAMERA_IP
 ```
 
-`oakapp.toml` supplies `--standalone` automatically. RVC2 is not supported in either mode. In host mode the same download button is available, and captures still save directly to your computer.
+`oakapp.toml` supplies `--standalone` automatically. RVC2 is not supported in either mode. The download button is only shown in standalone mode. Host captures save directly to your computer.
 
 ## Capture format
 

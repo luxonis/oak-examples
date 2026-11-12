@@ -91,8 +91,9 @@
       byId('device-id').textContent = device.id || '—';
       byId('device-os').textContent = device.os || '—';
       const capturePath = status.state === 'complete' ? status.saved_path : null;
-      byId('download').hidden = !capturePath;
-      if (capturePath) {
+      const canDownload = status.storage_location === 'device' && Boolean(capturePath);
+      byId('download').hidden = !canDownload;
+      if (canDownload) {
         const captureName = capturePath.split(/[\\/]/).pop();
         byId('download').href = '/api/download?capture=' + encodeURIComponent(captureName);
       } else {
