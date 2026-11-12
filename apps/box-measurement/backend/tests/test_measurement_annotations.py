@@ -3,10 +3,32 @@
 import unittest
 from datetime import timedelta
 
-from pipeline_io import frame_metadata
-from test_measurement_event_emitter import observation
+import depthai as dai
 
-from solutions_sdk.box_measurement import BoxMeasurements, MeasurementStatus
+from pipeline_io import frame_metadata
+
+from solutions_sdk.box_measurement import (
+    BoxDimensions,
+    BoxMeasurementResult,
+    BoxMeasurements,
+    MeasurementStatus,
+)
+
+DIMENSIONS = BoxDimensions(length_mm=200, width_mm=100, height_mm=50)
+
+
+def observation(status=MeasurementStatus.MEASURED, dimensions=DIMENSIONS, track_id=7):
+    bbox = dai.RotatedRect()
+    bbox.center = dai.Point2f(0.5, 0.5)
+    bbox.size = dai.Size2f(0.4, 0.4)
+    return BoxMeasurementResult(
+        track_id=track_id,
+        bounding_box=bbox,
+        confidence=0.8,
+        track_status=dai.Tracklet.TrackingStatus.TRACKED,
+        measurement_status=status,
+        dimensions=dimensions,
+    )
 
 
 def annotation_texts(message):

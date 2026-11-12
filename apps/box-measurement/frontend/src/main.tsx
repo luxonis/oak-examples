@@ -8,7 +8,6 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 import App from "./App.tsx";
 import CalibrationPage from "./calibration/CalibrationPage.tsx";
-import EventsPage from "./events/EventsPage.tsx";
 import "./index.css";
 import ParamRouter from "./routing/ParamRouter.tsx";
 import SettingsPage from "./settings/SettingsPage.tsx";
@@ -31,7 +30,6 @@ createRoot(document.getElementById("root")!).render(
                                 <ParamRouter
                                     routes={{
                                         "/": <App />,
-                                        "/events": <EventsPage />,
                                         "/calibration": <CalibrationPage />,
                                         "/settings": <SettingsPage />,
                                     }}

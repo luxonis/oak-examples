@@ -143,7 +143,7 @@ def patch_detector_hardware(
 
 
 class MeasurementPipeline:
-    def __init__(self, plane=None, blocking=False, max_size=8, with_emitter=False):
+    def __init__(self, plane=None, blocking=False, max_size=8):
         self.stack = ExitStack()
         patch_detector_hardware(self.stack)
         self.pipeline = dai.Pipeline(False)
@@ -163,18 +163,6 @@ class MeasurementPipeline:
         self.cloud_output = self.measurer.box_cloud_out.createOutputQueue(
             maxSize=8, blocking=False
         )
-        self.events = None
-        if with_emitter:
-            from depthai_pipeline.node.measurement_event_emitter import (
-                MeasurementEventEmitter,
-            )
-
-            emitter = self.pipeline.create(MeasurementEventEmitter).build(
-                self.measurer.out
-            )
-            self.events = emitter.out_events.createOutputQueue(
-                maxSize=100, blocking=False
-            )
         self.seq = 0
         self.pipeline.start()
 

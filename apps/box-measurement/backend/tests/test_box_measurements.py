@@ -397,9 +397,7 @@ class OversizedDetectionTest(unittest.TestCase):
 
         from solutions_sdk.box_measurement import SupportPlane
 
-        self.app = MeasurementPipeline(
-            SupportPlane(normal=(0, 0, 1), offset_mm=-1000), with_emitter=True
-        )
+        self.app = MeasurementPipeline(SupportPlane(normal=(0, 0, 1), offset_mm=-1000))
         self.addCleanup(self.app.close)
 
     def test_detection_just_below_half_the_frame_is_measured(self):
@@ -421,34 +419,3 @@ class OversizedDetectionTest(unittest.TestCase):
         (item,) = self.app.receive().items
         self.assertEqual(item.track_id, 7)
         self.assertEqual(item.dimensions, first.dimensions)
-
-    def test_application_completes_track_after_thirty_oversized_frames(self):
-        from datetime import timedelta
-
-        from depthai_pipeline.message.measurement_event import (
-            MeasurementEventTrigger,
-        )
-
-        for _ in range(30):
-            self.app.send()
-            self.app.receive()
-        for _ in range(30):
-            self.app.send(mode=5)
-            self.assertEqual(self.app.receive().items, [])
-        triggers = []
-        while (event := self.app.events.get(timedelta(seconds=5))) is not None:
-            if isinstance(event, MeasurementEventTrigger):
-                triggers.append(event)
-            if event.getSequenceNum() >= 60:
-                break
-        self.assertEqual([t.track_id for t in triggers], [7])
-
-    def test_track_oversized_from_its_first_frame_emits_no_events(self):
-        from datetime import timedelta
-
-        for _ in range(61):
-            self.app.send(mode=5)
-            self.assertEqual(self.app.receive().items, [])
-        self.app.send(mode=6)
-        self.app.receive()
-        self.assertIsNone(self.app.events.get(timedelta(milliseconds=500)))

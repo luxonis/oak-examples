@@ -9,7 +9,6 @@ import depthai as dai
 
 from app import App
 from services.application_logging import ApplicationLoggingService
-from services.event_export import archive_storage
 from settings import settings_store
 
 
@@ -21,7 +20,7 @@ class RemoteServices:
         self.services[name] = handler
 
     def registerBinaryService(self, name, handler):
-        pass
+        self.services[name] = handler
 
 
 class ConfidenceServiceTests(unittest.TestCase):
@@ -30,7 +29,6 @@ class ConfidenceServiceTests(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             patch.object(dai, "RemoteConnection", RemoteServices),
             patch.object(settings_store, "STORAGE_BASE_PATH", directory),
-            patch.object(archive_storage, "STORAGE_BASE_PATH", directory),
         ):
             logging = ApplicationLoggingService(Path(directory))
             self.addCleanup(logging.handler.close)
@@ -61,3 +59,22 @@ class ConfidenceServiceTests(unittest.TestCase):
                 ],
                 0.63,
             )
+
+    def test_app_registers_no_measurement_event_services(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(dai, "RemoteConnection", RemoteServices),
+            patch.object(settings_store, "STORAGE_BASE_PATH", directory),
+        ):
+            logging = ApplicationLoggingService(Path(directory))
+            self.addCleanup(logging.handler.close)
+            services = App(logging).visualizer.services
+            for name in (
+                "getEvents",
+                "deleteEvent",
+                "getEventFile",
+                "getEventExportStatus",
+                "createEventExport",
+                "deleteEventExport",
+            ):
+                self.assertNotIn(name, services)

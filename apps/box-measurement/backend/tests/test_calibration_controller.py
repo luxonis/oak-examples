@@ -231,13 +231,11 @@ class CalibrationControllerTests(unittest.TestCase):
 
         from app import App
         from services.application_logging import ApplicationLoggingService
-        from services.event_export import archive_storage
         from settings import settings_store
 
         for item in (
             patch.object(dai, "RemoteConnection", RemoteServices),
             patch.object(settings_store, "STORAGE_BASE_PATH", self.directory.name),
-            patch.object(archive_storage, "STORAGE_BASE_PATH", self.directory.name),
         ):
             item.start()
             self.addCleanup(item.stop)

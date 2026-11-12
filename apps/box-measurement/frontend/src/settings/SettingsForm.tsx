@@ -2,13 +2,9 @@ import {
     Alert,
     Button,
     Card,
-    Checkbox,
     CircleLoader,
     Flex,
     Form,
-    FormField,
-    Grid,
-    Input,
     ReloadIcon,
     SettingsIcon,
     SubHeader,
@@ -72,60 +68,6 @@ function SettingsFormInner(props: {
                 onReset={handleDiscard}
                 disabled={() => isDisabled}
             >
-                <Grid gap="sm" columns={{ base: 1, lg: 2 }}>
-                    <Card
-                        title="Events"
-                        subtitle="Capture of measurement events."
-                        height="full"
-                    >
-                        <Grid gap="sm">
-                            <FormField
-                                form={form}
-                                name="event_saving_enabled"
-                                label="Event capture"
-                                fullWidth
-                                render={(field) => (
-                                    <Checkbox
-                                        {...field}
-                                        id={field.name}
-                                        label="Save measurement events"
-                                        disabled={isPending}
-                                    />
-                                )}
-                            />
-                            <FormField
-                                form={form}
-                                name="save_failed_events"
-                                label="Failed attempts"
-                                fullWidth
-                                render={(field) => (
-                                    <Checkbox
-                                        {...field}
-                                        id={field.name}
-                                        label="Save failed measurement attempts"
-                                        disabled={isPending}
-                                    />
-                                )}
-                            />
-                            <FormField
-                                form={form}
-                                name="event_storage_max_gb"
-                                label="Max event storage (GB)"
-                                fullWidth
-                                render={(field) => (
-                                    <Input
-                                        {...field}
-                                        type="number"
-                                        min={1}
-                                        step="1"
-                                        autoComplete="off"
-                                        disabled={isPending}
-                                    />
-                                )}
-                            />
-                        </Grid>
-                    </Card>
-                </Grid>
                 <Flex width="full" justifyContent="flex-end">
                     <SubLabel text="Applying settings briefly restarts the camera pipeline." />
                 </Flex>
