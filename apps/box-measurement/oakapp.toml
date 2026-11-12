@@ -1,0 +1,34 @@
+identifier = "com.luxonis.box-measurement"
+entrypoint = ["/entrypoint.sh", "bash", "/app/backend-run.sh"]
+app_version = "0.0.2"
+
+prepare_container = [
+    { type = "RUN", command = "apt-get update" },
+    { type = "RUN", command = "apt-get install -y python3-pip" },
+    { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
+    { type = "RUN", command = "pip3 install -r /app/backend/requirements.txt --break-system-packages" },
+]
+
+prepare_build_container = [
+    { type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24.14.1'" },
+]
+
+build_steps = []
+
+[static_frontend]
+dist_path = "./frontend/dist"
+
+[static_frontend.build]
+source_path = "./frontend"
+steps = [
+    "bash -c 'cd /app/frontend && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm ci && npm run build'",
+]
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.4.0-py311"

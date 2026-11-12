@@ -1,0 +1,17 @@
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+STORAGE_BASE_PATH = os.environ.get("OAKAGENT_STORAGE_SHARED", "/tmp")
+MIN_FREE_DISK_GB = 2.0
+
+APP_IDENTIFIER = os.environ.get("OAKAGENT_APP_IDENTIFIER", "com.luxonis.box-measurement")
+APP_VERSION = os.environ.get("OAKAGENT_APP_VERSION", "0.0.2")
+
+BOX_MODEL_SLUG = "luxonis/box-instance-segmentation:512x320"
+NEURAL_DEPTH_MODEL = "NEURAL_DEPTH_768X480"
+
+COLOR_RESOLUTION = (1920, 1080)
+MONO_RESOLUTION = (640, 480)
