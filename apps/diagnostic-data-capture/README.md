@@ -7,10 +7,12 @@ Preview connected RVC4 cameras in DepthAI Visualizer and save short captures on 
 Use Python 3.10+ and install `requirements.txt` in your environment. Connect an idle RVC4 device, then run:
 
 ```sh
-python main.py --device 10.11.0.33 --output /path/to/captures
+python main.py --device CAMERA_IP --output /path/to/captures
 ```
 
-Open **http://127.0.0.1:8083** (or `localhost`, including through an SSH port forward). After at least five seconds of live sensor warmup, choose the output directory and frame count and click **Start capture**. The default is five frame sets. The page shows completion and the absolute saved path. Streams remain live during and after capture. Press Ctrl+C in the terminal to exit. The output path is on the computer running Python.
+Replace `CAMERA_IP` with your device's IP address. Open the **URL printed after `Capture GUI:`** in a browser on the computer running Python. The printed URL includes the configured control and Visualizer ports. If Python runs on a remote computer, forward all three app ports to the same local port numbers on your browser's computer first (defaults: 8083, 8082 and 8765); a loopback URL refers to the computer where the browser runs.
+
+After at least five seconds of live sensor warmup, choose the output directory and frame count and click **Start capture**. The default is five frame sets. The page shows completion and the absolute saved path. Streams remain live during and after capture. Press Ctrl+C in the terminal to exit. The output path is on the computer running Python.
 
 With exactly one discoverable camera, `--device` can be omitted. Use `--expected-id SERIAL` to reject an unexpected device at an IP. Check camera occupancy before connecting; the example does not stop other applications.
 
