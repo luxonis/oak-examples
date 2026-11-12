@@ -9,7 +9,6 @@ const storageInfoSchema = z.object({
     free_bytes: z.number().nonnegative(),
     available_bytes: z.number().nonnegative(),
     recordings_bytes: z.number().nonnegative(),
-    events_bytes: z.number().nonnegative(),
     min_free_floor_bytes: z.number().nonnegative(),
 });
 

@@ -7,7 +7,7 @@ import {
 } from "@luxonis/common-fe-components";
 import { css } from "../../styled-system/css/css.mjs";
 
-import { useObjectUrl } from "../events/useObjectUrl";
+import { useObjectUrl } from "./useObjectUrl";
 import { useRecordingFile } from "./useRecordingFile";
 
 const mediaShellClassName = css({

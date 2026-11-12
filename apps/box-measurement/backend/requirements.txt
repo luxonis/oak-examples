@@ -5,5 +5,4 @@ numpy>=1.22
 open3d==0.18
 opencv-python-headless
 pydantic==2.12.5
-sqlalchemy==2.0.44
 python-dotenv==1.2.2

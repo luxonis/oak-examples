@@ -1,7 +1,6 @@
 import {
     Button,
     DashboardIcon,
-    EventsIcon,
     Flex,
     GridIcon,
     Header,
@@ -36,11 +35,6 @@ const navItems: {
         label: "Calibration",
         to: "/calibration",
         icon: GridIcon,
-    },
-    {
-        label: "Events",
-        to: "/events",
-        icon: EventsIcon,
     },
     {
         label: "Footage",

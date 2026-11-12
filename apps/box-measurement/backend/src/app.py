@@ -1,20 +1,10 @@
 import logging
-import os
-import shutil
 import signal
 import threading
 from types import FrameType
 
 import depthai as dai
 
-from api.events import (
-    DeleteEventRequest,
-    DeleteEventResponse,
-    delete_event,
-    get_event_file,
-    get_events,
-)
-from api.event_export import EventExportRequestHandler
 from api.recordings import get_recording_file, get_recordings
 from api.request_handler import (
     EmptyBody,
@@ -22,13 +12,9 @@ from api.request_handler import (
     add_request_handler,
 )
 from api.storage_info import get_storage_info
-from config import STORAGE_BASE_PATH
 from depthai_pipeline.init_pipeline import VISUALIZER_TOPICS, init_pipeline
 from services.support_plane_controller import SupportPlaneController
 from services.application_logging import ApplicationLoggingService
-from services.event_cleaner import EventCleaner
-from services.event_deletion_gate import EventDeletionGate
-from services.event_export.coordinator import EventExportCoordinator
 from services.recording_cleaner import RecordingCleaner
 from settings.settings import (
     SetDetectionConfidenceThresholdRequest,
@@ -46,11 +32,6 @@ class App:
     def __init__(self, application_logging: ApplicationLoggingService):
         self.settings_store = SettingsStore()
         self.visualizer = dai.RemoteConnection(httpPort=8082)
-        self.event_deletion_gate = EventDeletionGate()
-        self.event_cleaner = EventCleaner(self.settings_store, self.event_deletion_gate)
-        self.event_export_coordinator = EventExportCoordinator(
-            self.settings_store, self.event_deletion_gate, application_logging
-        )
         self.recording_cleaner = RecordingCleaner(self.settings_store)
         self._update_settings_event = threading.Event()
         self._shutdown_event = threading.Event()
@@ -66,15 +47,11 @@ class App:
             "setDetectionConfidenceThreshold",
             self._set_detection_confidence_threshold,
         )
-        add_request_handler(self.visualizer, "getEvents", get_events)
-        add_request_handler(self.visualizer, "deleteEvent", self._delete_event)
-        add_binary_request_handler(self.visualizer, "getEventFile", get_event_file)
         add_request_handler(self.visualizer, "getRecordings", get_recordings)
         add_binary_request_handler(
             self.visualizer, "getRecordingFile", get_recording_file
         )
         add_request_handler(self.visualizer, "getStorageInfo", get_storage_info)
-        EventExportRequestHandler(self.event_export_coordinator, self.visualizer)
         self._register_support_plane_services()
 
     def _handle_stop_signal(self, _signum: int, _frame: FrameType | None) -> None:
@@ -88,16 +65,6 @@ class App:
         self.settings_store.update(request)
         self._update_settings_event.set()
         return EmptyBody()
-
-    def _delete_event(self, request: DeleteEventRequest) -> DeleteEventResponse:
-        if not self.event_deletion_gate.try_begin_deletion():
-            raise RuntimeError(
-                "Events cannot be deleted while an export is in progress"
-            )
-        try:
-            return delete_event(request)
-        finally:
-            self.event_deletion_gate.end_deletion()
 
     def _set_detection_confidence_threshold(
         self, request: SetDetectionConfidenceThresholdRequest
@@ -259,25 +226,10 @@ class App:
         self._stop_pipeline()
         self._create_pipeline(self.settings_store.get())
 
-    def _log_storage_space(self) -> None:
-        gb = 1024**3
-        usage = shutil.disk_usage(STORAGE_BASE_PATH)
-        stat = os.statvfs(STORAGE_BASE_PATH)
-        available = stat.f_bavail * stat.f_frsize
-        logger.info(
-            "Storage at %s: total %.1f GB, free %.1f GB, available to app %.1f GB",
-            STORAGE_BASE_PATH,
-            usage.total / gb,
-            usage.free / gb,
-            available / gb,
-        )
-
     def run(self):
         signal.signal(signal.SIGINT, self._handle_stop_signal)
         signal.signal(signal.SIGTERM, self._handle_stop_signal)
 
-        self._log_storage_space()
-        self.event_cleaner.start()
         self.recording_cleaner.start()
         try:
             self._restart_pipeline()
@@ -306,5 +258,4 @@ class App:
                     break
         finally:
             self._stop_pipeline()
-            self.event_cleaner.stop()
             self.recording_cleaner.stop()

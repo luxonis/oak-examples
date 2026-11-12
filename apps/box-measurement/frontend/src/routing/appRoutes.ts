@@ -3,7 +3,6 @@ export const APP_ROUTE_QUERY_PARAM = "path";
 export const appRoutes = [
     "/",
     "/calibration",
-    "/events",
     "/recordings",
     "/settings",
 ] as const;

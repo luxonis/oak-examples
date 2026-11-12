@@ -2,14 +2,12 @@ import logging
 
 import depthai as dai
 
-from depthai_pipeline.node.measurement_event_emitter import MeasurementEventEmitter
 from solutions_sdk.box_measurement import (
     BoxMeasurer,
     PlaneCalibrationConfig,
     SupportPlaneCalibrator,
 )
 from depthai_pipeline.node.continuous_recorder import ContinuousRecorder
-from depthai_pipeline.node.measurement_event_saver import MeasurementEventSaver
 from depthai_pipeline.node.support_plane_preview import SupportPlanePreview
 from services.support_plane_controller import SupportPlaneController
 from depthai_pipeline.node.latency_meter import LatencyMeter
@@ -61,11 +59,6 @@ def init_pipeline(
         frameRate=fps,
         profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
         keyframeFrequency=fps,
-    )
-    color_mjpeg = pipeline.create(dai.node.VideoEncoder).build(
-        input=nv12_out,
-        frameRate=fps,
-        profile=dai.VideoEncoderProperties.Profile.MJPEG,
     )
 
     # Neural depth
@@ -120,22 +113,6 @@ def init_pipeline(
     plane_preview = pipeline.create(SupportPlanePreview).build(
         rgbd.pcl, (nn_width, nn_height), support_plane
     )
-
-    event_emitter = pipeline.create(MeasurementEventEmitter).build(
-        box_measurement.out
-    )
-
-    # Event capture
-    if settings.event_saving_enabled:
-        pipeline.create(MeasurementEventSaver).build(
-            triggers=event_emitter.out_events,
-            mjpeg_encoded_frames=color_mjpeg.out,
-            h264_encoded_frames=color_h264.out,
-            fps=fps,
-            save_failed_events=settings.save_failed_events,
-            pre_trigger_duration_seconds=settings.event_video_pre_trigger_sec,
-            video_duration_seconds=settings.event_video_duration_sec,
-        )
 
     # Continuous recording (rolling color H264 chunks)
     if settings.continuous_recording_enabled:

@@ -6,7 +6,6 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from config import MIN_FREE_DISK_GB, STORAGE_BASE_PATH
-from util.event_files import EVENT_FILES_DIR
 from util.recording_files import RECORDINGS_DIR
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,6 @@ class StorageInfoResponse(BaseModel):
     free_bytes: int
     available_bytes: int
     recordings_bytes: int
-    events_bytes: int
     min_free_floor_bytes: int
 
 
@@ -50,6 +48,5 @@ def get_storage_info(request: EmptyRequest) -> StorageInfoResponse:
         free_bytes=usage.free,
         available_bytes=stat.f_bavail * stat.f_frsize,
         recordings_bytes=_dir_size(RECORDINGS_DIR),
-        events_bytes=_dir_size(EVENT_FILES_DIR),
         min_free_floor_bytes=int(MIN_FREE_DISK_GB * _BYTES_PER_GB),
     )
