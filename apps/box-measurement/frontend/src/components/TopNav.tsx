@@ -6,7 +6,6 @@ import {
     Header,
     type IconType,
     SettingsIcon,
-    VideoIcon,
 } from "@luxonis/common-fe-components";
 import { useSearchParams } from "react-router";
 import {
@@ -35,11 +34,6 @@ const navItems: {
         label: "Calibration",
         to: "/calibration",
         icon: GridIcon,
-    },
-    {
-        label: "Footage",
-        to: "/recordings",
-        icon: VideoIcon,
     },
     {
         label: "Settings",

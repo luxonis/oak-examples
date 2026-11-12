@@ -5,17 +5,10 @@ from types import FrameType
 
 import depthai as dai
 
-from api.recordings import get_recording_file, get_recordings
-from api.request_handler import (
-    EmptyBody,
-    add_binary_request_handler,
-    add_request_handler,
-)
-from api.storage_info import get_storage_info
+from api.request_handler import EmptyBody, add_request_handler
 from depthai_pipeline.init_pipeline import VISUALIZER_TOPICS, init_pipeline
 from services.support_plane_controller import SupportPlaneController
 from services.application_logging import ApplicationLoggingService
-from services.recording_cleaner import RecordingCleaner
 from settings.settings import (
     SetDetectionConfidenceThresholdRequest,
     SetSupportPlaneDistanceOffsetRequest,
@@ -32,7 +25,6 @@ class App:
     def __init__(self, application_logging: ApplicationLoggingService):
         self.settings_store = SettingsStore()
         self.visualizer = dai.RemoteConnection(httpPort=8082)
-        self.recording_cleaner = RecordingCleaner(self.settings_store)
         self._update_settings_event = threading.Event()
         self._shutdown_event = threading.Event()
         self._pipeline: dai.Pipeline | None = None
@@ -47,11 +39,6 @@ class App:
             "setDetectionConfidenceThreshold",
             self._set_detection_confidence_threshold,
         )
-        add_request_handler(self.visualizer, "getRecordings", get_recordings)
-        add_binary_request_handler(
-            self.visualizer, "getRecordingFile", get_recording_file
-        )
-        add_request_handler(self.visualizer, "getStorageInfo", get_storage_info)
         self._register_support_plane_services()
 
     def _handle_stop_signal(self, _signum: int, _frame: FrameType | None) -> None:
@@ -230,7 +217,6 @@ class App:
         signal.signal(signal.SIGINT, self._handle_stop_signal)
         signal.signal(signal.SIGTERM, self._handle_stop_signal)
 
-        self.recording_cleaner.start()
         try:
             self._restart_pipeline()
 
@@ -258,4 +244,3 @@ class App:
                     break
         finally:
             self._stop_pipeline()
-            self.recording_cleaner.stop()

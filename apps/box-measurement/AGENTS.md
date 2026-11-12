@@ -8,7 +8,7 @@ This is the RVC4 standalone frontend/backend app for measuring boxes on a flat s
 
 - You need box dimensions and volume on a conveyor or other flat surface, with per-box tracking and aggregated measurements.
 - You want a reusable support-plane calibration flow (RANSAC plane candidates, gravity check from the IMU, user confirmation, persistence across restarts).
-- You need a frontend/backend app that stores events (SQLite + images + video clips), keeps a rolling continuous recording, and exports archives.
+- You need a frontend/backend app that stores events (SQLite + images + video clips) and exports archives.
 - You want composable box-measurement DepthAI host nodes (`BoxDetector`, `BoxDimensioner`, `BoxMeasurer`, `SupportPlaneCalibrator`) to reuse in another pipeline.
 
 ## Do Not Use This Example When
@@ -29,7 +29,7 @@ This is the RVC4 standalone frontend/backend app for measuring boxes on a flat s
 - `Runs on:` RVC4 standalone only (OAK 4 D, Pro or non-Pro)
 - `Requires:` CAM_A, CAM_B and CAM_C; IMU accelerometer; static frontend build; Python 3.11 base image (`luxonis/oakapp-base:1.4.0-py311`)
 - `Input:` live color camera, stereo pair through `NeuralDepth`, raw accelerometer
-- `Output:` H.264 color stream, box annotations, support-surface preview point cloud, saved measurement events and continuous recording chunks under `OAKAGENT_STORAGE_SHARED`
+- `Output:` H.264 color stream, box annotations, support-surface preview point cloud and saved measurement events under `OAKAGENT_STORAGE_SHARED`
 - `Models:` `luxonis/box-instance-segmentation:512x320` from the model zoo; `NEURAL_DEPTH_768X480` from `dai.DeviceModelZoo`
 - `Visualizer / UI:` custom static frontend served through the oakapp container stack; backend services on `dai.RemoteConnection`
 
@@ -62,7 +62,7 @@ This is the RVC4 standalone frontend/backend app for measuring boxes on a flat s
 - `CAM_A -> ImageManip 512x320 BGR -> BoxMeasurer (color + point cloud) -> BoxMeasurements -> visualizer "Detections"`
 - `point cloud + IMU -> SupportPlaneCalibrator -> SupportPlaneController -> active plane pushed into BoxMeasurer`
 - `BoxMeasurements -> MeasurementEventEmitter -> MeasurementEventSaver (MJPEG snapshot + H.264 clip) -> SQLite + files`
-- `CAM_A NV12 -> H.264 -> ContinuousRecorder (rolling chunks) and visualizer "Color stream"`
+- `CAM_A NV12 -> H.264 -> visualizer "Color stream"`
 
 ## Modification Guide
 

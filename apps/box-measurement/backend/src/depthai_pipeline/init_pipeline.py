@@ -7,7 +7,6 @@ from solutions_sdk.box_measurement import (
     PlaneCalibrationConfig,
     SupportPlaneCalibrator,
 )
-from depthai_pipeline.node.continuous_recorder import ContinuousRecorder
 from depthai_pipeline.node.support_plane_preview import SupportPlanePreview
 from services.support_plane_controller import SupportPlaneController
 from depthai_pipeline.node.latency_meter import LatencyMeter
@@ -113,14 +112,6 @@ def init_pipeline(
     plane_preview = pipeline.create(SupportPlanePreview).build(
         rgbd.pcl, (nn_width, nn_height), support_plane
     )
-
-    # Continuous recording (rolling color H264 chunks)
-    if settings.continuous_recording_enabled:
-        pipeline.create(ContinuousRecorder).build(
-            h264_encoded_frames=color_h264.out,
-            fps=fps,
-            chunk_length_sec=settings.continuous_recording_chunk_length_sec,
-        )
 
     # Latency tacking
     nn_depth_align_latency_meter = pipeline.create(LatencyMeter).build(
