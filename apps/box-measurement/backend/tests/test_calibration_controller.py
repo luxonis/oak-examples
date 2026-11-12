@@ -231,14 +231,10 @@ class CalibrationControllerTests(unittest.TestCase):
 
         from app import App
         from services.application_logging import ApplicationLoggingService
-        from settings import settings_store
 
-        for item in (
-            patch.object(dai, "RemoteConnection", RemoteServices),
-            patch.object(settings_store, "STORAGE_BASE_PATH", self.directory.name),
-        ):
-            item.start()
-            self.addCleanup(item.stop)
+        remote = patch.object(dai, "RemoteConnection", RemoteServices)
+        remote.start()
+        self.addCleanup(remote.stop)
         logging = ApplicationLoggingService(Path(self.directory.name))
         self.addCleanup(logging.handler.close)
         app = App(logging)

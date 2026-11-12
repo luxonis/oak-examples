@@ -3,15 +3,23 @@ import { useState } from "react";
 import { z } from "zod/v3";
 
 import { useDaiMutation } from "../backend/useDaiMutation";
-import { useSettings } from "../settings/useSettings";
+import { useDaiQuery } from "../backend/useDaiQuery";
+
+const thresholdSchema = z.object({ threshold: z.number().gte(0).lte(1) }).strict();
+
+const getThresholdService = {
+    serviceName: "getDetectionConfidenceThreshold",
+    requestSchema: z.object({}).strict(),
+    responseSchema: thresholdSchema,
+} as const;
 
 const setThresholdService = {
     serviceName: "setDetectionConfidenceThreshold",
-    requestSchema: z.object({ threshold: z.number().gte(0).lte(1) }).strict(),
+    requestSchema: thresholdSchema,
     responseSchema: z.object({}).strict(),
 } as const;
 
-// Applied to the running pipeline without a restart; also persisted in settings.
+// Applied to the running pipeline without a restart; kept in memory only.
 export const useSetDetectionConfidenceThreshold = () => {
     const queryClient = useQueryClient();
 
@@ -20,16 +28,19 @@ export const useSetDetectionConfidenceThreshold = () => {
         mutationOptions: {
             onSettled: async () => {
                 await queryClient.invalidateQueries({
-                    queryKey: ["dai-service", "getSettings"],
+                    queryKey: ["dai-service", getThresholdService.serviceName],
                 });
             },
         },
     });
 };
 
-// A slider draft; only apply() changes the saved and running threshold.
+// A slider draft; only apply() changes the running threshold.
 export const useDetectionConfidenceThresholdDraft = () => {
-    const { settingsQuery } = useSettings();
+    const thresholdQuery = useDaiQuery({
+        service: getThresholdService,
+        request: {},
+    });
     const setThresholdMutation = useSetDetectionConfidenceThreshold();
     const [draft, setDraft] = useState<number | null>(null);
 
@@ -45,7 +56,7 @@ export const useDetectionConfidenceThresholdDraft = () => {
     };
 
     return {
-        value: draft ?? settingsQuery.data?.detection_confidence_threshold,
+        value: draft ?? thresholdQuery.data?.threshold,
         setValue: setDraft,
         apply,
         error: setThresholdMutation.error,

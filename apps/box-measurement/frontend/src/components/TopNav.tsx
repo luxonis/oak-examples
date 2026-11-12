@@ -5,7 +5,6 @@ import {
     GridIcon,
     Header,
     type IconType,
-    SettingsIcon,
 } from "@luxonis/common-fe-components";
 import { useSearchParams } from "react-router";
 import {
@@ -34,11 +33,6 @@ const navItems: {
         label: "Calibration",
         to: "/calibration",
         icon: GridIcon,
-    },
-    {
-        label: "Settings",
-        to: "/settings",
-        icon: SettingsIcon,
     },
 ];
 

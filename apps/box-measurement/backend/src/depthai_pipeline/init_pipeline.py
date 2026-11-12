@@ -10,11 +10,10 @@ from solutions_sdk.box_measurement import (
 from depthai_pipeline.node.support_plane_preview import SupportPlanePreview
 from services.support_plane_controller import SupportPlaneController
 from depthai_pipeline.node.latency_meter import LatencyMeter
-from settings.settings import Settings
 from util.device_support import check_device_supported
 from util.pipeline_latency_tracker import PipelineLatencyTracker
 
-from config import NEURAL_DEPTH_MODEL, COLOR_RESOLUTION, MONO_RESOLUTION
+from config import FPS, NEURAL_DEPTH_MODEL, COLOR_RESOLUTION, MONO_RESOLUTION
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +26,10 @@ VISUALIZER_TOPICS = {
 
 def init_pipeline(
     pipeline: dai.Pipeline,
-    settings: Settings,
+    confidence_threshold: float,
     visualizer: dai.RemoteConnection,
 ) -> tuple[PipelineLatencyTracker, SupportPlaneController, BoxMeasurer]:
-    fps = settings.fps
+    fps = FPS
     device = pipeline.getDefaultDevice()
     check_device_supported(device)
 
@@ -97,7 +96,7 @@ def init_pipeline(
         color=measurement_color.out,
         point_cloud=rgbd.pcl,
         point_cloud_size=(nn_width, nn_height),
-        confidence_threshold=settings.detection_confidence_threshold,
+        confidence_threshold=confidence_threshold,
     )
 
     # Calibration and measurement receive the same organized cloud.

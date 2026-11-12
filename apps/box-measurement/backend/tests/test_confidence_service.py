@@ -1,4 +1,4 @@
-"""Confidence validation and persistence retain the frontend service contract."""
+"""The detection-confidence services validate, apply and keep the threshold in memory."""
 
 import tempfile
 import unittest
@@ -9,7 +9,6 @@ import depthai as dai
 
 from app import App
 from services.application_logging import ApplicationLoggingService
-from settings import settings_store
 
 
 class RemoteServices:
@@ -24,57 +23,58 @@ class RemoteServices:
 
 
 class ConfidenceServiceTests(unittest.TestCase):
-    def test_threshold_service_validates_persists_and_restores_saved_setting(self):
-        with (
-            tempfile.TemporaryDirectory() as directory,
-            patch.object(dai, "RemoteConnection", RemoteServices),
-            patch.object(settings_store, "STORAGE_BASE_PATH", directory),
-        ):
-            logging = ApplicationLoggingService(Path(directory))
-            self.addCleanup(logging.handler.close)
-            app = App(logging)
-            services = app.visualizer.services
-            for threshold in (0, 1, 0.63):
-                self.assertEqual(
-                    services["setDetectionConfidenceThreshold"](
-                        {"threshold": threshold}
-                    ),
-                    {},
-                )
-                self.assertEqual(
-                    services["getSettings"]({})["detection_confidence_threshold"],
-                    threshold,
-                )
-            for threshold in (-0.1, 1.1, float("nan"), float("inf")):
-                self.assertIn(
-                    "error",
-                    services["setDetectionConfidenceThreshold"](
-                        {"threshold": threshold}
-                    ),
-                )
-            restored = App(logging)
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        remote = patch.object(dai, "RemoteConnection", RemoteServices)
+        remote.start()
+        self.addCleanup(remote.stop)
+        self.logging = ApplicationLoggingService(Path(directory.name))
+        self.addCleanup(self.logging.handler.close)
+
+    def services(self):
+        return App(self.logging).visualizer.services
+
+    def test_set_threshold_is_reported_by_get(self):
+        services = self.services()
+        for threshold in (0, 1, 0.63):
             self.assertEqual(
-                restored.visualizer.services["getSettings"]({})[
-                    "detection_confidence_threshold"
-                ],
-                0.63,
+                services["setDetectionConfidenceThreshold"]({"threshold": threshold}),
+                {},
+            )
+            self.assertEqual(
+                services["getDetectionConfidenceThreshold"]({}),
+                {"threshold": threshold},
             )
 
-    def test_app_registers_no_measurement_event_services(self):
-        with (
-            tempfile.TemporaryDirectory() as directory,
-            patch.object(dai, "RemoteConnection", RemoteServices),
-            patch.object(settings_store, "STORAGE_BASE_PATH", directory),
+    def test_invalid_thresholds_are_rejected(self):
+        services = self.services()
+        for threshold in (-0.1, 1.1, float("nan"), float("inf")):
+            self.assertIn(
+                "error",
+                services["setDetectionConfidenceThreshold"]({"threshold": threshold}),
+            )
+        self.assertEqual(
+            services["getDetectionConfidenceThreshold"]({}), {"threshold": 0.5}
+        )
+
+    def test_fresh_app_reports_default_threshold(self):
+        self.services()["setDetectionConfidenceThreshold"]({"threshold": 0.63})
+        self.assertEqual(
+            self.services()["getDetectionConfidenceThreshold"]({}),
+            {"threshold": 0.5},
+        )
+
+    def test_app_registers_no_settings_or_measurement_event_services(self):
+        services = self.services()
+        for name in (
+            "getSettings",
+            "updateSettings",
+            "getEvents",
+            "deleteEvent",
+            "getEventFile",
+            "getEventExportStatus",
+            "createEventExport",
+            "deleteEventExport",
         ):
-            logging = ApplicationLoggingService(Path(directory))
-            self.addCleanup(logging.handler.close)
-            services = App(logging).visualizer.services
-            for name in (
-                "getEvents",
-                "deleteEvent",
-                "getEventFile",
-                "getEventExportStatus",
-                "createEventExport",
-                "deleteEventExport",
-            ):
-                self.assertNotIn(name, services)
+            self.assertNotIn(name, services)

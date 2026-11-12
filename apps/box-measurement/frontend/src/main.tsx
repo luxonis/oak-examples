@@ -10,7 +10,6 @@ import App from "./App.tsx";
 import CalibrationPage from "./calibration/CalibrationPage.tsx";
 import "./index.css";
 import ParamRouter from "./routing/ParamRouter.tsx";
-import SettingsPage from "./settings/SettingsPage.tsx";
 
 function getBasePath(): string {
     return window.location.pathname.match(/^\/\d+\.\d+\.\d+\/$/)?.[0] ?? "";
@@ -31,7 +30,6 @@ createRoot(document.getElementById("root")!).render(
                                     routes={{
                                         "/": <App />,
                                         "/calibration": <CalibrationPage />,
-                                        "/settings": <SettingsPage />,
                                     }}
                                 />
                             }
