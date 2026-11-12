@@ -1,4 +1,4 @@
-"""The detection-confidence services validate, apply and keep the threshold in memory."""
+"""The app registers a fixed service set; confidence is validated and kept in memory."""
 
 import unittest
 from unittest.mock import patch
@@ -13,9 +13,6 @@ class RemoteServices:
         self.services = {}
 
     def registerService(self, name, handler):
-        self.services[name] = handler
-
-    def registerBinaryService(self, name, handler):
         self.services[name] = handler
 
 
@@ -58,16 +55,17 @@ class ConfidenceServiceTests(unittest.TestCase):
             {"threshold": 0.5},
         )
 
-    def test_app_registers_no_settings_or_measurement_event_services(self):
-        services = self.services()
-        for name in (
-            "getSettings",
-            "updateSettings",
-            "getEvents",
-            "deleteEvent",
-            "getEventFile",
-            "getEventExportStatus",
-            "createEventExport",
-            "deleteEventExport",
-        ):
-            self.assertNotIn(name, services)
+    def test_app_registers_exactly_the_supported_services(self):
+        self.assertEqual(
+            set(self.services()),
+            {
+                "getDetectionConfidenceThreshold",
+                "setDetectionConfidenceThreshold",
+                "getSupportPlaneCalibrationStatus",
+                "confirmSupportPlane",
+                "retrySupportPlaneCalibration",
+                "selectSupportPlaneCandidate",
+                "setSupportPlanePreviewActive",
+                "setSupportPlaneDistanceOffset",
+            },
+        )

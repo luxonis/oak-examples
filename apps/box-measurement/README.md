@@ -1,6 +1,6 @@
 # Box Measurement
 
-This app measures box dimensions (L × W × H) and volume on an RVC4 device. The boxes have to be on a flat surface, for example on a conveyor belt. Every box that passes the camera is detected, tracked and measured; the app stores a measurement event with a video clip for each box.
+This app measures box dimensions (L × W × H) and volume live on an RVC4 device. The boxes have to rest on a flat support plane, for example a conveyor belt. Every box that passes the camera is detected, tracked and measured, and its dimensions are drawn over the color stream. Nothing is saved to the device.
 
 > **Note:** This app requires an **OAK 4 D** device (Pro or non-Pro) - box dimensions are computed from a stereo camera pair. Single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is optional and is enabled automatically when present.
 
@@ -60,65 +60,41 @@ The first run builds the container on the device and takes a while. Once the app
 
 ## 4. Calibrate the support plane
 
-Nothing is measured until the support plane is confirmed, so do this first.
+Nothing is measured until the support plane is confirmed. The app does not remember
+the support plane, so you confirm it after every app start. The app UI opens on the
+calibration view until you do.
 
-1. **Clear the belt / support surface.** The surface must be visible.
-2. Open the app UI and go to **Calibration**.
-3. The candidate plane is highlighted in orange.
-4. If the highlighted surface is not the surface you want to measure on, press **Next surface** to go through the other detected planes.
-5. Press **Confirm surface**. The plane turns green and is saved to the device,
-   so it survives app and device restarts.
+1. **Clear the belt / support plane.** Remove boxes and other objects; the plane must be visible.
+2. Open the app UI. The detected candidate plane is highlighted in orange in the
+   **Support plane preview**, with the camera distance and tilt next to it.
+3. If the highlighted plane is not the one boxes will rest on, press **Next candidate**
+   to go through the other detected planes.
+4. Press **Confirm support plane**. The UI switches to the measurement view.
 
-Recalibrate whenever the camera is moved, re-aimed, or the belt
-height changes.
+If no plane is found, press **Restart calibration**. Recalibrate whenever the camera
+is moved or re-aimed, or the belt height changes: press **Recalibrate** in the
+measurement view to go back to the calibration view.
+
+## Using the app
+
+The measurement view shows the color stream with each detected box outlined and its
+L × W × H (cm) and volume (cm³) overlaid. Its toolbar has:
+
+- **Distance correction** - see below.
+- **Detection settings** - the detection confidence threshold (0 to 1). It applies
+  immediately and resets to the default when the app restarts.
+- **Recalibrate** - discards the confirmed support plane and returns to calibration.
 
 ### Distance correction (optional)
 
 If measured heights are consistently too high or too low, correct the distance
-to the surface:
+to the support plane:
 
-1. Measure the real distance from the camera to the surface.
-2. On the **Calibration** page, open **Distance correction**. It shows the detected distance.
+1. Measure the real distance from the camera to the support plane.
+2. In the measurement view, open **Distance correction**. It shows the detected distance.
 3. Enter the offset as *measured distance − detected distance* (−10 to +10 cm)
    and press **Apply**.
 
-Positive values move the reference surface farther from the camera, so boxes
-measure taller. The offset mainly affects the height. It is saved together with the
-plane, and it is cleared when you press **Restart calibration**.
-
-## Using the app
-
-The UI has five pages:
-
-- **Home** - the color stream with detections, per-box dimensions and volume
-  overlaid.
-- **Calibration** - the support-plane flow described above.
-- **Events** - one card per measured box, with dimensions, volume, a snapshot
-  and a video clip. Events are one of:
-  - `SUCCESS` - a stable measurement was reached.
-  - `INCOMPLETE` - the box left the frame before the measurement stabilized.
-  - `FAILED_LOW_COVERAGE` - no usable measurement was taken, most often
-    because too few depth points on the box were valid.
-- **Settings**.
-
-The UI shows measurements in cm and volume in cm³.
-
-## Exporting events
-
-On the **Events** page, press **Create archive** to pack all events (dimensions,
-images, videos), the settings, the support plane and the app logs into one ZIP on
-the device. When it is ready, copy the command shown on the page and run it on your
-computer to download the archive.
-
-- Only one archive is kept; a new one replaces the previous one.
-- **Delete the archive after downloading it.** It takes about as much space as all
-  events.
-
-Archive contents:
-
-- `manifest.json` - app version, pipeline configuration, event count, missing files, log information and warnings.
-- `configuration/settings.json` - app settings at export time.
-- `configuration/support_plane.json` - confirmed support-plane equation and distance offset, if available.
-- `events/events.jsonl` - one JSON record per event, including ID, type, track ID, UTC timestamp, dimensions (mm), volume (mm³) and file paths.
-- `events/files/<event id>/` - event images (`.jpg`) and video clips (`.mp4`), when available.
-- `logs/` - `application.log` and its rotated backups.
+Positive values move the support plane farther from the camera, so boxes measure
+taller. The offset mainly affects the height and applies to live measurements right
+away. It is cleared when you recalibrate or restart the app.

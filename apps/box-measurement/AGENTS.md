@@ -2,18 +2,19 @@
 
 ## Summary
 
-This is the RVC4 standalone frontend/backend app for measuring boxes on a flat support surface such as a conveyor belt, using stereo neural depth, instance segmentation and tracking with an IMU-checked support-plane calibration. Use it when you need per-box dimensions, volume, saved events with video clips, and a reusable box-measurement node set.
+RVC4 standalone app for live box dimensioning on a calibrated support plane, with a custom calibration and measurement frontend and a reusable box-measurement node set. Uses stereo neural depth, instance segmentation, tracking and the IMU.
 
 ## Use This Example When
 
-- You need box dimensions and volume on a conveyor or other flat surface, with per-box tracking and aggregated measurements.
-- You want a reusable support-plane calibration flow (RANSAC plane candidates, gravity check from the IMU, user confirmation, persistence across restarts).
-- You need a frontend/backend app that stores events (SQLite + images + video clips) and exports archives.
+- You need live box dimensions and volume on a conveyor or other flat support plane, with per-box tracking and aggregated measurements.
+- You want a reusable support-plane calibration flow: RANSAC plane candidates, a gravity check from the IMU, candidate cycling, user confirmation and a ± distance offset.
 - You want composable box-measurement DepthAI host nodes (`BoxDetector`, `BoxDimensioner`, `BoxMeasurer`, `SupportPlaneCalibrator`) to reuse in another pipeline.
+- You want a small custom frontend that switches views from polled backend state instead of routes.
 
 ## Do Not Use This Example When
 
 - You only need a minimal box-measurement script with the DepthAI Visualizer; use `depth-measurement/measurement-3d/box-measurement` instead.
+- You need to store, record or export measurements; this app only shows them live and writes nothing to device storage.
 - You need RVC2 or peripheral (host) mode support.
 - You only have a single-camera device such as OAK 4 S; depth comes from a stereo pair.
 - You need to measure arbitrary objects selected by clicking rather than boxes on a plane.
@@ -29,21 +30,21 @@ This is the RVC4 standalone frontend/backend app for measuring boxes on a flat s
 - `Runs on:` RVC4 standalone only (OAK 4 D, Pro or non-Pro)
 - `Requires:` CAM_A, CAM_B and CAM_C; IMU accelerometer; static frontend build; Python 3.11 base image (`luxonis/oakapp-base:1.4.0-py311`)
 - `Input:` live color camera, stereo pair through `NeuralDepth`, raw accelerometer
-- `Output:` H.264 color stream, box annotations, support-surface preview point cloud and saved measurement events under `OAKAGENT_STORAGE_SHARED`
+- `Output:` H.264 color stream, box annotations and a support-plane preview point cloud; nothing is written to device storage
 - `Models:` `luxonis/box-instance-segmentation:512x320` from the model zoo; `NEURAL_DEPTH_768X480` from `dai.DeviceModelZoo`
 - `Visualizer / UI:` custom static frontend served through the oakapp container stack; backend services on `dai.RemoteConnection`
 
 ## Read First
 
-- [backend/src/app.py](backend/src/app.py): app lifecycle, frontend service registration, pipeline restart on settings change
-- [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py): full pipeline wiring
-- [backend/src/config.py](backend/src/config.py): model names, resolutions, storage path
+- [backend/src/app.py](backend/src/app.py): app lifecycle, the eight frontend services, the run loop
+- [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py): full pipeline wiring and visualizer topics
+- [backend/src/config.py](backend/src/config.py): model names, resolutions, frame rate and default detection confidence
+- [backend/src/services/support_plane_controller.py](backend/src/services/support_plane_controller.py): app-side calibration state, candidate selection and distance offset
 - [backend/src/solutions_sdk/box_measurement/__init__.py](backend/src/solutions_sdk/box_measurement/__init__.py): the reusable box-measurement node and message API
 - [backend/src/solutions_sdk/box_measurement/node/box_measurer.py](backend/src/solutions_sdk/box_measurement/node/box_measurer.py): detector + dimensioner composite node
-- [backend/src/solutions_sdk/box_measurement/node/support_plane_calibrator.py](backend/src/solutions_sdk/box_measurement/node/support_plane_calibrator.py): plane candidate discovery and verification
-- [backend/src/services/support_plane_controller.py](backend/src/services/support_plane_controller.py): app-side calibration state, persistence and candidate selection
-- [backend/src/settings/settings.py](backend/src/settings/settings.py): user-facing settings model
-- [frontend/src/calibration/CalibrationPage.tsx](frontend/src/calibration/CalibrationPage.tsx): calibration UI flow
+- [backend/src/solutions_sdk/box_measurement/node/support_plane_calibrator.py](backend/src/solutions_sdk/box_measurement/node/support_plane_calibrator.py): support-plane candidate discovery
+- [frontend/src/App.tsx](frontend/src/App.tsx): picks the calibration or measurement view from the polled calibration state
+- [frontend/src/calibration/CalibrationView.tsx](frontend/src/calibration/CalibrationView.tsx) and [frontend/src/MeasurementView.tsx](frontend/src/MeasurementView.tsx): the two views
 - [oakapp.toml](oakapp.toml): container, frontend build and base image
 
 ## Architecture
@@ -52,42 +53,53 @@ This is the RVC4 standalone frontend/backend app for measuring boxes on a flat s
   - `BoxDetector` runs the instance-segmentation model and tracks boxes.
   - `BoxDimensioner` fits cuboids to each box's points relative to the active support plane and aggregates dimensions per track (component-wise median).
   - `BoxMeasurer` composes the two and outputs `BoxMeasurements`.
-  - `SupportPlaneCalibrator` finds support-plane candidates from the organized point cloud and checks them against gravity from the IMU.
-- The app layer (`depthai_pipeline/`, `services/`, `api/`, `database/`, `settings/`) turns measurement observations into measurement events, saves media, runs cleaners and serves the frontend.
-- `App` owns one `dai.Pipeline` at a time and recreates it when settings change.
+  - `SupportPlaneCalibrator` finds support-plane candidates from the organized point cloud and checks them against gravity from the IMU. Its `verify` capability is part of the SDK but unused by the app.
+- The app layer is small:
+  - `depthai_pipeline/` wires the pipeline and holds the `SupportPlanePreview` node.
+  - `services/support_plane_controller.py` runs the calibration states `SEARCHING → AWAITING_CONFIRMATION → CONFIRMED`, pushes the confirmed (offset-corrected) support plane into `BoxMeasurer`, and reports status.
+  - `api/request_handler.py` wraps pydantic-validated services; the calibration services are registered raw and return `{}` or `{"error": "..."}`.
+- `App` builds one `dai.Pipeline` at startup and runs it until the pipeline stops, `SIGINT`/`SIGTERM` arrives, or the remote connection sends `q`. There is no pipeline restart.
+- Registered services: `getDetectionConfidenceThreshold`, `setDetectionConfidenceThreshold`, `getSupportPlaneCalibrationStatus`, `confirmSupportPlane`, `retrySupportPlaneCalibration`, `selectSupportPlaneCandidate`, `setSupportPlanePreviewActive`, `setSupportPlaneDistanceOffset`. [backend/tests/test_app_services.py](backend/tests/test_app_services.py) pins this set.
+- The frontend is one page. Without a confirmed support plane it shows the calibration view (status, camera tilt and distance, candidate cycling, confirm/restart, `Support plane preview` stream; the preview runs only while this view is shown). With one it shows the measurement view (`Color stream` + `Detections`, detection settings popover, distance correction, "Recalibrate").
+- Frontend service calls go through TanStack Query + zod definitions in [frontend/src/backend/](frontend/src/backend/).
 
 ## Data Flow
 
 - `CAM_B + CAM_C -> NeuralDepth -> ImageAlign (to 512x320 color) -> RGBD -> organized point cloud`
 - `CAM_A -> ImageManip 512x320 BGR -> BoxMeasurer (color + point cloud) -> BoxMeasurements -> visualizer "Detections"`
-- `point cloud + IMU -> SupportPlaneCalibrator -> SupportPlaneController -> active plane pushed into BoxMeasurer`
-- `BoxMeasurements -> MeasurementEventEmitter -> MeasurementEventSaver (MJPEG snapshot + H.264 clip) -> SQLite + files`
+- `point cloud + IMU -> SupportPlaneCalibrator -> SupportPlaneController -> confirmed support plane (+ distance offset) pushed into BoxMeasurer`
+- `point cloud + SupportPlaneController -> SupportPlanePreview -> visualizer "Support plane preview"`
 - `CAM_A NV12 -> H.264 -> visualizer "Color stream"`
+- `frontend -> setDetectionConfidenceThreshold -> BoxMeasurer.setConfidenceThreshold` (applied live, kept in memory only)
 
 ## Modification Guide
 
-- `Safe to change:` settings defaults, frontend layout, resolutions in [backend/src/config.py](backend/src/config.py) (keep the 512x320 measurement grid in sync with the model), event retention
-- `Requires care:` support-plane persistence format ([backend/src/util/support_plane_store.py](backend/src/util/support_plane_store.py)), service names and payloads shared with [frontend/src/backend/](frontend/src/backend/), event database schema
+- `Safe to change:` `FPS`, resolutions and the default confidence in [backend/src/config.py](backend/src/config.py) (keep the 512x320 measurement grid in sync with the model), frontend layout and wording
+- `Requires care:` service names and payloads shared with [frontend/src/backend/](frontend/src/backend/), [frontend/src/calibration/useSupportPlaneCalibration.tsx](frontend/src/calibration/useSupportPlaneCalibration.tsx) and [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx); the calibration state names mirrored in [frontend/src/calibration/calibrationState.ts](frontend/src/calibration/calibrationState.ts); the visualizer topic names used by both views
 - `Likely to break if changed blindly:` point-cloud size/units passed to `BoxMeasurer` and `SupportPlaneCalibrator`, the plane sign/orientation convention, depthai / depthai-nodes / open3d version pins
 
 ## Common Adaptations
 
 - `To reuse measurement in another pipeline:` copy [backend/src/solutions_sdk/](backend/src/solutions_sdk/) and wire `BoxMeasurer` + `SupportPlaneCalibrator` as in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py)
-- `To change what a measurement event means:` start in [backend/src/depthai_pipeline/node/measurement_event_emitter.py](backend/src/depthai_pipeline/node/measurement_event_emitter.py)
-- `To add a setting:` extend [backend/src/settings/settings.py](backend/src/settings/settings.py) and [frontend/src/settings/settingsSchema.ts](frontend/src/settings/settingsSchema.ts)
+- `To act on measurements (log, store, forward):` read `BoxMeasurements` from `box_measurement.out` in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py) with a host node or output queue
+- `To add a live control:` register a service in [backend/src/app.py](backend/src/app.py) with `add_request_handler`, define it in the frontend like [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx), and add the name to the pinned set in [backend/tests/test_app_services.py](backend/tests/test_app_services.py)
+- `To change the frame rate:` edit `FPS` in [backend/src/config.py](backend/src/config.py)
 
 ## Constraints
 
 - RVC4 standalone only; the app exits with `UnsupportedDeviceError` if any of CAM_A, CAM_B or CAM_C is missing.
-- Nothing is measured until a support plane is confirmed in the Calibration page; recalibrate after moving the camera.
+- The support plane must be confirmed after every app start; nothing is measured until then. Calibration state is not saved, so a camera moved while the app was off never measures against a stale support plane. Recalibrate after moving the camera.
+- The distance offset can only be set once a support plane is confirmed, so its control lives in the measurement view; it resets on recalibration and on restart.
+- The detection confidence threshold resets to `DEFAULT_DETECTION_CONFIDENCE_THRESHOLD` on every start.
 - The IR dot projector is enabled when present; without it depth on plain surfaces is noisier.
 - Pinned to `depthai==3.11.0`, `depthai-nodes==0.7.0`, `open3d==0.18` on Python 3.11 in the container.
-- Any settings change restarts the whole pipeline; only the detection confidence threshold is applied live.
 
 ## Non-Obvious Repo Conventions
 
 - The standalone runnability tests discover this app through `oakapp.toml` + `backend/src/main.py` and wait for the `Pipeline started.` log in [backend/src/app.py](backend/src/app.py). Peripheral and RVC2 runs are excluded in `tests/constants.py`.
-- Backend unit tests live in [backend/tests/](backend/tests/) and run without a device: [backend/tests/device_lookup.py](backend/tests/device_lookup.py) patches the depthai-nodes device lookup. Lint and type-check config is in [backend/pyproject.toml](backend/pyproject.toml) and [backend/requirements-dev.txt](backend/requirements-dev.txt).
+- Backend unit tests live in [backend/tests/](backend/tests/) and run without a device: [backend/tests/device_lookup.py](backend/tests/device_lookup.py) patches the depthai-nodes device lookup, and the service tests patch `dai.RemoteConnection` with a fake that records registered services. Lint and type-check config is in [backend/pyproject.toml](backend/pyproject.toml) and [backend/requirements-dev.txt](backend/requirements-dev.txt).
+- The frontend has no unit tests; `npm run typecheck`, `npm run lint` and `npm run build` in [frontend/](frontend/) are the checks.
+- Use "support plane" in code, UI and docs, not "support surface", "ground plane" or "floor".
 
 ## Related Examples
 
@@ -98,6 +110,6 @@ This is the RVC4 standalone frontend/backend app for measuring boxes on a flat s
 ## Validation
 
 - `Run:` `oakctl app run .`
-- `Success looks like:` the frontend shows the color stream; after confirming a support surface on the Calibration page, boxes passing the camera get dimensions overlaid and appear as events with snapshots and clips
-- `Common failure meaning:` a non-stereo device (`UnsupportedDeviceError`), no plane confirmed yet, the static frontend was not built, or model zoo download failed on first run
-- `Unit tests:` from [backend/](backend/), on Python 3.11 with [backend/requirements.txt](backend/requirements.txt) installed: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`
+- `Success looks like:` the frontend opens on the calibration view with the `Support plane preview`; after confirming a support plane it switches to the color stream, and boxes passing the camera get L × W × H and volume overlaid
+- `Common failure meaning:` a non-stereo device (`UnsupportedDeviceError`), no support plane confirmed yet, the static frontend was not built, or model zoo download failed on first run
+- `Unit tests:` from [backend/](backend/), on Python 3.11 with [backend/requirements-dev.txt](backend/requirements-dev.txt) installed: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`

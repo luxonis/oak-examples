@@ -1,6 +1,5 @@
 """Application services coordinate native SDK controls/results and live previews."""
 
-import tempfile
 import time
 import unittest
 from unittest.mock import patch
@@ -20,8 +19,6 @@ from solutions_sdk.box_measurement import (
 
 class CalibrationControllerTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory()
-        self.addCleanup(self.directory.cleanup)
         self.flow = MeasurementPipeline()
         self.addCleanup(self.flow.close)
         self.pipeline = dai.Pipeline(False)
@@ -226,7 +223,7 @@ class CalibrationControllerTests(unittest.TestCase):
         self.controller.set_preview_active(False)
 
     def services(self):
-        from test_confidence_service import RemoteServices
+        from test_app_services import RemoteServices
 
         from app import App
 
@@ -415,7 +412,10 @@ class CalibrationSequencingTests(unittest.TestCase):
         results.send(
             SupportPlaneCalibrationResult(
                 CalibrationOutcome.SUCCEEDED,
-                [SupportPlane(normal=(0, 0, 1), offset_mm=-1000), SupportPlane(normal=(0, 0, 1), offset_mm=-1500)],
+                [
+                    SupportPlane(normal=(0, 0, 1), offset_mm=-1000),
+                    SupportPlane(normal=(0, 0, 1), offset_mm=-1500),
+                ],
                 "New success",
             )
         )

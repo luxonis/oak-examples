@@ -98,7 +98,6 @@ def init_pipeline(
     )
 
     # Calibration and measurement receive the same organized cloud.
-    # Restoration verifies saved planes through the calibrator's gravity check.
     calibrator = pipeline.create(SupportPlaneCalibrator).build(
         point_cloud=rgbd.pcl,
         imu=imu.out,
