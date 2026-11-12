@@ -32,7 +32,6 @@ from services.event_export.types import (
 )
 from settings.settings_store import SettingsStore
 from util.event_files import resolve_event_file_path
-from util.support_plane_store import SUPPORT_PLANE_FILE
 
 
 @dataclass(frozen=True)
@@ -110,11 +109,6 @@ class EventArchiveBuilder:
                 file_entries.extend(event_files)
         event_ids = [event.id for event in events]
         settings = self._settings_store.get().model_dump(mode="json")
-        try:
-            support_plane_bytes: bytes | None = SUPPORT_PLANE_FILE.read_bytes()
-        except FileNotFoundError:
-            # No confirmed plane yet, or a recalibration is in progress
-            support_plane_bytes = None
 
         report_progress(0, len(event_ids))
 
@@ -161,11 +155,6 @@ class EventArchiveBuilder:
             "events_file": "events/events.jsonl",
             "configuration_files": {
                 "settings": "configuration/settings.json",
-                "support_plane": (
-                    "configuration/support_plane.json"
-                    if support_plane_bytes is not None
-                    else None
-                ),
             },
             "missing_files": missing_files,
             "log_snapshot": {
@@ -181,7 +170,6 @@ class EventArchiveBuilder:
             + sum(file.byte_size for file in log_files)
             + len(events_jsonl.encode("utf-8"))
             + len(settings_json.encode("utf-8"))
-            + len(support_plane_bytes or b"")
             + len(manifest_json.encode("utf-8"))
         )
         free_bytes = shutil.disk_usage(self._export_directory).free
@@ -221,10 +209,6 @@ class EventArchiveBuilder:
                 allowZip64=True,
             ) as archive:
                 archive.writestr("configuration/settings.json", settings_json)
-                if support_plane_bytes is not None:
-                    archive.writestr(
-                        "configuration/support_plane.json", support_plane_bytes
-                    )
                 archive.writestr("events/events.jsonl", events_jsonl)
 
                 # JPEG and MP4 are already compressed: store them as they are

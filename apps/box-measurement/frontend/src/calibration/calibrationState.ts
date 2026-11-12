@@ -1,5 +1,4 @@
 export const CALIBRATION_STATES = [
-    "RESTORING",
     "SEARCHING",
     "AWAITING_CONFIRMATION",
     "CONFIRMED",
@@ -8,7 +7,6 @@ export const CALIBRATION_STATES = [
 export type CalibrationState = (typeof CALIBRATION_STATES)[number];
 
 export const CALIBRATION_STATUS_TEXT: Record<CalibrationState, string> = {
-    RESTORING: "Checking saved calibration…",
     SEARCHING: "Searching for a support surface…",
     AWAITING_CONFIRMATION:
         "Confirm that the highlighted surface is where boxes will be placed.",

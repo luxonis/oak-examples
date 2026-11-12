@@ -1,6 +1,5 @@
 """Application calibration workflow, independent of the SDK fitting lifecycle."""
 
-import logging
 from threading import Event, RLock, Thread
 
 import depthai as dai
@@ -13,16 +12,12 @@ from solutions_sdk.box_measurement import (
     SupportPlaneCalibrationControl,
     SupportPlaneCalibrationResult,
     SupportPlaneCalibrator,
-    SupportPlaneVerificationResult,
 )
 from util.plane_geometry import (
     apply_distance_offset,
     camera_distance_mm,
     camera_tilt_deg,
 )
-from util.support_plane_store import clear_plane, load_plane, save_plane
-
-logger = logging.getLogger(__name__)
 
 
 def plane_equation(plane: SupportPlane) -> np.ndarray:
@@ -30,12 +25,11 @@ def plane_equation(plane: SupportPlane) -> np.ndarray:
 
 
 class SupportPlaneController:
-    """Own selection, activation and storage; consume each attempt before retrying."""
+    """Own selection and activation; consume each attempt before retrying."""
 
     def __init__(self, calibrator: SupportPlaneCalibrator, measurer: BoxMeasurer):
         self._controls = calibrator.control_input.createInputQueue()
         self._results = calibrator.out.createOutputQueue()
-        self._verifications = calibrator.verification_out.createOutputQueue()
         self._measurer = measurer
         self._lock = RLock()
         self._closed = Event()
@@ -51,11 +45,6 @@ class SupportPlaneController:
         self._corrected: SupportPlane | None = None
         self._preview_active = False
         self._offset_mm = 0.0
-        saved = load_plane()
-        self._restored: SupportPlane | None = None
-        if saved is not None:
-            self._restored, self._offset_mm = saved
-            self._state = "RESTORING"
 
     def start(self) -> None:
         with self._lock:
@@ -64,13 +53,7 @@ class SupportPlaneController:
             self._consumer = Thread(
                 target=self._consume_results, name="plane-results", daemon=True
             )
-            if self._state == "SEARCHING":
-                self._start_attempt()
-            elif self._restored is not None:
-                # The calibrator owns the gravity check; restoration owns the policy.
-                self._controls.send(
-                    SupportPlaneCalibrationControl.verify(self._restored)
-                )
+            self._start_attempt()
             self._consumer.start()
 
     def _start_attempt(self) -> None:
@@ -85,9 +68,6 @@ class SupportPlaneController:
     def _consume_results(self) -> None:
         try:
             while not self._closed.is_set():
-                verification = self._verifications.tryGet()
-                if isinstance(verification, SupportPlaneVerificationResult):
-                    self._restore(verification)
                 result = self._results.tryGet()
                 if result is None:
                     self._closed.wait(0.005)
@@ -123,12 +103,11 @@ class SupportPlaneController:
                     pass
         if self._consumer is not None:
             self._consumer.join(timeout=1)
-        for queue in (self._results, self._verifications):
-            try:
-                while queue.tryGet() is not None:
-                    pass
-            except dai.MessageQueue.QueueException:
+        try:
+            while self._results.tryGet() is not None:
                 pass
+        except dai.MessageQueue.QueueException:
+            pass
 
     def request_recalibration(self) -> None:
         with self._lock:
@@ -138,7 +117,7 @@ class SupportPlaneController:
             self._candidates = []
             self._selected = 0
             self._error = None
-            self._restored = self._active = self._corrected = None
+            self._active = self._corrected = None
             self._offset_mm = 0.0
             self._measurer.clearSupportPlane()
             if self._outstanding:
@@ -146,42 +125,6 @@ class SupportPlaneController:
                     self._restart_pending = True
                     self._controls.send(SupportPlaneCalibrationControl.stop())
             else:
-                self._start_attempt()
-            clear_plane()
-
-    def _restore(self, verification: SupportPlaneVerificationResult) -> None:
-        """Activate the saved plane if the calibrator accepted it, else search."""
-        with self._lock:
-            # A restart or replacement abandons the saved plane being verified.
-            if (
-                self._closed.is_set()
-                or self._state != "RESTORING"
-                or verification.plane != self._restored
-            ):
-                return
-            plane = verification.plane
-            self._restored = None
-            if verification.accepted:
-                try:
-                    corrected_eq = apply_distance_offset(
-                        plane_equation(plane), self._offset_mm
-                    )
-                except ValueError:
-                    self._offset_mm = 0.0
-                    corrected_eq = plane_equation(plane)
-                self._active = plane
-                self._corrected = SupportPlane(
-                    normal=tuple(corrected_eq[:3]), offset_mm=float(corrected_eq[3])
-                )
-                self._measurer.setSupportPlane(self._corrected)
-                self._state = "CONFIRMED"
-            else:
-                self._offset_mm = 0.0
-                self._state = "SEARCHING"
-                try:
-                    clear_plane()
-                except OSError:
-                    logger.exception("Rejected saved calibration could not be removed")
                 self._start_attempt()
 
     def confirm_candidate(self) -> bool:
@@ -193,8 +136,6 @@ class SupportPlaneController:
             self._offset_mm = 0.0
             self._state = "CONFIRMED"
             self._measurer.setSupportPlane(plane)
-            # Persistence is separate from activation; errors must reach the service.
-            save_plane(plane)
             return True
 
     def cycle_candidate(self, direction: int = 1) -> bool:
@@ -237,7 +178,6 @@ class SupportPlaneController:
             )
             self._offset_mm = offset_mm
             self._measurer.setSupportPlane(self._corrected)
-            save_plane(self._active, offset_mm)
 
     def set_preview_active(self, active: bool) -> None:
         with self._lock:

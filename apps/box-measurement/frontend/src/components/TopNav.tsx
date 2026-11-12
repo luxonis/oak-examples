@@ -61,8 +61,7 @@ function TopNav() {
     const statusQuery = useSupportPlaneCalibrationStatus();
     const calibrationState = statusQuery.data?.state;
 
-    // Calibration status dot visible on the nav bar from all pages. Stays
-    // hidden while RESTORING, which resolves without the operator.
+    // Calibration status dot visible on the nav bar from all pages.
     const calibrationDot = needsCalibrationAttention(calibrationState)
         ? CALIBRATION_ATTENTION_COLOR
         : undefined;

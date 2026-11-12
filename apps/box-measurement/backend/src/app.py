@@ -153,29 +153,15 @@ class App:
         controller = self._support_plane
         if controller is None:
             return {"error": "Support plane calibration is not available"}
-        try:
-            if not controller.confirm_candidate():
-                return {"error": "No support plane candidate is awaiting confirmation"}
-        except OSError:
-            logger.exception("Support plane activated but could not be saved")
-            return {
-                "error": "Support plane is active, but saving failed; it will not survive restart"
-            }
+        if not controller.confirm_candidate():
+            return {"error": "No support plane candidate is awaiting confirmation"}
         return {}
 
     def _retry_support_plane_calibration(self, _request: dict) -> dict:
         controller = self._support_plane
         if controller is None:
             return {"error": "Support plane calibration is not available"}
-        try:
-            controller.request_recalibration()
-        except OSError:
-            logger.exception(
-                "Calibration cleared but saved calibration could not be removed"
-            )
-            return {
-                "error": "Calibration cleared, but removing the saved calibration failed"
-            }
+        controller.request_recalibration()
         return {}
 
     def _select_support_plane_candidate(self, request: dict) -> dict:
@@ -200,13 +186,7 @@ class App:
         controller = self._support_plane
         if controller is None:
             raise RuntimeError("Support plane calibration is not available")
-        try:
-            controller.set_distance_offset(request.offset_mm)
-        except OSError as exc:
-            logger.exception("Support plane correction applied but could not be saved")
-            raise RuntimeError(
-                "Support plane correction is active, but saving failed; it will not survive restart"
-            ) from exc
+        controller.set_distance_offset(request.offset_mm)
         return EmptyBody()
 
     def _create_pipeline(self, settings: Settings) -> None:
