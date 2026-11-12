@@ -1,0 +1,39 @@
+# Rendered by oakapp-base's nginx service. Keep capture controls, downloads,
+# Visualizer assets and the DAI WebSocket on the same HTTPS origin.
+server {
+    listen ${OAKAPP_STATIC_FRONTEND_PORT} ssl;
+    listen [::]:${OAKAPP_STATIC_FRONTEND_PORT} ssl;
+    ssl_certificate /etc/nginx/ssl/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/nginx/ssl/nginx-selfsigned.key;
+    server_name _;
+    error_page 497 301 =307 https://$host:$server_port$request_uri;
+
+    location = / {
+        return 302 /capture;
+    }
+    location /capture {
+        proxy_pass http://127.0.0.1:8083;
+        proxy_set_header Host $http_host;
+    }
+    location /api/ {
+        proxy_pass http://127.0.0.1:8083;
+        proxy_set_header Host $http_host;
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+    }
+    location /dai {
+        proxy_pass http://127.0.0.1:8765;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_read_timeout 300s;
+    }
+    location /visualizer/ {
+        proxy_pass http://127.0.0.1:8082/;
+    }
+    # The bundled Visualizer uses absolute asset URLs.
+    location / {
+        proxy_pass http://127.0.0.1:8082;
+    }
+}

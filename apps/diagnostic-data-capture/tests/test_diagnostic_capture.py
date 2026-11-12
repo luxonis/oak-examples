@@ -2,11 +2,16 @@
 
 import argparse
 import http.client
+import io
 import json
+import os
 from pathlib import Path
 import sys
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
+import tempfile
+import zipfile
 
 import depthai as dai
 
@@ -14,7 +19,7 @@ import depthai as dai
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from control import ControlServer
-from main import CaptureApp, camera_roles, image_width, preview_frame
+from main import CaptureApp, arguments, camera_roles, image_width, preview_frame
 
 
 class PreviewEncodingTests(unittest.TestCase):
@@ -319,6 +324,95 @@ class ControlHTTPTests(unittest.TestCase):
             },
         )
         self.assertEqual(status, 413)
+
+    def test_download_contains_only_completed_capture_artifacts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / "sample"
+            (folder / "rgb").mkdir(parents=True)
+            payloads = {
+                "rgb/frame.dai": b"native-frame-bytes",
+                "calib.json": b"{}",
+                "preview.jpg": b"jpeg",
+            }
+            for name, value in payloads.items():
+                (folder / name).write_bytes(value)
+            (folder / "unrelated.txt").write_text("not part of the capture")
+            manifest = {
+                "status": "complete",
+                "preview": "preview.jpg",
+                "frames": [{"streams": {"rgb": {"file": "rgb/frame.dai"}}}],
+            }
+            (folder / "metadata.json").write_text(json.dumps(manifest))
+            self.status.update(state="complete", saved_path=str(folder))
+            code, body = self.request("GET", "/api/download?capture=sample")
+            self.assertEqual(code, 200)
+            with zipfile.ZipFile(io.BytesIO(body)) as archive:
+                self.assertIsNone(archive.testzip())
+                self.assertEqual(
+                    set(archive.namelist()),
+                    {f"sample/{n}" for n in (*payloads, "metadata.json")},
+                )
+                for name, value in payloads.items():
+                    self.assertEqual(archive.read(f"sample/{name}"), value)
+            self.assertEqual(self.request("GET", "/api/download?capture=old")[0], 409)
+            manifest["frames"][0]["streams"]["rgb"]["file"] = "../outside.dai"
+            (folder / "metadata.json").write_text(json.dumps(manifest))
+            self.assertEqual(
+                self.request("GET", "/api/download?capture=sample")[0], 409
+            )
+            self.status["state"] = "capturing"
+            self.assertEqual(
+                self.request("GET", "/api/download?capture=sample")[0], 404
+            )
+
+    def test_standalone_accepts_device_https_origin_but_not_foreign_origin(self):
+        self.server.standalone = True
+        self.status["state"] = "ready"
+        value = {"frames": 1, "output": "/storage/captures"}
+        authority = "10.11.0.33:9000"
+        self.assertEqual(
+            self.post(value, origin=f"https://{authority}", host=authority)[0], 202
+        )
+        self.assertEqual(
+            self.post(value, origin="https://evil.example", host=authority)[0], 403
+        )
+        self.assertEqual(
+            self.post(value, origin="https://evil.example", host="evil.example")[0], 403
+        )
+
+
+class StandaloneTests(unittest.TestCase):
+    def test_host_and_standalone_storage_defaults(self):
+        self.assertEqual(arguments([]).output, Path("captures"))
+        with patch.dict(os.environ, {"OAKAGENT_STORAGE_APP": "/storage/app"}):
+            args = arguments(["--standalone"])
+            self.assertEqual(args.output, Path("/storage/app/captures"))
+            app = CaptureApp(args, FakeDevice())
+            self.assertEqual(app.status()["storage_location"], "device")
+            app.update(state="ready")
+            with self.assertRaisesRegex(ValueError, "must stay inside"):
+                app.request({"frames": 1, "output": "/tmp/outside"})
+            app.request({"frames": 1, "output": "/storage/app/captures/session"})
+            self.assertEqual(
+                app.requests.get_nowait(), (1, "/storage/app/captures/session")
+            )
+
+    def test_standalone_requires_runtime_storage_and_rejects_external_device(self):
+        with patch.dict(os.environ, {}, clear=True), patch(
+            "sys.stderr", new_callable=io.StringIO
+        ):
+            with self.assertRaises(SystemExit):
+                arguments(["--standalone"])
+        with patch.dict(os.environ, {"OAKAGENT_STORAGE_APP": "/storage/app"}), patch(
+            "sys.stderr", new_callable=io.StringIO
+        ):
+            for options in (
+                ["--device", "10.11.0.33"],
+                ["--output", "/tmp/ephemeral"],
+                ["--port", "9999"],
+            ):
+                with self.subTest(options=options), self.assertRaises(SystemExit):
+                    arguments(["--standalone", *options])
 
 
 if __name__ == "__main__":

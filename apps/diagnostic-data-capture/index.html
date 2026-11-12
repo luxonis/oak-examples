@@ -19,6 +19,8 @@
     input { width: 100%; min-width: 0; height: 42px; padding: 9px 12px; border-radius: 7px; border: 1px solid #394b64; background: #0d1725; color: #edf3f7; font: 14px system-ui, sans-serif; outline: none; }
     input:focus { border-color: #69c8ed; box-shadow: 0 0 0 3px #69c8ed20; }
     #output { font-family: ui-monospace, monospace; font-size: 12px; }
+    #download { display: inline-block; margin: 0 24px 18px; padding: 9px 16px; border: 1px solid #69c8ed; border-radius: 7px; color: #82d8f7; text-decoration: none; font-weight: 600; }
+    #download[hidden] { display: none; }
     button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 42px; padding: 0 22px; border: 1px solid #82d8f7; border-radius: 7px; background: #66c7eb; color: #082032; font: 600 14px system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
     button:hover:not(:disabled) { background: #8fdaf5; }
     button:focus-visible { outline: 2px solid #b9ecff; outline-offset: 3px; }
@@ -47,13 +49,14 @@
     </div>
     <div class="controls">
       <label>Frame sets<input id="frames" type="number" min="1" max="10000" step="1" value="5"></label>
-      <label class="path-field">Save to folder<input id="output" type="text" autocomplete="off" spellcheck="false" placeholder="/path/to/captures"></label>
+      <label class="path-field"><span id="output-label">Save to folder</span><input id="output" type="text" autocomplete="off" spellcheck="false" placeholder="/path/to/captures"></label>
       <button id="start" type="button" disabled><span class="capture-icon" aria-hidden="true"></span>Start capture</button>
     </div>
     <div id="status-row" class="status-row">
       <p id="message" role="status" aria-live="polite">Connecting to capture app…</p>
     </div>
     <p id="saved" hidden></p>
+    <a id="download" hidden download>Download capture (.zip)</a>
     <figure id="capture-preview" hidden><figcaption>Saved capture · first frame set</figcaption><a id="preview-link" target="_blank" rel="noopener"><img id="preview-image" alt="Saved capture preview"></a></figure>
   </header>
   <main>
@@ -64,7 +67,6 @@
     const message = byId('message');
     const start = byId('start');
     const visualizerPort = new URLSearchParams(location.search).get('visualizer_port') || '8082';
-    byId('visualizer').src = `http://${location.hostname}:${encodeURIComponent(visualizerPort)}`;
 
     function show(value) {
       message.textContent = value == null ? '' : String(value);
@@ -78,6 +80,10 @@
       if (!initialized) {
         byId('output').value = status.output || '';
         byId('frames').value = status.frames || 5;
+        byId('output-label').textContent = status.storage_location === 'device' ? 'Save to device folder' : 'Save to computer folder';
+        byId('visualizer').src = status.storage_location === 'device'
+          ? '/visualizer/'
+          : `http://${location.hostname}:${encodeURIComponent(visualizerPort)}`;
         initialized = true;
       }
       const device = status.device || {};
@@ -85,6 +91,13 @@
       byId('device-id').textContent = device.id || '—';
       byId('device-os').textContent = device.os || '—';
       const capturePath = status.state === 'complete' ? status.saved_path : null;
+      byId('download').hidden = !capturePath;
+      if (capturePath) {
+        const captureName = capturePath.split(/[\\/]/).pop();
+        byId('download').href = '/api/download?capture=' + encodeURIComponent(captureName);
+      } else {
+        byId('download').removeAttribute('href');
+      }
       if (capturePath !== previewPath) {
         previewPath = capturePath;
         byId('capture-preview').hidden = true;

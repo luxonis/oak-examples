@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import queue
 import re
+import signal
 import sys
 import tempfile
 import threading
@@ -94,7 +95,7 @@ def image_width(value):
     return n
 
 
-def arguments():
+def arguments(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
         "--device",
@@ -103,7 +104,12 @@ def arguments():
     p.add_argument(
         "--expected-id", help="Refuse a different device at the supplied address"
     )
-    p.add_argument("--output", type=Path, default=Path("captures"))
+    p.add_argument(
+        "--standalone",
+        action="store_true",
+        help="Run inside an OAK App with persistent device storage",
+    )
+    p.add_argument("--output", type=Path)
     p.add_argument("--frames", type=positive_int, default=5)
     p.add_argument(
         "--warmup",
@@ -133,7 +139,22 @@ def arguments():
         action="store_true",
         help="Use with --auto-capture for unattended capture",
     )
-    a = p.parse_args()
+    a = p.parse_args(argv)
+    a.storage_root = None
+    if a.standalone:
+        storage = os.environ.get("OAKAGENT_STORAGE_APP")
+        if not storage:
+            p.error("--standalone requires OAKAGENT_STORAGE_APP from oak-agent")
+        if a.device:
+            p.error("--device is for host mode; standalone uses the local device")
+        if (a.port, a.visualizer_port, a.websocket_port) != (8083, 8082, 8765):
+            p.error("Standalone uses ports 8083, 8082 and 8765 behind the app proxy")
+        a.storage_root = Path(storage).resolve() / "captures"
+    a.output = a.output or a.storage_root or Path("captures")
+    if a.storage_root and not a.output.resolve().is_relative_to(a.storage_root):
+        p.error(
+            "Standalone output must be inside the app's persistent captures directory"
+        )
     if a.no_gui and not a.auto_capture:
         p.error("--no-gui requires --auto-capture")
     if len({a.port, a.visualizer_port, a.websocket_port}) != 3 or any(
@@ -199,6 +220,7 @@ class CaptureApp:
                 sdk=dai.__version__,
             ),
             streams=[],
+            storage_location="device" if getattr(args, "standalone", False) else "host",
         )
         self.active = None
         self.manifest = None
@@ -220,8 +242,11 @@ class CaptureApp:
         frames = positive_int(value)
         output = request.get("output", str(self.args.output))
         if not isinstance(output, str) or not output.strip() or "\x00" in output:
-            raise ValueError("Output must be a nonempty host directory path")
+            raise ValueError("Output must be a nonempty directory path")
         output = str(Path(output).expanduser().resolve())
+        storage_root = getattr(self.args, "storage_root", None)
+        if storage_root and not Path(output).is_relative_to(storage_root):
+            raise ValueError(f"Device captures must stay inside {storage_root}")
         with self.lock:
             if self.state["state"] not in ("ready", "complete", "error"):
                 raise RuntimeError("Wait for warmup or the current capture to finish")
@@ -434,9 +459,16 @@ class CaptureApp:
                         lambda frames, output: self.request(
                             dict(frames=frames, output=output)
                         ),
+                        standalone=a.standalone,
                     )
                     server.start()
-                    print(f"Capture GUI: {server.url}", flush=True)
+                    if a.standalone:
+                        print(
+                            "Capture GUI: open the app frontend URL shown by oakctl.",
+                            flush=True,
+                        )
+                    else:
+                        print(f"Capture GUI: {server.url}", flush=True)
                 while pipeline.isRunning():
                     now = time.monotonic()
                     for name, q in queues.items():
@@ -530,7 +562,9 @@ class CaptureApp:
 
 def main():
     args = arguments()
-    if args.device:
+    if args.standalone:
+        info = None
+    elif args.device:
         info = dai.DeviceInfo(args.device)
     else:
         devices = dai.Device.getAllAvailableDevices()
@@ -539,7 +573,7 @@ def main():
                 f"Found {len(devices)} devices. Select one explicitly with --device."
             )
         info = devices[0]
-    with dai.Device(info) as device:
+    with dai.Device() if info is None else dai.Device(info) as device:
         if device.getPlatform() != dai.Platform.RVC4:
             raise RuntimeError("This example requires an RVC4 device")
         if args.expected_id and device.getDeviceId() != args.expected_id:
@@ -547,7 +581,14 @@ def main():
         CaptureApp(args, device).run()
 
 
+def stop_on_signal(_signum, _frame):
+    raise KeyboardInterrupt
+
+
 if __name__ == "__main__":
+    # oak-agent forwards SIGTERM when stopping the container. Reuse the normal
+    # cleanup path so partial captures are marked and the device is released.
+    signal.signal(signal.SIGTERM, stop_on_signal)
     try:
         main()
     except KeyboardInterrupt:

@@ -3,16 +3,45 @@
 from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from ipaddress import ip_address
 import json
 from pathlib import Path
 import threading
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from typing import Callable
+import zipfile
 
 
 _INDEX = Path(__file__).with_name("index.html")
 _MAX_BODY = 4096
 _LOOPBACK_NAMES = {"127.0.0.1", "localhost", "::1"}
+
+
+def capture_files(folder):
+    """Return only completed capture artifacts, never arbitrary directory contents."""
+    folder = Path(folder).resolve()
+    manifest = json.loads((folder / "metadata.json").read_text())
+    if manifest.get("status") != "complete":
+        raise ValueError("Capture is not complete")
+    names = ["metadata.json", "calib.json"]
+    if manifest.get("preview") == "preview.jpg":
+        names.append("preview.jpg")
+    for group in manifest["frames"]:
+        names.extend(record["file"] for record in group["streams"].values())
+    files = []
+    for name in dict.fromkeys(names):
+        relative = Path(name)
+        path = folder / relative
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or not path.resolve().is_relative_to(folder)
+        ):
+            raise ValueError("Invalid capture file path")
+        if not path.is_file():
+            raise ValueError(f"Capture file is missing: {name}")
+        files.append((path, f"{folder.name}/{relative.as_posix()}"))
+    return files
 
 
 class ControlServer:
@@ -29,12 +58,15 @@ class ControlServer:
         visualizer_port=8082,
         get_status: Callable[[], dict] | None = None,
         request_capture: Callable[[int, str], dict] | None = None,
+        standalone=False,
     ):
         self.host = host
         self.port = int(port)
         self.visualizer_port = int(visualizer_port)
         self.get_status = get_status or (lambda: {})
         self.request_capture = request_capture or (lambda frames, output: {})
+        self.standalone = standalone
+        self._download_lock = threading.Lock()
         self._server = None
         self._thread = None
 
@@ -71,6 +103,9 @@ class ControlServer:
                 self._send(status, json.dumps(value, separators=(",", ":")))
 
             def do_GET(self):
+                if urlsplit(self.path).path == "/api/download":
+                    self._download()
+                    return
                 if urlsplit(self.path).path == "/api/preview":
                     status = owner.get_status()
                     folder = status.get("saved_path")
@@ -90,7 +125,12 @@ class ControlServer:
                     except Exception as exc:
                         self._json(500, {"error": str(exc)})
                     return
-                if urlsplit(self.path).path not in ("/", "/index.html"):
+                if urlsplit(self.path).path not in (
+                    "/",
+                    "/index.html",
+                    "/capture",
+                    "/capture/",
+                ):
                     self._json(404, {"error": "not found"})
                     return
                 try:
@@ -99,6 +139,53 @@ class ControlServer:
                     self._json(500, {"error": f"control page unavailable: {exc}"})
                     return
                 self._send(200, page, "text/html; charset=utf-8")
+
+            def _download(self):
+                status = owner.get_status()
+                folder = status.get("saved_path")
+                if status.get("state") != "complete" or not folder:
+                    self._json(404, {"error": "no completed capture to download"})
+                    return
+                folder = Path(folder)
+                requested = parse_qs(urlsplit(self.path).query).get("capture", [])
+                if requested != [folder.name]:
+                    self._json(
+                        409, {"error": "Capture changed; refresh before downloading"}
+                    )
+                    return
+                if not owner._download_lock.acquire(blocking=False):
+                    self._json(
+                        409, {"error": "A capture download is already in progress"}
+                    )
+                    return
+                try:
+                    try:
+                        files = capture_files(folder)
+                    except (OSError, ValueError, KeyError, TypeError) as exc:
+                        self._json(409, {"error": str(exc)})
+                        return
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/zip")
+                    self.send_header(
+                        "Content-Disposition",
+                        f'attachment; filename="{folder.name}.zip"',
+                    )
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    self.close_connection = True
+                    # Stream a ZIP directly: no second recording-sized buffer or
+                    # temporary archive is needed on the device.
+                    with zipfile.ZipFile(
+                        self.wfile, "w", compression=zipfile.ZIP_STORED
+                    ) as archive:
+                        for path, name in files:
+                            archive.write(path, name)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+                finally:
+                    owner._download_lock.release()
 
             def do_POST(self):
                 if urlsplit(self.path).path != "/api/capture":
@@ -164,10 +251,18 @@ class ControlServer:
                 origin = self.headers.get("Origin", "")
                 try:
                     parsed = urlsplit(origin)
+                    allowed_host = parsed.hostname in _LOOPBACK_NAMES
+                    if owner.standalone and parsed.hostname:
+                        try:
+                            ip_address(parsed.hostname)
+                            allowed_host = True
+                        except ValueError:
+                            pass
                     return (
-                        parsed.scheme == "http"
+                        parsed.scheme
+                        in (("http", "https") if owner.standalone else ("http",))
                         and parsed.netloc.lower() == host
-                        and parsed.hostname in _LOOPBACK_NAMES
+                        and allowed_host
                         and not parsed.username
                         and not parsed.password
                     )
