@@ -8,7 +8,6 @@ from solutions_sdk.box_measurement import (
     PlaneCalibrationConfig,
     SupportPlaneCalibrator,
 )
-from depthai_pipeline.node.continuous_recorder import ContinuousRecorder
 from depthai_pipeline.node.measurement_event_saver import MeasurementEventSaver
 from depthai_pipeline.node.support_plane_preview import SupportPlanePreview
 from services.support_plane_controller import SupportPlaneController
@@ -135,14 +134,6 @@ def init_pipeline(
             save_failed_events=settings.save_failed_events,
             pre_trigger_duration_seconds=settings.event_video_pre_trigger_sec,
             video_duration_seconds=settings.event_video_duration_sec,
-        )
-
-    # Continuous recording (rolling color H264 chunks)
-    if settings.continuous_recording_enabled:
-        pipeline.create(ContinuousRecorder).build(
-            h264_encoded_frames=color_h264.out,
-            fps=fps,
-            chunk_length_sec=settings.continuous_recording_chunk_length_sec,
         )
 
     # Latency tacking

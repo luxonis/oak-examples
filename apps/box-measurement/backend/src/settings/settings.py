@@ -9,9 +9,6 @@ class Settings(BaseModel):
     event_storage_max_gb: float = Field(5.0, gt=0)
     event_video_pre_trigger_sec: int = Field(5, ge=0)
     event_video_duration_sec: int = Field(15, gt=0)
-    continuous_recording_enabled: bool = True
-    continuous_recording_chunk_length_sec: int = Field(150, gt=0)
-    continuous_recording_max_storage_gb: float = Field(20.0, gt=0)
 
     @model_validator(mode="after")
     def validate_video_durations(self) -> "Settings":

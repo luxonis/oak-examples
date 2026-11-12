@@ -4,7 +4,6 @@ export const appRoutes = [
     "/",
     "/calibration",
     "/events",
-    "/recordings",
     "/settings",
 ] as const;
 

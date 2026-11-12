@@ -1,6 +1,6 @@
 # Box Measurement
 
-This app measures box dimensions (L × W × H) and volume on an RVC4 device. The boxes have to be on a flat surface, for example on a conveyor belt. Every box that passes the camera is detected, tracked and measured; the app stores a measurement event with a video clip for each box and keeps a rolling continuous recording of the color stream.
+This app measures box dimensions (L × W × H) and volume on an RVC4 device. The boxes have to be on a flat surface, for example on a conveyor belt. Every box that passes the camera is detected, tracked and measured; the app stores a measurement event with a video clip for each box.
 
 > **Note:** This app requires an **OAK 4 D** device (Pro or non-Pro) - box dimensions are computed from a stereo camera pair. Single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is optional and is enabled automatically when present.
 
@@ -99,7 +99,6 @@ The UI has five pages:
   - `INCOMPLETE` - the box left the frame before the measurement stabilized.
   - `FAILED_LOW_COVERAGE` - no usable measurement was taken, most often
     because too few depth points on the box were valid.
-- **Footage** - the rolling continuous recording, split into chunks. Can be played from the UI.
 - **Settings**.
 
 The UI shows measurements in cm and volume in cm³.
@@ -113,8 +112,7 @@ computer to download the archive.
 
 - Only one archive is kept; a new one replaces the previous one.
 - **Delete the archive after downloading it.** It takes about as much space as all
-  events, and a large export can cause the oldest continuous recordings to be removed.
-- Continuous recordings are not included in the archive.
+  events.
 
 Archive contents:
 
