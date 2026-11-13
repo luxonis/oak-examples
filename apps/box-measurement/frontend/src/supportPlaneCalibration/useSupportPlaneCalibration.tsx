@@ -10,6 +10,7 @@ import {
 import { useAdvertisedDaiService } from '../backend/useAdvertisedDaiService';
 import { useDaiMutation } from '../backend/useDaiMutation';
 import { useDaiQuery } from '../backend/useDaiQuery';
+import { cmToMm } from '../units';
 import { SUPPORT_PLANE_CALIBRATION_STATES } from './supportPlaneCalibrationState';
 
 const supportPlaneCalibrationStatusSchema = z.object({
@@ -64,8 +65,8 @@ const setDistanceOffsetService = {
 		.object({
 			offset_mm: z
 				.number()
-				.gte(-MAX_DISTANCE_OFFSET_CM * 10)
-				.lte(MAX_DISTANCE_OFFSET_CM * 10),
+				.gte(-cmToMm(MAX_DISTANCE_OFFSET_CM))
+				.lte(cmToMm(MAX_DISTANCE_OFFSET_CM)),
 		})
 		.strict(),
 	responseSchema: emptyBodySchema,

@@ -10,6 +10,7 @@ import {
 import { useState } from 'react';
 
 import ToolbarPanel from '../components/ToolbarPanel';
+import { cmToMm, roundCmToMm } from '../units';
 import {
 	MAX_DISTANCE_OFFSET_CM,
 	useSetDistanceOffset,
@@ -30,7 +31,7 @@ const parseOffsetCm = (draft: string): number | null => {
 	if (normalized === '') {
 		return null;
 	}
-	const offsetCm = Math.round(Number(normalized) * 10) / 10;
+	const offsetCm = roundCmToMm(Number(normalized));
 	if (
 		!Number.isFinite(offsetCm) ||
 		Math.abs(offsetCm) > MAX_DISTANCE_OFFSET_CM
@@ -59,8 +60,7 @@ function DistanceOffsetButton({
 
 	const apply = (value: number) => {
 		distanceOffsetMutation.mutate(
-			// The offset input has 0.1 cm steps
-			{ offset_mm: Math.round(value * 10) },
+			{ offset_mm: cmToMm(value) },
 			{ onSuccess: () => setOpen(false) },
 		);
 	};
@@ -68,7 +68,7 @@ function DistanceOffsetButton({
 	const step = (direction: 1 | -1) => {
 		const current = draftOffsetCm ?? offsetCm;
 		const next = clampOffsetCm(
-			Math.round((current + direction * OFFSET_STEP_CM) * 10) / 10,
+			roundCmToMm(current + direction * OFFSET_STEP_CM),
 		);
 		setDraft(next.toFixed(1));
 	};

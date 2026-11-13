@@ -6,6 +6,7 @@ import {
 	SUPPORT_PLANE_PREVIEW_TOPIC,
 	sortTopicsBy,
 } from '../streamTopics';
+import { mmToCm } from '../units';
 import {
 	SUPPORT_PLANE_CALIBRATION_STATE_COLOR,
 	SUPPORT_PLANE_CALIBRATION_STATUS_TEXT,
@@ -15,9 +16,6 @@ import {
 	useSupportPlanePreview,
 } from './useSupportPlaneCalibration';
 
-const mmToCm = (mm: number | null | undefined) =>
-	mm === null || mm === undefined ? null : mm / 10;
-
 function SupportPlaneCalibrationView() {
 	const { statusQuery, confirmMutation, retryMutation, selectMutation } =
 		useSupportPlaneCalibration();
@@ -26,7 +24,9 @@ function SupportPlaneCalibrationView() {
 	const state = statusQuery.data?.state;
 	const candidateCount = statusQuery.data?.candidate_count ?? 0;
 	const selectedIndex = statusQuery.data?.selected_index ?? 0;
-	const cameraDistanceCm = mmToCm(statusQuery.data?.camera_distance_mm);
+	const cameraDistanceMm = statusQuery.data?.camera_distance_mm ?? null;
+	const cameraDistanceCm =
+		cameraDistanceMm === null ? null : mmToCm(cameraDistanceMm);
 	const cameraTiltDeg = statusQuery.data?.camera_tilt_deg ?? null;
 	const awaitingConfirmation = state === 'AWAITING_CONFIRMATION';
 	const showCandidate = awaitingConfirmation && candidateCount > 0;

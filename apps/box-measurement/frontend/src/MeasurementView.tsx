@@ -9,6 +9,7 @@ import {
 } from './streamTopics';
 import DistanceOffsetButton from './supportPlaneCalibration/DistanceOffsetButton';
 import { useSupportPlaneCalibration } from './supportPlaneCalibration/useSupportPlaneCalibration';
+import { mmToCm } from './units';
 
 function MeasurementView() {
 	const { statusQuery, retryMutation } = useSupportPlaneCalibration();
@@ -20,8 +21,8 @@ function MeasurementView() {
 			<div className="flex w-full flex-wrap justify-end gap-2">
 				{cameraDistanceMm !== null ? (
 					<DistanceOffsetButton
-						cameraDistanceCm={cameraDistanceMm / 10}
-						offsetCm={distanceOffsetMm / 10}
+						cameraDistanceCm={mmToCm(cameraDistanceMm)}
+						offsetCm={mmToCm(distanceOffsetMm)}
 					/>
 				) : null}
 				<DetectionSettingsButton />
