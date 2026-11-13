@@ -200,7 +200,7 @@ class SupportPlaneController:
     def get_status(self) -> dict[str, str | int | float | None]:
         with self._lock:
             if self._closed.is_set():
-                return {"error": "Support plane calibration is not available"}
+                raise RuntimeError("Support plane calibration is not available")
             plane = self._displayed_plane()
             corrected = self._corrected or plane
             status: dict[str, str | int | float | None] = {

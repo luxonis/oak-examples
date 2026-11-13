@@ -2,6 +2,7 @@ import logging
 import signal
 import threading
 from types import FrameType
+from typing import Literal
 
 import depthai as dai
 from depthai_nodes.node import BoxMeasurer
@@ -21,6 +22,24 @@ class DetectionConfidenceThreshold(BaseModel):
 
 class SetSupportPlaneDistanceOffsetRequest(BaseModel):
     offset_mm: float = Field(ge=-100.0, le=100.0)
+
+
+class SupportPlaneCalibrationStatus(BaseModel):
+    state: Literal["SEARCHING", "AWAITING_CONFIRMATION", "CONFIRMED"]
+    candidate_count: int
+    selected_index: int
+    distance_offset_mm: float
+    camera_tilt_deg: float | None
+    camera_distance_mm: float | None
+    corrected_camera_distance_mm: float | None
+
+
+class SelectSupportPlaneCandidateRequest(BaseModel):
+    direction: Literal[1, -1]
+
+
+class SetSupportPlanePreviewActiveRequest(BaseModel):
+    active: bool
 
 
 class App:
@@ -64,76 +83,58 @@ class App:
         return EmptyBody()
 
     def _register_support_plane_services(self) -> None:
-        self.visualizer.registerService(
-            "getSupportPlaneCalibrationStatus",
-            self._get_support_plane_calibration_status,
-        )
-        self.visualizer.registerService(
-            "confirmSupportPlane",
-            self._confirm_support_plane,
-        )
-        self.visualizer.registerService(
-            "retrySupportPlaneCalibration",
-            self._retry_support_plane_calibration,
-        )
-        self.visualizer.registerService(
-            "selectSupportPlaneCandidate",
-            self._select_support_plane_candidate,
-        )
-        self.visualizer.registerService(
-            "setSupportPlanePreviewActive",
-            self._set_support_plane_preview_active,
-        )
-        add_request_handler(
-            self.visualizer,
-            "setSupportPlaneDistanceOffset",
-            self._set_support_plane_distance_offset,
-        )
+        for service_name, handler in (
+            (
+                "getSupportPlaneCalibrationStatus",
+                self._get_support_plane_calibration_status,
+            ),
+            ("confirmSupportPlane", self._confirm_support_plane),
+            ("retrySupportPlaneCalibration", self._retry_support_plane_calibration),
+            ("selectSupportPlaneCandidate", self._select_support_plane_candidate),
+            ("setSupportPlanePreviewActive", self._set_support_plane_preview_active),
+            ("setSupportPlaneDistanceOffset", self._set_support_plane_distance_offset),
+        ):
+            add_request_handler(self.visualizer, service_name, handler)
 
-    def _get_support_plane_calibration_status(self, _request: dict) -> dict:
+    def _controller(self) -> SupportPlaneController:
         controller = self._support_plane
         if controller is None:
-            return {"error": "Support plane calibration is not available"}
-        return controller.get_status()
+            raise RuntimeError("Support plane calibration is not available")
+        return controller
 
-    def _confirm_support_plane(self, _request: dict) -> dict:
-        controller = self._support_plane
-        if controller is None:
-            return {"error": "Support plane calibration is not available"}
-        if not controller.confirm_candidate():
-            return {"error": "No support plane candidate is awaiting confirmation"}
-        return {}
+    def _get_support_plane_calibration_status(
+        self, request: EmptyBody
+    ) -> SupportPlaneCalibrationStatus:
+        return SupportPlaneCalibrationStatus.model_validate(
+            self._controller().get_status()
+        )
 
-    def _retry_support_plane_calibration(self, _request: dict) -> dict:
-        controller = self._support_plane
-        if controller is None:
-            return {"error": "Support plane calibration is not available"}
-        controller.request_recalibration()
-        return {}
+    def _confirm_support_plane(self, request: EmptyBody) -> EmptyBody:
+        if not self._controller().confirm_candidate():
+            raise RuntimeError("No support plane candidate is awaiting confirmation")
+        return EmptyBody()
 
-    def _select_support_plane_candidate(self, request: dict) -> dict:
-        controller = self._support_plane
-        if controller is None:
-            return {"error": "Support plane calibration is not available"}
-        direction = int(request.get("direction", 1))
-        if not controller.cycle_candidate(direction):
-            return {"error": "No support plane candidate is awaiting confirmation"}
-        return {}
+    def _retry_support_plane_calibration(self, request: EmptyBody) -> EmptyBody:
+        self._controller().request_recalibration()
+        return EmptyBody()
 
-    def _set_support_plane_preview_active(self, request: dict) -> dict:
-        controller = self._support_plane
-        if controller is None:
-            return {"error": "Support plane calibration is not available"}
-        controller.set_preview_active(bool(request.get("active", False)))
-        return {}
+    def _select_support_plane_candidate(
+        self, request: SelectSupportPlaneCandidateRequest
+    ) -> EmptyBody:
+        if not self._controller().cycle_candidate(request.direction):
+            raise RuntimeError("No support plane candidate is awaiting confirmation")
+        return EmptyBody()
+
+    def _set_support_plane_preview_active(
+        self, request: SetSupportPlanePreviewActiveRequest
+    ) -> EmptyBody:
+        self._controller().set_preview_active(request.active)
+        return EmptyBody()
 
     def _set_support_plane_distance_offset(
         self, request: SetSupportPlaneDistanceOffsetRequest
     ) -> EmptyBody:
-        controller = self._support_plane
-        if controller is None:
-            raise RuntimeError("Support plane calibration is not available")
-        controller.set_distance_offset(request.offset_mm)
+        self._controller().set_distance_offset(request.offset_mm)
         return EmptyBody()
 
     def _create_pipeline(self) -> dai.Pipeline:

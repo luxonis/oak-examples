@@ -52,7 +52,7 @@ RVC4 standalone app for live box dimensioning on a calibrated support plane, bui
 - The app layer:
   - `depthai_pipeline/` wires the pipeline and holds the `SupportPlanePreview` node.
   - `services/support_plane_controller.py` runs the calibration states `SEARCHING → AWAITING_CONFIRMATION → CONFIRMED`, pushes the confirmed (offset-corrected) support plane into `BoxMeasurer`, and reports status.
-  - `api/request_handler.py` wraps pydantic-validated services; the calibration services are registered raw and return `{}` or `{"error": "..."}`.
+  - `api/request_handler.py` registers every service with pydantic-validated requests and responses; a failed validation or a raised exception becomes `{"error": "..."}`.
 - `App` builds one `dai.Pipeline` at startup and runs it until the pipeline stops, `SIGINT`/`SIGTERM` arrives, or the remote connection sends `q`. There is no pipeline restart.
 - Registered services: `getDetectionConfidenceThreshold`, `setDetectionConfidenceThreshold`, `getSupportPlaneCalibrationStatus`, `confirmSupportPlane`, `retrySupportPlaneCalibration`, `selectSupportPlaneCandidate`, `setSupportPlanePreviewActive`, `setSupportPlaneDistanceOffset`. [backend/tests/test_app_services.py](backend/tests/test_app_services.py) pins this set.
 - The frontend is one page. Without a confirmed support plane it shows the calibration view (status, camera tilt and distance, candidate cycling, confirm/restart, `Support plane preview` stream; the preview runs only while this view is shown). With one it shows the measurement view (`Color stream` + `Detections`, detection settings popover, distance correction, "Recalibrate").

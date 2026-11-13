@@ -228,7 +228,8 @@ class CalibrationControllerTests(unittest.TestCase):
             release.set()
             time.sleep(0.1)
             self.assertEqual(self.measurer.getSupportPlane(), replacement)
-            self.assertIn("error", controller.get_status())
+            with self.assertRaises(RuntimeError):
+                controller.get_status()
             self.assertFalse(controller.confirm_candidate())
 
     def test_preview_is_requested_live_orange_then_green_and_moves_with_correction(

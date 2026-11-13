@@ -22,7 +22,7 @@ const calibrationStatusSchema = z.object({
 export const MAX_DISTANCE_OFFSET_CM = 10;
 
 const selectCandidateRequestSchema = z
-    .object({ direction: z.number() })
+    .object({ direction: z.union([z.literal(1), z.literal(-1)]) })
     .strict();
 
 const getStatusService = {
