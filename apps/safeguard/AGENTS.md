@@ -75,7 +75,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - RVC4 permits at most three outputs per camera. Reuse the 640 × 360 preview for the optional point cloud rather than adding another `Camera.requestOutput()`.
 - Settings are process-local; alerts and video are not recorded.
 - The optional point-cloud path uses Open3D through the depthai-nodes `box-measurement` extra and can be costly. Support plane state is held only in the running pipeline.
-- `AutoSupportPlane` uses the default `PlaneCalibrationConfig` except for `max_calibration_attempts=10`. Without that cap a failed refit searches indefinitely, never reports `passed=False`, and the lost support plane stays valid. If a real floor is rejected, widen `max_gravity_angle_deg` before changing anything else.
+- `init_pipeline.py` sets the support plane settings and passes them into `PointCloudObjectDetectionNode.build()`: `SUPPORT_PLANE_CALIBRATION` and the 45 mm `SUPPORT_PLANE_DIST_THR_MM` split threshold. `AutoSupportPlane` uses the default `PlaneCalibrationConfig` except for `max_calibration_attempts=10`. Without that cap a failed refit searches indefinitely, never reports `passed=False`, and the lost support plane stays valid. If a real floor is rejected, widen `max_gravity_angle_deg` before changing anything else.
 - `AutoSupportPlaneResult` and `SupportPlaneStatus` are Python `Buffer` subclasses and only travel between host nodes.
 - Encoded topics in the custom browser frontend require HTTPS or localhost; the standalone UI is served over HTTPS.
 

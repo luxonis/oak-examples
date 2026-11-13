@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 import depthai as dai
 import numpy as np
+from depthai_nodes.node import PlaneCalibrationConfig
 from device_lookup import setUpModule, tearDownModule  # noqa: F401
 
 from depthai_pipeline.pointcloud_object_detection.node.point_cloud_object_detection import (
@@ -154,6 +155,14 @@ class Frame(NamedTuple):
 
 class ObstaclePathTests(unittest.TestCase):
     def setUp(self):
+        self.pipeline = None
+        self.addCleanup(self.stop)
+
+    def start(
+        self, calibration: PlaneCalibrationConfig, support_plane_dist_thr_mm: float
+    ) -> None:
+        """Run a fresh pipeline around the composite node with these thresholds."""
+        self.stop()
         self.pipeline = dai.Pipeline(False)
         cloud, imu = [self.pipeline.create(HostSource) for _ in range(2)]
         self.clouds = cloud.input.createInputQueue()
@@ -169,6 +178,8 @@ class ObstaclePathTests(unittest.TestCase):
             pointcloud_size=POINTCLOUD_SIZE,
             intrinsics=(FX, FY, CX, CY),
             frame_size=POINTCLOUD_SIZE,
+            calibration=calibration,
+            support_plane_dist_thr_mm=support_plane_dist_thr_mm,
         )
         self._outputs = {
             name: (output.createOutputQueue(), {})
@@ -179,9 +190,13 @@ class ObstaclePathTests(unittest.TestCase):
             )
         }
         self.pipeline.start()
-        self.addCleanup(self.pipeline.wait)
-        self.addCleanup(self.pipeline.stop)
         self._sequence = 0
+
+    def stop(self) -> None:
+        if self.pipeline is not None:
+            self.pipeline.stop()
+            self.pipeline.wait()
+            self.pipeline = None
 
     def send(self, points: np.ndarray, down: np.ndarray) -> None:
         """Send gravity for ``down`` and one organized RGB cloud frame, like RGBD's."""
@@ -224,6 +239,7 @@ class ObstaclePathTests(unittest.TestCase):
         return [frame for frame in frames if frame.valid]
 
     def test_flat_floor_gives_a_valid_plane_and_no_obstacles(self):
+        self.start(PlaneCalibrationConfig(), support_plane_dist_thr_mm=20.0)
         frames = self.stream_until(
             flat_floor(), lambda frames: len(self.valid_frames(frames)) >= 10
         )
@@ -236,6 +252,7 @@ class ObstaclePathTests(unittest.TestCase):
         self.assertEqual(len(valid[-1].overlay_points(CLOUD_GRAY)), 0)
 
     def test_box_in_danger_zone_is_one_obstacle_at_its_distance(self):
+        self.start(PlaneCalibrationConfig(), support_plane_dist_thr_mm=45.0)
         frames = self.stream_until(
             box_on_floor(front_mm=1500),
             lambda frames: any(f.obstacles for f in self.valid_frames(frames)),
@@ -244,20 +261,29 @@ class ObstaclePathTests(unittest.TestCase):
         self.assertEqual(len(obstacles), 1)
         self.assertAlmostEqual(obstacles[0].nearest_point_depth, 1500, delta=20)
 
-    def assert_stays_invalid_with_no_obstacles(self, points: np.ndarray) -> None:
-        frames = self.stream_until(points, lambda frames: len(frames) >= 60)
-        self.assertEqual(
-            [(f.valid, f.obstacles) for f in frames], [(False, [])] * len(frames)
-        )
-
-    def test_without_a_floor_the_plane_stays_invalid_with_no_obstacles(self):
-        self.assert_stays_invalid_with_no_obstacles(wall_only())
-
-    def test_a_surface_tilted_beyond_the_gravity_tolerance_stays_invalid(self):
-        # A ramp rising 20 degrees ahead of a level camera fills the view.
-        self.assert_stays_invalid_with_no_obstacles(flat_floor(pitched_down(20)))
+    def test_without_a_level_surface_the_plane_stays_invalid_with_no_obstacles(self):
+        # Neither surface is within the gravity tolerance of level for a level camera.
+        for name, points in (
+            ("wall facing the camera, no floor", wall_only()),
+            ("ramp rising 20 degrees ahead", flat_floor(pitched_down(20))),
+        ):
+            with self.subTest(name):
+                self.start(
+                    PlaneCalibrationConfig(max_gravity_angle_deg=10.0),
+                    support_plane_dist_thr_mm=45.0,
+                )
+                frames = self.stream_until(points, lambda frames: len(frames) >= 60)
+                self.assertEqual(
+                    [(f.valid, f.obstacles) for f in frames],
+                    [(False, [])] * len(frames),
+                )
 
     def test_support_plane_turns_invalid_once_the_floor_is_gone(self):
+        # Capped attempts make a failed search report a result that did not pass.
+        self.start(
+            PlaneCalibrationConfig(max_calibration_attempts=5),
+            support_plane_dist_thr_mm=45.0,
+        )
         floor_frames = len(
             self.stream_until(
                 flat_floor(), lambda frames: any(self.valid_frames(frames))
@@ -273,13 +299,18 @@ class ObstaclePathTests(unittest.TestCase):
         self.assertEqual([f.obstacles for f in invalid], [[]] * len(invalid))
 
     def test_zone_overlay_lies_on_the_support_plane_of_a_tilted_camera(self):
-        # The camera pitches 20 degrees down; its IMU reads 4 degrees off the floor
-        # normal, as a slightly sloped floor or a mounting error would make it.
+        # The camera pitches 20 degrees down; its IMU reads 8 degrees off the floor
+        # normal, as a sloped floor or a mounting error would make it, which the
+        # 10 degree gravity tolerance accepts.
+        self.start(
+            PlaneCalibrationConfig(max_gravity_angle_deg=10.0),
+            support_plane_dist_thr_mm=45.0,
+        )
         floor_down = pitched_down(20)
         frames = self.stream_until(
             flat_floor(floor_down),
             lambda frames: any(self.valid_frames(frames)),
-            down=pitched_down(16),
+            down=pitched_down(12),
         )
         frame = self.valid_frames(frames)[-1]
         zone = frame.overlay_points(*ZONE_COLORS)

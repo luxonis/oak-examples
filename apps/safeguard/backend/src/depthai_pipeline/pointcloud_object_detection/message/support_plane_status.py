@@ -12,17 +12,12 @@ class SupportPlaneStatus(dai.Buffer):
         plane: The support plane in camera millimeters, or ``None`` when invalid.
         R: 3x3 rotation from the camera frame to the support-plane-aligned frame,
             given exactly when ``plane`` is.
-
-    Raises:
-        ValueError: If only one of ``plane`` and ``R`` is given.
     """
 
     def __init__(
         self, plane: SupportPlane | None = None, R: np.ndarray | None = None
     ) -> None:
         super().__init__()
-        if (plane is None) != (R is None):
-            raise ValueError("plane and R must be given together")
         self.valid = plane is not None
         self.plane = plane
         self.R = (

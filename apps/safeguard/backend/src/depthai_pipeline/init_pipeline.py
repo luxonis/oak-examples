@@ -7,7 +7,7 @@ from pathlib import Path
 
 import depthai as dai
 import numpy as np
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import ParsingNeuralNetwork, PlaneCalibrationConfig
 
 from depthai_pipeline.common.node.danger_classifier import DangerClassifier
 from depthai_pipeline.common.node.danger_visualizer import DangerVisualizer
@@ -32,6 +32,11 @@ MODEL_YAML = (
 )
 COLOR_SIZE = (1920, 1080)
 MONO_SIZE = (640, 480)
+# Capped attempts make a failed search report passed=False, so a lost support
+# plane turns the status invalid instead of being held while the search runs on.
+SUPPORT_PLANE_CALIBRATION = PlaneCalibrationConfig(max_calibration_attempts=10)
+# Points farther than this from the support plane are obstacles.
+SUPPORT_PLANE_DIST_THR_MM = 45.0
 log = logging.getLogger(__name__)
 
 
@@ -167,6 +172,8 @@ def init_pipeline(
             pointcloud_size=pointcloud_size,
             intrinsics=(fx, fy, cx, cy),
             frame_size=pointcloud_size,
+            calibration=SUPPORT_PLANE_CALIBRATION,
+            support_plane_dist_thr_mm=SUPPORT_PLANE_DIST_THR_MM,
         )
         obstacle_assessment = (
             pipeline.create(

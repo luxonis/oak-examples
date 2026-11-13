@@ -8,7 +8,7 @@ import numpy as np
 
 
 def rotation_from_imu(imu_g: np.ndarray) -> np.ndarray | None:
-    """Map camera-frame points to a ground-aligned frame using IMU data.
+    """Map camera-frame points to a gravity-aligned frame using IMU data.
 
     Built from an IMU accelerometer reading; in this pipeline imu_g points
     along world-up in camera coordinates, so we negate to get world-down.

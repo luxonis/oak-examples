@@ -67,6 +67,8 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
         pointcloud_size: tuple[int, int],
         intrinsics: tuple[float, float, float, float],
         frame_size: tuple[int, int],
+        calibration: PlaneCalibrationConfig,
+        support_plane_dist_thr_mm: float,
     ) -> "PointCloudObjectDetectionNode":
         """Wire the subnodes to a camera-frame point cloud in millimeters and the IMU.
 
@@ -78,6 +80,10 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
             pointcloud_size: Width and height of the organized point cloud.
             intrinsics: ``(fx, fy, cx, cy)`` for projecting into the color frame.
             frame_size: Width and height of the color frame for annotations.
+            calibration: Plane fitting, gravity check, and attempt settings for
+                continuous support plane calibration.
+            support_plane_dist_thr_mm: Largest distance from the support plane
+                of a point that counts as on it rather than an obstacle.
         """
         self._auto_support_plane.build(
             pointCloud=pcl,
@@ -85,13 +91,14 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
             pointCloudSize=pointcloud_size,
             config=AutoSupportPlaneConfig(
                 mode=AutoSupportPlaneConfig.Mode.CONTINUOUS,
-                # Capped attempts make a failed search report passed=False, so a
-                # lost support plane turns the status invalid instead of being
-                # held while the search runs on.
-                calibration=PlaneCalibrationConfig(max_calibration_attempts=10),
+                calibration=calibration,
             ),
         )
-        self._segmenter.build(pcl=pcl, support_plane=self._auto_support_plane.out)
+        self._segmenter.build(
+            pcl=pcl,
+            support_plane=self._auto_support_plane.out,
+            support_plane_dist_thr_mm=support_plane_dist_thr_mm,
+        )
 
         self._occupancy_detection.build(
             obstacle_pcl=self._segmenter.out_obstacle,

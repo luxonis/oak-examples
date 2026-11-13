@@ -42,19 +42,19 @@ function App() {
                 <div className="safeguard-viewer">
                     <header className="safeguard-viewer-topbar">
                         <img src="logo.svg" alt="Luxonis" />
-                        <span>Live camera, ground plane, and proximity alerts</span>
+                        <span>Live camera, support plane, and proximity alerts</span>
                     </header>
                     <div className="stream-container">
                         <LiveStreams />
                     </div>
-                    <p className="stream-legend">Point cloud: green = ground, orange = warning zone, red = danger zone. Camera boxes mark detected obstacles.</p>
+                    <p className="stream-legend">Point cloud: green = support plane, orange = warning zone, red = danger zone. Camera boxes mark detected obstacles.</p>
                 </div>
             </section>
             <div className="safeguard-divider" aria-hidden="true" />
             <aside className="safeguard-controls">
                 <header className="safeguard-intro">
                     <h1>SafeGuard</h1>
-                    <p>Live proximity monitoring with person segmentation, automatic depth selection and IMU gravity alignment. The optional generic object path detects obstacles above the ground plane.</p>
+                    <p>Live proximity monitoring with person segmentation, automatic depth selection and IMU gravity alignment. The optional generic object path detects obstacles above the support plane.</p>
                 </header>
                 <SettingsForm />
             </aside>

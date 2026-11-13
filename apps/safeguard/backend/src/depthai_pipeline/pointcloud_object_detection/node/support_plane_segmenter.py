@@ -18,8 +18,6 @@ class SupportPlaneSegmenter(dai.node.ThreadedHostNode):
 
     # Every this-many-th point of the cloud is classified.
     DOWNSAMPLE_FACTOR = 7
-    # Largest distance from the support plane of a support plane point.
-    SUPPORT_PLANE_DIST_THR = 45
 
     SUPPORT_PLANE_COLOR = np.array([80, 200, 80, 255], dtype=np.uint8)
 
@@ -36,25 +34,38 @@ class SupportPlaneSegmenter(dai.node.ThreadedHostNode):
         self._R: np.ndarray | None = None
 
     def build(
-        self, pcl: dai.Node.Output, support_plane: dai.Node.Output
+        self,
+        pcl: dai.Node.Output,
+        support_plane: dai.Node.Output,
+        support_plane_dist_thr_mm: float,
     ) -> "SupportPlaneSegmenter":
-        """Connect the point cloud and the ``AutoSupportPlane`` results."""
+        """Connect the point cloud and the ``AutoSupportPlane`` results.
+
+        Args:
+            pcl: Camera-frame point cloud in millimeters.
+            support_plane: ``AutoSupportPlaneResult`` messages.
+            support_plane_dist_thr_mm: Largest distance from the support plane
+                of a point that counts as on it rather than an obstacle.
+        """
         pcl.link(self._input_pcl)
         support_plane.link(self._input_result)
+        self._support_plane_dist_thr_mm = support_plane_dist_thr_mm
         return self
 
     def run(self) -> None:
         while self.isRunning():
             try:
                 pcl_msg = self._input_pcl.get()
-                while (result := self._input_result.tryGet()) is not None:
-                    self._hold(result)
+                # The non-blocking, single-slot input holds only the newest result.
+                result = self._input_result.tryGet()
             except dai.MessageQueue.QueueException:
                 return
+            if result is not None:
+                self._store_plane_and_rotation(result)
             assert isinstance(pcl_msg, dai.PointCloudData)
             self._process_pcl(pcl_msg)
 
-    def _hold(self, result: dai.ADatatype) -> None:
+    def _store_plane_and_rotation(self, result: dai.ADatatype) -> None:
         """Keep a passed result's plane and aligned rotation, or drop both."""
         assert isinstance(result, AutoSupportPlaneResult)
         plane = result.plane if result.passed else None
@@ -83,7 +94,7 @@ class SupportPlaneSegmenter(dai.node.ThreadedHostNode):
             points @ np.asarray(self._plane.normal, dtype=np.float32)
             + self._plane.offset_mm
         )
-        obstacle = has_depth & (distance >= self.SUPPORT_PLANE_DIST_THR)
+        obstacle = has_depth & (distance >= self._support_plane_dist_thr_mm)
         on_plane = has_depth & ~obstacle
 
         self._send_cloud(
