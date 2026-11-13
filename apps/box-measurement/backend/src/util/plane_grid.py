@@ -15,7 +15,9 @@ def build_plane_grid(
     """Returns 3D grid points that outline the surface points on the given plane."""
     normal = _unit_normal(plane_eq)
     u, v = _in_plane_axes(normal)
-    footprint = _surface_footprint(np.column_stack([surface_points @ u, surface_points @ v]))
+    footprint = _surface_footprint(
+        np.column_stack([surface_points @ u, surface_points @ v])
+    )
     if footprint is None:
         return None
 
@@ -26,9 +28,7 @@ def build_plane_grid(
 
 
 def move_plane_grid(
-    points: np.ndarray,
-    from_plane: np.ndarray,
-    to_plane: np.ndarray
+    points: np.ndarray, from_plane: np.ndarray, to_plane: np.ndarray
 ) -> np.ndarray:
     """Moves grid points from from_plane onto to_plane along the normal.
 
@@ -50,7 +50,11 @@ def _normalized_plane_offset(plane_eq: np.ndarray) -> float:
 
 
 def _in_plane_axes(normal: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    ref = np.array([0.0, 0.0, 1.0]) if abs(normal[2]) < 0.95 else np.array([0.0, 1.0, 0.0])
+    ref = (
+        np.array([0.0, 0.0, 1.0])
+        if abs(normal[2]) < 0.95
+        else np.array([0.0, 1.0, 0.0])
+    )
     u = np.cross(normal, ref)
     u /= np.linalg.norm(u)
     return u, np.cross(normal, u)
@@ -69,7 +73,9 @@ def _surface_footprint(uv: np.ndarray) -> np.ndarray | None:
     np.add.at(counts, (cells[:, 1], cells[:, 0]), 1)
 
     occupied = (counts >= MIN_POINTS_PER_CELL).astype(np.uint8)
-    label_count, labels, stats, _ = cv2.connectedComponentsWithStats(occupied, connectivity=8)
+    label_count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        occupied, connectivity=8
+    )
     if label_count < 2:
         return None
     largest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
