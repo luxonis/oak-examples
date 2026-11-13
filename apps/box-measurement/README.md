@@ -2,71 +2,51 @@
 
 This app measures box dimensions (L × W × H) and volume live on an RVC4 device. The boxes have to rest on a flat support plane, for example a conveyor belt. Every box that passes the camera is detected, tracked and measured, and its dimensions are drawn over the color stream. Nothing is saved to the device.
 
-> **Note:** This app requires an **OAK 4 D** device (Pro or non-Pro) - box dimensions are computed from a stereo camera pair. Single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is optional and is enabled automatically when present.
+The backend runs the box-measurement nodes from [depthai-nodes](https://github.com/luxonis/depthai-nodes) on neural stereo depth. The frontend, built on `@luxonis/depthai-viewer-common`, guides you through support plane calibration and then shows the measurements.
 
-## 1. Install the prerequisites
+> **Note:** This example works only on RVC4 in standalone mode, and requires an **OAK 4 D** (Pro or non-Pro): box dimensions are computed from a stereo camera pair, so single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is enabled automatically when present.
 
-### oakctl
+## Features
 
-The app runs entirely on device in standalone mode, as an OAK App. For this you need to install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
+- **Live box measurement:** instance segmentation, per-box tracking and L × W × H / volume measured against the support plane
+- **Support plane calibration:** support plane candidates checked against gravity from the IMU, a live preview of the highlighted candidate, and operator confirmation
+- **Distance offset:** a ±10 cm correction for box heights that come out consistently too high or too low
+- **Detection settings:** the detection confidence threshold, applied live
 
-If it is already installed, make sure it is the latest version:
+## Usage
 
-```bash
-oakctl self-update
-oakctl version
-```
+Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
-### Find your device
+## Standalone Mode (RVC4 only)
 
-Make sure your device is connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+Running the example in the standalone mode, app runs entirely on the device.
+To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
 
-All connected devices can be seen with:
-
-```bash
-oakctl device list
-```
-
-You should see your device with its serial number and IP. You can connect to the device with:
+The app can then be run with:
 
 ```bash
 oakctl connect <DEVICE_IP>
-```
-
-## 2. Update LuxonisOS
-
-Make sure your device is on the latest LuxonisOS. Once connected to the device,
-check what is available and then apply the update:
-
-```bash
-oakctl device update --info
-oakctl device update
-```
-
-> **Note:** The device needs internet access for OTA update. See [oakctl documentation](https://docs.luxonis.com/software-v3/oak-apps/oakctl#oakctl%20tool-Usage-Device%20Management) for offline updates.
-
-The update takes several minutes and reboots the device. Do not power it off while it runs.
-
-## 3. Run the app
-
-Once you are connected to an RVC4 device, navigate to this directory (`apps/box-measurement`)
-and run the following command:
-
-```bash
 oakctl app run .
 ```
 
-The first run builds the container on the device and takes a while. The build installs the box-measurement nodes from [depthai-nodes](https://github.com/luxonis/depthai-nodes) (see [backend/requirements.txt](backend/requirements.txt)), and the app downloads its segmentation model on first start, so the device needs internet access. Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
+The first run builds the container on the device and takes a while. The device needs internet access, since the app downloads its segmentation model on first start.
 
-## 4. Run support plane calibration
+Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
+
+### Remote access
+
+1. You can upload oakapp to Luxonis Hub via oakctl
+2. And then you can just remotely open App UI via App detail page
+
+## Support Plane Calibration
 
 Nothing is measured until the support plane is confirmed. The app does not remember
-the support plane, so you run support plane calibration after every app start. The
-app UI opens on the **Support plane calibration** view until you do.
+the support plane, so the app UI opens on the **Support plane calibration** view after
+every app start.
 
 1. **Clear the belt / support plane.** Remove boxes and other objects; the plane must be visible.
-2. Open the app UI. The detected candidate plane is highlighted in orange in the
-   **Support plane preview**, with the camera distance and tilt next to it.
+2. The detected candidate plane is highlighted in orange in the **Support plane preview**,
+   with the camera distance and tilt next to it.
 3. If the highlighted plane is not the one boxes will rest on, press **Next candidate**
    to go through the other detected planes.
 4. Press **Confirm support plane**. The UI switches to the measurement view.
@@ -74,11 +54,11 @@ app UI opens on the **Support plane calibration** view until you do.
 Until a plane is found the view keeps showing **Searching for a support plane…**; the
 app keeps looking on its own, so check that the support plane is clear and in view.
 Press **Restart calibration** to discard the current candidates and search again,
-for example after clearing the belt. Repeat support plane calibration
-whenever the camera is moved or re-aimed, or the belt height changes: press
-**Recalibrate** in the measurement view to go back to the support plane calibration view.
+for example after clearing the belt. Repeat support plane calibration whenever the
+camera is moved or re-aimed, or the belt height changes: press **Recalibrate** in the
+measurement view.
 
-## Using the app
+## Measuring Boxes
 
 The measurement view shows the color stream with each detected box outlined and its
 L × W × H (cm) and volume (cm³) overlaid. Its toolbar has:
