@@ -1,6 +1,6 @@
 # Calculate spatial coordinates on the host
 
-This example shows how to calcualte spatial coordinates of a ROI on the host and gets depth frames from the device. Other option is to use [SpatialLocationCalculator](https://docs.luxonis.com/projects/api/en/latest/components/nodes/spatial_location_calculator/) to calcualte spatial coordinates on the device.
+This example shows how to calculate spatial coordinates of an ROI on the host and gets depth frames from the device. Another option is to use [SpatialLocationCalculator](https://docs.luxonis.com/projects/api/en/latest/components/nodes/spatial_location_calculator/) to calculate spatial coordinates on the device.
 
 If you already have depth frames and ROI (Region-Of-Interest, eg. bounding box of an object) / POI (Point-Of-Interest, eg. feature/key-point) on the host, it might be easier to just calculate the spatial coordiantes of that region/point on the host, instead of sending depth/ROI back
 to the device.
