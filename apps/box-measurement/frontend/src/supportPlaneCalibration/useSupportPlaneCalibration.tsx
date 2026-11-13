@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { z } from 'zod/v3';
 import {
+	type DAIServiceDefinition,
 	daiServiceQueryKey,
 	emptyBodySchema,
 	runDaiServiceRequest,
@@ -112,44 +113,36 @@ export const useSupportPlaneCalibrationStatus = () =>
 		},
 	});
 
-export const useSupportPlaneCalibration = () => {
+// A mutation that refreshes the polled status once the backend has applied it
+const useStatusChangingMutation = <TService extends DAIServiceDefinition>(
+	service: TService,
+) => {
 	const queryClient = useQueryClient();
 
+	return useDaiMutation({
+		service,
+		mutationOptions: {
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: daiServiceQueryKey(getStatusService),
+				});
+			},
+		},
+	});
+};
+
+export const useSupportPlaneCalibration = () => {
 	const statusQuery = useSupportPlaneCalibrationStatus();
-
-	const invalidateStatus = async () => {
-		await queryClient.invalidateQueries({
-			queryKey: daiServiceQueryKey(getStatusService),
-		});
-	};
-
-	const confirmMutation = useDaiMutation({
-		service: confirmSupportPlaneService,
-		mutationOptions: {
-			onSuccess: invalidateStatus,
-		},
-	});
-
-	const retryMutation = useDaiMutation({
-		service: retrySupportPlaneCalibrationService,
-		mutationOptions: {
-			onSuccess: invalidateStatus,
-		},
-	});
-
-	const selectMutation = useDaiMutation({
-		service: selectSupportPlaneCandidateService,
-		mutationOptions: {
-			onSuccess: invalidateStatus,
-		},
-	});
-
-	const distanceOffsetMutation = useDaiMutation({
-		service: setDistanceOffsetService,
-		mutationOptions: {
-			onSuccess: invalidateStatus,
-		},
-	});
+	const confirmMutation = useStatusChangingMutation(confirmSupportPlaneService);
+	const retryMutation = useStatusChangingMutation(
+		retrySupportPlaneCalibrationService,
+	);
+	const selectMutation = useStatusChangingMutation(
+		selectSupportPlaneCandidateService,
+	);
+	const distanceOffsetMutation = useStatusChangingMutation(
+		setDistanceOffsetService,
+	);
 
 	return {
 		statusQuery,
