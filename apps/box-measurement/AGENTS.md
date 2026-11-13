@@ -2,7 +2,7 @@
 
 ## Summary
 
-RVC4 standalone app for box dimensioning on a calibrated support plane, built on the depthai-nodes box-measurement nodes, with a custom calibration frontend. Uses stereo neural depth, instance segmentation, tracking and the IMU.
+RVC4 standalone app for live box dimensioning on a calibrated support plane, built on the depthai-nodes box-measurement nodes, with a calibration and measurement frontend. Uses stereo depth, segmentation, tracking, IMU.
 
 ## Use This Example When
 
@@ -46,7 +46,7 @@ RVC4 standalone app for box dimensioning on a calibrated support plane, built on
 
 ## Architecture
 
-- The box nodes and messages come from depthai-nodes (`depthai-nodes[box-measurement]`, see Constraints), not app code. The app imports `BoxMeasurer`, `SupportPlaneCalibrator` and `PlaneCalibrationConfig` from `depthai_nodes.node` and the support-plane messages (`SupportPlane`, `SupportPlaneCalibrationControl`, `SupportPlaneCalibrationResult`, `CalibrationOutcome`) from `depthai_nodes.message`.
+- The box nodes and messages come from depthai-nodes (`depthai-nodes[box-measurement]`, see Constraints), not app code. The app imports `BoxMeasurer`, `SupportPlaneCalibrator` and `PlaneCalibrationConfig` from `depthai_nodes.node` and the support-plane messages (`SupportPlane`, `SupportPlaneCandidate`, `SupportPlaneCalibrationControl`, `SupportPlaneCalibrationResult`, `CalibrationOutcome`) from `depthai_nodes.message`.
   - `BoxMeasurer` runs the instance-segmentation model, tracks boxes, fits cuboids relative to the active support plane and outputs `BoxMeasurements`.
   - `SupportPlaneCalibrator` finds support plane candidates in the organized point cloud and checks them against gravity from the IMU.
 - The app layer:
@@ -96,7 +96,7 @@ RVC4 standalone app for box dimensioning on a calibrated support plane, built on
 - The standalone runnability tests discover this app through `oakapp.toml` + `backend/src/main.py` and wait for the `Pipeline started.` log in [backend/src/app.py](backend/src/app.py). Peripheral and RVC2 runs are excluded in `tests/constants.py`.
 - Backend unit tests live in [backend/tests/](backend/tests/) and run without a device: [backend/tests/device_lookup.py](backend/tests/device_lookup.py) patches the depthai-nodes device lookup, and the service tests patch `dai.RemoteConnection` with a fake that records registered services.
 - The frontend has no unit tests; `npm run typecheck`, `npm run lint` and `npm run build` in [frontend/](frontend/) are the checks.
-- Use the root glossary terms "support plane" and "support plane candidate" in code, UI and docs.
+- Use "support plane" (the confirmed plane boxes are measured against) and "support plane candidate" (a plane the calibrator proposes before confirmation) in code, UI and docs, not "support surface", "ground plane" or "floor".
 
 ## Related Examples
 

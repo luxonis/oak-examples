@@ -18,6 +18,20 @@ from device_lookup import setUpModule, tearDownModule  # noqa: F401
 
 from services.support_plane_controller import SupportPlaneController
 
+# Points in every test cloud. Inlier counts stay at or below it: upstream turns them
+# into candidate inlier ratios, which must not exceed 1.
+CLOUD_POINTS = 400
+
+
+def poll(predicate, *, between=None, interval=0.001, timeout=5):
+    """Wait until ``predicate()`` holds, calling ``between()`` on every retry."""
+    deadline = time.monotonic() + timeout
+    while not predicate() and time.monotonic() < deadline:
+        if between is not None:
+            between()
+        time.sleep(interval)
+    return predicate()
+
 
 class FakeMeasurer:
     """The support-plane part of the measurer, the only part the controller uses."""
@@ -61,8 +75,6 @@ class GeometryScene:
     """Deterministic external geometry library for queue and lifecycle tests."""
 
     def __init__(self, planes, *, entered=None, release=None):
-        # Inlier counts stay at or below the 400-point cloud: upstream turns them
-        # into candidate inlier ratios, which must not exceed 1.
         self.planes = planes
         self.entered = entered
         self.release = release
@@ -75,7 +87,7 @@ class ScriptedCloud:
     def __init__(self, scene, planes):
         self.scene = scene
         self.planes = planes
-        self.points = np.zeros((400, 3))
+        self.points = np.zeros((CLOUD_POINTS, 3))
 
     def voxel_down_sample(self, voxel_size):
         return self
@@ -132,19 +144,17 @@ class CalibrationControllerTests(unittest.TestCase):
         x, y = np.meshgrid(np.arange(20) * 40, np.arange(20) * 40)
         cloud = dai.PointCloudData()
         cloud.setPoints(
-            np.column_stack([x.ravel(), y.ravel(), np.full(400, 1000)]).astype(
+            np.column_stack([x.ravel(), y.ravel(), np.full(CLOUD_POINTS, 1000)]).astype(
                 np.float32
             )
         )
         self.clouds.send(cloud)
 
     def until(self, predicate, stream=True):
-        deadline = time.monotonic() + 5
-        while not predicate() and time.monotonic() < deadline:
-            if stream:
-                self.stream()
-            time.sleep(0.005)
-        self.assertTrue(predicate(), self.controller.get_status())
+        self.assertTrue(
+            poll(predicate, between=self.stream if stream else None, interval=0.005),
+            self.controller.get_status(),
+        )
 
     def test_new_controller_starts_searching_with_no_support_plane(self):
         controller = self.build()
@@ -176,7 +186,7 @@ class CalibrationControllerTests(unittest.TestCase):
         self.addCleanup(release.set)
         controller = self.build()
         scene = GeometryScene(
-            [([0, 0, 1, -2000], 400)], entered=entered, release=release
+            [([0, 0, 1, -2000], CLOUD_POINTS)], entered=entered, release=release
         )
         with patch("open3d.geometry.PointCloud", scene.cloud):
             self.until(entered.is_set)
@@ -206,7 +216,7 @@ class CalibrationControllerTests(unittest.TestCase):
         with patch(
             "open3d.geometry.PointCloud",
             GeometryScene(
-                [([0, 0, 1, -2000], 400)], entered=entered, release=release
+                [([0, 0, 1, -2000], CLOUD_POINTS)], entered=entered, release=release
             ).cloud,
         ):
             self.until(entered.is_set)
@@ -351,7 +361,7 @@ def success(*candidates):
             SupportPlaneCandidate(
                 plane=SupportPlane(normal=(0, 0, 1), offset_mm=offset_mm),
                 inlier_count=inlier_count,
-                inlier_ratio=inlier_count / 1000,
+                inlier_ratio=inlier_count / CLOUD_POINTS,
             )
             for offset_mm, inlier_count in candidates
         ],
@@ -359,8 +369,11 @@ def success(*candidates):
 
 
 class CalibrationSequencingTests(unittest.TestCase):
-    def start_session(self):
-        """One app start: a fresh measurer, calibrator endpoint and controller."""
+    def start_session(self, *, retry_before_start=False):
+        """One app start: a fresh measurer, calibrator endpoint and controller.
+
+        ``retry_before_start`` requests recalibration on the idle controller first.
+        """
         measurer = FakeMeasurer()
         pipeline = dai.Pipeline(False)
         endpoint = pipeline.create(ResultEndpoint)
@@ -371,8 +384,16 @@ class CalibrationSequencingTests(unittest.TestCase):
         self.addCleanup(pipeline.wait)
         self.addCleanup(pipeline.stop)
         self.addCleanup(controller.close)
+        if retry_before_start:
+            controller.request_recalibration()
         controller.start()
         return measurer, pipeline, results, controls, controller
+
+    def await_confirmation(self, controller):
+        self.assertTrue(
+            poll(lambda: controller.get_status()["state"] == "AWAITING_CONFIRMATION"),
+            controller.get_status(),
+        )
 
     def next_command_type(self, controls):
         deadline = time.monotonic() + 3
@@ -387,13 +408,8 @@ class CalibrationSequencingTests(unittest.TestCase):
         commands = SupportPlaneCalibrationControl.Commands
         _, pipeline, results, controls, controller = self.start_session()
         self.assertIs(self.next_command_type(controls), commands.Start)
-        results.send(success((-1000, 400)))
-        deadline = time.monotonic() + 3
-        while (
-            controller.get_status()["state"] != "AWAITING_CONFIRMATION"
-            and time.monotonic() < deadline
-        ):
-            time.sleep(0.001)
+        results.send(success((-1000, CLOUD_POINTS)))
+        self.await_confirmation(controller)
         self.assertTrue(controller.confirm_candidate())
         controller.set_distance_offset(20)
         controller.close()
@@ -407,28 +423,13 @@ class CalibrationSequencingTests(unittest.TestCase):
         self.assertIs(self.next_command_type(controls), commands.Start)
 
     def test_queued_old_success_is_discarded_before_reset_start_and_selection(self):
-        measurer = FakeMeasurer()
-        pipeline = dai.Pipeline(False)
-        endpoint = pipeline.create(ResultEndpoint)
-        results = endpoint.results.createInputQueue()
-        controls = endpoint.commands.createOutputQueue()
-        controller = SupportPlaneController(endpoint, measurer)
-        pipeline.start()
-        self.addCleanup(pipeline.wait)
-        self.addCleanup(pipeline.stop)
-        self.addCleanup(controller.close)
         # Initial idle retry must not wait for an attempt that never existed.
-        controller.request_recalibration()
-        controller.start()
+        measurer, _, results, controls, controller = self.start_session(
+            retry_before_start=True
+        )
 
         def next_command_type():
-            deadline = time.monotonic() + 3
-            while time.monotonic() < deadline:
-                item = controls.tryGet()
-                if item is not None:
-                    return type(item.command)
-                time.sleep(0.001)
-            self.fail("Missing calibration control")
+            return self.next_command_type(controls)
 
         commands = SupportPlaneCalibrationControl.Commands
         self.assertIs(next_command_type(), commands.Start)
@@ -436,19 +437,14 @@ class CalibrationSequencingTests(unittest.TestCase):
         controller.request_recalibration()
         self.assertIs(next_command_type(), commands.Stop)
         # The old queued success.
-        results.send(success((-2000, 400)))
+        results.send(success((-2000, CLOUD_POINTS)))
         self.assertIs(next_command_type(), commands.Reset)
         self.assertIs(next_command_type(), commands.Start)
         self.assertEqual(controller.get_status()["state"], "SEARCHING")
         self.assertFalse(controller.confirm_candidate())
         # The new success arrives with the best-supported candidate last.
         results.send(success((-1000, 100), (-1500, 300)))
-        deadline = time.monotonic() + 3
-        while (
-            controller.get_status()["state"] != "AWAITING_CONFIRMATION"
-            and time.monotonic() < deadline
-        ):
-            time.sleep(0.001)
+        self.await_confirmation(controller)
         self.assertEqual(controller.get_status()["candidate_count"], 2)
         # The candidate with the most inliers is offered first.
         self.assertEqual(controller.get_status()["camera_distance_mm"], 1500)
