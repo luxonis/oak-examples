@@ -47,8 +47,12 @@ def init_pipeline(
     left_out = left_cam.requestOutput(MONO_RESOLUTION, fps=fps)
     right_out = right_cam.requestOutput(MONO_RESOLUTION, fps=fps)
 
+    # Undistorted like color_out, so the box annotations line up with the stream
     nv12_out = color_cam.requestOutput(
-        COLOR_RESOLUTION, type=dai.ImgFrame.Type.NV12, fps=fps
+        COLOR_RESOLUTION,
+        type=dai.ImgFrame.Type.NV12,
+        fps=fps,
+        enableUndistortion=True,
     )
     color_h264 = pipeline.create(dai.node.VideoEncoder).build(
         input=nv12_out,
