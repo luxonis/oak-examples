@@ -4,8 +4,8 @@ export const DETECTIONS_TOPIC = 'Detections';
 export const SUPPORT_PLANE_PREVIEW_TOPIC = 'Support plane preview';
 
 export const MEASUREMENT_TOPICS = [COLOR_STREAM_TOPIC, DETECTIONS_TOPIC];
-// Only the preview topic is shown while calibrating.
-export const CALIBRATION_TOPICS = [SUPPORT_PLANE_PREVIEW_TOPIC];
+// Only the preview topic is shown during support plane calibration.
+export const SUPPORT_PLANE_CALIBRATION_TOPICS = [SUPPORT_PLANE_PREVIEW_TOPIC];
 
 // Sorts stream panels in the given topic order; unknown topics go last.
 export const sortTopicsBy =

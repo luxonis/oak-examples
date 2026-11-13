@@ -1,19 +1,14 @@
 type StatusDotProps = {
 	color: string;
-	size?: number;
 };
 
-function StatusDot({ color, size = 10 }: StatusDotProps) {
+function StatusDot({ color }: StatusDotProps) {
 	return (
 		<span
-			style={{
-				width: size,
-				height: size,
-				borderRadius: '50%',
-				backgroundColor: color,
-				display: 'inline-block',
-				flexShrink: 0,
-			}}
+			aria-hidden
+			className="inline-block size-2.5 shrink-0 rounded-full"
+			// Inline so the dot matches the exact colour painted on the preview cloud
+			style={{ backgroundColor: color }}
 		/>
 	);
 }
