@@ -18,6 +18,10 @@ export const SUPPORT_PLANE_CALIBRATION_STATUS_TEXT: Record<
 	CONFIRMED: 'Support plane confirmed.',
 };
 
+/** Shown until the camera has reported a support plane calibration state. */
+export const SUPPORT_PLANE_CALIBRATION_STATUS_PENDING_TEXT =
+	'Waiting for the support plane calibration status from the camera…';
+
 // Mirrors the colours the backend's SupportPlanePreview node paints onto the
 // preview cloud (backend/src/depthai_pipeline/node/support_plane_preview.py)
 export const SUPPORT_PLANE_CALIBRATION_STATE_COLOR: Partial<

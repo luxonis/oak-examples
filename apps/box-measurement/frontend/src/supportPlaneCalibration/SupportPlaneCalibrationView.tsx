@@ -9,6 +9,7 @@ import {
 import { mmToCm } from '../units';
 import {
 	SUPPORT_PLANE_CALIBRATION_STATE_COLOR,
+	SUPPORT_PLANE_CALIBRATION_STATUS_PENDING_TEXT,
 	SUPPORT_PLANE_CALIBRATION_STATUS_TEXT,
 } from './supportPlaneCalibrationState';
 import {
@@ -34,8 +35,9 @@ function SupportPlaneCalibrationView() {
 	const stateColor = state
 		? SUPPORT_PLANE_CALIBRATION_STATE_COLOR[state]
 		: undefined;
-	const statusText =
-		SUPPORT_PLANE_CALIBRATION_STATUS_TEXT[state ?? 'SEARCHING'];
+	const statusText = state
+		? SUPPORT_PLANE_CALIBRATION_STATUS_TEXT[state]
+		: SUPPORT_PLANE_CALIBRATION_STATUS_PENDING_TEXT;
 	const error =
 		statusQuery.error ??
 		confirmMutation.error ??
@@ -46,6 +48,8 @@ function SupportPlaneCalibrationView() {
 	return (
 		<div className="flex w-full flex-col items-center gap-4">
 			<Card
+				intent="white"
+				variant="outline"
 				className="w-full max-w-7xl"
 				title="Support plane calibration"
 				subtitle="Remove boxes and other objects from the support plane before support plane calibration."
@@ -59,29 +63,29 @@ function SupportPlaneCalibrationView() {
 								<NormalText text={statusText} />
 							</div>
 							{showCandidate || showCameraPose ? (
-								<div className="flex flex-wrap items-center gap-1">
+								<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
 									{showCandidate ? (
 										<SubLabel
 											weight="bold"
 											text={`Candidate ${selectedIndex + 1} of ${candidateCount}`}
 										/>
 									) : null}
-									{showCandidate && showCameraPose ? (
-										<SubLabel text="·" />
-									) : null}
 									{showCameraPose ? (
 										<>
-											<SubLabel text="Camera distance" />
-											<SubLabel
-												weight="bold"
-												text={`${cameraDistanceCm.toFixed(1)} cm`}
-											/>
-											<SubLabel text="·" />
-											<SubLabel text="Camera tilt" />
-											<SubLabel
-												weight="bold"
-												text={`${Math.round(cameraTiltDeg)}°`}
-											/>
+											<span className="flex items-center gap-1">
+												<SubLabel text="Camera distance" />
+												<SubLabel
+													weight="bold"
+													text={`${cameraDistanceCm.toFixed(1)} cm`}
+												/>
+											</span>
+											<span className="flex items-center gap-1">
+												<SubLabel text="Camera tilt" />
+												<SubLabel
+													weight="bold"
+													text={`${Math.round(cameraTiltDeg)}°`}
+												/>
+											</span>
 										</>
 									) : null}
 								</div>
