@@ -8,11 +8,11 @@ from .occupancy_grid_visualization import OccupancyGridVisualizationNode
 
 
 class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
-    """Compose ground fitting, polar obstacle detection, and visualization.
+    """Turn a point cloud and IMU stream into obstacles, a grid, and overlays.
 
-    RGB and aligned depth form a point cloud. IMU-validated ground fitting
-    removes floor points, then the occupancy grid identifies obstacles.
-    Subnodes publish obstacle geometry, a grid image, and a point cloud overlay.
+    IMU-validated ground fitting removes floor points, then the occupancy grid
+    identifies obstacles. Subnodes publish obstacle geometry, a grid image, and
+    a point cloud overlay.
     """
 
     def __init__(
@@ -26,7 +26,6 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
         self._danger_zone = danger_zone
         self._warning_zone = warning_zone
 
-        self._rgbd: dai.node.RGBD = self.createSubnode(dai.node.RGBD).build()
         self._ground: GroundEstimatorNode = self.createSubnode(GroundEstimatorNode)
         self._occupancy_detection: OccupancyGridDetectionNode = self.createSubnode(
             OccupancyGridDetectionNode, hfov_deg=hfov_deg
@@ -52,20 +51,22 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
 
     def build(
         self,
-        aligned_depth: dai.Node.Output,
-        rgb_image: dai.Node.Output,
+        pcl: dai.Node.Output,
         imu: dai.Node.Output,
+        pointcloud_size: tuple[int, int],
         intrinsics: tuple[float, float, float, float],
         frame_size: tuple[int, int],
     ) -> "PointCloudObjectDetectionNode":
-        """Wire the RGBD, ground-estimation, grid, and visualization subnodes."""
-        rgb_image.link(self._rgbd.inColor)
-        aligned_depth.link(self._rgbd.inDepth)
+        """Wire the subnodes to a camera-frame point cloud in millimeters and the IMU.
 
-        self._ground.build(
-            pcl=self._rgbd.pcl,
-            imu=imu,
-        )
+        Args:
+            pcl: Organized point cloud of ``pointcloud_size`` (width, height).
+            imu: Raw accelerometer readings.
+            pointcloud_size: Width and height of the organized point cloud.
+            intrinsics: ``(fx, fy, cx, cy)`` for projecting into the color frame.
+            frame_size: Width and height of the color frame for annotations.
+        """
+        self._ground.build(pcl=pcl, imu=imu)
 
         self._occupancy_detection.build(
             obstacle_pcl=self._ground.out_obstacle,

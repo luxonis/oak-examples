@@ -153,15 +153,18 @@ def init_pipeline(
         )
         fx, fy = intrinsics[0, 0], intrinsics[1, 1]
         cx, cy = intrinsics[0, 2], intrinsics[1, 2]
+        rgbd = pipeline.create(dai.node.RGBD).build()
+        color_for_pcl.link(rgbd.inColor)
+        depth_for_pcl.outputAligned.link(rgbd.inDepth)
         obstacles = pipeline.create(
             PointCloudObjectDetectionNode,
             hfov_deg=calibration.getFov(dai.CameraBoardSocket.CAM_A, useSpec=True),
             danger_zone=settings.danger_roi,
             warning_zone=settings.warning_roi,
         ).build(
-            aligned_depth=depth_for_pcl.outputAligned,
-            rgb_image=color_for_pcl,
+            pcl=rgbd.pcl,
             imu=imu.out,
+            pointcloud_size=pointcloud_size,
             intrinsics=(fx, fy, cx, cy),
             frame_size=pointcloud_size,
         )

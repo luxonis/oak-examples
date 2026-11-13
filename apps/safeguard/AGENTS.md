@@ -43,7 +43,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - RGB passes through a bundled instance segmentation model and native `ImgDetectionsFilter` to keep people. DepthAI's `ObjectTracker` assigns track IDs; `TrackletSegmentationMatcher` attaches the corresponding masks.
 - The `Depth` node selects the backend automatically. Its depth output is aligned to person masks. `SegmentationDangerEvaluator` uses the IMU to rotate depth points into a gravity-aligned frame before testing warning and danger zones.
-- The optional point-cloud path periodically fits an IMU-compatible ground plane with RANSAC, groups above-ground points in a polar occupancy grid, and evaluates obstacles against the same zones. It publishes ground points, obstacle boxes, bird's-eye view, and plane-validity annotations.
+- Pipeline initialisation builds an RGBD point cloud from the preview and aligned depth and passes it, with the IMU stream, into `PointCloudObjectDetectionNode`. That composite node periodically fits an IMU-compatible ground plane with RANSAC, groups above-ground points in a polar occupancy grid, and evaluates obstacles against the same zones. It publishes ground points, obstacle boxes, bird's-eye view, and plane-validity annotations.
 - `DangerClassifier` combines available assessments and applies temporal alert transitions. `DangerVisualizer` publishes person and alert annotations.
 - The frontend calls `getSettings` and `updateSettings`. Applying settings rebuilds the pipeline.
 
@@ -90,5 +90,6 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 ## Validation
 
 - `Run:` `python3 -m compileall -q apps/safeguard/backend/src` and `python3 scripts/validate_agents_docs.py` from the repository root.
+- `Unit tests:` from `apps/safeguard/backend`, with [backend/requirements.txt](backend/requirements.txt) installed and no device: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`. [backend/tests/test_obstacle_path.py](backend/tests/test_obstacle_path.py) drives `PointCloudObjectDetectionNode` in a host-only pipeline with synthetic point clouds and gravity; [backend/tests/device_lookup.py](backend/tests/device_lookup.py) lets depthai-nodes host nodes be created without a device.
 - `Frontend:` run `npm ci && npm run build` in `apps/safeguard/frontend` with Node 22 or newer.
 - `Device:` run `oakctl app run apps/safeguard --device 1` on a connected RVC4. Success means `Pipeline started.` appears, the HTTPS frontend shows `color` and `danger`, and settings apply. Enable generic object detection to check `obstacle_annotations`, `grid`, `grid_annotations`, and `pcl`.
