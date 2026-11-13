@@ -70,13 +70,16 @@ export const runDaiServiceRequest = async <
 
 	const response = await new Promise<DAIResponse<unknown>>(
 		(resolve, reject) => {
-			daiConnection.postToService(
-				service.serviceName as never,
-				validatedRequest,
-				resolve,
-				(failedResponse) =>
-					reject(getDaiError(service.serviceName, failedResponse)),
-			);
+			daiConnection
+				.postToService(
+					service.serviceName as never,
+					validatedRequest,
+					resolve,
+					(failedResponse) =>
+						reject(getDaiError(service.serviceName, failedResponse)),
+				)
+				// Rejects when the request cannot be sent, e.g. while disconnected
+				.catch(reject);
 		},
 	);
 
