@@ -38,7 +38,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 - [backend/src/app.py](backend/src/app.py): app lifecycle, the eight frontend services, the run loop
 - [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py): full pipeline wiring and visualizer topics
-- [backend/src/config.py](backend/src/config.py): model names, resolutions, frame rate and default detection confidence
+- [backend/src/config.py](backend/src/config.py): neural depth model, camera resolutions, frame rate and default detection confidence
 - [backend/src/services/support_plane_controller.py](backend/src/services/support_plane_controller.py): app-side support plane calibration state, candidate selection and distance offset
 - [frontend/src/App.tsx](frontend/src/App.tsx): picks the support plane calibration or measurement view from the polled support plane calibration state
 - [frontend/src/supportPlaneCalibration/SupportPlaneCalibrationView.tsx](frontend/src/supportPlaneCalibration/SupportPlaneCalibrationView.tsx) and [frontend/src/MeasurementView.tsx](frontend/src/MeasurementView.tsx): the two views
@@ -70,7 +70,8 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 ## Modification Guide
 
-- `Safe to change:` `FPS`, resolutions and the default confidence in [backend/src/config.py](backend/src/config.py) (keep the 512x320 measurement grid in sync with the model), frontend layout and wording
+- `Safe to change:` `FPS`, the camera resolutions and the default confidence in [backend/src/config.py](backend/src/config.py), frontend layout and wording
+- `512x320 measurement grid:` hardcoded as `nn_width, nn_height` in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py), not in `config.py`; it must match the input size of the segmentation model `BoxMeasurer` downloads, so change it only together with that model
 - `Requires care:` service names and payloads shared with [frontend/src/backend/](frontend/src/backend/), [frontend/src/supportPlaneCalibration/useSupportPlaneCalibration.tsx](frontend/src/supportPlaneCalibration/useSupportPlaneCalibration.tsx) and [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx); the support plane calibration state names mirrored in [frontend/src/supportPlaneCalibration/supportPlaneCalibrationState.ts](frontend/src/supportPlaneCalibration/supportPlaneCalibrationState.ts); the visualizer topic names in [frontend/src/streamTopics.ts](frontend/src/streamTopics.ts), used by both views
 - `Version pins:` the Luxonis frontend packages (`@luxonis/depthai-viewer-common` and `@luxonis/depthai-pipeline-lib` 4.0.0, `@luxonis/ui-components` 1.3.9, `@luxonis/ui-utils` 1.0.7) and `react` / `react-dom` are pinned exactly in [frontend/package.json](frontend/package.json), matching the other apps; bump them together with those apps. Dev tools keep caret ranges. Update `package-lock.json` with every change.
 - `Likely to break if changed blindly:` point-cloud size/units passed to `BoxMeasurer` and `SupportPlaneCalibrator`, the plane sign/orientation convention, the depthai and depthai-nodes pins in [backend/requirements.txt](backend/requirements.txt) and the matching apt step in [oakapp.toml](oakapp.toml)
