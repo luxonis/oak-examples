@@ -11,8 +11,7 @@ import DistanceOffsetButton from './supportPlaneCalibration/DistanceOffsetButton
 import { useSupportPlaneCalibration } from './supportPlaneCalibration/useSupportPlaneCalibration';
 
 function MeasurementView() {
-	const { statusQuery, retryMutation, distanceOffsetMutation } =
-		useSupportPlaneCalibration();
+	const { statusQuery, retryMutation } = useSupportPlaneCalibration();
 	const cameraDistanceMm = statusQuery.data?.camera_distance_mm ?? null;
 	const distanceOffsetMm = statusQuery.data?.distance_offset_mm ?? 0;
 
@@ -23,15 +22,6 @@ function MeasurementView() {
 					<DistanceOffsetButton
 						cameraDistanceCm={cameraDistanceMm / 10}
 						offsetCm={distanceOffsetMm / 10}
-						onApply={(offsetCm, onSuccess) => {
-							distanceOffsetMutation.mutate(
-								// The offset input has 0.1 cm steps
-								{ offset_mm: Math.round(offsetCm * 10) },
-								{ onSuccess },
-							);
-						}}
-						isPending={distanceOffsetMutation.isPending}
-						error={distanceOffsetMutation.error}
 					/>
 				) : null}
 				<DetectionSettingsButton />

@@ -140,15 +140,16 @@ export const useSupportPlaneCalibration = () => {
 	const selectMutation = useStatusChangingMutation(
 		selectSupportPlaneCandidateService,
 	);
-	const distanceOffsetMutation = useStatusChangingMutation(
-		setDistanceOffsetService,
-	);
 
 	return {
 		statusQuery,
 		confirmMutation,
 		retryMutation,
 		selectMutation,
-		distanceOffsetMutation,
 	};
 };
+
+// The backend clears the distance offset whenever support plane calibration
+// restarts, and the polled status reports the cleared value.
+export const useSetDistanceOffset = () =>
+	useStatusChangingMutation(setDistanceOffsetService);

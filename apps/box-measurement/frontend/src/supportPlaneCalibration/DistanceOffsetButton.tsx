@@ -10,7 +10,10 @@ import {
 import { useState } from 'react';
 
 import ToolbarPanel from '../components/ToolbarPanel';
-import { MAX_DISTANCE_OFFSET_CM } from './useSupportPlaneCalibration';
+import {
+	MAX_DISTANCE_OFFSET_CM,
+	useSetDistanceOffset,
+} from './useSupportPlaneCalibration';
 
 const OFFSET_STEP_CM = 0.1;
 
@@ -18,9 +21,6 @@ type DistanceOffsetButtonProps = {
 	/** Detected camera-to-support-plane distance along the optical axis. */
 	cameraDistanceCm: number;
 	offsetCm: number;
-	onApply: (offsetCm: number, onSuccess: () => void) => void;
-	isPending: boolean;
-	error: Error | null;
 };
 
 // Parses the typed offset; null while it is not a valid offset.
@@ -48,18 +48,21 @@ const RANGE_TEXT = `−${MAX_DISTANCE_OFFSET_CM} to +${MAX_DISTANCE_OFFSET_CM} c
 function DistanceOffsetButton({
 	cameraDistanceCm,
 	offsetCm,
-	onApply,
-	isPending,
-	error,
 }: DistanceOffsetButtonProps) {
 	const [open, setOpen] = useState(false);
+	const distanceOffsetMutation = useSetDistanceOffset();
+	const { isPending, error } = distanceOffsetMutation;
 	// Text input so it always shows "0.0", regardless of the browser locale
 	const [draft, setDraft] = useState('');
 	const draftOffsetCm = parseOffsetCm(draft);
 	const isDraftInvalid = draft.trim() !== '' && draftOffsetCm === null;
 
 	const apply = (value: number) => {
-		onApply(value, () => setOpen(false));
+		distanceOffsetMutation.mutate(
+			// The offset input has 0.1 cm steps
+			{ offset_mm: Math.round(value * 10) },
+			{ onSuccess: () => setOpen(false) },
+		);
 	};
 
 	const step = (direction: 1 | -1) => {
