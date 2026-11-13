@@ -1,0 +1,5 @@
+depthai==3.11.0
+depthai-nodes[box-measurement]==0.8.0
+numpy>=1.22
+opencv-python-headless
+pydantic==2.12.5
