@@ -1,4 +1,4 @@
-import { SettingsIcon, StyledText } from '@luxonis/ui-components';
+import { StyledText } from '@luxonis/ui-components';
 import { useState } from 'react';
 
 import ToolbarPanel from '../components/ToolbarPanel';
@@ -13,7 +13,6 @@ function DetectionSettingsButton() {
 	return (
 		<ToolbarPanel
 			label="Detection settings"
-			icon={SettingsIcon}
 			open={open && value !== undefined}
 			onOpenChange={setOpen}
 			disabled={value === undefined}

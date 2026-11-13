@@ -3,12 +3,12 @@ import {
 	Button,
 	Input,
 	Label,
-	SettingsIcon,
 	StyledText,
 	SubLabel,
 } from '@luxonis/ui-components';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
+import RemoveIcon from '../components/RemoveIcon';
 import ToolbarPanel from '../components/ToolbarPanel';
 import { cmToMm, roundCmToMm } from '../units';
 import {
@@ -51,6 +51,7 @@ function DistanceOffsetButton({
 	offsetCm,
 }: DistanceOffsetButtonProps) {
 	const [open, setOpen] = useState(false);
+	const rangeHintId = useId();
 	const distanceOffsetMutation = useSetDistanceOffset();
 	const { isPending, error } = distanceOffsetMutation;
 	// Text input so it always shows "0.0", regardless of the browser locale
@@ -76,7 +77,6 @@ function DistanceOffsetButton({
 	return (
 		<ToolbarPanel
 			label="Distance offset"
-			icon={SettingsIcon}
 			open={open}
 			onOpenChange={(nextOpen) => {
 				// Start from the applied offset each time the panel opens
@@ -119,7 +119,8 @@ function DistanceOffsetButton({
 								type="button"
 								variant="outline"
 								size="icon"
-								label="−"
+								icon={RemoveIcon}
+								label={null}
 								aria-label="Decrease offset"
 								disabled={isPending}
 								onClick={() => step(-1)}
@@ -130,6 +131,7 @@ function DistanceOffsetButton({
 								autoComplete="off"
 								aria-label="Distance offset in cm"
 								aria-invalid={isDraftInvalid}
+								aria-describedby={rangeHintId}
 								className="w-[4.5rem] text-center"
 								value={draft}
 								disabled={isPending}
@@ -158,12 +160,13 @@ function DistanceOffsetButton({
 					</div>
 					{isDraftInvalid ? (
 						<StyledText
+							id={rangeHintId}
 							size="label"
 							color="error"
 							text={`Enter a number from ${RANGE_TEXT}.`}
 						/>
 					) : (
-						<SubLabel text={`Allowed range: ${RANGE_TEXT}.`} />
+						<SubLabel id={rangeHintId} text={`Allowed range: ${RANGE_TEXT}.`} />
 					)}
 				</div>
 				<div className="flex items-center justify-between gap-2">

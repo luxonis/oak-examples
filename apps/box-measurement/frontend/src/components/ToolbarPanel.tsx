@@ -1,9 +1,8 @@
-import { Button, type IconType, SubHeader } from '@luxonis/ui-components';
+import { ArrowDownIcon, Button, SubHeader } from '@luxonis/ui-components';
 import { type ReactNode, useEffect, useId, useRef } from 'react';
 
 type ToolbarPanelProps = {
 	label: string;
-	icon?: IconType;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	disabled?: boolean;
@@ -15,13 +14,13 @@ type ToolbarPanelProps = {
 // operator changes a setting, and closes on Escape or a click outside.
 function ToolbarPanel({
 	label,
-	icon,
 	open,
 	onOpenChange,
 	disabled = false,
 	children,
 }: ToolbarPanelProps) {
 	const panelId = useId();
+	const headingId = useId();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	// Callers pass inline callbacks; a ref keeps the document listeners from
@@ -57,12 +56,16 @@ function ToolbarPanel({
 	}, [open]);
 
 	return (
-		<div ref={containerRef} className="relative">
+		// Below the sm breakpoint the panel anchors to the nearest positioned
+		// ancestor (the toolbar row) and spans its width, so a trigger near the
+		// left edge cannot push the panel off screen.
+		<div ref={containerRef} className="sm:relative">
 			<Button
 				ref={triggerRef}
 				type="button"
 				variant={open ? 'filled' : 'outline'}
-				icon={icon}
+				icon={ArrowDownIcon}
+				iconPosition="end"
 				label={label}
 				aria-expanded={open}
 				aria-controls={panelId}
@@ -72,10 +75,12 @@ function ToolbarPanel({
 			{open ? (
 				<section
 					id={panelId}
-					aria-label={label}
-					className="absolute top-full right-0 z-20 mt-2 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-md border border-border bg-background p-4 text-left shadow-md"
+					aria-labelledby={headingId}
+					className="absolute top-full right-0 z-20 mt-2 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-md border border-border bg-background p-4 text-left shadow-md max-sm:left-0 max-sm:w-auto max-sm:max-w-none"
 				>
-					<SubHeader text={label} />
+					<h2 id={headingId}>
+						<SubHeader text={label} />
+					</h2>
 					{children}
 				</section>
 			) : null}

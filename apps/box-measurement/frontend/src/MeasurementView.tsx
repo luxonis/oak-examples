@@ -18,7 +18,8 @@ function MeasurementView() {
 
 	return (
 		<div className="flex w-full flex-col items-center gap-4">
-			<div className="flex w-full flex-wrap justify-end gap-2">
+			{/* Positioned so narrow-screen toolbar panels can span the row */}
+			<div className="relative flex w-full flex-wrap justify-end gap-2">
 				{cameraDistanceMm !== null ? (
 					<DistanceOffsetButton
 						cameraDistanceCm={mmToCm(cameraDistanceMm)}
@@ -46,7 +47,8 @@ function MeasurementView() {
 					/>
 				</div>
 			) : null}
-			<div className="flex h-[42rem] min-h-[32rem] w-full min-w-1/2 md:h-[calc(100vh-6rem)]">
+			{/* 8.5rem = page header, main padding, toolbar row and gap */}
+			<div className="flex h-[42rem] min-h-[32rem] w-full min-w-1/2 md:h-[calc(100vh-8.5rem)]">
 				<Streams
 					defaultTopics={MEASUREMENT_TOPICS}
 					topicGroups={{
