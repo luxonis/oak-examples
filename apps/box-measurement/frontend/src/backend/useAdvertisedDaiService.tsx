@@ -62,16 +62,14 @@ export const useAdvertisedDaiService = (serviceName: string) => {
 			return isAdvertised;
 		};
 
-		const intervalId = window.setInterval(() => {
+		const pollServiceAdvertisement = () => {
 			if (checkServiceAdvertisement()) {
 				stopPolling(intervalId, timeoutId);
 			}
-		}, 100);
-		const timeoutId = window.setTimeout(() => {
-			if (checkServiceAdvertisement()) {
-				stopPolling(intervalId, timeoutId);
-			}
-		}, 0);
+		};
+
+		const intervalId = window.setInterval(pollServiceAdvertisement, 100);
+		const timeoutId = window.setTimeout(pollServiceAdvertisement, 0);
 
 		return () => {
 			stopPolling(intervalId, timeoutId);
