@@ -1,6 +1,57 @@
 name: Runnability tests for DAIv3 oak-examples
 
 on:
+  workflow_call:
+    inputs:
+      examples_ref:
+        description: 'oak-examples ref to check out; match the ref in uses'
+        type: string
+        default: main
+      oakctl_version:
+        type: string
+        default: ''
+      distinct_id:
+        type: string
+        default: ''
+      dai_versions:
+        type: string
+        default: ''
+      python_version:
+        type: string
+        default: all
+      log_level:
+        type: string
+        default: INFO
+      reservation_name:
+        type: string
+        default: ''
+      externally_managed_oakctl_oakagent:
+        type: boolean
+        default: false
+      platform:
+        type: string
+        default: all
+      root_dir:
+        type: string
+        default: '.'
+      strict_mode:
+        type: string
+        default: 'no'
+      additional_options:
+        type: string
+        default: ''
+      subtests:
+        type: string
+        default: 'os=all,subtests=all'
+    secrets:
+      HIL_FRAMEWORK_TOKEN:
+        required: true
+      INFLUXDB_TOKEN:
+        required: false
+      DEVICE_PASSWORD:
+        required: false
+      LOCAL_STATIC_REGISTRY:
+        required: false
   workflow_dispatch:
     inputs:
       oakctl_version:
@@ -27,9 +78,13 @@ on:
         default: INFO
         required: false
       reservation_name:
-          description: 'Reservation name - usually usually unique identifier of root CI run'
-          required: false
-          type: string
+        description: 'Reservation name - usually usually unique identifier of root CI run'
+        required: false
+        type: string
+      externally_managed_oakctl_oakagent:
+        description: 'Preserve the externally installed oakctl and oak-agent'
+        type: boolean
+        default: false
       platform:
         description: 'Platform to use for testing. By default both RVC2 and RVC4 are used but you can use only one by passing only `rvc2` or `rvc4`(use lowercase).'
         default: "all"
@@ -55,14 +110,18 @@ on:
         type: string
         default: "os=all,subtests=all"
 
+env:
+  EXTERNALLY_MANAGED_OAKCTL_OAKAGENT: ${{ inputs.externally_managed_oakctl_oakagent }}
+  EXTERNAL_RESERVATION_NAME: ${{ inputs.reservation_name }}
+
 jobs:
   id:
     name: Workflow ID Provider
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     steps:
-      - name: echo distinct ID ${{ github.event.inputs.distinct_id }}
-        run: echo ${{ github.event.inputs.distinct_id }}
+      - name: echo distinct ID ${{ inputs.distinct_id }}
+        run: echo ${{ inputs.distinct_id }}
   setup:
     runs-on: ubuntu-latest
     outputs:
@@ -75,10 +134,10 @@ jobs:
     steps:
       - id: set-matrix
         env:
-          INPUT_PLATFORM: ${{ github.event.inputs.platform }}
-          INPUT_PYTHON: ${{ github.event.inputs.python_version }}
-          INPUT_DAI_VERSIONS: ${{ github.event.inputs.dai_versions }}
-          INPUT_SUBTESTS: ${{ github.event.inputs.subtests }}
+          INPUT_PLATFORM: ${{ inputs.platform }}
+          INPUT_PYTHON: ${{ inputs.python_version }}
+          INPUT_DAI_VERSIONS: ${{ inputs.dai_versions }}
+          INPUT_SUBTESTS: ${{ inputs.subtests }}
         run: |
           # Matrix platform
           if [ "$INPUT_PLATFORM" = "all" ] || [ -z "$INPUT_PLATFORM" ]; then
@@ -121,6 +180,17 @@ jobs:
               SUBTESTS_KIND="$(printf '%s' "$S2" | sed -n 's/.*subtests=\([^,]*\).*/\1/p')"
             fi
           fi
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            [[ -n "$EXTERNAL_RESERVATION_NAME" ]] || { echo "reservation_name is required"; exit 1; }
+            [[ "$OS_VAL" =~ ^(linux|windows|mac)$ && "$SUBTESTS_KIND" =~ ^(standalone|peripheral)$ ]] || {
+              echo "Select one host OS and one test mode in subtests"; exit 1;
+            }
+            if [[ "$OS_VAL" == linux && "$SUBTESTS_KIND" == peripheral ]]; then
+              [[ "$INPUT_PLATFORM" =~ ^(rvc2|rvc4)$ && "$INPUT_PYTHON" =~ ^(3\.8|3\.10|3\.12)$ ]] || {
+                echo "Select one platform and Python version for Linux peripheral tests"; exit 1;
+              }
+            fi
+          fi
           echo "os=$OS_VAL" >> "$GITHUB_OUTPUT"
           echo "subtests_kind=$SUBTESTS_KIND" >> "$GITHUB_OUTPUT"
 
@@ -140,6 +210,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          repository: luxonis/oak-examples
+          ref: ${{ inputs.examples_ref || github.ref }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -169,21 +243,25 @@ jobs:
             --env DAI_VERSION=${{ needs.setup.outputs.dai_version }} \
             --env DAI_NODES_VERSION=${{ needs.setup.outputs.dai_nodes_version }} \
             --env PYTHON_VERSION_ENV=${{ matrix.python-version }} \
-            --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR='${{ github.event.inputs.root_dir }}' \
-            --env STRICT_MODE='${{ github.event.inputs.strict_mode }}' "
+            --env LOG_LEVEL=${{ inputs.log_level }} \
+            --env ROOT_DIR='${{ inputs.root_dir }}' \
+            --env STRICT_MODE='${{ inputs.strict_mode }}' "
 
-          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
-                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
-                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+          if [[ -n "${{ inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ inputs.reservation_name }}"
+                if [[ "${{ inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
                   HOLD_RESERVATION="--hold-reservation"
                 fi
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
 
-          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
-            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            ADDITIONAL_OPTIONS="--no-update"
+          fi
+          if [[ -n "${{ inputs.additional_options }}" ]]; then
+
+            ADDITIONAL_OPTIONS="$ADDITIONAL_OPTIONS ${{ inputs.additional_options }}"
           fi
 
           exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace \
@@ -208,6 +286,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          repository: luxonis/oak-examples
+          ref: ${{ inputs.examples_ref || github.ref }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -232,21 +314,25 @@ jobs:
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-windows"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
 
-          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
-                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
-                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+          if [[ -n "${{ inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ inputs.reservation_name }}"
+                if [[ "${{ inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
                   HOLD_RESERVATION="--hold-reservation"
                 fi
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
 
-          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
-            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            ADDITIONAL_OPTIONS="--no-update"
+          fi
+          if [[ -n "${{ inputs.additional_options }}" ]]; then
+
+            ADDITIONAL_OPTIONS="$ADDITIONAL_OPTIONS ${{ inputs.additional_options }}"
           fi
 
           exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity \
-              --commands "cd %TEMP%\oak-examples && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+              --commands "cd %TEMP%\oak-examples && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ matrix.platform }} ${{ inputs.strict_mode }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
   test_peripheral_mac:
     needs: [setup]
@@ -264,6 +350,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          repository: luxonis/oak-examples
+          ref: ${{ inputs.examples_ref || github.ref }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -288,21 +378,25 @@ jobs:
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-mac"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
 
-          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
-                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
-                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+          if [[ -n "${{ inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ inputs.reservation_name }}"
+                if [[ "${{ inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
                   HOLD_RESERVATION="--hold-reservation"
                 fi
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
 
-          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
-            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            ADDITIONAL_OPTIONS="--no-update"
+          fi
+          if [[ -n "${{ inputs.additional_options }}" ]]; then
+
+            ADDITIONAL_OPTIONS="$ADDITIONAL_OPTIONS ${{ inputs.additional_options }}"
           fi
 
           exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity \
-              --commands "cd /tmp/oak-examples && tests/run_tests_peripheral.sh ${{ matrix.python-version }} ${{ matrix.platform }} ${{ github.event.inputs.strict_mode }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+              --commands "cd /tmp/oak-examples && tests/run_tests_peripheral.sh ${{ matrix.python-version }} ${{ matrix.platform }} ${{ inputs.strict_mode }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
   test_standalone:
     if: >
@@ -313,6 +407,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          repository: luxonis/oak-examples
+          ref: ${{ inputs.examples_ref || github.ref }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -336,27 +434,37 @@ jobs:
             --env DAI_VERSION=${{ needs.setup.outputs.dai_version }} \
             --env DAI_NODES_VERSION=${{ needs.setup.outputs.dai_nodes_version }} \
             --env PYTHON_VERSION_ENV="3.10" \
-            --env LOG_LEVEL=${{ github.event.inputs.log_level }} \
-            --env ROOT_DIR='${{ github.event.inputs.root_dir }}' \
-            --env STRICT_MODE='${{ github.event.inputs.strict_mode }}' \
+            --env LOG_LEVEL=${{ inputs.log_level }} \
+            --env ROOT_DIR='${{ inputs.root_dir }}' \
+            --env STRICT_MODE='${{ inputs.strict_mode }}' \
             --env DEVICE_PASSWORD=${{ secrets.DEVICE_PASSWORD }}\
             --env LOCAL_STATIC_REGISTRY=${{ secrets.LOCAL_STATIC_REGISTRY }}"
 
-          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
-                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
-                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+          OAKCTL_OPTION="--oakctl"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            OAKCTL_OPTION=""
+            ENV_VARS="$ENV_VARS --env EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=true -v \$HOME/.local/bin/oakctl:/root/.local/bin/oakctl:ro"
+          fi
+
+          if [[ -n "${{ inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ inputs.reservation_name }}"
+                if [[ "${{ inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
                   HOLD_RESERVATION="--hold-reservation"
                 fi
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
-            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            ADDITIONAL_OPTIONS="--no-update"
+          fi
+          if [[ -n "${{ inputs.additional_options }}" ]]; then
+
+            ADDITIONAL_OPTIONS="$ADDITIONAL_OPTIONS ${{ inputs.additional_options }}"
           fi
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --oakctl --sync-workspace \
+          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS $OAKCTL_OPTION --sync-workspace \
               --dockerfile ./tests/Dockerfile_standalone \
-              --docker-build-args "--build-arg PYTHON_VERSION=3.12 --build-arg OAKCTL_VERSION=$OAKCTL_VERSION" \
+              --docker-build-args "--build-arg PYTHON_VERSION=3.12 --build-arg OAKCTL_VERSION=$OAKCTL_VERSION --build-arg EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" \
               --docker-run-args "$ENV_VARS"
 
 
@@ -369,6 +477,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          repository: luxonis/oak-examples
+          ref: ${{ inputs.examples_ref || github.ref }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -385,20 +497,27 @@ jobs:
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-windows"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
 
-          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
-                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
-                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+          if [[ -n "${{ inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ inputs.reservation_name }}"
+                if [[ "${{ inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
                   HOLD_RESERVATION="--hold-reservation"
                 fi
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
-            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            ADDITIONAL_OPTIONS="--no-update"
+          fi
+          if [[ -n "${{ inputs.additional_options }}" ]]; then
+
+            ADDITIONAL_OPTIONS="$ADDITIONAL_OPTIONS ${{ inputs.additional_options }}"
           fi
 
-          exec hil_runner --no-shell --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl \
-              --commands "cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+          OAKCTL_OPTION="--oakctl"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then OAKCTL_OPTION=""; fi
+
+          exec hil_runner --no-shell --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity $OAKCTL_OPTION \
+              --commands "set EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT&& cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
   test_standalone_mac:
     if: >
@@ -409,6 +528,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          repository: luxonis/oak-examples
+          ref: ${{ inputs.examples_ref || github.ref }}
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -425,17 +548,24 @@ jobs:
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-mac"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
 
-          if [[ -n "${{ github.event.inputs.reservation_name }}" ]]; then
-                RESERVATION_OPTION="--reservation-name ${{ github.event.inputs.reservation_name }}"
-                if [[ "${{ github.event.inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
+          if [[ -n "${{ inputs.reservation_name }}" ]]; then
+                RESERVATION_OPTION="--reservation-name ${{ inputs.reservation_name }}"
+                if [[ "${{ inputs.reservation_name }}" == https://github.com/luxonis/* ]]; then
                   HOLD_RESERVATION="--hold-reservation"
                 fi
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-          if [[ -n "${{ github.event.inputs.additional_options }}" ]]; then
-            ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+            ADDITIONAL_OPTIONS="--no-update"
+          fi
+          if [[ -n "${{ inputs.additional_options }}" ]]; then
+
+            ADDITIONAL_OPTIONS="$ADDITIONAL_OPTIONS ${{ inputs.additional_options }}"
           fi
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity --oakctl \
-              --commands "cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+          OAKCTL_OPTION="--oakctl"
+          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then OAKCTL_OPTION=""; fi
+
+          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity $OAKCTL_OPTION \
+              --commands "export EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT; cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"

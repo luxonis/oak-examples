@@ -31,16 +31,23 @@ echo "=========================================="
 # ==============================================================================
 # oakctl self-update (best-effort)
 # ==============================================================================
-echo "Updating oakctl if available..."
-if command -v oakctl >/dev/null 2>&1; then
-  OAK_VER="$(oakctl version 2>/dev/null || true)"
-  if [[ -n "${OAK_VER}" ]]; then
-    oakctl self-update -v "${OAK_VER}" || true
-  else
-    echo "Could not determine oakctl version, skipping self-update."
-  fi
+if [[ "${EXTERNALLY_MANAGED_OAKCTL_OAKAGENT:-false}" == true ]]; then
+  command -v oakctl
+  shasum -a 256 "$(command -v oakctl)"
+  oakctl version
+  adb shell "oak-agent --version" || true
 else
-  echo "oakctl not found, skipping self-update."
+  echo "Updating oakctl if available..."
+  if command -v oakctl >/dev/null 2>&1; then
+    OAK_VER="$(oakctl version 2>/dev/null || true)"
+    if [[ -n "${OAK_VER}" ]]; then
+      oakctl self-update -v "${OAK_VER}" || true
+    else
+      echo "Could not determine oakctl version, skipping self-update."
+    fi
+  else
+    echo "oakctl not found, skipping self-update."
+  fi
 fi
 
 echo "Creating virtual environment..."
