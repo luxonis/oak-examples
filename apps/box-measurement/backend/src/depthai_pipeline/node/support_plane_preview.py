@@ -17,10 +17,15 @@ class SupportPlanePreview(dai.node.HostNode):
         self._preview_grid: np.ndarray | None = None
         self._preview_grid_key: bytes | None = None
 
-    def build(self, point_cloud, point_cloud_size, controller):
+    def build(
+        self,
+        point_cloud: dai.Node.Output,
+        point_cloud_size: tuple[int, int],
+        controller: SupportPlaneController,
+    ) -> "SupportPlanePreview":
         self.link_args(point_cloud)
         self._size = point_cloud_size
-        self._controller: SupportPlaneController = controller
+        self._controller = controller
         return self
 
     def process(self, cloud: dai.Buffer) -> None:
