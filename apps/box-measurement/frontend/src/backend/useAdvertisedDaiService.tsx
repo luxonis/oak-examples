@@ -1,88 +1,85 @@
 import {
-    type DAIConnection,
-    useDaiConnection,
-} from "@luxonis/depthai-viewer-common";
-import { useEffect, useState } from "react";
+	type DAIConnection,
+	useDaiConnection,
+} from '@luxonis/depthai-viewer-common';
+import { useEffect, useState } from 'react';
 
-import { isDaiServiceAdvertised } from "./daiService";
+import { isDaiServiceAdvertised } from './daiService';
 
 type AdvertisedServiceState = {
-    connection: DAIConnection;
-    serviceName: string;
+	connection: DAIConnection;
+	serviceName: string;
 };
 
 export const useAdvertisedDaiService = (serviceName: string) => {
-    const { daiConnection } = useDaiConnection();
-    const [advertisedService, setAdvertisedService] =
-        useState<AdvertisedServiceState | null>(null);
+	const { daiConnection } = useDaiConnection();
+	const [advertisedService, setAdvertisedService] =
+		useState<AdvertisedServiceState | null>(null);
 
-    const isServiceAdvertised =
-        daiConnection !== undefined &&
-        daiConnection !== null &&
-        advertisedService?.connection === daiConnection &&
-        advertisedService?.serviceName === serviceName;
+	const isServiceAdvertised =
+		daiConnection !== undefined &&
+		daiConnection !== null &&
+		advertisedService?.connection === daiConnection &&
+		advertisedService?.serviceName === serviceName;
 
-    useEffect(() => {
-        if (!daiConnection) {
-            return;
-        }
+	useEffect(() => {
+		if (!daiConnection) {
+			return;
+		}
 
-        const stopPolling = (
-            intervalId: number | null,
-            timeoutId: number | null,
-        ) => {
-            if (intervalId !== null) {
-                window.clearInterval(intervalId);
-            }
+		const stopPolling = (
+			intervalId: number | null,
+			timeoutId: number | null,
+		) => {
+			if (intervalId !== null) {
+				window.clearInterval(intervalId);
+			}
 
-            if (timeoutId !== null) {
-                window.clearTimeout(timeoutId);
-            }
-        };
+			if (timeoutId !== null) {
+				window.clearTimeout(timeoutId);
+			}
+		};
 
-        const checkServiceAdvertisement = () => {
-            const isAdvertised = isDaiServiceAdvertised(
-                daiConnection,
-                serviceName,
-            );
+		const checkServiceAdvertisement = () => {
+			const isAdvertised = isDaiServiceAdvertised(daiConnection, serviceName);
 
-            if (isAdvertised) {
-                setAdvertisedService((current) => {
-                    if (
-                        current?.connection === daiConnection &&
-                        current?.serviceName === serviceName
-                    ) {
-                        return current;
-                    }
+			if (isAdvertised) {
+				setAdvertisedService((current) => {
+					if (
+						current?.connection === daiConnection &&
+						current?.serviceName === serviceName
+					) {
+						return current;
+					}
 
-                    return {
-                        connection: daiConnection,
-                        serviceName,
-                    };
-                });
-            }
+					return {
+						connection: daiConnection,
+						serviceName,
+					};
+				});
+			}
 
-            return isAdvertised;
-        };
+			return isAdvertised;
+		};
 
-        const intervalId = window.setInterval(() => {
-            if (checkServiceAdvertisement()) {
-                stopPolling(intervalId, timeoutId);
-            }
-        }, 100);
-        const timeoutId = window.setTimeout(() => {
-            if (checkServiceAdvertisement()) {
-                stopPolling(intervalId, timeoutId);
-            }
-        }, 0);
+		const intervalId = window.setInterval(() => {
+			if (checkServiceAdvertisement()) {
+				stopPolling(intervalId, timeoutId);
+			}
+		}, 100);
+		const timeoutId = window.setTimeout(() => {
+			if (checkServiceAdvertisement()) {
+				stopPolling(intervalId, timeoutId);
+			}
+		}, 0);
 
-        return () => {
-            stopPolling(intervalId, timeoutId);
-        };
-    }, [daiConnection, serviceName]);
+		return () => {
+			stopPolling(intervalId, timeoutId);
+		};
+	}, [daiConnection, serviceName]);
 
-    return {
-        daiConnection,
-        isServiceAdvertised,
-    };
+	return {
+		daiConnection,
+		isServiceAdvertised,
+	};
 };

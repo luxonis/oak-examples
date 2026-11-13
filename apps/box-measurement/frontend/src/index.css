@@ -1,21 +1,21 @@
 @layer reset, base, tokens, recipes, utilities;
 
 @layer utilities {
-    html,
-    body {
-        min-height: 100vh;
-        height: auto !important;
-        overflow-y: auto !important;
-    }
+	html,
+	body {
+		min-height: 100vh;
+		height: auto !important;
+		overflow-y: auto !important;
+	}
 
-    body {
-        overflow: visible !important;
-    }
+	body {
+		overflow: visible !important;
+	}
 
-    #root#root,
-    #root#root > :first-child {
-        min-height: 100vh;
-        height: auto !important;
-        overflow: visible !important;
-    }
+	#root#root,
+	#root#root > :first-child {
+		min-height: 100vh;
+		height: auto !important;
+		overflow: visible !important;
+	}
 }
