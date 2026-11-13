@@ -24,6 +24,12 @@ function ToolbarPanel({
 	const panelId = useId();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
+	// Callers pass inline callbacks; a ref keeps the document listeners from
+	// being re-added on every render.
+	const onOpenChangeRef = useRef(onOpenChange);
+	useEffect(() => {
+		onOpenChangeRef.current = onOpenChange;
+	});
 
 	useEffect(() => {
 		if (!open) {
@@ -32,12 +38,12 @@ function ToolbarPanel({
 
 		const onPointerDown = (event: PointerEvent) => {
 			if (!containerRef.current?.contains(event.target as Node)) {
-				onOpenChange(false);
+				onOpenChangeRef.current(false);
 			}
 		};
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {
-				onOpenChange(false);
+				onOpenChangeRef.current(false);
 				triggerRef.current?.focus();
 			}
 		};
@@ -48,7 +54,7 @@ function ToolbarPanel({
 			document.removeEventListener('pointerdown', onPointerDown);
 			document.removeEventListener('keydown', onKeyDown);
 		};
-	}, [open, onOpenChange]);
+	}, [open]);
 
 	return (
 		<div ref={containerRef} className="relative">
