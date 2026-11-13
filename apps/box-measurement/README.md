@@ -75,7 +75,10 @@ app UI opens on the **Support plane calibration** view until you do.
    to go through the other detected planes.
 4. Press **Confirm support plane**. The UI switches to the measurement view.
 
-If no plane is found, press **Restart calibration**. Repeat support plane calibration
+Until a plane is found the view keeps showing **Searching for a support plane…**; the
+app keeps looking on its own, so check that the support plane is clear and in view.
+Press **Restart calibration** to discard the current candidates and search again,
+for example after clearing the belt. Repeat support plane calibration
 whenever the camera is moved or re-aimed, or the belt height changes: press
 **Recalibrate** in the measurement view to go back to the support plane calibration view.
 
