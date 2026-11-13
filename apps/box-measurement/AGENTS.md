@@ -97,7 +97,12 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 - The standalone runnability tests discover this app through `oakapp.toml` + `backend/src/main.py` and wait for the `Pipeline started.` log in [backend/src/app.py](backend/src/app.py). Peripheral and RVC2 runs are excluded in `tests/constants.py`.
 - The frontend checks are `npm run build` (runs `tsc -b`, then `vite build`) and `npm run lint` (Biome, configured in [frontend/biome.json](frontend/biome.json)) in [frontend/](frontend/); `npm run lint:fix` applies Biome's fixes and formatting (tabs).
-- Follow the repo `GLOSSARY.md` terms in code, UI and docs: **support plane**, **support plane candidate**, **support plane calibration** and **distance offset**. Qualify "calibration" as support plane calibration, since bare "calibration" means camera calibration elsewhere in this repo; short button labels on a screen already titled "Support plane calibration", such as **Recalibrate** and **Restart calibration**, are the exception.
+- Use these terms in code, UI and docs:
+  - **Support plane**: the flat surface boxes rest on, such as a conveyor belt or table; heights and distances are measured from it. Not "support surface", "ground plane" or "floor".
+  - **Support plane candidate**: a flat surface found during support plane calibration that might be the support plane; the operator confirms one of them. Not "plane candidate" or "surface candidate".
+  - **Support plane calibration**: finding the support plane candidates and having the operator confirm one as the support plane; repeated after every app start and whenever the camera moves. Not "plane calibration".
+  - **Distance offset**: a signed distance the operator adds to the camera's detected distance from the support plane, to correct box heights that come out consistently too high or too low. Not "distance correction" or "height offset".
+- Qualify "calibration" as support plane calibration, since bare "calibration" means camera calibration elsewhere in this repo; short button labels on a screen already titled "Support plane calibration", such as **Recalibrate** and **Restart calibration**, are the exception.
 
 ## Related Examples
 
