@@ -164,7 +164,7 @@ function DistanceOffsetButton({
 					)}
 				</div>
 				<div className="flex items-center justify-between gap-2">
-					<Label text="Corrected distance" color="normal" />
+					<Label text="Distance with offset" color="normal" />
 					<Label
 						weight="bold"
 						text={

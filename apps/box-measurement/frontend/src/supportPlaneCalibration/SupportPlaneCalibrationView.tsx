@@ -48,7 +48,7 @@ function SupportPlaneCalibrationView() {
 			<Card
 				className="w-full max-w-7xl"
 				title="Support plane calibration"
-				subtitle="Remove boxes and other objects from the support plane before calibration."
+				subtitle="Remove boxes and other objects from the support plane before support plane calibration."
 				fullWidth
 			>
 				<div className="flex flex-col gap-2">

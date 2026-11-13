@@ -99,7 +99,7 @@ the camera's distance from the support plane:
 2. In the measurement view, open **Distance offset**. It shows the detected distance.
 3. Enter the offset as *measured distance − detected distance* (−10 to +10 cm), using
    the field or the **−** and **+** buttons, and press **Apply**. The panel shows the
-   corrected distance. **Clear offset** removes the offset right away.
+   **Distance with offset**. **Clear offset** removes the offset right away.
 
 Positive values move the support plane farther from the camera, so boxes measure
 taller. The offset mainly affects the height and applies to live measurements right

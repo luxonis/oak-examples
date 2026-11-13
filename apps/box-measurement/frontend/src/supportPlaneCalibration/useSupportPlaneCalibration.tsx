@@ -21,7 +21,7 @@ const supportPlaneCalibrationStatusSchema = z.object({
 
 export const MAX_DISTANCE_OFFSET_CM = 10;
 
-const selectCandidateRequestSchema = z
+const selectSupportPlaneCandidateRequestSchema = z
 	.object({ direction: z.union([z.literal(1), z.literal(-1)]) })
 	.strict();
 
@@ -31,7 +31,7 @@ const getStatusService = {
 	responseSchema: supportPlaneCalibrationStatusSchema,
 } as const;
 
-const confirmPlaneService = {
+const confirmSupportPlaneService = {
 	serviceName: 'confirmSupportPlane',
 	requestSchema: emptyBodySchema,
 	responseSchema: emptyBodySchema,
@@ -43,9 +43,9 @@ const retrySupportPlaneCalibrationService = {
 	responseSchema: emptyBodySchema,
 } as const;
 
-const selectCandidateService = {
+const selectSupportPlaneCandidateService = {
 	serviceName: 'selectSupportPlaneCandidate',
-	requestSchema: selectCandidateRequestSchema,
+	requestSchema: selectSupportPlaneCandidateRequestSchema,
 	responseSchema: emptyBodySchema,
 } as const;
 
@@ -68,7 +68,7 @@ const setDistanceOffsetService = {
 	responseSchema: emptyBodySchema,
 } as const;
 
-// Asks the pipeline to publish the plane preview cloud while mounted
+// Asks the pipeline to publish the support plane preview cloud while mounted
 export const useSupportPlanePreview = () => {
 	const [error, setError] = useState<Error | null>(null);
 	const { daiConnection, isServiceAdvertised } = useAdvertisedDaiService(
@@ -122,7 +122,7 @@ export const useSupportPlaneCalibration = () => {
 	};
 
 	const confirmMutation = useDaiMutation({
-		service: confirmPlaneService,
+		service: confirmSupportPlaneService,
 		mutationOptions: {
 			onSuccess: invalidateStatus,
 		},
@@ -136,7 +136,7 @@ export const useSupportPlaneCalibration = () => {
 	});
 
 	const selectMutation = useDaiMutation({
-		service: selectCandidateService,
+		service: selectSupportPlaneCandidateService,
 		mutationOptions: {
 			onSuccess: invalidateStatus,
 		},

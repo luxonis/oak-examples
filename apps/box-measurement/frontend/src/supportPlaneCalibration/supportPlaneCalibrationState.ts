@@ -18,7 +18,8 @@ export const SUPPORT_PLANE_CALIBRATION_STATUS_TEXT: Record<
 	CONFIRMED: 'Support plane confirmed.',
 };
 
-// Mirrors the colours SupportPlaneCalibration paints onto the preview cloud
+// Mirrors the colours the backend's SupportPlanePreview node paints onto the
+// preview cloud (backend/src/depthai_pipeline/node/support_plane_preview.py)
 export const SUPPORT_PLANE_CALIBRATION_STATE_COLOR: Partial<
 	Record<SupportPlaneCalibrationState, string>
 > = {
