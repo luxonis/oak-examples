@@ -15,7 +15,13 @@ function getBasePath(): string {
 
 const queryClient = new QueryClient();
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+	throw new Error('Root element was not found.');
+}
+
+createRoot(rootElement).render(
 	<StrictMode>
 		<BrowserRouter basename={getBasePath()}>
 			<DepthAIContext messageHandlerVersion="v1">
