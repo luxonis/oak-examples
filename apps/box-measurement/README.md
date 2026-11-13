@@ -4,6 +4,10 @@ This app measures box dimensions (L × W × H) and volume live on an RVC4 device
 
 > **Note:** This app requires an **OAK 4 D** device (Pro or non-Pro) - box dimensions are computed from a stereo camera pair. Single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is optional and is enabled automatically when present.
 
+## Demo
+
+![Box measurement demo](media/demo.gif)
+
 ## 1. Install the prerequisites
 
 ### oakctl
@@ -56,13 +60,13 @@ and run the following command:
 oakctl app run .
 ```
 
-The first run builds the container on the device and takes a while. The build installs the box-measurement nodes from [depthai-nodes](https://github.com/luxonis/depthai-nodes) on GitHub (see [backend/requirements.txt](backend/requirements.txt)), so the device needs internet access. Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
+The first run builds the container on the device and takes a while. The build installs the box-measurement nodes from [depthai-nodes](https://github.com/luxonis/depthai-nodes) (see [backend/requirements.txt](backend/requirements.txt)), and the app downloads its segmentation model on first start, so the device needs internet access. Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
-## 4. Calibrate the support plane
+## 4. Run support plane calibration
 
 Nothing is measured until the support plane is confirmed. The app does not remember
-the support plane, so you confirm it after every app start. The app UI opens on the
-calibration view until you do.
+the support plane, so you run support plane calibration after every app start. The
+app UI opens on the **Support plane calibration** view until you do.
 
 1. **Clear the belt / support plane.** Remove boxes and other objects; the plane must be visible.
 2. Open the app UI. The detected candidate plane is highlighted in orange in the
@@ -71,30 +75,32 @@ calibration view until you do.
    to go through the other detected planes.
 4. Press **Confirm support plane**. The UI switches to the measurement view.
 
-If no plane is found, press **Restart calibration**. Recalibrate whenever the camera
-is moved or re-aimed, or the belt height changes: press **Recalibrate** in the
-measurement view to go back to the calibration view.
+If no plane is found, press **Restart calibration**. Repeat support plane calibration
+whenever the camera is moved or re-aimed, or the belt height changes: press
+**Recalibrate** in the measurement view to go back to the support plane calibration view.
 
 ## Using the app
 
 The measurement view shows the color stream with each detected box outlined and its
 L × W × H (cm) and volume (cm³) overlaid. Its toolbar has:
 
-- **Distance correction** - see below.
+- **Distance offset** - see below.
 - **Detection settings** - the detection confidence threshold (0 to 1). It applies
   immediately and resets to the default when the app restarts.
-- **Recalibrate** - discards the confirmed support plane and returns to calibration.
+- **Recalibrate** - discards the confirmed support plane and returns to support plane
+  calibration.
 
-### Distance correction (optional)
+### Distance offset (optional)
 
-If measured heights are consistently too high or too low, correct the distance
-to the support plane:
+If measured heights are consistently too high or too low, add a distance offset to
+the camera's distance from the support plane:
 
 1. Measure the real distance from the camera to the support plane.
-2. In the measurement view, open **Distance correction**. It shows the detected distance.
-3. Enter the offset as *measured distance − detected distance* (−10 to +10 cm)
-   and press **Apply**.
+2. In the measurement view, open **Distance offset**. It shows the detected distance.
+3. Enter the offset as *measured distance − detected distance* (−10 to +10 cm), using
+   the field or the **−** and **+** buttons, and press **Apply**. The panel shows the
+   corrected distance. **Clear offset** removes the offset right away.
 
 Positive values move the support plane farther from the camera, so boxes measure
 taller. The offset mainly affects the height and applies to live measurements right
-away. It is cleared when you recalibrate or restart the app.
+away. It is cleared when you run support plane calibration again or restart the app.
