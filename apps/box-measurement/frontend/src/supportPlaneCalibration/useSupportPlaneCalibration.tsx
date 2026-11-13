@@ -5,12 +5,12 @@ import { runDaiServiceRequest } from '../backend/daiService';
 import { useAdvertisedDaiService } from '../backend/useAdvertisedDaiService';
 import { useDaiMutation } from '../backend/useDaiMutation';
 import { useDaiQuery } from '../backend/useDaiQuery';
-import { CALIBRATION_STATES } from './calibrationState';
+import { SUPPORT_PLANE_CALIBRATION_STATES } from './supportPlaneCalibrationState';
 
 const emptyBodySchema = z.object({}).strict();
 
-const calibrationStatusSchema = z.object({
-	state: z.enum(CALIBRATION_STATES),
+const supportPlaneCalibrationStatusSchema = z.object({
+	state: z.enum(SUPPORT_PLANE_CALIBRATION_STATES),
 	candidate_count: z.number(),
 	selected_index: z.number(),
 	camera_tilt_deg: z.number().nullable(),
@@ -28,7 +28,7 @@ const selectCandidateRequestSchema = z
 const getStatusService = {
 	serviceName: 'getSupportPlaneCalibrationStatus',
 	requestSchema: emptyBodySchema,
-	responseSchema: calibrationStatusSchema,
+	responseSchema: supportPlaneCalibrationStatusSchema,
 } as const;
 
 const confirmPlaneService = {
@@ -37,7 +37,7 @@ const confirmPlaneService = {
 	responseSchema: emptyBodySchema,
 } as const;
 
-const retryCalibrationService = {
+const retrySupportPlaneCalibrationService = {
 	serviceName: 'retrySupportPlaneCalibration',
 	requestSchema: emptyBodySchema,
 	responseSchema: emptyBodySchema,
@@ -91,7 +91,7 @@ export const useSupportPlanePreview = () => {
 		);
 
 		return () => {
-			// Publish the preview cloud only while the calibration view requests it.
+			// Publish the preview cloud only while the support plane calibration view requests it.
 			setPreviewActive(false).catch(() => {});
 		};
 	}, [daiConnection, isServiceAdvertised]);
@@ -99,7 +99,7 @@ export const useSupportPlanePreview = () => {
 	return error;
 };
 
-// Status-only view of the calibration. Picks the view in App.
+// Status-only view of support plane calibration. Picks the view in App.
 export const useSupportPlaneCalibrationStatus = () =>
 	useDaiQuery({
 		service: getStatusService,
@@ -129,7 +129,7 @@ export const useSupportPlaneCalibration = () => {
 	});
 
 	const retryMutation = useDaiMutation({
-		service: retryCalibrationService,
+		service: retrySupportPlaneCalibrationService,
 		mutationOptions: {
 			onSuccess: invalidateStatus,
 		},

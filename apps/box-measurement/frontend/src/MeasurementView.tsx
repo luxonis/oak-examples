@@ -1,7 +1,5 @@
 import { Streams } from '@luxonis/depthai-viewer-common';
 import { Button, StyledText } from '@luxonis/ui-components';
-import DistanceOffsetButton from './calibration/DistanceOffsetButton';
-import { useSupportPlaneCalibration } from './calibration/useSupportPlaneCalibration';
 import DetectionSettingsButton from './detection/DetectionSettingsButton';
 import {
 	COLOR_STREAM_TOPIC,
@@ -9,6 +7,8 @@ import {
 	MEASUREMENT_TOPICS,
 	sortTopicsBy,
 } from './streamTopics';
+import DistanceOffsetButton from './supportPlaneCalibration/DistanceOffsetButton';
+import { useSupportPlaneCalibration } from './supportPlaneCalibration/useSupportPlaneCalibration';
 
 function MeasurementView() {
 	const { statusQuery, retryMutation, distanceOffsetMutation } =
