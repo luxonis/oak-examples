@@ -1,6 +1,6 @@
 # Camera Stereo Depth
 
-This example shows a minimal implementation of stereo detph implementation.
+This example shows a minimal stereo depth pipeline.
 
 ## Demo
 
