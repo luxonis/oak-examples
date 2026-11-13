@@ -54,7 +54,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
   - `services/support_plane_controller.py` runs the support plane calibration states `SEARCHING → AWAITING_CONFIRMATION → CONFIRMED`, pushes the confirmed support plane, shifted by the distance offset, into `BoxMeasurer`, and reports status.
   - `api/request_handler.py` registers every service with pydantic-validated requests and responses; a failed validation or a raised exception becomes `{"error": "..."}`.
 - `App` builds one `dai.Pipeline` at startup and runs it until the pipeline stops, `SIGINT`/`SIGTERM` arrives, or the remote connection sends `q`. There is no pipeline restart.
-- Registered services: `getDetectionConfidenceThreshold`, `setDetectionConfidenceThreshold`, `getSupportPlaneCalibrationStatus`, `confirmSupportPlane`, `retrySupportPlaneCalibration`, `selectSupportPlaneCandidate`, `setSupportPlanePreviewActive`, `setSupportPlaneDistanceOffset`. [backend/tests/test_app_services.py](backend/tests/test_app_services.py) pins this set.
+- Registered services: `getDetectionConfidenceThreshold`, `setDetectionConfidenceThreshold`, `getSupportPlaneCalibrationStatus`, `confirmSupportPlane`, `retrySupportPlaneCalibration`, `selectSupportPlaneCandidate`, `setSupportPlanePreviewActive`, `setSupportPlaneDistanceOffset`.
 - The frontend is one page built from `@luxonis/ui-components` and Tailwind classes. Without a confirmed support plane it shows the support plane calibration view (status, camera tilt and distance, candidate cycling, confirm/restart, `Support plane preview` stream; the preview runs only while this view is shown). With one it shows the measurement view (`Color stream` + `Detections`, and a toolbar with the **Distance offset** and **Detection settings** panels and **Recalibrate**).
 - The toolbar panels use [frontend/src/components/ToolbarPanel.tsx](frontend/src/components/ToolbarPanel.tsx), a button that drops a panel below itself and closes on Escape or an outside click, because ui-components has no popover. Reuse it for a new toolbar setting.
 - Frontend service calls go through TanStack Query + zod definitions in [frontend/src/backend/](frontend/src/backend/).
@@ -79,7 +79,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 - `To reuse measurement in another pipeline:` install `depthai-nodes[box-measurement]` at the version in [backend/requirements.txt](backend/requirements.txt) and wire `BoxMeasurer` + `SupportPlaneCalibrator` as in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py)
 - `To act on measurements (log, store, forward):` read `BoxMeasurements` from `box_measurement.out` in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py) with a host node or output queue
-- `To add a live control:` register a service in [backend/src/app.py](backend/src/app.py) with `add_request_handler`, define it in the frontend like [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx), put its UI in a `ToolbarPanel` like [frontend/src/detection/DetectionSettingsButton.tsx](frontend/src/detection/DetectionSettingsButton.tsx), and add the name to the pinned set in [backend/tests/test_app_services.py](backend/tests/test_app_services.py)
+- `To add a live control:` register a service in [backend/src/app.py](backend/src/app.py) with `add_request_handler`, define it in the frontend like [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx), and put its UI in a `ToolbarPanel` like [frontend/src/detection/DetectionSettingsButton.tsx](frontend/src/detection/DetectionSettingsButton.tsx)
 - `To change the frame rate:` edit `FPS` in [backend/src/config.py](backend/src/config.py)
 
 ## Constraints
@@ -96,8 +96,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 ## Non-Obvious Repo Conventions
 
 - The standalone runnability tests discover this app through `oakapp.toml` + `backend/src/main.py` and wait for the `Pipeline started.` log in [backend/src/app.py](backend/src/app.py). Peripheral and RVC2 runs are excluded in `tests/constants.py`.
-- Backend unit tests live in [backend/tests/](backend/tests/) and run without a device: [backend/tests/device_lookup.py](backend/tests/device_lookup.py) patches the depthai-nodes device lookup, and the service tests patch `dai.RemoteConnection` with a fake that records registered services.
-- The frontend has no unit tests. Its checks are `npm run build` (runs `tsc -b`, then `vite build`) and `npm run lint` (Biome, configured in [frontend/biome.json](frontend/biome.json)) in [frontend/](frontend/); `npm run lint:fix` applies Biome's fixes and formatting (tabs).
+- The frontend checks are `npm run build` (runs `tsc -b`, then `vite build`) and `npm run lint` (Biome, configured in [frontend/biome.json](frontend/biome.json)) in [frontend/](frontend/); `npm run lint:fix` applies Biome's fixes and formatting (tabs).
 - Follow the repo `GLOSSARY.md` terms in code, UI and docs: **support plane**, **support plane candidate**, **support plane calibration** and **distance offset**. Qualify "calibration" as support plane calibration, since bare "calibration" means camera calibration elsewhere in this repo; short button labels on a screen already titled "Support plane calibration", such as **Recalibrate** and **Restart calibration**, are the exception.
 
 ## Related Examples
@@ -111,4 +110,3 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend opens on the support plane calibration view with the `Support plane preview`; after confirming a support plane it switches to the color stream, and boxes passing the camera get L × W × H and volume overlaid
 - `Common failure meaning:` a non-stereo device (`UnsupportedDeviceError`), no support plane confirmed yet, the static frontend was not built, or the model download failed on first start
-- `Unit tests:` from [backend/](backend/), on Python 3.11 with only [backend/requirements.txt](backend/requirements.txt) installed, no device: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`
