@@ -7,9 +7,6 @@ import './index.css';
 import '@luxonis/depthai-viewer-common/styles';
 import '@luxonis/ui-components/styles.css';
 import '@luxonis/depthai-pipeline-lib/styles';
-// Panda styles for the views still built on common-fe-components.
-import './panda.css';
-import '@luxonis/common-fe-components/styles';
 import App from './App.tsx';
 
 // extracts the base path with app version, essential for access via domain luxonis.app

@@ -7,7 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"ignore": ["node_modules/", "dist/", "styled-system/"]
+		"ignore": ["node_modules/", "dist/"]
 	},
 	"formatter": {
 		"enabled": true,

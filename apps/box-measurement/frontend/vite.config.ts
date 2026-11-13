@@ -35,11 +35,6 @@ function depthaiPipelinePackageJsonPlugin(): Plugin {
 export default defineConfig({
 	base: '',
 	plugins: [react(), depthaiPipelinePackageJsonPlugin()],
-	server: {
-		watch: {
-			ignored: ['**/styled-system/**', '**/dist/**'],
-		},
-	},
 	define: {
 		global: {},
 	},
