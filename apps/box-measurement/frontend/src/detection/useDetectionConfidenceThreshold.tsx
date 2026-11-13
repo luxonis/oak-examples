@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { z } from 'zod/v3';
 
+import { daiServiceQueryKey, emptyBodySchema } from '../backend/daiService';
 import { useDaiMutation } from '../backend/useDaiMutation';
 import { useDaiQuery } from '../backend/useDaiQuery';
 
@@ -11,14 +12,14 @@ const thresholdSchema = z
 
 const getThresholdService = {
 	serviceName: 'getDetectionConfidenceThreshold',
-	requestSchema: z.object({}).strict(),
+	requestSchema: emptyBodySchema,
 	responseSchema: thresholdSchema,
 } as const;
 
 const setThresholdService = {
 	serviceName: 'setDetectionConfidenceThreshold',
 	requestSchema: thresholdSchema,
-	responseSchema: z.object({}).strict(),
+	responseSchema: emptyBodySchema,
 } as const;
 
 // Applied to the running pipeline without a restart; kept in memory only.
@@ -30,7 +31,7 @@ export const useSetDetectionConfidenceThreshold = () => {
 		mutationOptions: {
 			onSettled: async () => {
 				await queryClient.invalidateQueries({
-					queryKey: ['dai-service', getThresholdService.serviceName],
+					queryKey: daiServiceQueryKey(getThresholdService),
 				});
 			},
 		},

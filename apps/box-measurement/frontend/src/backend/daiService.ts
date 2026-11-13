@@ -2,7 +2,7 @@ import type {
 	DAIConnection,
 	DAIResponse,
 } from '@luxonis/depthai-viewer-common';
-import type { z } from 'zod/v3';
+import { z } from 'zod/v3';
 
 export type DAIRequestBody = Record<string, unknown> | string | number;
 
@@ -15,12 +15,20 @@ export type DAIServiceDefinition<
 	responseSchema: z.ZodType<TResponse>;
 };
 
+/** Request or response body for services that take or return no fields. */
+export const emptyBodySchema = z.object({}).strict();
+
 export type DAIServiceRequest<TService extends DAIServiceDefinition> = z.input<
 	TService['requestSchema']
 >;
 
 export type DAIServiceResponse<TService extends DAIServiceDefinition> =
 	z.output<TService['responseSchema']>;
+
+/** Query key prefix shared by every query of one service, for invalidation. */
+export const daiServiceQueryKey = (
+	service: Pick<DAIServiceDefinition, 'serviceName'>,
+) => ['dai-service', service.serviceName] as const;
 
 export const getDaiError = (
 	serviceName: string,

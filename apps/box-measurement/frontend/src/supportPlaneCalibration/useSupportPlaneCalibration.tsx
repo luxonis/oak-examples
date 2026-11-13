@@ -1,13 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { z } from 'zod/v3';
-import { runDaiServiceRequest } from '../backend/daiService';
+import {
+	daiServiceQueryKey,
+	emptyBodySchema,
+	runDaiServiceRequest,
+} from '../backend/daiService';
 import { useAdvertisedDaiService } from '../backend/useAdvertisedDaiService';
 import { useDaiMutation } from '../backend/useDaiMutation';
 import { useDaiQuery } from '../backend/useDaiQuery';
 import { SUPPORT_PLANE_CALIBRATION_STATES } from './supportPlaneCalibrationState';
-
-const emptyBodySchema = z.object({}).strict();
 
 const supportPlaneCalibrationStatusSchema = z.object({
 	state: z.enum(SUPPORT_PLANE_CALIBRATION_STATES),
@@ -117,7 +119,7 @@ export const useSupportPlaneCalibration = () => {
 
 	const invalidateStatus = async () => {
 		await queryClient.invalidateQueries({
-			queryKey: ['dai-service', getStatusService.serviceName],
+			queryKey: daiServiceQueryKey(getStatusService),
 		});
 	};
 

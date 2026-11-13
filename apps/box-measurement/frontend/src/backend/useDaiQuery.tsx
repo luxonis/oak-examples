@@ -3,6 +3,7 @@ import {
 	type DAIServiceDefinition,
 	type DAIServiceRequest,
 	type DAIServiceResponse,
+	daiServiceQueryKey,
 	runDaiServiceRequest,
 } from './daiService';
 import { useAdvertisedDaiService } from './useAdvertisedDaiService';
@@ -26,14 +27,13 @@ export const useDaiQuery = <TService extends DAIServiceDefinition>({
 	);
 
 	return useQuery({
-		queryKey: ['dai-service', service.serviceName, request],
+		queryKey: [...daiServiceQueryKey(service), request],
 		queryFn: async () => {
 			if (!daiConnection) {
 				throw new Error('No DAI connection');
 			}
 
-			const res = await runDaiServiceRequest(daiConnection, service, request);
-			return res;
+			return runDaiServiceRequest(daiConnection, service, request);
 		},
 		...queryOptions,
 		enabled:
