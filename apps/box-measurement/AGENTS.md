@@ -2,13 +2,13 @@
 
 ## Summary
 
-RVC4 standalone app for live box dimensioning on a calibrated support plane, with a custom calibration and measurement frontend and a reusable box-measurement node set. Uses stereo neural depth, instance segmentation, tracking and the IMU.
+RVC4 standalone app for box dimensioning on a calibrated support plane, built on the depthai-nodes box-measurement nodes, with a custom calibration frontend. Uses stereo neural depth, instance segmentation, tracking and the IMU.
 
 ## Use This Example When
 
 - You need live box dimensions and volume on a conveyor or other flat support plane, with per-box tracking and aggregated measurements.
 - You want a reusable support-plane calibration flow: RANSAC plane candidates, a gravity check from the IMU, candidate cycling, user confirmation and a ± distance offset.
-- You want composable box-measurement DepthAI host nodes (`BoxDetector`, `BoxDimensioner`, `BoxMeasurer`, `SupportPlaneCalibrator`) to reuse in another pipeline.
+- You want a worked wiring of the depthai-nodes `BoxMeasurer` and `SupportPlaneCalibrator` nodes to reuse in another pipeline.
 - You want a small custom frontend that switches views from polled backend state instead of routes.
 
 ## Do Not Use This Example When
@@ -40,21 +40,16 @@ RVC4 standalone app for live box dimensioning on a calibrated support plane, wit
 - [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py): full pipeline wiring and visualizer topics
 - [backend/src/config.py](backend/src/config.py): model names, resolutions, frame rate and default detection confidence
 - [backend/src/services/support_plane_controller.py](backend/src/services/support_plane_controller.py): app-side calibration state, candidate selection and distance offset
-- [backend/src/solutions_sdk/box_measurement/__init__.py](backend/src/solutions_sdk/box_measurement/__init__.py): the reusable box-measurement node and message API
-- [backend/src/solutions_sdk/box_measurement/node/box_measurer.py](backend/src/solutions_sdk/box_measurement/node/box_measurer.py): detector + dimensioner composite node
-- [backend/src/solutions_sdk/box_measurement/node/support_plane_calibrator.py](backend/src/solutions_sdk/box_measurement/node/support_plane_calibrator.py): support-plane candidate discovery
 - [frontend/src/App.tsx](frontend/src/App.tsx): picks the calibration or measurement view from the polled calibration state
 - [frontend/src/calibration/CalibrationView.tsx](frontend/src/calibration/CalibrationView.tsx) and [frontend/src/MeasurementView.tsx](frontend/src/MeasurementView.tsx): the two views
 - [oakapp.toml](oakapp.toml): container, frontend build and base image
 
 ## Architecture
 
-- `backend/src/solutions_sdk/box_measurement/` is a self-contained SDK of DepthAI host nodes and message types. It imports nothing from the rest of the app.
-  - `BoxDetector` runs the instance-segmentation model and tracks boxes.
-  - `BoxDimensioner` fits cuboids to each box's points relative to the active support plane and aggregates dimensions per track (component-wise median).
-  - `BoxMeasurer` composes the two and outputs `BoxMeasurements`.
-  - `SupportPlaneCalibrator` finds support-plane candidates from the organized point cloud and checks them against gravity from the IMU. Its `verify` capability is part of the SDK but unused by the app.
-- The app layer is small:
+- The box nodes and messages come from depthai-nodes (`depthai-nodes[box-measurement]`, see Constraints), not app code. The app imports `BoxMeasurer`, `SupportPlaneCalibrator` and `PlaneCalibrationConfig` from `depthai_nodes.node` and the support-plane messages (`SupportPlane`, `SupportPlaneCalibrationControl`, `SupportPlaneCalibrationResult`, `CalibrationOutcome`) from `depthai_nodes.message`.
+  - `BoxMeasurer` runs the instance-segmentation model, tracks boxes, fits cuboids relative to the active support plane and outputs `BoxMeasurements`.
+  - `SupportPlaneCalibrator` finds support plane candidates in the organized point cloud and checks them against gravity from the IMU.
+- The app layer:
   - `depthai_pipeline/` wires the pipeline and holds the `SupportPlanePreview` node.
   - `services/support_plane_controller.py` runs the calibration states `SEARCHING → AWAITING_CONFIRMATION → CONFIRMED`, pushes the confirmed (offset-corrected) support plane into `BoxMeasurer`, and reports status.
   - `api/request_handler.py` wraps pydantic-validated services; the calibration services are registered raw and return `{}` or `{"error": "..."}`.
@@ -76,11 +71,11 @@ RVC4 standalone app for live box dimensioning on a calibrated support plane, wit
 
 - `Safe to change:` `FPS`, resolutions and the default confidence in [backend/src/config.py](backend/src/config.py) (keep the 512x320 measurement grid in sync with the model), frontend layout and wording
 - `Requires care:` service names and payloads shared with [frontend/src/backend/](frontend/src/backend/), [frontend/src/calibration/useSupportPlaneCalibration.tsx](frontend/src/calibration/useSupportPlaneCalibration.tsx) and [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx); the calibration state names mirrored in [frontend/src/calibration/calibrationState.ts](frontend/src/calibration/calibrationState.ts); the visualizer topic names used by both views
-- `Likely to break if changed blindly:` point-cloud size/units passed to `BoxMeasurer` and `SupportPlaneCalibrator`, the plane sign/orientation convention, depthai / depthai-nodes / open3d version pins
+- `Likely to break if changed blindly:` point-cloud size/units passed to `BoxMeasurer` and `SupportPlaneCalibrator`, the plane sign/orientation convention, depthai / depthai-nodes / open3d version pins and the matching apt step in [oakapp.toml](oakapp.toml)
 
 ## Common Adaptations
 
-- `To reuse measurement in another pipeline:` copy [backend/src/solutions_sdk/](backend/src/solutions_sdk/) and wire `BoxMeasurer` + `SupportPlaneCalibrator` as in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py)
+- `To reuse measurement in another pipeline:` install `depthai-nodes[box-measurement]` (currently the git pin in [backend/requirements.txt](backend/requirements.txt)) and wire `BoxMeasurer` + `SupportPlaneCalibrator` as in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py)
 - `To act on measurements (log, store, forward):` read `BoxMeasurements` from `box_measurement.out` in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py) with a host node or output queue
 - `To add a live control:` register a service in [backend/src/app.py](backend/src/app.py) with `add_request_handler`, define it in the frontend like [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx), and add the name to the pinned set in [backend/tests/test_app_services.py](backend/tests/test_app_services.py)
 - `To change the frame rate:` edit `FPS` in [backend/src/config.py](backend/src/config.py)
@@ -92,14 +87,16 @@ RVC4 standalone app for live box dimensioning on a calibrated support plane, wit
 - The distance offset can only be set once a support plane is confirmed, so its control lives in the measurement view; it resets on recalibration and on restart.
 - The detection confidence threshold resets to `DEFAULT_DETECTION_CONFIDENCE_THRESHOLD` on every start.
 - The IR dot projector is enabled when present; without it depth on plain surfaces is noisier.
-- Pinned to `depthai==3.11.0`, `depthai-nodes==0.7.0`, `open3d==0.18` on Python 3.11 in the container.
+- `depthai-nodes[box-measurement]` is a git pin to a full commit SHA in [backend/requirements.txt](backend/requirements.txt), because no depthai-nodes release ships the box nodes yet. The pin is temporary and branch-only: replace it with a PyPI release that ships them before merging to `main`. The pinned SHA must stay fetchable from the public depthai-nodes repo.
+- Pinned to `depthai==3.11.0` and `open3d==0.20.0` on Python 3.11 in the container. open3d comes in through depthai-nodes; the app doesn't import it.
+- [oakapp.toml](oakapp.toml) apt-installs `libgfortran5 libegl1` because the open3d 0.20.0 wheel links them; change them together.
 
 ## Non-Obvious Repo Conventions
 
 - The standalone runnability tests discover this app through `oakapp.toml` + `backend/src/main.py` and wait for the `Pipeline started.` log in [backend/src/app.py](backend/src/app.py). Peripheral and RVC2 runs are excluded in `tests/constants.py`.
-- Backend unit tests live in [backend/tests/](backend/tests/) and run without a device: [backend/tests/device_lookup.py](backend/tests/device_lookup.py) patches the depthai-nodes device lookup, and the service tests patch `dai.RemoteConnection` with a fake that records registered services. Lint and type-check config is in [backend/pyproject.toml](backend/pyproject.toml) and [backend/requirements-dev.txt](backend/requirements-dev.txt).
+- Backend unit tests live in [backend/tests/](backend/tests/) and run without a device: [backend/tests/device_lookup.py](backend/tests/device_lookup.py) patches the depthai-nodes device lookup, and the service tests patch `dai.RemoteConnection` with a fake that records registered services.
 - The frontend has no unit tests; `npm run typecheck`, `npm run lint` and `npm run build` in [frontend/](frontend/) are the checks.
-- Use "support plane" in code, UI and docs, not "support surface", "ground plane" or "floor".
+- Use the root glossary terms "support plane" and "support plane candidate" in code, UI and docs.
 
 ## Related Examples
 
@@ -112,4 +109,4 @@ RVC4 standalone app for live box dimensioning on a calibrated support plane, wit
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend opens on the calibration view with the `Support plane preview`; after confirming a support plane it switches to the color stream, and boxes passing the camera get L × W × H and volume overlaid
 - `Common failure meaning:` a non-stereo device (`UnsupportedDeviceError`), no support plane confirmed yet, the static frontend was not built, or model zoo download failed on first run
-- `Unit tests:` from [backend/](backend/), on Python 3.11 with [backend/requirements-dev.txt](backend/requirements-dev.txt) installed: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`
+- `Unit tests:` from [backend/](backend/), on Python 3.11 with only [backend/requirements.txt](backend/requirements.txt) installed (needs network and git for the depthai-nodes pin), no device: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`

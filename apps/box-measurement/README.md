@@ -4,7 +4,6 @@ This app measures box dimensions (L × W × H) and volume live on an RVC4 device
 
 > **Note:** This app requires an **OAK 4 D** device (Pro or non-Pro) - box dimensions are computed from a stereo camera pair. Single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is optional and is enabled automatically when present.
 
-
 ## 1. Install the prerequisites
 
 ### oakctl
@@ -28,7 +27,7 @@ All connected devices can be seen with:
 oakctl device list
 ```
 
-You should see your device with its serial number and IP. You can connect to the device with: 
+You should see your device with its serial number and IP. You can connect to the device with:
 
 ```bash
 oakctl connect <DEVICE_IP>
@@ -43,6 +42,7 @@ check what is available and then apply the update:
 oakctl device update --info
 oakctl device update
 ```
+
 > **Note:** The device needs internet access for OTA update. See [oakctl documentation](https://docs.luxonis.com/software-v3/oak-apps/oakctl#oakctl%20tool-Usage-Device%20Management) for offline updates.
 
 The update takes several minutes and reboots the device. Do not power it off while it runs.
@@ -56,7 +56,7 @@ and run the following command:
 oakctl app run .
 ```
 
-The first run builds the container on the device and takes a while. Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
+The first run builds the container on the device and takes a while. The build installs the box-measurement nodes from [depthai-nodes](https://github.com/luxonis/depthai-nodes) on GitHub (see [backend/requirements.txt](backend/requirements.txt)), so the device needs internet access. Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
 ## 4. Calibrate the support plane
 
