@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BoxMeasurement</title>
+    <!--
+      Cascade layer order for Tailwind (ui-components, viewer-common) and Panda
+      (common-fe-components). It must come before every stylesheet, because the
+      bundled CSS hoists library imports ahead of the app's own layer statements.
+    -->
+    <style>
+      @layer properties, reset, theme, base, tokens, recipes, components, utilities;
+    </style>
   </head>
   <body>
     <div id="root"></div>
