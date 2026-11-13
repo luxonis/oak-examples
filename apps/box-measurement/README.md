@@ -4,10 +4,6 @@ This app measures box dimensions (L × W × H) and volume live on an RVC4 device
 
 > **Note:** This app requires an **OAK 4 D** device (Pro or non-Pro) - box dimensions are computed from a stereo camera pair. Single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is optional and is enabled automatically when present.
 
-## Demo
-
-![Box measurement demo](media/demo.gif)
-
 ## 1. Install the prerequisites
 
 ### oakctl
