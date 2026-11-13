@@ -1,18 +1,17 @@
-"""Application calibration workflow, independent of the SDK fitting lifecycle."""
+"""App calibration workflow, independent of the calibrator's fitting lifecycle."""
 
 from threading import Event, RLock, Thread
 
 import depthai as dai
 import numpy as np
-
-from solutions_sdk.box_measurement import (
-    BoxMeasurer,
+from depthai_nodes.message import (
     CalibrationOutcome,
     SupportPlane,
     SupportPlaneCalibrationControl,
     SupportPlaneCalibrationResult,
-    SupportPlaneCalibrator,
 )
+from depthai_nodes.node import BoxMeasurer, SupportPlaneCalibrator
+
 from util.plane_geometry import (
     apply_distance_offset,
     camera_distance_mm,
@@ -28,7 +27,7 @@ class SupportPlaneController:
     """Own selection and activation; consume each attempt before retrying."""
 
     def __init__(self, calibrator: SupportPlaneCalibrator, measurer: BoxMeasurer):
-        self._controls = calibrator.control_input.createInputQueue()
+        self._controls = calibrator.inputControl.createInputQueue()
         self._results = calibrator.out.createOutputQueue()
         self._measurer = measurer
         self._lock = RLock()
@@ -37,7 +36,6 @@ class SupportPlaneController:
         self._outstanding = False
         self._completed = False
         self._restart_pending = False
-        self._error: str | None = None
         self._state = "SEARCHING"
         self._candidates: list[SupportPlane] = []
         self._selected = 0
@@ -82,11 +80,16 @@ class SupportPlaneController:
                     if self._restart_pending:
                         self._start_attempt()
                     elif result.outcome is CalibrationOutcome.SUCCEEDED:
-                        self._candidates = list(result.candidates)
+                        # Upstream doesn't document candidate order; offer the
+                        # best-supported support plane first.
+                        ranked = sorted(
+                            result.candidates,
+                            key=lambda candidate: candidate.inlier_count,
+                            reverse=True,
+                        )
+                        self._candidates = [candidate.plane for candidate in ranked]
                         self._selected = 0
                         self._state = "AWAITING_CONFIRMATION"
-                    elif result.outcome is CalibrationOutcome.FAILED:
-                        self._error = result.info
         except dai.MessageQueue.QueueException:
             return
 
@@ -116,7 +119,6 @@ class SupportPlaneController:
             self._state = "SEARCHING"
             self._candidates = []
             self._selected = 0
-            self._error = None
             self._active = self._corrected = None
             self._offset_mm = 0.0
             self._measurer.clearSupportPlane()
@@ -150,7 +152,6 @@ class SupportPlaneController:
             self._closed.is_set()
             or self._state != "AWAITING_CONFIRMATION"
             or not self._candidates
-            or self._error
         ):
             return None
         return self._candidates[self._selected]
@@ -200,8 +201,6 @@ class SupportPlaneController:
         with self._lock:
             if self._closed.is_set():
                 return {"error": "Support plane calibration is not available"}
-            if self._error is not None:
-                return {"error": self._error}
             plane = self._displayed_plane()
             corrected = self._corrected or plane
             status: dict[str, str | int | float | None] = {

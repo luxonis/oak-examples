@@ -4,7 +4,7 @@ app_version = "0.0.2"
 
 prepare_container = [
     { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3-pip" },
+    { type = "RUN", command = "apt-get install -y python3-pip libgfortran5 libegl1" },
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
     { type = "RUN", command = "pip3 install -r /app/backend/requirements.txt --break-system-packages" },
 ]

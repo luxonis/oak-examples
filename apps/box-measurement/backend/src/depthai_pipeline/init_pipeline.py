@@ -1,12 +1,12 @@
 import logging
 
 import depthai as dai
-
-from solutions_sdk.box_measurement import (
+from depthai_nodes.node import (
     BoxMeasurer,
     PlaneCalibrationConfig,
     SupportPlaneCalibrator,
 )
+
 from depthai_pipeline.node.support_plane_preview import SupportPlanePreview
 from services.support_plane_controller import SupportPlaneController
 from util.device_support import check_device_supported
@@ -89,19 +89,20 @@ def init_pipeline(
     measurement_color.out.link(rgbd.inColor)
     nn_depth_align.outputAligned.link(rgbd.inDepth)
 
-    # Segmentation, tracking, geometry and numerical accumulation belong to the SDK.
+    # Segmentation, tracking, geometry and numerical accumulation belong to
+    # depthai-nodes.
     box_measurement = pipeline.create(BoxMeasurer).build(
         color=measurement_color.out,
-        point_cloud=rgbd.pcl,
-        point_cloud_size=(nn_width, nn_height),
-        confidence_threshold=confidence_threshold,
+        pointCloud=rgbd.pcl,
+        pointCloudSize=(nn_width, nn_height),
+        confidenceThreshold=confidence_threshold,
     )
 
     # Calibration and measurement receive the same organized cloud.
     calibrator = pipeline.create(SupportPlaneCalibrator).build(
-        point_cloud=rgbd.pcl,
+        pointCloud=rgbd.pcl,
         imu=imu.out,
-        point_cloud_size=(nn_width, nn_height),
+        pointCloudSize=(nn_width, nn_height),
         config=PlaneCalibrationConfig(),
     )
     support_plane = SupportPlaneController(calibrator, box_measurement)

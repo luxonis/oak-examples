@@ -1,6 +1,10 @@
 depthai==3.11.0
-depthai-nodes==0.7.0
+# Temporary and branch-only: no depthai-nodes release ships the box nodes yet.
+# Replace this git pin with a PyPI release that does before merging to main.
+depthai-nodes[box-measurement] @ git+https://github.com/luxonis/depthai-nodes@299bd64e9790bd985583c91c2d0846b02124281e
 numpy>=1.22
-open3d==0.18
+# Comes in through depthai-nodes; the app doesn't import it. Pinned because the
+# container's apt libraries (libgfortran5, libegl1) match this wheel.
+open3d==0.20.0
 opencv-python-headless
 pydantic==2.12.5

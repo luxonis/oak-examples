@@ -4,13 +4,13 @@ import threading
 from types import FrameType
 
 import depthai as dai
+from depthai_nodes.node import BoxMeasurer
 from pydantic import BaseModel, Field
 
 from api.request_handler import EmptyBody, add_request_handler
 from config import DEFAULT_DETECTION_CONFIDENCE_THRESHOLD
 from depthai_pipeline.init_pipeline import init_pipeline
 from services.support_plane_controller import SupportPlaneController
-from solutions_sdk.box_measurement import BoxMeasurer
 
 logger = logging.getLogger(__name__)
 

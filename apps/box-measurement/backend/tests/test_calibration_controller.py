@@ -1,4 +1,4 @@
-"""Application services coordinate native SDK controls/results and live previews."""
+"""Application services coordinate calibrator controls/results and live previews."""
 
 import time
 import unittest
@@ -6,14 +6,17 @@ from unittest.mock import patch
 
 import depthai as dai
 import numpy as np
+from depthai_nodes.message import (
+    CalibrationOutcome,
+    SupportPlane,
+    SupportPlaneCalibrationControl,
+    SupportPlaneCalibrationResult,
+    SupportPlaneCandidate,
+)
+from depthai_nodes.node import SupportPlaneCalibrator
 from device_lookup import setUpModule, tearDownModule  # noqa: F401
 
 from services.support_plane_controller import SupportPlaneController
-from solutions_sdk.box_measurement import (
-    SupportPlane,
-    SupportPlaneCalibrationControl,
-    SupportPlaneCalibrator,
-)
 
 
 class FakeMeasurer:
@@ -57,11 +60,12 @@ class HostSource(dai.node.ThreadedHostNode):
 class GeometryScene:
     """Deterministic external geometry library for queue and lifecycle tests."""
 
-    def __init__(self, planes, *, entered=None, release=None, error=None):
+    def __init__(self, planes, *, entered=None, release=None):
+        # Inlier counts stay at or below the 400-point cloud: upstream turns them
+        # into candidate inlier ratios, which must not exceed 1.
         self.planes = planes
         self.entered = entered
         self.release = release
-        self.error = error
 
     def cloud(self):
         return ScriptedCloud(self, self.planes)
@@ -74,8 +78,6 @@ class ScriptedCloud:
         self.points = np.zeros((400, 3))
 
     def voxel_down_sample(self, voxel_size):
-        if self.scene.error:
-            raise self.scene.error
         return self
 
     def remove_statistical_outlier(self, neighbors, ratio):
@@ -166,22 +168,6 @@ class CalibrationControllerTests(unittest.TestCase):
         self.assertEqual(controller.get_status()["state"], "SEARCHING")
         self.assertEqual(controller.get_status()["distance_offset_mm"], 0)
         self.assertIsNone(self.measurer.getSupportPlane())
-
-    def test_failure_rejects_stale_confirmation_and_retry_clears_error(self):
-        controller = self.build()
-        with patch(
-            "open3d.geometry.PointCloud",
-            GeometryScene([], error=ValueError("bad sensor processing")).cloud,
-        ):
-            self.until(lambda: "error" in controller.get_status())
-        self.assertIn("bad sensor processing", controller.get_status()["error"])
-        self.assertFalse(controller.confirm_candidate())
-        self.assertFalse(controller.cycle_candidate())
-        controller.request_recalibration()
-        self.assertNotIn("error", controller.get_status())
-        self.until(
-            lambda: controller.get_status().get("state") == "AWAITING_CONFIRMATION"
-        )
 
     def test_repeated_restart_during_fit_is_responsive_and_ignores_old_candidates(self):
         from threading import Event
@@ -301,21 +287,10 @@ class CalibrationControllerTests(unittest.TestCase):
         app._support_plane = self.controller
         return app.visualizer.services
 
-    def test_services_report_failure_retry_select_confirm_offset_and_preview(self):
+    def test_services_report_search_select_confirm_offset_preview_and_retry(self):
         self.build()
         services = self.services()
-        with patch(
-            "open3d.geometry.PointCloud",
-            GeometryScene([], error=ValueError("sensor failure")).cloud,
-        ):
-            self.until(
-                lambda: "error" in services["getSupportPlaneCalibrationStatus"]({})
-            )
-        self.assertIn(
-            "sensor failure", services["getSupportPlaneCalibrationStatus"]({})["error"]
-        )
         self.assertIn("error", services["confirmSupportPlane"]({}))
-        self.assertEqual(services["retrySupportPlaneCalibration"]({}), {})
         self.until(
             lambda: services["getSupportPlaneCalibrationStatus"]({}).get("state")
             == "AWAITING_CONFIRMATION"
@@ -342,11 +317,11 @@ class CalibrationControllerTests(unittest.TestCase):
 
 
 class ResultEndpoint(dai.node.ThreadedHostNode):
-    """Inject public SDK results and observe controls at native queue boundaries."""
+    """Inject calibrator results and observe controls at native queue boundaries."""
 
     def __init__(self):
         super().__init__()
-        self.control_input = self.createInput()
+        self.inputControl = self.createInput()
         self.results = self.createInput()
         self.out = self.createOutput()
         self.commands = self.createOutput()
@@ -357,7 +332,7 @@ class ResultEndpoint(dai.node.ThreadedHostNode):
         pause = Event()
         try:
             while self.isRunning():
-                control = self.control_input.tryGet()
+                control = self.inputControl.tryGet()
                 if control is not None:
                     self.commands.send(control)
                 result = self.results.tryGet()
@@ -366,6 +341,21 @@ class ResultEndpoint(dai.node.ThreadedHostNode):
                 pause.wait(0.001)
         except dai.MessageQueue.QueueException:
             return
+
+
+def success(*candidates):
+    """A succeeded result from ``(offset_mm, inlier_count)`` pairs, in that order."""
+    return SupportPlaneCalibrationResult(
+        CalibrationOutcome.SUCCEEDED,
+        [
+            SupportPlaneCandidate(
+                plane=SupportPlane(normal=(0, 0, 1), offset_mm=offset_mm),
+                inlier_count=inlier_count,
+                inlier_ratio=inlier_count / 1000,
+            )
+            for offset_mm, inlier_count in candidates
+        ],
+    )
 
 
 class CalibrationSequencingTests(unittest.TestCase):
@@ -394,21 +384,10 @@ class CalibrationSequencingTests(unittest.TestCase):
         self.fail("Missing calibration control")
 
     def test_every_start_searches_even_after_a_previous_start_confirmed(self):
-        from solutions_sdk.box_measurement import (
-            CalibrationOutcome,
-            SupportPlaneCalibrationResult,
-        )
-
         commands = SupportPlaneCalibrationControl.Commands
         _, pipeline, results, controls, controller = self.start_session()
         self.assertIs(self.next_command_type(controls), commands.Start)
-        results.send(
-            SupportPlaneCalibrationResult(
-                CalibrationOutcome.SUCCEEDED,
-                [SupportPlane(normal=(0, 0, 1), offset_mm=-1000)],
-                "Found",
-            )
-        )
+        results.send(success((-1000, 400)))
         deadline = time.monotonic() + 3
         while (
             controller.get_status()["state"] != "AWAITING_CONFIRMATION"
@@ -428,11 +407,6 @@ class CalibrationSequencingTests(unittest.TestCase):
         self.assertIs(self.next_command_type(controls), commands.Start)
 
     def test_queued_old_success_is_discarded_before_reset_start_and_selection(self):
-        from solutions_sdk.box_measurement import (
-            CalibrationOutcome,
-            SupportPlaneCalibrationResult,
-        )
-
         measurer = FakeMeasurer()
         pipeline = dai.Pipeline(False)
         endpoint = pipeline.create(ResultEndpoint)
@@ -461,27 +435,14 @@ class CalibrationSequencingTests(unittest.TestCase):
         controller.request_recalibration()
         controller.request_recalibration()
         self.assertIs(next_command_type(), commands.Stop)
-        results.send(
-            SupportPlaneCalibrationResult(
-                CalibrationOutcome.SUCCEEDED,
-                [SupportPlane(normal=(0, 0, 1), offset_mm=-2000)],
-                "Old queued success",
-            )
-        )
+        # The old queued success.
+        results.send(success((-2000, 400)))
         self.assertIs(next_command_type(), commands.Reset)
         self.assertIs(next_command_type(), commands.Start)
         self.assertEqual(controller.get_status()["state"], "SEARCHING")
         self.assertFalse(controller.confirm_candidate())
-        results.send(
-            SupportPlaneCalibrationResult(
-                CalibrationOutcome.SUCCEEDED,
-                [
-                    SupportPlane(normal=(0, 0, 1), offset_mm=-1000),
-                    SupportPlane(normal=(0, 0, 1), offset_mm=-1500),
-                ],
-                "New success",
-            )
-        )
+        # The new success arrives with the best-supported candidate last.
+        results.send(success((-1000, 100), (-1500, 300)))
         deadline = time.monotonic() + 3
         while (
             controller.get_status()["state"] != "AWAITING_CONFIRMATION"
@@ -489,9 +450,12 @@ class CalibrationSequencingTests(unittest.TestCase):
         ):
             time.sleep(0.001)
         self.assertEqual(controller.get_status()["candidate_count"], 2)
-        self.assertTrue(controller.cycle_candidate(-1))
+        # The candidate with the most inliers is offered first.
         self.assertEqual(controller.get_status()["camera_distance_mm"], 1500)
+        self.assertTrue(controller.cycle_candidate(-1))
+        self.assertEqual(controller.get_status()["camera_distance_mm"], 1000)
         self.assertTrue(controller.confirm_candidate())
+        self.assertAlmostEqual(measurer.getSupportPlane().offset_mm, -1000)
         # Completed and consumed result needs no stop/wait cycle.
         controller.request_recalibration()
         self.assertIs(next_command_type(), commands.Reset)
