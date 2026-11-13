@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Diagnostic data capture</title>
+  <style>
+    :root { color-scheme: dark; font: 14px/1.5 system-ui, sans-serif; background: #0b111b; color: #edf3f7; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px; }
+    .capture-panel { background: #111b29; border: 1px solid #29374b; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 28px #0002; }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 24px 16px; }
+    h1 { font-size: 21px; font-weight: 650; letter-spacing: -.025em; margin: 0; }
+    .device-row { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding: 0 24px 18px; color: #9aadc4; font-size: 12px; }
+    #device-name { color: #d5e1ef; font-weight: 600; }
+    .meta-label { color: #748aa4; margin-right: 5px; }
+    .controls { display: grid; grid-template-columns: 130px minmax(180px, 1fr) auto; gap: 16px; align-items: end; padding: 20px 24px; background: #152132; border-top: 1px solid #29374b; }
+    label { display: grid; gap: 7px; color: #bacbdf; font-size: 12px; font-weight: 600; }
+    input { width: 100%; min-width: 0; height: 42px; padding: 9px 12px; border-radius: 7px; border: 1px solid #394b64; background: #0d1725; color: #edf3f7; font: 14px system-ui, sans-serif; outline: none; }
+    input:focus { border-color: #69c8ed; box-shadow: 0 0 0 3px #69c8ed20; }
+    #output { font-family: ui-monospace, monospace; font-size: 12px; }
+    #download { display: inline-block; margin: 0 24px 18px; padding: 9px 16px; border: 1px solid #69c8ed; border-radius: 7px; color: #82d8f7; text-decoration: none; font-weight: 600; }
+    #download[hidden] { display: none; }
+    button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 42px; padding: 0 22px; border: 1px solid #82d8f7; border-radius: 7px; background: #66c7eb; color: #082032; font: 600 14px system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+    button:hover:not(:disabled) { background: #8fdaf5; }
+    button:focus-visible { outline: 2px solid #b9ecff; outline-offset: 3px; }
+    button:disabled { opacity: .45; cursor: wait; }
+    .capture-icon { width: 10px; height: 10px; background: currentColor; border-radius: 50%; }
+    .status-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px; border-top: 1px solid #29374b; color: #a2b7cf; font-size: 12px; }
+    #message { margin: 0; }
+    #saved { margin: 0; padding: 12px 24px; border-top: 1px solid #29374b; background: #102d29; color: #a3e5c6; font: 12px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
+    #capture-preview { margin: 0; padding: 16px 24px; border-top: 1px solid #29374b; }
+    #capture-preview img { display: block; max-width: 100%; max-height: 360px; border-radius: 6px; }
+    #capture-preview figcaption { margin-bottom: 8px; color: #9aadc4; font-size: 12px; }
+    [hidden] { display: none !important; }
+    iframe { display: block; width: 100%; height: 75vh; min-height: 380px; margin: 18px auto 0; border: 1px solid #29374b; border-radius: 12px; background: #080d11; }
+    @media (max-width: 800px) { body { padding: 12px; } .controls { grid-template-columns: 110px minmax(0, 1fr); } .path-field { grid-column: 1 / -1; grid-row: 1; } button { justify-self: end; } .panel-heading, .controls { padding: 16px; } .device-row { padding: 0 16px 16px; } .status-row, #saved { padding: 12px 16px; } h1 { font-size: 18px; } }
+  </style>
+</head>
+<body>
+  <header class="capture-panel">
+    <div class="panel-heading">
+      <h1>Data capture</h1>
+    </div>
+    <div class="device-row" aria-label="Connected device">
+      <span id="device-name">Detecting device…</span>
+      <span><span class="meta-label">Device ID</span><span id="device-id">—</span></span>
+      <span><span class="meta-label">OS</span><span id="device-os">—</span></span>
+    </div>
+    <div class="controls">
+      <label>Frame sets<input id="frames" type="number" min="1" max="10000" step="1" value="5"></label>
+      <label class="path-field"><span id="output-label">Save to folder</span><input id="output" type="text" autocomplete="off" spellcheck="false" placeholder="/path/to/captures"></label>
+      <button id="start" type="button" disabled><span class="capture-icon" aria-hidden="true"></span>Start capture</button>
+    </div>
+    <div id="status-row" class="status-row">
+      <p id="message" role="status" aria-live="polite">Connecting to capture app…</p>
+    </div>
+    <p id="saved" hidden></p>
+    <a id="download" hidden download>Download capture (.zip)</a>
+    <figure id="capture-preview" hidden><figcaption>Saved capture · first frame set</figcaption><a id="preview-link" target="_blank" rel="noopener"><img id="preview-image" alt="Saved capture preview"></a></figure>
+  </header>
+  <main>
+    <iframe id="visualizer" title="DepthAI Visualizer" allow="clipboard-read; clipboard-write"></iframe>
+  </main>
+  <script>
+    const byId = id => document.getElementById(id);
+    const message = byId('message');
+    const start = byId('start');
+    const visualizerPort = new URLSearchParams(location.search).get('visualizer_port') || '8082';
+
+    function show(value) {
+      message.textContent = value == null ? '' : String(value);
+      byId('status-row').hidden = !message.textContent;
+    }
+    let initialized = false;
+    let previewPath = null;
+    byId('preview-image').addEventListener('load', () => { byId('capture-preview').hidden = !previewPath; });
+    byId('preview-image').addEventListener('error', () => { byId('capture-preview').hidden = true; });
+    function describe(status) {
+      if (!initialized) {
+        byId('output').value = status.output || '';
+        byId('frames').value = status.frames || 5;
+        byId('output-label').textContent = status.storage_location === 'device' ? 'Save to device folder' : 'Save to computer folder';
+        byId('visualizer').src = status.storage_location === 'device'
+          ? '/visualizer/'
+          : `http://${location.hostname}:${encodeURIComponent(visualizerPort)}`;
+        initialized = true;
+      }
+      const device = status.device || {};
+      byId('device-name').textContent = device.name || 'Device unavailable';
+      byId('device-id').textContent = device.id || '—';
+      byId('device-os').textContent = device.os || '—';
+      const capturePath = status.state === 'complete' ? status.saved_path : null;
+      const canDownload = status.storage_location === 'device' && Boolean(capturePath);
+      byId('download').hidden = !canDownload;
+      if (canDownload) {
+        const captureName = capturePath.split(/[\\/]/).pop();
+        byId('download').href = '/api/download?capture=' + encodeURIComponent(captureName);
+      } else {
+        byId('download').removeAttribute('href');
+      }
+      if (capturePath !== previewPath) {
+        previewPath = capturePath;
+        byId('capture-preview').hidden = true;
+        if (capturePath) {
+          const url = '/api/preview?capture=' + encodeURIComponent(capturePath);
+          byId('preview-link').href = url;
+          byId('preview-image').src = url;
+        } else {
+          byId('preview-image').removeAttribute('src');
+        }
+      }
+      byId('saved').hidden = !status.saved_path;
+      byId('saved').textContent = status.saved_path ? `${status.state === 'complete' ? 'Saved to' : 'Capture folder'}  ${status.saved_path}` : '';
+      if (status.state === 'warming_up') show(`Sensors warming up: ${status.warmup_remaining} seconds remaining`);
+      else if (status.error) show(status.error);
+      else if (status.state === 'capturing') show(`Capturing: ${status.completed_frames}/${status.frames} frame sets`);
+      else if (status.state === 'complete' || status.state === 'ready') show('');
+      else if (status.state === 'queued') show('Preparing your capture…');
+      else if (status.state === 'starting') show('Starting camera streams…');
+      const busy = ['starting', 'warming_up', 'queued', 'capturing'].includes(status.state);
+      start.disabled = busy;
+    }
+
+    async function poll() {
+      try {
+        const response = await fetch('/api/status', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Status request failed (${response.status})`);
+        describe(await response.json());
+      } catch (error) {
+        show(error.message);
+        start.disabled = true;
+      }
+    }
+
+    start.addEventListener('click', async () => {
+      const frames = Number(byId('frames').value);
+      const output = byId('output').value.trim();
+      if (!Number.isSafeInteger(frames) || frames < 1 || !output) {
+        show('Enter a positive frame count and an output path.');
+        return;
+      }
+      start.disabled = true;
+      show('Requesting capture…');
+      try {
+        const response = await fetch('/api/capture', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ frames, output })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Capture request failed (${response.status})`);
+        show('Capture queued.');
+        await poll();
+      } catch (error) { show(error.message); start.disabled = false; }
+    });
+
+    poll();
+    setInterval(poll, 1000);
+  </script>
+</body>
+</html>

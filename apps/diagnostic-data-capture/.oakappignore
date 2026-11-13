@@ -1,0 +1,6 @@
+captures/
+tests/
+__pycache__/
+*.pyc
+*.log
+.test-venv/
