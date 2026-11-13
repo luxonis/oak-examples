@@ -6,10 +6,11 @@ Preview connected RVC4 cameras in DepthAI Visualizer and save short captures on 
 
 ## Run on the host
 
-Use Python 3.10+ and install `requirements.txt` in your environment. Connect an idle RVC4 device, then run:
+Run the commands below from `apps/diagnostic-data-capture` in this repository. Use an activated Python 3.10+ environment and an idle RVC4 device:
 
 ```sh
-python main.py --device CAMERA_IP --output /path/to/captures
+python -m pip install -r requirements.txt
+python main.py --device CAMERA_IP --output ./captures
 ```
 
 Replace `CAMERA_IP` with your device's IP address. Open the **URL printed after `Capture GUI:`** in a browser on the computer running Python. The printed URL includes the configured control and Visualizer ports. If Python runs on a remote computer, forward all three app ports to the same local port numbers on your browser's computer first (defaults: 8083, 8082 and 8765); a loopback URL refers to the computer where the browser runs.
@@ -22,29 +23,29 @@ With exactly one discoverable camera, `--device` can be omitted. Use `--expected
 python main.py --device CAMERA_IP --frames 5 --warmup 5 --auto-capture --no-gui --output ./captures
 ```
 
-This bounded mode saves one capture and exits, returning a nonzero code on failure. Other controls: `--fps` (10), `--width` (1280 maximum, full sensor aspect ratio), `--capture-timeout` (60 seconds), `--port` (8083), `--visualizer-port` (8082), `--websocket-port` (8765). All three ports must differ. GUI controls bind to loopback; the SDK Visualizer uses its own network listener. Use on a trusted host/network.
+This bounded mode saves one capture and exits, returning a nonzero code on failure. Other controls: `--fps` (10), `--width` (default 1280 pixels, capped at the sensor width, preserving its aspect ratio), `--capture-timeout` (60 seconds), `--port` (8083), `--visualizer-port` (8082), `--websocket-port` (8765). All three ports must differ. GUI controls bind to loopback; the SDK Visualizer uses its own network listener. Use on a trusted host/network.
 
 ## Run on the device (standalone)
 
-Check that the RVC4 device is idle, then build and run the app with oakctl:
+Install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl/). From this example directory, build and run on an idle RVC4 device. This uses the development app slot (`000`), replacing any previous development app there:
 
 ```sh
 oakctl app run . -d CAMERA_IP
 ```
 
-On older devices, choose a compatible SDK at build time. The ToF device running Luxonis OS 1.38.1 was tested with DepthAI 3.11.0; 3.12.1 failed to open its local device connection:
+On the tested ToF device running Luxonis OS 1.38.1, dai 3.11.0 passed while 3.12.1 failed during device initialization. To select 3.11.0, force a rebuild so oakctl does not reuse a cached environment:
 
 ```sh
-oakctl app run . -d CAMERA_IP --build-arg DEPTHAI_VERSION=3.11.0
+oakctl app run . -d CAMERA_IP --invalidate --build-arg DEPTHAI_VERSION=3.11.0
 ```
 
-Open the **HTTPS frontend URL shown by oakctl** using the device's IP address. Accept the device's self-signed certificate if your browser prompts. The capture controls, embedded Visualizer, and downloads share this URL. Direct IP access on a trusted network is supported; Hub/WebRTC access to the capture HTTP controls is not supported.
+Find the frontend address with `oakctl app list -d CAMERA_IP`, then open it using **HTTPS**: `https://CAMERA_IP:FRONTEND_PORT`. Use the assigned port from the listing, even if the listing shows an `http://` URL. Accept the device's self-signed certificate if your browser prompts. The capture controls, embedded Visualizer, and downloads share this URL. Direct IP access on a trusted network is supported; Hub/WebRTC access to the capture HTTP controls is not supported.
 
 In this mode, Python runs on the OAK. Captures default to `$OAKAGENT_STORAGE_APP/captures`, persistent app storage supplied by oak-agent. The GUI labels this **Save to device folder**, and permits subfolders within that capture directory. Captures survive app stops and restarts; removing the app or its storage can remove them. Host paths on your computer are not accessible from this mode.
 
 After a capture completes, click **Download capture (.zip)** to save it to your computer. The ZIP includes the original DAI files, calibration, metadata, and preview. Downloads stream directly without creating another recording-sized file on the device. The button downloads the latest completed capture in the current app session; starting a new capture clears the button until that capture finishes. Older captures remain in the persistent directory and can be retrieved with device storage tools. Downloading does not delete the device copy.
 
-Stop the development app with Ctrl+C in the attached oakctl session, or:
+To stop the development app, run:
 
 ```sh
 oakctl app stop 000 -d CAMERA_IP
@@ -54,7 +55,7 @@ oakctl app stop 000 -d CAMERA_IP
 
 ## Capture format
 
-Each capture gets a unique directory containing:
+The native DAI files and per-stream directory layout are compatible with [luxonis/capture](https://github.com/luxonis/capture). This example records its own capture metadata. Each capture gets a unique directory containing:
 
 ```text
 OAK-..._<serial>_<date>/
@@ -76,11 +77,11 @@ A CPU-side DepthAI `Sync` node groups frames by device timestamps within half a 
 
 ## Replay
 
-For a capture containing left and right, the `cv-methods` repository accepts the original calibration and nested DAI files directly:
+For a capture containing left and right, install the separate [cv-methods repository](https://github.com/luxonis/cv-methods) and its requirements. Run the following from that checkout, not this example directory:
 
 ```sh
 python generate.py --method neural --model large --device-ip IDLE_RVC4_IP \
   --capture /path/to/capture --timestamp TIMESTAMP --output-dir /path/to/replay
 ```
 
-Use a numeric timestamp from metadata. RGB-only captures have no stereo replay. Neural depth is a qualitative diagnostic, not a ground-truth accuracy measurement.
+Use a shared filename key from `metadata.json` (`frames[].timestamp`) for `TIMESTAMP`. RGB-only captures have no stereo replay. Neural depth is a qualitative diagnostic, not a ground-truth accuracy measurement.
