@@ -9,6 +9,7 @@ import depthai as dai
 import numpy as np
 from device_lookup import setUpModule, tearDownModule  # noqa: F401
 from pydantic import ValidationError
+from test_calibration_controller import GeometryScene, HostSource
 
 from solutions_sdk.box_measurement import (
     CalibrationOutcome,
@@ -79,7 +80,11 @@ class CalibrationValuesTests(unittest.TestCase):
         self.assertEqual(result.candidates, (plane,))
 
     def test_configuration_rejects_wrong_types_and_bad_values(self):
-        for name in ("ransac_sample_points", "ransac_max_iterations", "max_plane_passes"):
+        for name in (
+            "ransac_sample_points",
+            "ransac_max_iterations",
+            "max_plane_passes",
+        ):
             for value in (3.5, "three", None, 0, -1):
                 with (
                     self.subTest(name=name, value=value),
@@ -104,7 +109,9 @@ class CalibrationValuesTests(unittest.TestCase):
             ("min_inlier_ratio", 1.5),
             ("max_gravity_angle_deg", 90),
         ):
-            with self.subTest(name=name, value=value), self.assertRaises(ValidationError):
+            with self.subTest(name=name, value=value), self.assertRaises(
+                ValidationError
+            ):
                 PlaneCalibrationConfig(**{name: value})
         self.assertEqual(PlaneCalibrationConfig(voxel_size_mm=30).voxel_size_mm, 30)
 
@@ -135,63 +142,6 @@ class CalibrationValuesTests(unittest.TestCase):
     def test_results_reject_unknown_outcomes(self):
         with self.assertRaises(TypeError):
             SupportPlaneCalibrationResult("cancelled", [])  # type: ignore[arg-type]
-
-
-class HostSource(dai.node.ThreadedHostNode):
-    def __init__(self):
-        super().__init__()
-        self.input = self.createInput()
-        self.out = self.createOutput()
-
-    def run(self):
-        while self.isRunning():
-            try:
-                self.out.send(self.input.get())
-            except dai.MessageQueue.QueueException:
-                return
-
-
-class GeometryScene:
-    """Deterministic external geometry library for queue and lifecycle tests."""
-
-    def __init__(self, planes, *, entered=None, release=None, error=None):
-        self.planes = planes
-        self.entered = entered
-        self.release = release
-        self.error = error
-
-    def cloud(self):
-        return ScriptedCloud(self, self.planes)
-
-
-class ScriptedCloud:
-    def __init__(self, scene, planes):
-        self.scene = scene
-        self.planes = planes
-        self.points = np.zeros((400, 3))
-
-    def voxel_down_sample(self, voxel_size):
-        if self.scene.error:
-            raise self.scene.error
-        return self
-
-    def remove_statistical_outlier(self, neighbors, ratio):
-        return self, list(range(len(self.points)))
-
-    def segment_plane(self, distance, samples, iterations):
-        if self.scene.entered:
-            self.scene.entered.set()
-            if not self.scene.release.wait(5):
-                raise ValueError("Test geometry gate timed out")
-        if not self.planes:
-            raise RuntimeError("No plane fit")
-        equation, count = self.planes[0]
-        return equation, list(range(count))
-
-    def select_by_index(self, indices, invert):
-        child = ScriptedCloud(self.scene, self.planes[1:])
-        child.points = np.asarray(self.points)[len(indices) :]
-        return child
 
 
 class CalibratorPipeline(unittest.TestCase):
@@ -547,9 +497,7 @@ class CalibrationQueueTests(CalibratorPipeline):
 
 def tilted_plane(angle_deg, offset_mm=-1000.0):
     angle = np.deg2rad(angle_deg)
-    return SupportPlane(
-        normal=(0.0, np.sin(angle), np.cos(angle)), offset_mm=offset_mm
-    )
+    return SupportPlane(normal=(0.0, np.sin(angle), np.cos(angle)), offset_mm=offset_mm)
 
 
 class VerificationTests(CalibratorPipeline):
@@ -573,7 +521,9 @@ class VerificationTests(CalibratorPipeline):
 
     def test_unnormalized_equation_is_judged_by_direction(self):
         self.gravity()
-        self.assertTrue(self.verify(SupportPlane(normal=(0, 0, 3), offset_mm=-3000)).accepted)
+        self.assertTrue(
+            self.verify(SupportPlane(normal=(0, 0, 3), offset_mm=-3000)).accepted
+        )
 
     def test_plane_behind_the_camera_is_rejected(self):
         self.gravity()
@@ -583,7 +533,9 @@ class VerificationTests(CalibratorPipeline):
 
     def test_opposite_sign_equation_of_an_accepted_plane_is_rejected(self):
         self.gravity()
-        self.assertTrue(self.verify(SupportPlane(normal=(0, 0, 1), offset_mm=-1000)).accepted)
+        self.assertTrue(
+            self.verify(SupportPlane(normal=(0, 0, 1), offset_mm=-1000)).accepted
+        )
         result = self.verify(SupportPlane(normal=(0, 0, -1), offset_mm=1000))
         self.assertFalse(result.accepted)
         self.assertAlmostEqual(result.gravity_angle_deg, 180, places=4)

@@ -6,8 +6,7 @@ from unittest.mock import patch
 
 import depthai as dai
 import numpy as np
-from box_measurement_harness import MeasurementPipeline
-from test_support_plane_calibrator import HostSource
+from device_lookup import setUpModule, tearDownModule  # noqa: F401
 
 from services.support_plane_controller import SupportPlaneController
 from solutions_sdk.box_measurement import (
@@ -17,10 +16,90 @@ from solutions_sdk.box_measurement import (
 )
 
 
+class FakeMeasurer:
+    """The support-plane part of the measurer, the only part the controller uses."""
+
+    def __init__(self):
+        self._plane = None
+
+    def setSupportPlane(self, plane):
+        if not isinstance(plane, SupportPlane):
+            raise TypeError("Expected SupportPlane")
+        self._plane = plane
+
+    def getSupportPlane(self):
+        return self._plane
+
+    def clearSupportPlane(self):
+        self._plane = None
+
+
+class FakeMeasurerTests(unittest.TestCase):
+    def test_rejects_anything_that_is_not_a_support_plane(self):
+        with self.assertRaises(TypeError):
+            FakeMeasurer().setSupportPlane((0, 0, 1, -1000))
+
+
+class HostSource(dai.node.ThreadedHostNode):
+    def __init__(self):
+        super().__init__()
+        self.input = self.createInput()
+        self.out = self.createOutput()
+
+    def run(self):
+        while self.isRunning():
+            try:
+                self.out.send(self.input.get())
+            except dai.MessageQueue.QueueException:
+                return
+
+
+class GeometryScene:
+    """Deterministic external geometry library for queue and lifecycle tests."""
+
+    def __init__(self, planes, *, entered=None, release=None, error=None):
+        self.planes = planes
+        self.entered = entered
+        self.release = release
+        self.error = error
+
+    def cloud(self):
+        return ScriptedCloud(self, self.planes)
+
+
+class ScriptedCloud:
+    def __init__(self, scene, planes):
+        self.scene = scene
+        self.planes = planes
+        self.points = np.zeros((400, 3))
+
+    def voxel_down_sample(self, voxel_size):
+        if self.scene.error:
+            raise self.scene.error
+        return self
+
+    def remove_statistical_outlier(self, neighbors, ratio):
+        return self, list(range(len(self.points)))
+
+    def segment_plane(self, distance, samples, iterations):
+        if self.scene.entered:
+            self.scene.entered.set()
+            if not self.scene.release.wait(5):
+                raise ValueError("Test geometry gate timed out")
+        if not self.planes:
+            raise RuntimeError("No plane fit")
+        equation, count = self.planes[0]
+        return equation, list(range(count))
+
+    def select_by_index(self, indices, invert):
+        child = ScriptedCloud(self.scene, self.planes[1:])
+        child.points = np.asarray(self.points)[len(indices) :]
+        return child
+
+
 class CalibrationControllerTests(unittest.TestCase):
     def setUp(self):
-        self.flow = MeasurementPipeline()
-        self.addCleanup(self.flow.close)
+        self.measurer = FakeMeasurer()
         self.pipeline = dai.Pipeline(False)
         cloud, imu = [self.pipeline.create(HostSource) for _ in range(2)]
         self.cloud_output = cloud.out
@@ -31,7 +110,7 @@ class CalibrationControllerTests(unittest.TestCase):
         )
 
     def build(self):
-        self.controller = SupportPlaneController(self.calibrator, self.flow.measurer)
+        self.controller = SupportPlaneController(self.calibrator, self.measurer)
         self.pipeline.start()
         self.controller.start()
         self.addCleanup(self.pipeline.wait)
@@ -69,7 +148,7 @@ class CalibrationControllerTests(unittest.TestCase):
         controller = self.build()
         self.assertEqual(controller.get_status()["state"], "SEARCHING")
         self.assertEqual(controller.get_status()["distance_offset_mm"], 0)
-        self.assertIsNone(self.flow.measurer.getSupportPlane())
+        self.assertIsNone(self.measurer.getSupportPlane())
 
     def test_select_confirm_offset_then_recalibrate_clears_live_correction(self):
         controller = self.build()
@@ -80,23 +159,15 @@ class CalibrationControllerTests(unittest.TestCase):
         self.assertTrue(controller.confirm_candidate())
         self.assertFalse(controller.confirm_candidate())
         self.assertEqual(controller.get_status()["state"], "CONFIRMED")
-        self.flow.send()
-        self.assertAlmostEqual(
-            self.flow.receive().items[0].dimensions.height_mm, 100, delta=2
-        )
+        self.assertAlmostEqual(self.measurer.getSupportPlane().offset_mm, -1000)
         controller.set_distance_offset(20)
-        self.flow.send()
-        self.assertAlmostEqual(
-            self.flow.receive().items[0].dimensions.height_mm, 120, delta=2
-        )
+        self.assertAlmostEqual(self.measurer.getSupportPlane().offset_mm, -1020)
         controller.request_recalibration()
         self.assertEqual(controller.get_status()["state"], "SEARCHING")
         self.assertEqual(controller.get_status()["distance_offset_mm"], 0)
-        self.assertIsNone(self.flow.measurer.getSupportPlane())
+        self.assertIsNone(self.measurer.getSupportPlane())
 
     def test_failure_rejects_stale_confirmation_and_retry_clears_error(self):
-        from test_support_plane_calibrator import GeometryScene
-
         controller = self.build()
         with patch(
             "open3d.geometry.PointCloud",
@@ -114,8 +185,6 @@ class CalibrationControllerTests(unittest.TestCase):
 
     def test_repeated_restart_during_fit_is_responsive_and_ignores_old_candidates(self):
         from threading import Event
-
-        from test_support_plane_calibrator import GeometryScene
 
         entered, release = Event(), Event()
         self.addCleanup(release.set)
@@ -145,8 +214,6 @@ class CalibrationControllerTests(unittest.TestCase):
     def test_close_detaches_gated_old_result_without_waiting_for_fit(self):
         from threading import Event
 
-        from test_support_plane_calibrator import GeometryScene
-
         entered, release = Event(), Event()
         self.addCleanup(release.set)
         controller = self.build()
@@ -161,10 +228,10 @@ class CalibrationControllerTests(unittest.TestCase):
             controller.close()
             self.assertLess(time.monotonic() - begin, 0.2)
             replacement = SupportPlane(normal=(0, 0, 1), offset_mm=-900)
-            self.flow.measurer.setSupportPlane(replacement)
+            self.measurer.setSupportPlane(replacement)
             release.set()
             time.sleep(0.1)
-            self.assertEqual(self.flow.measurer.getSupportPlane(), replacement)
+            self.assertEqual(self.measurer.getSupportPlane(), replacement)
             self.assertIn("error", controller.get_status())
             self.assertFalse(controller.confirm_candidate())
 
@@ -173,7 +240,7 @@ class CalibrationControllerTests(unittest.TestCase):
     ):
         from depthai_pipeline.node.support_plane_preview import SupportPlanePreview
 
-        self.controller = SupportPlaneController(self.calibrator, self.flow.measurer)
+        self.controller = SupportPlaneController(self.calibrator, self.measurer)
         preview = self.pipeline.create(SupportPlanePreview).build(
             self.cloud_output, (20, 20), self.controller
         )
@@ -235,8 +302,6 @@ class CalibrationControllerTests(unittest.TestCase):
         return app.visualizer.services
 
     def test_services_report_failure_retry_select_confirm_offset_and_preview(self):
-        from test_support_plane_calibrator import GeometryScene
-
         self.build()
         services = self.services()
         with patch(
@@ -266,11 +331,11 @@ class CalibrationControllerTests(unittest.TestCase):
         self.assertEqual(
             services["setSupportPlaneDistanceOffset"]({"offset_mm": 20}), {}
         )
-        self.assertAlmostEqual(self.flow.measurer.getSupportPlane().offset_mm, -1020)
+        self.assertAlmostEqual(self.measurer.getSupportPlane().offset_mm, -1020)
         self.assertEqual(services["setSupportPlanePreviewActive"]({"active": True}), {})
         self.assertIn("error", services["confirmSupportPlane"]({}))
         self.assertEqual(services["retrySupportPlaneCalibration"]({}), {})
-        self.assertIsNone(self.flow.measurer.getSupportPlane())
+        self.assertIsNone(self.measurer.getSupportPlane())
         self.assertEqual(
             services["getSupportPlaneCalibrationStatus"]({})["state"], "SEARCHING"
         )
@@ -306,19 +371,18 @@ class ResultEndpoint(dai.node.ThreadedHostNode):
 class CalibrationSequencingTests(unittest.TestCase):
     def start_session(self):
         """One app start: a fresh measurer, calibrator endpoint and controller."""
-        flow = MeasurementPipeline()
-        self.addCleanup(flow.close)
+        measurer = FakeMeasurer()
         pipeline = dai.Pipeline(False)
         endpoint = pipeline.create(ResultEndpoint)
         results = endpoint.results.createInputQueue()
         controls = endpoint.commands.createOutputQueue()
-        controller = SupportPlaneController(endpoint, flow.measurer)
+        controller = SupportPlaneController(endpoint, measurer)
         pipeline.start()
         self.addCleanup(pipeline.wait)
         self.addCleanup(pipeline.stop)
         self.addCleanup(controller.close)
         controller.start()
-        return flow, pipeline, results, controls, controller
+        return measurer, pipeline, results, controls, controller
 
     def next_command_type(self, controls):
         deadline = time.monotonic() + 3
@@ -357,10 +421,10 @@ class CalibrationSequencingTests(unittest.TestCase):
         pipeline.stop()
         pipeline.wait()
 
-        flow, _, _, controls, controller = self.start_session()
+        measurer, _, _, controls, controller = self.start_session()
         self.assertEqual(controller.get_status()["state"], "SEARCHING")
         self.assertEqual(controller.get_status()["distance_offset_mm"], 0)
-        self.assertIsNone(flow.measurer.getSupportPlane())
+        self.assertIsNone(measurer.getSupportPlane())
         self.assertIs(self.next_command_type(controls), commands.Start)
 
     def test_queued_old_success_is_discarded_before_reset_start_and_selection(self):
@@ -369,13 +433,12 @@ class CalibrationSequencingTests(unittest.TestCase):
             SupportPlaneCalibrationResult,
         )
 
-        flow = MeasurementPipeline()
-        self.addCleanup(flow.close)
+        measurer = FakeMeasurer()
         pipeline = dai.Pipeline(False)
         endpoint = pipeline.create(ResultEndpoint)
         results = endpoint.results.createInputQueue()
         controls = endpoint.commands.createOutputQueue()
-        controller = SupportPlaneController(endpoint, flow.measurer)
+        controller = SupportPlaneController(endpoint, measurer)
         pipeline.start()
         self.addCleanup(pipeline.wait)
         self.addCleanup(pipeline.stop)
