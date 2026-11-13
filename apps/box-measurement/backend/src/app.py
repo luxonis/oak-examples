@@ -31,7 +31,6 @@ class SupportPlaneCalibrationStatus(BaseModel):
     distance_offset_mm: float
     camera_tilt_deg: float | None
     camera_distance_mm: float | None
-    corrected_camera_distance_mm: float | None
 
 
 class SelectSupportPlaneCandidateRequest(BaseModel):

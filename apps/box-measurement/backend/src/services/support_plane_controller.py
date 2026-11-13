@@ -202,7 +202,6 @@ class SupportPlaneController:
             if self._closed.is_set():
                 raise RuntimeError("Support plane calibration is not available")
             plane = self._displayed_plane()
-            corrected = self._corrected or plane
             status: dict[str, str | int | float | None] = {
                 "state": self._state,
                 "candidate_count": len(self._candidates),
@@ -210,17 +209,12 @@ class SupportPlaneController:
                 "distance_offset_mm": self._offset_mm,
                 "camera_tilt_deg": None,
                 "camera_distance_mm": None,
-                "corrected_camera_distance_mm": None,
             }
-            if plane is not None and corrected is not None:
+            if plane is not None:
                 status["camera_tilt_deg"] = round(
                     camera_tilt_deg(plane_equation(plane)), 1
                 )
                 distance = camera_distance_mm(plane_equation(plane))
-                corrected_distance = camera_distance_mm(plane_equation(corrected))
-                if distance is not None and corrected_distance is not None:
+                if distance is not None:
                     status["camera_distance_mm"] = round(distance, 1)
-                    status["corrected_camera_distance_mm"] = round(
-                        corrected_distance, 1
-                    )
             return status

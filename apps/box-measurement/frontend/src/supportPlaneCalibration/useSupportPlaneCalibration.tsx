@@ -20,7 +20,6 @@ const supportPlaneCalibrationStatusSchema = z.object({
 	camera_tilt_deg: z.number().nullable(),
 	camera_distance_mm: z.number().nullable(),
 	distance_offset_mm: z.number(),
-	corrected_camera_distance_mm: z.number().nullable(),
 });
 
 export const MAX_DISTANCE_OFFSET_CM = 10;
