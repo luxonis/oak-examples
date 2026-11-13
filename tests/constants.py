@@ -57,6 +57,15 @@ KNOWN_FAILING = {
             ],
         },
     },
+    "apps/visual-decision-model": {
+        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
+        "rules": {
+            "or": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
     "apps/onnxruntime-track-anything": {
         "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {"and": [{"platform": ["rvc2"]}]},
