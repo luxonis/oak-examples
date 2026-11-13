@@ -1,5 +1,5 @@
-import { Button, Flex, StyledText } from '@luxonis/common-fe-components';
 import { Streams } from '@luxonis/depthai-viewer-common';
+import { Button, StyledText } from '@luxonis/ui-components';
 import DistanceOffsetButton from './calibration/DistanceOffsetButton';
 import { useSupportPlaneCalibration } from './calibration/useSupportPlaneCalibration';
 import DetectionSettingsButton from './detection/DetectionSettingsButton';
@@ -17,8 +17,8 @@ function MeasurementView() {
 	const distanceOffsetMm = statusQuery.data?.distance_offset_mm ?? 0;
 
 	return (
-		<Flex direction="column" width="full" alignItems="center" gap="md">
-			<Flex width="full" justifyContent="flex-end" gap="sm" flexWrap="wrap">
+		<div className="flex w-full flex-col items-center gap-4">
+			<div className="flex w-full flex-wrap justify-end gap-2">
 				{cameraDistanceMm !== null ? (
 					<DistanceOffsetButton
 						cameraDistanceCm={cameraDistanceMm / 10}
@@ -41,29 +41,21 @@ function MeasurementView() {
 					label="Recalibrate"
 					disabled={retryMutation.isPending}
 					onClick={() => {
-						// The polled status then switches back to calibration.
+						// The polled status then switches back to support plane calibration.
 						retryMutation.mutate({});
 					}}
 				/>
-			</Flex>
+			</div>
 			{retryMutation.error ? (
-				<Flex width="full" justifyContent="flex-end">
+				<div className="flex w-full justify-end">
 					<StyledText
 						size="label"
 						color="error"
 						text={retryMutation.error.message}
 					/>
-				</Flex>
+				</div>
 			) : null}
-			<Flex
-				height={{
-					base: '2xl',
-					md: 'calc(100vh - 6rem)',
-				}}
-				minH="lg"
-				minW="1/2"
-				width="full"
-			>
+			<div className="flex h-[42rem] min-h-[32rem] w-full min-w-1/2 md:h-[calc(100vh-6rem)]">
 				<Streams
 					defaultTopics={MEASUREMENT_TOPICS}
 					topicGroups={{
@@ -73,8 +65,8 @@ function MeasurementView() {
 					numberOfColumns={1}
 					topicSortingFunction={sortTopicsBy(MEASUREMENT_TOPICS)}
 				/>
-			</Flex>
-		</Flex>
+			</div>
+		</div>
 	);
 }
 

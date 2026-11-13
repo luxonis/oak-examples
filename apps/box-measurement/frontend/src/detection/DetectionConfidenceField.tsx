@@ -1,4 +1,4 @@
-import { Flex, Label, Slider } from '@luxonis/common-fe-components';
+import { Label, Slider } from '@luxonis/ui-components';
 
 type DetectionConfidenceFieldProps = {
 	value: number;
@@ -14,15 +14,15 @@ function DetectionConfidenceField({
 	disabled = false,
 }: DetectionConfidenceFieldProps) {
 	return (
-		<Flex direction="column" gap="xs" width="full">
-			<Flex justifyContent="space-between" alignItems="center" width="full">
+		<div className="flex w-full flex-col gap-2">
+			<div className="flex w-full items-center justify-between gap-2">
 				<Label
 					text="Detection confidence threshold"
 					color="normal"
 					weight="medium"
 				/>
 				<Label text={value.toFixed(2)} />
-			</Flex>
+			</div>
 			<Slider
 				aria-label="Minimum detection confidence"
 				min={0}
@@ -34,7 +34,7 @@ function DetectionConfidenceField({
 				disabled={disabled}
 				thumbSize="sm"
 			/>
-		</Flex>
+		</div>
 	);
 }
 
