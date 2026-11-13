@@ -184,6 +184,11 @@ class CalibrationServicesTests(unittest.TestCase):
                 name,
             )
 
+    def test_candidate_refusal_is_not_logged_as_an_error(self):
+        self.controller.awaiting_confirmation = False
+        with self.assertNoLogs("api.request_handler", level="ERROR"):
+            self.services["confirmSupportPlane"]({})
+
     def test_retry_restarts_calibration(self):
         self.assertEqual(self.services["retrySupportPlaneCalibration"]({}), {})
         self.assertEqual(self.controller.recalibrations, 1)
@@ -195,6 +200,10 @@ class CalibrationServicesBeforePipelineTests(unittest.TestCase):
         remote.start()
         self.addCleanup(remote.stop)
         self.services = App().visualizer.services
+
+    def test_unavailable_calibration_is_not_logged_as_an_error(self):
+        with self.assertNoLogs("api.request_handler", level="ERROR"):
+            self.services["getSupportPlaneCalibrationStatus"]({})
 
     def test_calibration_services_are_unavailable(self):
         for name, request in (

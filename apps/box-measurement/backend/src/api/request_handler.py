@@ -73,7 +73,7 @@ def add_request_handler(
                 mode="json"
             )
         except Exception as e:
-            logger.exception(f"Error handling request for service {service_name}")
+            logger.warning(f"Couldn't handle request for service {service_name}: {e}")
             response = ErrorResponse(error=str(e))
             return response.model_dump(mode="json")
 
