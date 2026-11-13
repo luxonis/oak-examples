@@ -8,7 +8,8 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - You need person proximity alerts with configurable warning and danger zones on an RVC4 device.
 - You want a standalone frontend/backend reference with annotated streams and live controls.
-- You want to add an optional ground-plane obstacle path to a person alert pipeline.
+- You want to add an optional support-plane obstacle path to a person alert pipeline.
+- You want a working example of depthai-nodes `AutoSupportPlane`, the hands-off automatic support plane calibration.
 
 ## Do Not Use This Example When
 
@@ -43,7 +44,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - RGB passes through a bundled instance segmentation model and native `ImgDetectionsFilter` to keep people. DepthAI's `ObjectTracker` assigns track IDs; `TrackletSegmentationMatcher` attaches the corresponding masks.
 - The `Depth` node selects the backend automatically. Its depth output is aligned to person masks. `SegmentationDangerEvaluator` uses the IMU to rotate depth points into a gravity-aligned frame before testing warning and danger zones.
-- Pipeline initialisation builds an RGBD point cloud from the preview and aligned depth and passes it, with the IMU stream, into `PointCloudObjectDetectionNode`. That composite node periodically fits an IMU-compatible ground plane with RANSAC, groups above-ground points in a polar occupancy grid, and evaluates obstacles against the same zones. It publishes ground points, obstacle boxes, bird's-eye view, and plane-validity annotations.
+- Pipeline initialisation builds an RGBD point cloud from the preview and aligned depth and passes it, with the IMU stream, into `PointCloudObjectDetectionNode`. That composite node runs depthai-nodes `AutoSupportPlane` in continuous mode, which finds the support plane automatically and keeps re-verifying it against gravity. `SupportPlaneSegmenter` turns each `AutoSupportPlaneResult` into per-frame data: it splits every frame's points into support plane and obstacle points at 45 mm, rotates them into a frame built from the support plane's normal, and publishes a `SupportPlaneStatus`. A result with `passed=False` means no valid support plane, so obstacle assessment stops. The occupancy grid groups obstacle points in a polar grid and evaluates obstacles against the same zones. The composite node publishes support plane points, obstacle boxes, bird's-eye view, and support plane status annotations.
 - `DangerClassifier` combines available assessments and applies temporal alert transitions. `DangerVisualizer` publishes person and alert annotations.
 - The frontend calls `getSettings` and `updateSettings`. Applying settings rebuilds the pipeline.
 
@@ -51,7 +52,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - `RGB -> person segmentation -> native person filter + tracker -> mask/track matching`
 - `selected depth + IMU + tracked masks -> person zone assessment`
-- `selected depth + RGB + IMU -> optional ground plane and obstacle assessment`
+- `selected depth + RGB + IMU -> optional support plane and obstacle assessment`
 - `assessments -> temporal classification -> live annotations -> frontend`
 
 ## Modification Guide
@@ -73,13 +74,15 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - Preserve alignment between segmentation masks and depth, and preserve sequence and timestamp metadata passed between host nodes.
 - RVC4 permits at most three outputs per camera. Reuse the 640 × 360 preview for the optional point cloud rather than adding another `Camera.requestOutput()`.
 - Settings are process-local; alerts and video are not recorded.
-- The optional point-cloud path uses Open3D and can be costly. Ground-plane state is cached only in the running pipeline.
+- The optional point-cloud path uses Open3D through the depthai-nodes `box-measurement` extra and can be costly. Support plane state is held only in the running pipeline.
+- `AutoSupportPlane` uses the default `PlaneCalibrationConfig` except for `max_calibration_attempts=10`. Without that cap a failed refit searches indefinitely, never reports `passed=False`, and the lost support plane stays valid. If a real floor is rejected, widen `max_gravity_angle_deg` before changing anything else.
+- `AutoSupportPlaneResult` and `SupportPlaneStatus` are Python `Buffer` subclasses and only travel between host nodes.
 - Encoded topics in the custom browser frontend require HTTPS or localhost; the standalone UI is served over HTTPS.
 
 ## Non-Obvious Repo Conventions
 
 - Native tracking supplies IDs, but instance masks are indexed by detection. `TrackletSegmentationMatcher` pairs them by same-frame box overlap and can reuse a cached mask for an active track.
-- Applying settings restarts the DepthAI pipeline and resets its fitted ground plane.
+- Every pipeline start, including the restart after applying settings, searches for the support plane afresh; no plane is carried over. Obstacle detection shows "plane invalid" until the search finds the floor.
 - The bundled model descriptor is resolved through the DepthAI Zoo for the connected device platform. Keep the YAML under `backend/src/depthai_models/` for OAK App packaging.
 
 ## Related Examples
@@ -90,6 +93,6 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 ## Validation
 
 - `Run:` `python3 -m compileall -q apps/safeguard/backend/src` and `python3 scripts/validate_agents_docs.py` from the repository root.
-- `Unit tests:` from `apps/safeguard/backend`, with [backend/requirements.txt](backend/requirements.txt) installed and no device: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`. [backend/tests/test_obstacle_path.py](backend/tests/test_obstacle_path.py) drives `PointCloudObjectDetectionNode` in a host-only pipeline with synthetic point clouds and gravity; [backend/tests/device_lookup.py](backend/tests/device_lookup.py) lets depthai-nodes host nodes be created without a device.
+- `Unit tests:` from `apps/safeguard/backend`, with [backend/requirements.txt](backend/requirements.txt) installed and no device: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`. [backend/tests/test_obstacle_path.py](backend/tests/test_obstacle_path.py) drives `PointCloudObjectDetectionNode`, including the real `AutoSupportPlane`, in a host-only pipeline with synthetic point clouds and gravity (about 10 s, because continuous mode needs repeated failed checks 0.5 s apart); [backend/tests/device_lookup.py](backend/tests/device_lookup.py) lets depthai-nodes host nodes be created without a device.
 - `Frontend:` run `npm ci && npm run build` in `apps/safeguard/frontend` with Node 22 or newer.
 - `Device:` run `oakctl app run apps/safeguard --device 1` on a connected RVC4. Success means `Pipeline started.` appears, the HTTPS frontend shows `color` and `danger`, and settings apply. Enable generic object detection to check `obstacle_annotations`, `grid`, `grid_annotations`, and `pcl`.

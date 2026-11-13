@@ -1,11 +1,11 @@
 from .obstacles import Obstacle, Obstacles, BoundingBox
-from .plane_validity import PlaneValidity
+from .support_plane_status import SupportPlaneStatus
 from .occupancy_mask import OccupancyMask
 
 __all__ = [
     "Obstacle",
     "Obstacles",
-    "PlaneValidity",
+    "SupportPlaneStatus",
     "BoundingBox",
     "OccupancyMask",
 ]

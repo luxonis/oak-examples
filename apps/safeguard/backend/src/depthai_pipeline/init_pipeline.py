@@ -176,7 +176,7 @@ def init_pipeline(
             )
             .build(
                 obstacles=obstacles.out_obstacles,
-                plane_valid=obstacles.out_plane_valid,
+                support_plane_status=obstacles.out_support_plane_status,
             )
             .out
         )

@@ -5,17 +5,18 @@ from depthai_nodes.utils import AnnotationHelper
 from depthai_pipeline.common.message.danger_classification import DangerLevel
 from settings.settings import SpatialZone
 from util.danger_zones import classify_obstacle
-from util.ground_alignment import ground_to_camera
+from util.aligned_frame import aligned_to_camera
 
-from ..message import Obstacles, OccupancyMask, PlaneValidity
+from ..message import Obstacles, OccupancyMask, SupportPlaneStatus
 from .polar_grid_renderer import PolarGridRenderer
 
 
 class OccupancyGridVisualizationNode(dai.node.HostNode):
     """Render the top-down occupancy grid and a point cloud zone overlay.
 
-    The overlay includes ground, obstacles, and colored zone points. Text
-    annotations report ground validity and identify visible obstacles.
+    The overlay includes support plane points, obstacles, and colored zone
+    points. Text annotations report support plane validity and identify
+    visible obstacles.
     """
 
     RANGE_RES = 100  # mm
@@ -71,36 +72,35 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
         self,
         obstacles: dai.Node.Output,
         occupancy_mask: dai.Node.Output,
-        plane_valid: dai.Node.Output,
+        support_plane_status: dai.Node.Output,
         obstacle_pcl: dai.Node.Output,
-        ground_pcl: dai.Node.Output,
+        support_plane_pcl: dai.Node.Output,
     ) -> "OccupancyGridVisualizationNode":
-        self.link_args(obstacles, occupancy_mask, plane_valid, obstacle_pcl, ground_pcl)
+        self.link_args(
+            obstacles,
+            occupancy_mask,
+            support_plane_status,
+            obstacle_pcl,
+            support_plane_pcl,
+        )
         return self
 
     def process(
         self,
         obstacles_msg: dai.Buffer,
         occupancy_mask_msg: dai.Buffer,
-        plane_valid_msg: dai.Buffer,
+        status_msg: dai.Buffer,
         obstacle_pcl_msg: dai.Buffer,
-        ground_pcl_msg: dai.Buffer,
+        support_plane_pcl_msg: dai.Buffer,
     ) -> None:
         try:
             assert isinstance(obstacles_msg, Obstacles)
             assert isinstance(occupancy_mask_msg, OccupancyMask)
-            assert isinstance(plane_valid_msg, PlaneValidity)
+            assert isinstance(status_msg, SupportPlaneStatus)
             assert isinstance(obstacle_pcl_msg, dai.PointCloudData)
-            assert isinstance(ground_pcl_msg, dai.PointCloudData)
+            assert isinstance(support_plane_pcl_msg, dai.PointCloudData)
 
             occupancy_mask = np.asarray(occupancy_mask_msg.mask, dtype=bool)
-            plane_valid = bool(plane_valid_msg.plane_valid)
-            plane_eq = np.asarray(plane_valid_msg.plane_eq, dtype=np.float32)
-            R = (
-                np.asarray(plane_valid_msg.R, dtype=np.float32)
-                if plane_valid and plane_valid_msg.R.size == 9
-                else None
-            )
 
             sector_nearest = self._compute_nearest_obstacle_per_sector(occupancy_mask)
             img = self._renderer.render(sector_nearest)
@@ -113,10 +113,8 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
 
             pcl_msg = self._build_merged_pcl(
                 obstacle_pcl_msg=obstacle_pcl_msg,
-                ground_pcl_msg=ground_pcl_msg,
-                plane_valid=plane_valid,
-                plane_eq=plane_eq,
-                R=R,
+                support_plane_pcl_msg=support_plane_pcl_msg,
+                status=status_msg,
                 timestamp=obstacles_msg.getTimestamp(),
                 sequence_num=obstacles_msg.getSequenceNum(),
             )
@@ -125,7 +123,9 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
             timestamp = obstacles_msg.getTimestamp()
             sequence_num = obstacles_msg.getSequenceNum()
             self.out_grid_annotations.send(
-                self._build_plane_annotations(plane_valid, timestamp, sequence_num)
+                self._build_plane_annotations(
+                    status_msg.valid, timestamp, sequence_num
+                )
             )
             self.out_obstacle_annotations.send(
                 self._build_obstacle_annotations(
@@ -229,55 +229,34 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
 
     def _build_merged_pcl(
         self,
-        obstacle_pcl_msg,
-        ground_pcl_msg,
-        plane_valid,
-        plane_eq,
-        R,
+        obstacle_pcl_msg: dai.PointCloudData,
+        support_plane_pcl_msg: dai.PointCloudData,
+        status: SupportPlaneStatus,
         timestamp,
         sequence_num,
-    ):
-        """Combine ground, obstacle, and zone points for display.
+    ) -> dai.PointCloudData:
+        """Combine support plane, obstacle, and zone points for display.
 
-        Zone points are placed at the fitted plane's height. All point sets
-        are rotated back from ground coordinates for the DepthAI visualizer.
+        Zone points are placed on the support plane. All point sets are rotated
+        back from support-plane-aligned coordinates for the DepthAI visualizer.
         """
-        if obstacle_pcl_msg.isColor():
-            obstacle_points, obstacle_colors = obstacle_pcl_msg.getPointsRGB()
-        else:
-            obstacle_points = obstacle_pcl_msg.getPoints()
-            obstacle_colors = np.full(
-                (obstacle_points.shape[0], 4), 255, dtype=np.uint8
-            )
-        if ground_pcl_msg.isColor():
-            ground_points, ground_colors = ground_pcl_msg.getPointsRGB()
-        else:
-            ground_points = ground_pcl_msg.getPoints()
-            ground_colors = np.tile(
-                np.array([80, 200, 80, 255], dtype=np.uint8),
-                (ground_points.shape[0], 1),
-            )
+        obstacle_points, obstacle_colors = obstacle_pcl_msg.getPointsRGB()
 
-        if plane_valid and R is not None and plane_eq.size >= 4:
-            # Both sets of points start in the ground-aligned frame.
-            d = float(plane_eq[3])
+        if status.valid:
+            assert status.plane is not None
+            support_points, support_colors = support_plane_pcl_msg.getPointsRGB()
+            # In the aligned frame, the support plane is y' = -offset.
             xz = self._zone_pcl_points
-            y_ground = np.full(xz.shape[0], -d, dtype=np.float32)
-            zone_points = np.column_stack([xz[:, 0], y_ground, xz[:, 1]]).astype(
-                np.float32
-            )
+            plane_y = np.full(xz.shape[0], -status.plane.offset_mm, dtype=np.float32)
+            zone_points = np.column_stack([xz[:, 0], plane_y, xz[:, 1]])
 
             # Rotate the clouds back to camera frame for DepthAI Visualizer.
-            if obstacle_points.shape[0] > 0:
-                obstacle_points = ground_to_camera(obstacle_points, R)
-            if ground_points.shape[0] > 0:
-                ground_points = ground_to_camera(ground_points, R)
-            zone_points = ground_to_camera(zone_points, R)
-            merged_points = np.concatenate(
-                [ground_points, obstacle_points, zone_points]
-            )
+            merged_points = aligned_to_camera(
+                np.concatenate([support_points, obstacle_points, zone_points]),
+                status.R,
+            ).astype(np.float32)
             merged_colors = np.concatenate(
-                [ground_colors, obstacle_colors, self._zone_pcl_colors]
+                [support_colors, obstacle_colors, self._zone_pcl_colors]
             )
         else:
             merged_points, merged_colors = obstacle_points, obstacle_colors
@@ -317,9 +296,9 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
     def _build_plane_annotations(self, plane_valid, timestamp, sequence_num):
         helper = AnnotationHelper()
         text = (
-            "Ground plane valid"
+            "Support plane valid"
             if plane_valid
-            else "No valid ground plane - adjust camera view"
+            else "No valid support plane - adjust camera view"
         )
         color = self.COLOR_SAFE if plane_valid else self.COLOR_WARNING
 
