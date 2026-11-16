@@ -1,4 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Header, Label } from '@luxonis/ui-components';
 import type { ReactNode } from 'react';
 
 type AppLayoutProps = {
@@ -21,11 +22,10 @@ function AppLayout({ stream, controls }: AppLayoutProps) {
 			<div className="w-0.5 shrink-0 bg-border max-[800px]:h-0.5 max-[800px]:w-full" />
 
 			<aside className="flex max-h-full w-[420px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left max-[800px]:max-h-none max-[800px]:w-full max-[800px]:overflow-visible max-[800px]:pr-0">
-				<h1 className="text-2xl font-bold">Box Measurement</h1>
-				<p className="text-sm leading-6 text-muted-foreground">
-					Measures the length, width, height and volume of boxes resting on a
-					flat support plane, such as a conveyor belt.
-				</p>
+				<h1>
+					<Header text="Box Measurement" />
+				</h1>
+				<Label text="Measures the length, width, height and volume of boxes resting on a flat support plane, such as a conveyor belt." />
 
 				{controls}
 
