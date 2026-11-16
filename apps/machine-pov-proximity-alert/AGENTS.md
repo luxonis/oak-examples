@@ -18,7 +18,7 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 
 ## Quick Facts
 
-- `Category:` `apps/safeguard`
+- `Category:` `apps/machine-pov-proximity-alert`
 - `Shape:` `frontend`
 - `Primary task:` machine-mounted, camera-relative person proximity alerts with optional generic obstacle detection
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)

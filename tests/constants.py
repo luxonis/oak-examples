@@ -30,7 +30,7 @@ KNOWN_FAILING = {
             ],
         },
     },
-    "apps/safeguard": {
+    "apps/machine-pov-proximity-alert": {
         "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
         "rules": {
             "or": [
