@@ -27,6 +27,9 @@ class DangerVisualizer(dai.node.HostNode):
         DangerLevel.DANGER: (_COLOR_DANGER, _FILL_DANGER),
     }
     _STATE_BORDER_THICKNESS = 4.0
+    # The border's stroke is centred on its edge, so inset it by half the
+    # thickness (in image pixels) of the 640 x 360 preview to keep it in view.
+    _STATE_BORDER_INSET = 0.006
     _STATE_LABEL = {
         DangerLevel.WARNING: "Warning",
         DangerLevel.DANGER: "Danger",
@@ -36,7 +39,7 @@ class DangerVisualizer(dai.node.HostNode):
         DangerSource.POINTCLOUD: "Point Cloud",
     }
     _STATE_LABEL_POSITION = (0.02, 0.07)
-    _STATE_LABEL_SIZE = 48
+    _STATE_LABEL_SIZE = 24
     _BOX_THICKNESS = 2.0
 
     def __init__(self) -> None:
@@ -90,8 +93,8 @@ class DangerVisualizer(dai.node.HostNode):
         if state_style is not None:
             outline_color, state_fill_color = state_style
             helper.draw_rectangle(
-                (0.0, 0.0),
-                (1.0, 1.0),
+                (self._STATE_BORDER_INSET, self._STATE_BORDER_INSET),
+                (1.0 - self._STATE_BORDER_INSET, 1.0 - self._STATE_BORDER_INSET),
                 outline_color=outline_color,
                 fill_color=state_fill_color,
                 thickness=self._STATE_BORDER_THICKNESS,
