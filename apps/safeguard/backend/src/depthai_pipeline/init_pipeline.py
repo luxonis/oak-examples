@@ -1,7 +1,6 @@
 """Build the SafeGuard detection and alert pipeline."""
 
 import logging
-import time
 from functools import lru_cache
 from pathlib import Path
 
@@ -47,14 +46,7 @@ def _model_from_zoo(platform_name: str):
     """Resolve the bundled model once per process across settings changes."""
     model = dai.NNModelDescription.fromYamlFile(str(MODEL_YAML))
     model.platform = platform_name
-    for attempt in range(3):
-        try:
-            return dai.getModelFromZoo(model)
-        except RuntimeError:
-            if attempt == 2:
-                raise
-            log.warning("Model lookup failed; retrying in 2 seconds")
-            time.sleep(2)
+    return dai.getModelFromZoo(model)
 
 
 def init_pipeline(
