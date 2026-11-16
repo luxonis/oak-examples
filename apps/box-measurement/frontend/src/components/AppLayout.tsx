@@ -1,6 +1,19 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
 import { Header, Label } from '@luxonis/ui-components';
 import type { ReactNode } from 'react';
+import StatusDot from './StatusDot';
+
+// The dot colours are the tokens behind bg-success and bg-destructive.
+const CONNECTED = {
+	label: 'Connected to device',
+	textClass: 'text-success',
+	dotColor: 'var(--lux-success)',
+};
+const DISCONNECTED = {
+	label: 'Disconnected',
+	textClass: 'text-destructive',
+	dotColor: 'var(--lux-destructive)',
+};
 
 type AppLayoutProps = {
 	stream: ReactNode;
@@ -11,7 +24,7 @@ type AppLayoutProps = {
 // right panel holds the title, description, the view's controls and the
 // connection indicator. Narrow screens stack the panes.
 function AppLayout({ stream, controls }: AppLayoutProps) {
-	const connection = useDaiConnection();
+	const connection = useDaiConnection().connected ? CONNECTED : DISCONNECTED;
 
 	return (
 		<main className="flex h-dvh w-full flex-row gap-6 bg-background p-6 max-[800px]:h-auto max-[800px]:min-h-dvh max-[800px]:flex-col max-[800px]:gap-5 max-[800px]:p-4">
@@ -30,18 +43,10 @@ function AppLayout({ stream, controls }: AppLayoutProps) {
 				{controls}
 
 				<div
-					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${
-						connection.connected ? 'text-success' : 'text-destructive'
-					}`}
+					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${connection.textClass}`}
 				>
-					<div
-						className={`h-3 w-3 rounded-full ${
-							connection.connected ? 'bg-success' : 'bg-destructive'
-						}`}
-					/>
-					<span>
-						{connection.connected ? 'Connected to device' : 'Disconnected'}
-					</span>
+					<StatusDot color={connection.dotColor} />
+					<span>{connection.label}</span>
 				</div>
 			</aside>
 		</main>
