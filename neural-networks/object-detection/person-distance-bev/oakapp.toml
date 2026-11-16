@@ -1,4 +1,4 @@
-identifier = "com.example.neural-networks.object-detection.social-distancing"
+identifier = "com.example.neural-networks.object-detection.person-distance-bev"
 app_version = "1.0.0"
 
 prepare_container = [

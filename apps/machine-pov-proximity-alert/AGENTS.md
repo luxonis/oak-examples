@@ -90,7 +90,7 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 ## Related Examples
 
 - [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): custom frontend and ground-aligned 3D processing.
-- [neural-networks/object-detection/human-machine-safety](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/human-machine-safety): another proximity alert example.
+- [neural-networks/object-detection/person-distance-bev](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/person-distance-bev): camera-relative bird's-eye view and pairwise person distances without alert zones.
 
 ## Validation
 
