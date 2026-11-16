@@ -442,7 +442,10 @@ jobs:
           OAKCTL_OPTION="--oakctl"
           if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
             OAKCTL_OPTION=""
-            ENV_VARS="$ENV_VARS --env EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=true -v \$HOME/.local/bin/oakctl:/root/.local/bin/oakctl:ro"
+            ENV_VARS="$ENV_VARS \
+              --env EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=true \
+              -v \$HOME/.local/bin/oakctl:/root/.local/bin/oakctl:ro \
+              -v \$HOME/.local/share/oakctl/data:/opt/oakctl/data:ro"
           fi
 
           if [[ -n "${{ inputs.reservation_name }}" ]]; then
