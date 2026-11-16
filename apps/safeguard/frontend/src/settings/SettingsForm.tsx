@@ -172,7 +172,8 @@ function SettingsFormInner(props: {
 									<Input
 										{...field}
 										type="number"
-										min={1}
+										min={10}
+										max={30}
 										step="1"
 										autoComplete="off"
 										disabled={isPending}
