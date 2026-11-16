@@ -56,10 +56,9 @@ function ToolbarPanel({
 	}, [open]);
 
 	return (
-		// Below the sm breakpoint the panel anchors to the nearest positioned
-		// ancestor (the toolbar row) and spans its width, so a trigger near the
-		// left edge cannot push the panel off screen.
-		<div ref={containerRef} className="sm:relative">
+		// The panel anchors to the nearest positioned ancestor (the toolbar row)
+		// and spans its width, so it stays inside the side panel.
+		<div ref={containerRef}>
 			<Button
 				ref={triggerRef}
 				type="button"
@@ -76,7 +75,7 @@ function ToolbarPanel({
 				<section
 					id={panelId}
 					aria-labelledby={headingId}
-					className="absolute top-full right-0 z-20 mt-2 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-md border border-border bg-background p-4 text-left shadow-md max-sm:left-0 max-sm:w-auto max-sm:max-w-none"
+					className="absolute top-full right-0 left-0 z-20 mt-2 flex flex-col gap-3 rounded-md border border-border bg-background p-4 text-left shadow-md"
 				>
 					<h2 id={headingId}>
 						<SubHeader text={label} />
