@@ -2,9 +2,7 @@ import depthai as dai
 import numpy as np
 from depthai_nodes.utils import AnnotationHelper
 
-from depthai_pipeline.common.message.danger_classification import DangerLevel
 from settings.settings import SpatialZone
-from util.danger_zones import classify_obstacle
 from util.aligned_frame import aligned_to_camera
 
 from ..message import Obstacles, OccupancyMask, SupportPlaneStatus
@@ -15,15 +13,13 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
     """Render the top-down occupancy grid and a point cloud zone overlay.
 
     The overlay includes support plane points, obstacles, and colored zone
-    points. Text annotations report support plane validity and identify
-    visible obstacles.
+    points. Text annotations report support plane validity.
     """
 
     RANGE_RES = 100  # mm
     MAX_RANGE = 9000  # mm
     N_SECTORS = 17
 
-    COLOR_DANGER = (50, 50, 230)
     COLOR_WARNING = (0, 140, 250)
     COLOR_SAFE = (60, 160, 60)
 
@@ -43,7 +39,6 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
         self.out_grid = self.createOutput()
         self.out_pcl = self.createOutput()
         self.out_grid_annotations = self.createOutput()
-        self.out_obstacle_annotations = self.createOutput()
 
         self._angle_bin_rad = np.radians(2.0)
         self._n_angle_bins = int(np.ceil(np.radians(hfov_deg) / self._angle_bin_rad))
@@ -120,16 +115,11 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
             )
             self.out_pcl.send(pcl_msg)
 
-            timestamp = obstacles_msg.getTimestamp()
-            sequence_num = obstacles_msg.getSequenceNum()
             self.out_grid_annotations.send(
                 self._build_plane_annotations(
-                    status_msg.valid, timestamp, sequence_num
-                )
-            )
-            self.out_obstacle_annotations.send(
-                self._build_obstacle_annotations(
-                    obstacles_msg.obstacles, timestamp, sequence_num
+                    status_msg.valid,
+                    obstacles_msg.getTimestamp(),
+                    obstacles_msg.getSequenceNum(),
                 )
             )
         except dai.MessageQueue.QueueException:
@@ -309,48 +299,6 @@ class OccupancyGridVisualizationNode(dai.node.HostNode):
             color=self._bgr_to_color(color),
         )
         return helper.build(timestamp=timestamp, sequence_num=sequence_num)
-
-    def _build_obstacle_annotations(self, obstacles, timestamp, sequence_num):
-        helper = AnnotationHelper()
-
-        for obj in obstacles:
-            zone = self._zone_of_obstacle(obj)
-            annot_color = self._bgr_to_color(self._zone_color(zone))
-
-            if obj.bbox is not None:
-                tl = (obj.bbox.x_min, obj.bbox.y_min)
-                br = (obj.bbox.x_max, obj.bbox.y_max)
-                helper.draw_rectangle(
-                    top_left=tl,
-                    bottom_right=br,
-                    outline_color=annot_color,
-                    fill_color=None,
-                    thickness=2,
-                )
-                bbox_label_pos = (tl[0], max(0.02, tl[1] - 0.02))
-                helper.draw_text(
-                    text=f"Obstacle {obj.id} | {obj.nearest_point_depth / 1000:.1f} m",
-                    position=bbox_label_pos,
-                    color=annot_color,
-                    size=16,
-                    background_color=dai.Color(0.0, 0.0, 0.0, 0.45),
-                )
-
-        return helper.build(timestamp=timestamp, sequence_num=sequence_num)
-
-    def _zone_of_obstacle(self, obstacle) -> DangerLevel:
-        return classify_obstacle(
-            obstacle=obstacle,
-            danger_zone=self._danger_zone,
-            warning_zone=self._warning_zone,
-        )
-
-    def _zone_color(self, zone: DangerLevel) -> tuple[int, int, int]:
-        if zone is DangerLevel.DANGER:
-            return self.COLOR_DANGER
-        if zone is DangerLevel.WARNING:
-            return self.COLOR_WARNING
-        return self.COLOR_SAFE
 
     @staticmethod
     def _bgr_to_color(bgr, alpha=1.0):

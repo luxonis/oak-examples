@@ -56,9 +56,6 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
         self.out_grid = self._occupancy_visualization.out_grid
         self.out_pcl = self._occupancy_visualization.out_pcl
         self.out_grid_annotations = self._occupancy_visualization.out_grid_annotations
-        self.out_obstacle_annotations = (
-            self._occupancy_visualization.out_obstacle_annotations
-        )
 
     def build(
         self,
@@ -79,7 +76,7 @@ class PointCloudObjectDetectionNode(dai.node.ThreadedHostNode):
             imu: Raw accelerometer readings.
             pointcloud_size: Width and height of the organized point cloud.
             intrinsics: ``(fx, fy, cx, cy)`` for projecting into the color frame.
-            frame_size: Width and height of the color frame for annotations.
+            frame_size: Width and height of the color frame for obstacle boxes.
             calibration: Plane fitting, gravity check, and attempt settings for
                 continuous support plane calibration.
             support_plane_dist_thr_mm: Largest distance from the support plane

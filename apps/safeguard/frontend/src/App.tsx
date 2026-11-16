@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import "./App.css";
 import SettingsForm from "./settings/SettingsForm";
 
-const STREAM_PANEL_ORDER = ["danger", "color", "obstacle_annotations", "grid", "grid_annotations", "pcl"];
+const STREAM_PANEL_ORDER = ["danger", "color", "grid", "grid_annotations", "pcl"];
 const DEFAULT_TOPICS = new Set(STREAM_PANEL_ORDER);
 const getStreamPanelOrder = (topicName: string) => {
     const order = STREAM_PANEL_ORDER.indexOf(topicName);
@@ -28,7 +28,7 @@ function LiveStreams() {
 
     return (
         <Streams
-            topicGroups={{ color: "preview", danger: "preview", obstacle_annotations: "preview", grid: "grid", grid_annotations: "grid", pcl: "pcl" }}
+            topicGroups={{ color: "preview", danger: "preview", grid: "grid", grid_annotations: "grid", pcl: "pcl" }}
             numberOfColumns={2}
             topicSortingFunction={(a, b) => getStreamPanelOrder(a.name) - getStreamPanelOrder(b.name)}
         />
@@ -47,7 +47,7 @@ function App() {
                     <div className="stream-container">
                         <LiveStreams />
                     </div>
-                    <p className="stream-legend">Point cloud: orange = warning zone, red = danger zone. Camera boxes mark detected obstacles.</p>
+                    <p className="stream-legend">Point cloud: orange = warning zone, red = danger zone.</p>
                 </div>
             </section>
             <div className="safeguard-divider" aria-hidden="true" />

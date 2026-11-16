@@ -201,7 +201,6 @@ def init_pipeline(
     if obstacles is not None:
         visualizer.addTopic("grid", obstacles.out_grid)
         visualizer.addTopic("grid_annotations", obstacles.out_grid_annotations)
-        visualizer.addTopic("obstacle_annotations", obstacles.out_obstacle_annotations)
         visualizer.addTopic("pcl", obstacles.out_pcl)
-        topics.extend(("grid", "grid_annotations", "obstacle_annotations", "pcl"))
+        topics.extend(("grid", "grid_annotations", "pcl"))
     return tuple(topics)
