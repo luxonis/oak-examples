@@ -71,18 +71,20 @@ function App() {
 
 			<div className="w-0.5 shrink-0 bg-border" />
 
-			<aside className="flex max-h-full w-[420px] min-w-[360px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
-				<h1 className="text-2xl font-bold">SafeGuard</h1>
-				<p className="text-sm leading-6 text-muted-foreground">
-					Live proximity monitoring with person segmentation, automatic depth
-					selection and IMU gravity alignment. The optional generic object path
-					detects obstacles above the support plane.
-				</p>
-				<SettingsForm />
+			<aside className="flex max-h-full w-[420px] min-w-[360px] shrink-0 flex-col gap-5 text-left">
+				<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-2">
+					<h1 className="text-2xl font-bold">SafeGuard</h1>
+					<p className="text-sm leading-6 text-muted-foreground">
+						Live proximity monitoring with person segmentation, automatic depth
+						selection and IMU gravity alignment. The optional generic object
+						path detects obstacles above the support plane.
+					</p>
+					<SettingsForm />
+				</div>
 
 				<div
 					className={cn(
-						'mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm',
+						'mr-2 flex shrink-0 items-center gap-2 border-t border-border pt-4 text-sm',
 						connected ? 'text-success' : 'text-destructive',
 					)}
 				>
