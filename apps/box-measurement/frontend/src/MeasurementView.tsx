@@ -16,6 +16,8 @@ import { mmToCm } from './units';
 function MeasurementView() {
 	const { statusQuery, retryMutation } = useSupportPlaneCalibration();
 	const cameraDistanceMm = statusQuery.data?.camera_distance_mm ?? null;
+	const cameraDistanceCm =
+		cameraDistanceMm === null ? null : mmToCm(cameraDistanceMm);
 	const distanceOffsetMm = statusQuery.data?.distance_offset_mm ?? 0;
 
 	return (
@@ -34,10 +36,10 @@ function MeasurementView() {
 			controls={
 				<>
 					<PanelSection title="Support plane">
-						{cameraDistanceMm !== null ? (
+						{cameraDistanceCm !== null ? (
 							<div className="flex items-center justify-between gap-2">
 								<Label text="Camera distance" color="normal" />
-								<Label text={`${mmToCm(cameraDistanceMm).toFixed(1)} cm`} />
+								<Label text={`${cameraDistanceCm.toFixed(1)} cm`} />
 							</div>
 						) : null}
 						<div className="flex">
@@ -60,9 +62,9 @@ function MeasurementView() {
 							/>
 						) : null}
 					</PanelSection>
-					{cameraDistanceMm !== null ? (
+					{cameraDistanceCm !== null ? (
 						<DistanceOffsetSection
-							cameraDistanceCm={mmToCm(cameraDistanceMm)}
+							cameraDistanceCm={cameraDistanceCm}
 							offsetCm={mmToCm(distanceOffsetMm)}
 						/>
 					) : null}

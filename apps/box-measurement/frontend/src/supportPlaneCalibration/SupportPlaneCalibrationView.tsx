@@ -1,5 +1,5 @@
 import { Streams } from '@luxonis/depthai-viewer-common';
-import { Button, NormalText, SubLabel } from '@luxonis/ui-components';
+import { Button, Label, NormalText, SubLabel } from '@luxonis/ui-components';
 import AppLayout from '../components/AppLayout';
 import PanelSection from '../components/PanelSection';
 import StatusDot from '../components/StatusDot';
@@ -69,33 +69,23 @@ function SupportPlaneCalibrationView() {
 						{stateColor ? <StatusDot color={stateColor} /> : null}
 						<NormalText text={statusText} />
 					</div>
-					{showCandidate || showCameraPose ? (
-						<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-							{showCandidate ? (
-								<SubLabel
-									weight="bold"
-									text={`Candidate ${selectedIndex + 1} of ${candidateCount}`}
-								/>
-							) : null}
-							{showCameraPose ? (
-								<>
-									<span className="flex items-center gap-1">
-										<SubLabel text="Camera distance" />
-										<SubLabel
-											weight="bold"
-											text={`${cameraDistanceCm.toFixed(1)} cm`}
-										/>
-									</span>
-									<span className="flex items-center gap-1">
-										<SubLabel text="Camera tilt" />
-										<SubLabel
-											weight="bold"
-											text={`${Math.round(cameraTiltDeg)}°`}
-										/>
-									</span>
-								</>
-							) : null}
-						</div>
+					{showCandidate ? (
+						<SubLabel
+							weight="bold"
+							text={`Candidate ${selectedIndex + 1} of ${candidateCount}`}
+						/>
+					) : null}
+					{showCameraPose ? (
+						<>
+							<div className="flex items-center justify-between gap-2">
+								<Label text="Camera distance" color="normal" />
+								<Label text={`${cameraDistanceCm.toFixed(1)} cm`} />
+							</div>
+							<div className="flex items-center justify-between gap-2">
+								<Label text="Camera tilt" color="normal" />
+								<Label text={`${Math.round(cameraTiltDeg)}°`} />
+							</div>
+						</>
 					) : null}
 					<div className="flex flex-wrap gap-2">
 						{awaitingConfirmation ? (
