@@ -18,6 +18,8 @@ This example is intended as a conceptual demonstration rather than a production-
 
 The full panorama and resized inference canvas share an explicit virtual-image transformation. The first camera supplies output timestamps/sequence numbers; this does not synchronize devices. MergeImgDetections uses native transformTo() within that virtual image, separately from physical-camera homographies.
 
+The merger recalculates legacy bounds from rotated rectangles in panorama pixels before NMS, preserving native rotated geometry on non-square panoramas with DepthAI 3.11.
+
 ## Demo
 
 ![example](media/stitching.gif)

@@ -44,6 +44,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 ## Architecture
 
+- Rotated detection corners and label anchors are calculated in RGB pixels before normalization, preserving their geometry on non-square frames.
 - The processing node uses depthai-nodes `remap_message` to resample the instance mask and remap detections to the same undistorted RGB stream used by RGBD and the preview, including rotated crops. A host Sync groups the cloud, RGB, and detections within 1 ms. Mask indexing requires an organized cloud of matching dimensions; cuboid projection uses the current RGB transformation intrinsics.
 - `CAM_A` provides the RGB stream used for display and inference.
 - `Depth` owns depth-source selection and aligns its depth output to RGB before `RGBD`.

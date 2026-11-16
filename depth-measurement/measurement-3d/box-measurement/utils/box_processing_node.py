@@ -138,27 +138,23 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
     def _draw_box_and_label(self, det: dai.ImgDetection) -> None:
         """Draws rotated rect and label"""
 
-        # All annotation coordinates are normalized to the aligned RGB frame.
-        rr = det.getBoundingBox()
-        cx, cy = rr.center.x, rr.center.y
-        w, h = rr.size.width, rr.size.height
-        angle = rr.angle
+        # Rotate in RGB pixels before normalizing the corners for annotations.
+        width, height = self.frame_size
+        corners = [
+            (p.x / width, p.y / height)
+            for p in det.getBoundingBox().denormalize(width, height).getPoints()
+        ]
 
         color = (1.0, 0.5, 0.5, 1.0)  # Red
         bg_color = (1.0, 1.0, 0.0, 1.0)
 
-        self.helper_det.draw_rotated_rect(
-            (cx, cy),
-            (w, h),
-            angle,
+        self.helper_det.draw_polyline(
+            corners,
+            closed=True,
             outline_color=color,
             fill_color=None,
             thickness=2,
         )
-
-        # choose first corner for label
-        corners = rr.getPoints()
-        corner0 = (corners[0].x, corners[0].y)
 
         if self.fit:
             label = (
@@ -177,7 +173,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
         self.helper_det.draw_text(
             label,
-            corner0,
+            corners[0],
             color=color,
             background_color=bg_color,
             size=18,

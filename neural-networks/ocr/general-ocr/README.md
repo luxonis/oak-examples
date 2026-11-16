@@ -2,6 +2,10 @@
 
 We provide here an example for running a two stage text detection and OCR pipeline. This example uses PaddlePaddle [Text Detection](https://models.luxonis.com/luxonis/paddle-text-detection/131d855c-60b1-4634-a14d-1269bb35dcd2) and [Text Recognition](https://models.luxonis.com/luxonis/paddle-text-recognition/9ae12b58-3551-49b1-af22-721ba4bcf269) models from HubAI Model ZOO. The example visualizes the recognized text on an adjacent white image in the locations in which it was detected. This example showcases how a two stage pipeline can easily be built using DepthAI.
 
+Recognition crop bounds use the actual source dimensions and transformation, including detector crops, letterboxing, and rotation. A device Script sends only source metadata to the crop-control host node. Text annotations are remapped to the final displayed frame, with text anchors calculated in pixels; crop association and original timestamps are preserved.
+
+Label sizes use the shorter detector-space edge, keeping them stable when the preview is enlarged or native remapping swaps a rotated rectangle's axes.
+
 ## Demo
 
 ![Detection Output](media/highway-sign-ocr.gif)

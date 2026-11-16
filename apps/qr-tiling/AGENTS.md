@@ -50,6 +50,7 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Architecture
 
+- MergeImgDetections recalculates legacy bounds from rotated rectangles in target pixels before NMS, preserving the native rotated rectangles. The decoder also derives its crops in pixels; this avoids DepthAI 3.11 rotation errors on non-square frames.
 - Align caches the latest target transformation with `inputAlignTo.setWaitForMessage(False)`, allowing every tile/crop to emit without waiting for another camera frame. Its detection input uses `input.setBlocking(True)` so bursts apply backpressure instead of dropping crop results before collection.
 - The tile grid remaps each corner from the actual high-resolution frame transformation to the display frame, including rotated/cropped views.
 - dai.node.Align remaps each native tile detection to the high-resolution QR-decoder frame before MessageCollector, merge, and NMS. The merged message inherits the aligned leaf transformation because Collection has no transformation of its own.

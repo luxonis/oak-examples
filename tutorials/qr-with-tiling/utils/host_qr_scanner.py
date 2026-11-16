@@ -38,18 +38,21 @@ class QRScanner(dai.node.HostNode):
 
     def process(self, preview, detections) -> None:
         frame = preview.getCvFrame()
+        height, width = frame.shape[:2]
 
         qr_dets = QRDetections()
         for det in detections.detections:
             qr_det = QRDetection()
             qr_det.confidence = det.confidence
-            qr_det.xmin = det.xmin
-            qr_det.xmax = det.xmax
-            qr_det.ymin = det.ymin
-            qr_det.ymax = det.ymax
+            bounds = np.array(
+                det.getBoundingBox().denormalize(width, height).getOuterRect()
+            )
+            qr_det.xmin, qr_det.ymin, qr_det.xmax, qr_det.ymax = bounds / (
+                width, height, width, height
+            )
 
             if DECODE:
-                bbox = frame_denorm(frame, (det.xmin, det.ymin, det.xmax, det.ymax))
+                bbox = np.clip(bounds, 0, (width, height, width, height)).astype(int)
                 decoded_text = self.decode(frame, bbox)
                 if decoded_text:
                     qr_det.label = decoded_text
@@ -147,9 +150,3 @@ def expand_bbox(bbox: np.ndarray, frame: np.ndarray, percentage: float) -> np.nd
     bbox_copy[2] = min(frame.shape[1], bbox_copy[2] + pixels_expansion_1)
     bbox_copy[3] = min(frame.shape[0], bbox_copy[3] + pixels_expansion_0)
     return bbox_copy
-
-
-def frame_denorm(frame, bbox):
-    norm_vals = np.full(len(bbox), frame.shape[0])
-    norm_vals[::2] = frame.shape[1]
-    return (np.clip(np.array(bbox), 0, 1) * norm_vals).astype(int)

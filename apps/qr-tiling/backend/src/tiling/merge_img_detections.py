@@ -24,12 +24,21 @@ class MergeImgDetections(BaseHostNode):
                 )
             detections.extend(item.detections)
 
-        merged.detections = detections
         merged.setSequenceNum(msg.getSequenceNum())
         merged.setTimestamp(msg.getTimestamp())
         merged.setTimestampDevice(msg.getTimestampDevice())
 
         if msg.items:
-            merged.setTransformation(msg.items[0].getTransformation())
+            transformation = msg.items[0].getTransformation()
+            width, height = transformation.getSize()
+            # Repair DepthAI 3.11 legacy bounds without losing the rotated rectangle.
+            for detection in detections:
+                rect = detection.getBoundingBox().denormalize(width, height)
+                xmin, ymin, xmax, ymax = rect.getOuterRect()
+                detection.xmin, detection.ymin, detection.xmax, detection.ymax = (
+                    xmin / width, ymin / height, xmax / width, ymax / height
+                )
+            merged.setTransformation(transformation)
 
+        merged.detections = detections
         self.out.send(merged)

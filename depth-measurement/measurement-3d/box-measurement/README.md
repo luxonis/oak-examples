@@ -8,6 +8,8 @@ This example showcases one possible approach for measuring the size of a box usi
 
 The processing node uses depthai-nodes `remap_message` to resample the instance mask and remap detections to the same undistorted RGB stream used by RGBD and the preview, including rotated crops. A host Sync groups the cloud, RGB, and detections within 1 ms. Mask indexing requires an organized cloud of matching dimensions; cuboid projection uses the current RGB transformation intrinsics.
 
+Rotated detection corners and label anchors are calculated in RGB pixels before normalization, preserving their geometry on non-square frames.
+
 DepthAI 3.11 Align does not preserve arbitrary mask rotations. The shared host remapper is the fallback for same-camera crops, resize, letterbox, and rotation; keep both source and target undistorted.
 
 ## Usage

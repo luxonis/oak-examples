@@ -42,6 +42,7 @@ This is the repository reference for tiling-based QR detection with host-side de
 
 ## Architecture
 
+- The merger recalculates legacy bounds in reference-frame pixels before NMS while preserving native rotated rectangles. QR decoder crops and visualization bounds also use pixel-space rectangles, avoiding DepthAI 3.11 rotation errors on non-square frames.
 - The decoded QR results, their visualization message, and grid annotations preserve source host/device timestamps and sequence numbers; the grid also carries the preview transformation.
 - GatherData keeps each original image as its reference. MergeImgDetections calls native transformTo(reference.getTransformation()) on each tile before merging and NMS. This thin container adapter also supports replay geometry without requiring calibrated Align extrinsics.
 - [main.py](main.py) splits each frame into overlapping tiles with `Tiling`, crops them with `FrameCropper`, and runs QRDet on each tile.

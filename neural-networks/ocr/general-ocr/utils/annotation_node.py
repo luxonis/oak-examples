@@ -9,7 +9,11 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
         self.input = self.createInput()
         self.passthrough = self.createInput()
 
-        self.frame_output = self.createOutput()
+        self.frame_output = self.createOutput(
+            possibleDatatypes=[
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
+            ]
+        )
         self.text_annotations_output = self.createOutput()
 
     def run(self):
@@ -17,7 +21,11 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
             text_descriptions = self.input.get()
             passthrough_frame = self.passthrough.get()
 
-            detections_list = text_descriptions.reference_data.detections
+            reference = text_descriptions.reference_data
+            source_size = reference.getTransformation().getSize()
+            detections_list = reference.transformTo(
+                passthrough_frame.getTransformation()
+            ).detections
             recognitions_list = text_descriptions.items
 
             w, h = passthrough_frame.getWidth(), passthrough_frame.getHeight()
@@ -25,9 +33,11 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
             if len(recognitions_list) >= 1:
                 annotation_helper = AnnotationHelper()
 
-                for i, recognition in enumerate(recognitions_list):
-                    detection = detections_list[i]
-                    points = detection.getBoundingBox().getPoints()
+                for original, detection, recognition in zip(
+                    reference.detections, detections_list, recognitions_list
+                ):
+                    rect = detection.getBoundingBox().denormalize(w, h)
+                    anchor = rect.getPoints()[3]
 
                     text_line = ""
                     for text, score in zip(recognition.classes, recognition.scores):
@@ -36,14 +46,17 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
 
                         text_line += text + " "
 
-                    size = int(points[3].y * h - points[0].y * h)
+                    font_rect = original.getBoundingBox().denormalize(*source_size)
+                    size = max(1, int(min(font_rect.size.width, font_rect.size.height)))
                     annotation_helper.draw_text(
-                        text_line, [points[3].x + 0.02, points[3].y + 0.02], size=size
+                        text_line, [anchor.x / w + 0.02, anchor.y / h + 0.02], size=size
                     )
 
                 annotations = annotation_helper.build(
                     text_descriptions.getTimestamp(), text_descriptions.getSequenceNum()
                 )
+                annotations.setBufferMetadataFrom(text_descriptions)
+                annotations.setTransformation(passthrough_frame.getTransformation())
 
             self.frame_output.send(passthrough_frame)
             if len(recognitions_list) >= 1:
