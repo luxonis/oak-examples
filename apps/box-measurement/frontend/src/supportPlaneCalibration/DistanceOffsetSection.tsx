@@ -56,8 +56,14 @@ function DistanceOffsetSection({
 	const distanceOffsetMutation = useSetDistanceOffset();
 	const { isPending, error } = distanceOffsetMutation;
 	// Text input so it always shows "0.0", regardless of the browser locale.
-	// Starts from the applied offset; the view remounts after Recalibrate.
+	// Starts from the applied offset and resets whenever the polled applied
+	// offset changes.
 	const [draft, setDraft] = useState(() => offsetCm.toFixed(1));
+	const [syncedOffsetCm, setSyncedOffsetCm] = useState(offsetCm);
+	if (offsetCm !== syncedOffsetCm) {
+		setSyncedOffsetCm(offsetCm);
+		setDraft(offsetCm.toFixed(1));
+	}
 	const draftOffsetCm = parseOffsetCm(draft);
 	const isDraftInvalid = draft.trim() !== '' && draftOffsetCm === null;
 
