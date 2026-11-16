@@ -2,7 +2,7 @@
 
 This example demonstrates how to build a single-stage DepthAI pipeline for face mask detection.
 It recognizes whether the human faces detected on the frame are (not) wearing face masks.
-The pipeline consists of the [PPE Detection](https://models.luxonis.com/luxonis/ppe-detection/fd8699bf-3819-4134-9374-3735b9660d3c) model trained to recognize person protective equipment (PPE).
+The pipeline consists of the [PPE Detection](https://models.luxonis.com/luxonis/ppe-detection/fd8699bf-3819-4134-9374-3735b9660d3c) model trained to recognize personal protective equipment (PPE).
 
 ## Demo
 
