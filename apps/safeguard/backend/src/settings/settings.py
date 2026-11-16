@@ -1,6 +1,5 @@
 """Runtime configuration for the SafeGuard example (never written to disk)."""
 
-import os
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -45,32 +44,3 @@ class Settings(BaseModel):
         if self.danger_roi.distance_mm >= self.warning_roi.distance_mm:
             raise ValueError("danger distance must be less than warning distance")
         return self
-
-    @classmethod
-    def from_env(cls) -> "Settings":
-        """Read a small set of SAFEGUARD_* variables once at startup."""
-        scalar_vars = {
-            "fps": "FPS",
-            "generic_object_detection_enabled": "GENERIC_OBSTACLES",
-            "awareness_escalation_sec": "AWARENESS_ESCALATION_SEC",
-            "deescalation_sec": "DEESCALATION_SEC",
-        }
-        values = {
-            field: os.environ[f"SAFEGUARD_{suffix}"]
-            for field, suffix in scalar_vars.items()
-            if f"SAFEGUARD_{suffix}" in os.environ
-        }
-        for field, prefix in (("danger_roi", "DANGER"), ("warning_roi", "WARNING")):
-            zone_vars = {
-                key: os.environ[f"SAFEGUARD_{prefix}_{suffix}"]
-                for key, suffix in (
-                    ("distance_mm", "DISTANCE_MM"),
-                    ("x_min_mm", "X_MIN_MM"),
-                    ("x_max_mm", "X_MAX_MM"),
-                )
-                if f"SAFEGUARD_{prefix}_{suffix}" in os.environ
-            }
-            if zone_vars:
-                defaults = getattr(cls(), field).model_dump()
-                values[field] = defaults | zone_vars
-        return cls.model_validate(values)

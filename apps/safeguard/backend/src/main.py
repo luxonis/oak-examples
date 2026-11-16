@@ -17,7 +17,7 @@ class App:
     """Own the live pipeline and settings service."""
 
     def __init__(self) -> None:
-        self._settings = Settings.from_env()
+        self._settings = Settings()
         self._settings_lock = threading.Lock()
         self._changed = threading.Event()
         self._stop = threading.Event()
