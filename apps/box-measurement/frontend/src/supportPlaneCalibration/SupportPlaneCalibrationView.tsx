@@ -1,5 +1,7 @@
 import { Streams } from '@luxonis/depthai-viewer-common';
-import { Button, Card, NormalText, SubLabel } from '@luxonis/ui-components';
+import { Button, NormalText, SubLabel } from '@luxonis/ui-components';
+import AppLayout from '../components/AppLayout';
+import PanelSection from '../components/PanelSection';
 import StatusDot from '../components/StatusDot';
 import {
 	SUPPORT_PLANE_CALIBRATION_TOPICS,
@@ -46,91 +48,8 @@ function SupportPlaneCalibrationView() {
 		previewError;
 
 	return (
-		<div className="flex w-full flex-col items-center gap-4">
-			<Card
-				intent="white"
-				variant="outline"
-				className="w-full max-w-7xl"
-				title="Support plane calibration"
-				subtitle="Remove boxes and other objects from the support plane before support plane calibration."
-				fullWidth
-			>
-				<div className="flex flex-col gap-2">
-					<div className="flex flex-wrap items-center justify-between gap-4">
-						<div className="flex flex-col gap-1">
-							<div className="flex items-center gap-2">
-								{stateColor ? <StatusDot color={stateColor} /> : null}
-								<NormalText text={statusText} />
-							</div>
-							{showCandidate || showCameraPose ? (
-								<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-									{showCandidate ? (
-										<SubLabel
-											weight="bold"
-											text={`Candidate ${selectedIndex + 1} of ${candidateCount}`}
-										/>
-									) : null}
-									{showCameraPose ? (
-										<>
-											<span className="flex items-center gap-1">
-												<SubLabel text="Camera distance" />
-												<SubLabel
-													weight="bold"
-													text={`${cameraDistanceCm.toFixed(1)} cm`}
-												/>
-											</span>
-											<span className="flex items-center gap-1">
-												<SubLabel text="Camera tilt" />
-												<SubLabel
-													weight="bold"
-													text={`${Math.round(cameraTiltDeg)}°`}
-												/>
-											</span>
-										</>
-									) : null}
-								</div>
-							) : null}
-						</div>
-						<div className="flex flex-wrap gap-2">
-							{awaitingConfirmation ? (
-								<>
-									<Button
-										type="button"
-										variant="filled"
-										label="Confirm support plane"
-										disabled={confirmMutation.isPending}
-										onClick={() => {
-											confirmMutation.mutate({});
-										}}
-									/>
-									<Button
-										type="button"
-										variant="outline"
-										label="Next candidate"
-										disabled={candidateCount < 2 || selectMutation.isPending}
-										onClick={() => {
-											selectMutation.mutate({
-												direction: 1,
-											});
-										}}
-									/>
-								</>
-							) : null}
-							<Button
-								type="button"
-								variant="outline"
-								label="Restart calibration"
-								disabled={retryMutation.isPending}
-								onClick={() => {
-									retryMutation.mutate({});
-								}}
-							/>
-						</div>
-					</div>
-					{error ? <SubLabel color="error" text={error.message} /> : null}
-				</div>
-			</Card>
-			<div className="h-[42rem] min-h-[28rem] w-full min-w-1/2 md:h-[calc(100vh-24rem)]">
+		<AppLayout
+			stream={
 				<Streams
 					defaultTopics={SUPPORT_PLANE_CALIBRATION_TOPICS}
 					allowedTopics={SUPPORT_PLANE_CALIBRATION_TOPICS}
@@ -140,8 +59,83 @@ function SupportPlaneCalibrationView() {
 					numberOfColumns={1}
 					topicSortingFunction={sortTopicsBy(SUPPORT_PLANE_CALIBRATION_TOPICS)}
 				/>
-			</div>
-		</div>
+			}
+			controls={
+				<PanelSection
+					title="Support plane calibration"
+					hint="Remove boxes and other objects from the support plane."
+				>
+					<div className="flex items-center gap-2">
+						{stateColor ? <StatusDot color={stateColor} /> : null}
+						<NormalText text={statusText} />
+					</div>
+					{showCandidate || showCameraPose ? (
+						<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+							{showCandidate ? (
+								<SubLabel
+									weight="bold"
+									text={`Candidate ${selectedIndex + 1} of ${candidateCount}`}
+								/>
+							) : null}
+							{showCameraPose ? (
+								<>
+									<span className="flex items-center gap-1">
+										<SubLabel text="Camera distance" />
+										<SubLabel
+											weight="bold"
+											text={`${cameraDistanceCm.toFixed(1)} cm`}
+										/>
+									</span>
+									<span className="flex items-center gap-1">
+										<SubLabel text="Camera tilt" />
+										<SubLabel
+											weight="bold"
+											text={`${Math.round(cameraTiltDeg)}°`}
+										/>
+									</span>
+								</>
+							) : null}
+						</div>
+					) : null}
+					<div className="flex flex-wrap gap-2">
+						{awaitingConfirmation ? (
+							<>
+								<Button
+									type="button"
+									variant="filled"
+									label="Confirm support plane"
+									disabled={confirmMutation.isPending}
+									onClick={() => {
+										confirmMutation.mutate({});
+									}}
+								/>
+								<Button
+									type="button"
+									variant="outline"
+									label="Next candidate"
+									disabled={candidateCount < 2 || selectMutation.isPending}
+									onClick={() => {
+										selectMutation.mutate({
+											direction: 1,
+										});
+									}}
+								/>
+							</>
+						) : null}
+						<Button
+							type="button"
+							variant="outline"
+							label="Restart calibration"
+							disabled={retryMutation.isPending}
+							onClick={() => {
+								retryMutation.mutate({});
+							}}
+						/>
+					</div>
+					{error ? <SubLabel color="error" text={error.message} /> : null}
+				</PanelSection>
+			}
+		/>
 	);
 }
 
