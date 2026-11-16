@@ -22,9 +22,11 @@ class VisualizeLicensePlates(dai.node.ThreadedHostNode):
             frame_h, frame_w = frame.shape[:2]
 
             detections = self.vehicle_detections.get().detections
-            crop_detections = self.lp_crop_detections.get().transformTo(
-                frame_message.getTransformation()
-            ).detections
+            crop_detections = (
+                self.lp_crop_detections.get()
+                .transformTo(frame_message.getTransformation())
+                .detections
+            )
 
             for detection, lp_detection in zip(detections, crop_detections):
                 ocr_message = self.ocr_results.get()

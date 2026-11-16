@@ -48,7 +48,10 @@ class QRScanner(dai.node.HostNode):
                 det.getBoundingBox().denormalize(width, height).getOuterRect()
             )
             qr_det.xmin, qr_det.ymin, qr_det.xmax, qr_det.ymax = bounds / (
-                width, height, width, height
+                width,
+                height,
+                width,
+                height,
             )
 
             if DECODE:

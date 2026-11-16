@@ -39,7 +39,10 @@ class MergeImgDetections(BaseHostNode):
                     rect = detection.getBoundingBox().denormalize(width, height)
                     xmin, ymin, xmax, ymax = rect.getOuterRect()
                     detection.xmin, detection.ymin, detection.xmax, detection.ymax = (
-                        xmin / width, ymin / height, xmax / width, ymax / height
+                        xmin / width,
+                        ymin / height,
+                        xmax / width,
+                        ymax / height,
                     )
                 merged.setTransformation(transformation)
 

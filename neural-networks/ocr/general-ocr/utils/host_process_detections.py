@@ -92,7 +92,9 @@ class CropConfigsCreator(dai.node.HostNode):
 
         return self
 
-    def process(self, detections_input: dai.ImgDetections, source: dai.ImgFrame) -> None:
+    def process(
+        self, detections_input: dai.ImgDetections, source: dai.ImgFrame
+    ) -> None:
         """Process the input detections and create crop configurations. This function is
         ran every time a new dai.ImgDetections message is
         received.
@@ -115,9 +117,11 @@ class CropConfigsCreator(dai.node.HostNode):
                 rect.size = dai.Size2f(
                     rect.size.width * 1.03, rect.size.height * 1.10, True
                 )
-                rect = detections_input.getTransformation().remapRectTo(
-                    source.getTransformation(), rect
-                ).denormalize(width, height)
+                rect = (
+                    detections_input.getTransformation()
+                    .remapRectTo(source.getTransformation(), rect)
+                    .denormalize(width, height)
+                )
                 xmin, ymin, xmax, ymax = rect.getOuterRect()
                 xmin = int(max(0, xmin))
                 ymin = int(max(0, ymin))
