@@ -1,7 +1,6 @@
 import {
 	Alert,
 	Button,
-	Card,
 	Checkbox,
 	Form,
 	FormField,
@@ -13,6 +12,7 @@ import {
 	type UseFormReturn,
 	useForm,
 } from '@luxonis/ui-components';
+import type { ReactNode } from 'react';
 import {
 	type Settings,
 	type SettingsFormValues,
@@ -25,6 +25,24 @@ type UpdateSettingsMutation = ReturnType<
 	typeof useSettings
 >['updateSettingsMutation'];
 
+function SettingsSection(props: {
+	title: string;
+	description: string;
+	children: ReactNode;
+}) {
+	return (
+		<section className="flex flex-col gap-3 rounded-md border border-border bg-background p-4 shadow-sm">
+			<div className="flex flex-col gap-1">
+				<h2 className="text-lg font-semibold">{props.title}</h2>
+				<p className="text-xs leading-5 text-muted-foreground">
+					{props.description}
+				</p>
+			</div>
+			{props.children}
+		</section>
+	);
+}
+
 function ZoneFields(props: {
 	form: UseFormReturn<SettingsFormValues>;
 	name: ZoneFieldName;
@@ -32,13 +50,9 @@ function ZoneFields(props: {
 	disabled: boolean;
 }) {
 	return (
-		<Card
-			variant="outline"
-			intent="gray"
+		<SettingsSection
 			title={props.label}
-			subtitle="Distance and horizontal bounds relative to the camera center."
-			titleSeparator={false}
-			fullWidth
+			description="Distance and horizontal bounds relative to the camera center."
 		>
 			<div className="flex flex-col gap-2">
 				<SubLabel text="Negative x is left of center. Positive x is right of center." />
@@ -91,7 +105,7 @@ function ZoneFields(props: {
 					/>
 				</div>
 			</div>
-		</Card>
+		</SettingsSection>
 	);
 }
 
@@ -144,13 +158,9 @@ function SettingsFormInner(props: {
 				}
 			>
 				<div className="flex flex-col gap-4">
-					<Card
-						variant="outline"
-						intent="gray"
+					<SettingsSection
 						title="Pipeline"
-						subtitle="Camera and processing rate."
-						titleSeparator={false}
-						fullWidth
+						description="Camera and processing rate."
 					>
 						<div className="flex flex-col gap-3">
 							<FormField
@@ -184,14 +194,10 @@ function SettingsFormInner(props: {
 								)}
 							/>
 						</div>
-					</Card>
-					<Card
-						variant="outline"
-						intent="gray"
+					</SettingsSection>
+					<SettingsSection
 						title="Timing"
-						subtitle="Alert transition delays in seconds."
-						titleSeparator={false}
-						fullWidth
+						description="Alert transition delays in seconds."
 					>
 						<div className="grid grid-cols-2 gap-3">
 							<FormField
@@ -227,7 +233,7 @@ function SettingsFormInner(props: {
 								)}
 							/>
 						</div>
-					</Card>
+					</SettingsSection>
 					<ZoneFields
 						form={form}
 						name="danger_roi"
@@ -273,13 +279,13 @@ function SettingsForm() {
 
 	if (!settingsQuery.data) {
 		return (
-			<Card variant="outline" intent="gray" fullWidth>
+			<section className="rounded-md border border-border bg-background p-4 shadow-sm">
 				<div className="flex flex-col items-center justify-center gap-1 p-3">
 					<Icon icon={LoaderIcon} size="lg" className="mb-3 animate-spin" />
 					<SubHeader text="Loading settings" />
 					<SubLabel text="Waiting for the SafeGuard settings service to become available." />
 				</div>
-			</Card>
+			</section>
 		);
 	}
 
