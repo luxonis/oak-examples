@@ -31,6 +31,8 @@ MODEL_YAML = (
     / "yolov8_instance_segmentation_nano.RVC4.yaml"
 )
 COLOR_SIZE = (1920, 1080)
+# Size of the streamed preview and of the optional point cloud.
+PREVIEW_SIZE = (640, 360)
 MONO_SIZE = (640, 480)
 # Capped attempts make a failed search report passed=False, so a lost support
 # plane turns the status invalid instead of being held while the search runs on.
@@ -85,11 +87,18 @@ def init_pipeline(
     )
 
     preview = color_cam.requestOutput(
-        (640, 360),
-        type=dai.ImgFrame.Type.RGB888i,
+        PREVIEW_SIZE,
+        type=dai.ImgFrame.Type.NV12,
         fps=settings.fps,
         enableUndistortion=True,
     )
+    preview_encoder = pipeline.create(dai.node.VideoEncoder)
+    preview_encoder.setDefaultProfilePreset(
+        fps=settings.fps,
+        profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+    )
+    preview.link(preview_encoder.input)
+
     depth = pipeline.create(dai.node.Depth).build(
         dai.node.Depth.Algorithm.AUTO, fps=settings.fps, size=MONO_SIZE
     )
@@ -147,9 +156,15 @@ def init_pipeline(
     obstacle_assessment = None
     obstacles = None
     if settings.generic_object_detection_enabled:
-        pointcloud_size = (COLOR_SIZE[0] // 3, COLOR_SIZE[1] // 3)
-        # The preview matches the point-cloud resolution and frame rate.
-        color_for_pcl = preview
+        pointcloud_size = PREVIEW_SIZE
+        # RGBD needs interleaved RGB; the NV12 preview feeds only the encoder.
+        # This is CAM_A's third output, the RVC4 maximum.
+        color_for_pcl = color_cam.requestOutput(
+            pointcloud_size,
+            type=dai.ImgFrame.Type.RGB888i,
+            fps=settings.fps,
+            enableUndistortion=True,
+        )
         depth_for_pcl = pipeline.create(dai.node.ImageAlign)
         color_for_pcl.link(depth_for_pcl.inputAlignTo)
         depth_output.link(depth_for_pcl.input)
@@ -199,7 +214,7 @@ def init_pipeline(
     )
     annotations = pipeline.create(DangerVisualizer).build(alert.out)
     topics = ["color", "danger"]
-    visualizer.addTopic("color", preview)
+    visualizer.addTopic("color", preview_encoder.out)
     visualizer.addTopic("danger", annotations.out)
     if obstacles is not None:
         visualizer.addTopic("grid", obstacles.out_grid)

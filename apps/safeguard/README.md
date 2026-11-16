@@ -6,6 +6,10 @@ The custom frontend shows the live camera, proximity alerts, optional obstacle a
 
 > **Note:** This example runs on an RVC4 device in standalone mode and requires RGB, stereo, and IMU sensors. It is an example of visual alerting, not a certified safety system.
 
+## Demo
+
+> **TODO:** Record `media/demo.gif` and embed it here with `![](media/demo.gif)`.
+
 ## Architecture
 
 ```mermaid
@@ -32,7 +36,7 @@ DepthAI's `ObjectTracker` assigns person IDs. A host node pairs each track with 
 
 ## Features
 
-- **Live alerts:** The `color` preview and `danger` annotations show tracked-person alerts at the configured FPS.
+- **Live alerts:** The H.264 `color` preview and `danger` annotations show tracked-person alerts at the configured FPS.
 - **Obstacle views:** With generic detection enabled, `grid` shows the bird's-eye occupancy view, `grid_annotations` reports whether the support plane is valid, and `pcl` shows the scene-colored point cloud with orange/red zone guides on the support plane. These views open automatically when available.
 - **Runtime controls:** Change camera FPS, generic obstacle detection, alert timing, and zone bounds. Applying settings rebuilds the pipeline without restarting the app. DepthAI's default stereo autocalibration runs at every pipeline start, including after applying settings; set `DEPTHAI_AUTOCALIBRATION=CONTINUOUS` to keep it running. The support plane is re-verified about every half second and refit when it no longer matches the scene.
 

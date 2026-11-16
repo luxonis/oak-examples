@@ -19,7 +19,6 @@ README.md
 __pycache__/
 .ruff_cache/
 evidence/
-backend/tests/
 *.oakapp
 
 # VCS

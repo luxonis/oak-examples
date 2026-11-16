@@ -27,8 +27,8 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - `Runs on:` RVC4 standalone only
 - `Requires:` RGB, stereo, and IMU sensors; a built static frontend; bundled person segmentation model
 - `Input:` RGB preview, depth selected by the Depth node, 50 Hz raw accelerometer, and frontend settings
-- `Output:` `color` preview and `danger` annotations; optional `grid`, `grid_annotations`, and `pcl` topics
-- `Model:` bundled Zoo `luxonis/yolov8-instance-segmentation-nano:coco-512x288`, filtered to person class
+- `Output:` H.264 `color` preview and `danger` annotations; optional `grid`, `grid_annotations`, and `pcl` topics
+- `Models:` bundled Zoo `luxonis/yolov8-instance-segmentation-nano:coco-512x288`, filtered to person class
 - `Visualizer / UI:` custom HTTPS frontend built on `@luxonis/depthai-viewer-common` and `@luxonis/ui-components` with Tailwind, with raw DepthAI Visualizer on port 8082
 
 ## Read First
@@ -44,7 +44,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - RGB passes through a bundled instance segmentation model and native `ImgDetectionsFilter` to keep people. DepthAI's `ObjectTracker` assigns track IDs; `TrackletSegmentationMatcher` attaches the corresponding masks.
 - The `Depth` node selects the backend automatically. Its depth output is aligned to person masks. `SegmentationDangerEvaluator` uses the IMU to rotate depth points into a gravity-aligned frame before testing warning and danger zones.
-- Pipeline initialisation builds an RGBD point cloud from the preview and aligned depth and passes it, with the IMU stream, into `PointCloudObjectDetectionNode`. That composite node runs depthai-nodes `AutoSupportPlane` in continuous mode, which finds the support plane automatically and keeps re-verifying it against gravity. `SupportPlaneSegmenter` turns each `AutoSupportPlaneResult` into per-frame data: it splits every frame's points into support plane and obstacle points at 45 mm, rotates them into a frame built from the support plane's normal, and publishes a `SupportPlaneStatus`. A result with `passed=False` means no valid support plane, so obstacle assessment stops. The occupancy grid groups obstacle points in a polar grid and evaluates obstacles against the same zones. The composite node publishes obstacles, the support plane point cloud, bird's-eye view, and support plane status annotations.
+- Pipeline initialisation builds an RGBD point cloud from a 640 × 360 RGB camera output and aligned depth and passes it, with the IMU stream, into `PointCloudObjectDetectionNode`. That composite node runs depthai-nodes `AutoSupportPlane` in continuous mode, which finds the support plane automatically and keeps re-verifying it against gravity. `SupportPlaneSegmenter` turns each `AutoSupportPlaneResult` into per-frame data: it splits every frame's points into support plane and obstacle points at 45 mm, rotates them into a frame built from the support plane's normal, and publishes a `SupportPlaneStatus`. A result with `passed=False` means no valid support plane, so obstacle assessment stops. The occupancy grid groups obstacle points in a polar grid and evaluates obstacles against the same zones. The composite node publishes obstacles, the support plane point cloud, bird's-eye view, and support plane status annotations.
 - `DangerClassifier` combines available assessments and applies temporal alert transitions. `DangerVisualizer` publishes person and alert annotations.
 - The frontend calls `getSettings` and `updateSettings`. Applying settings rebuilds the pipeline.
 
@@ -72,12 +72,12 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - This app is intended for RVC4 standalone mode with RGB, stereo, and IMU hardware. On any other platform, `init_pipeline()` raises `RuntimeError` at startup, before it creates any node.
 - Preserve alignment between segmentation masks and depth, and preserve sequence and timestamp metadata passed between host nodes.
-- RVC4 permits at most three outputs per camera. Reuse the 640 × 360 preview for the optional point cloud rather than adding another `Camera.requestOutput()`.
+- RVC4 permits at most three outputs per camera. With generic object detection enabled, CAM_A already uses three: the 1080p model and tracker input, the NV12 preview for the H.264 encoder, and the RGB output for the point cloud. Reuse one of them rather than adding another `Camera.requestOutput()`.
 - Settings are process-local; alerts and video are not recorded.
 - The optional point-cloud path uses Open3D through the depthai-nodes `box-measurement` extra and can be costly. Support plane state is held only in the running pipeline.
 - `init_pipeline.py` sets the support plane settings and passes them into `PointCloudObjectDetectionNode.build()`: `SUPPORT_PLANE_CALIBRATION` and the 45 mm `SUPPORT_PLANE_DIST_THR_MM` split threshold. `AutoSupportPlane` uses the default `PlaneCalibrationConfig` except for `max_calibration_attempts=10`. Without that cap a failed refit searches indefinitely, never reports `passed=False`, and the lost support plane stays valid. If a real floor is rejected, widen `max_gravity_angle_deg` before changing anything else.
 - `AutoSupportPlaneResult` and `SupportPlaneStatus` are Python `Buffer` subclasses and only travel between host nodes.
-- Encoded topics in the custom browser frontend require HTTPS or localhost; the standalone UI is served over HTTPS.
+- The `color` topic is H.264, and the browser decodes it only in a secure context (HTTPS or localhost). The standalone UI is served over HTTPS; over plain HTTP from another host the stream stays blank.
 - The frontend uses the same stack as the other frontend examples: `@luxonis/ui-components` controls, Tailwind classes with its theme tokens, and Biome. `react` and `react-dom` stay pinned to the exact version `@luxonis/depthai-viewer-common` declares as its peer.
 
 ## Non-Obvious Repo Conventions
@@ -94,7 +94,6 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 ## Validation
 
-- `Run:` `python3 -m compileall -q apps/safeguard/backend/src` and `python3 scripts/validate_agents_docs.py` from the repository root.
-- `Unit tests:` from `apps/safeguard/backend`, with [backend/requirements.txt](backend/requirements.txt) installed and no device: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`. [backend/tests/test_obstacle_path.py](backend/tests/test_obstacle_path.py) drives `PointCloudObjectDetectionNode`, including the real `AutoSupportPlane`, in a host-only pipeline with synthetic point clouds and gravity (about 10 s, because continuous mode needs repeated failed checks 0.5 s apart); [backend/tests/device_lookup.py](backend/tests/device_lookup.py) lets depthai-nodes host nodes be created without a device. [backend/tests/test_app_stop.py](backend/tests/test_app_stop.py) sends SIGTERM and SIGINT to `App.run` with DepthAI patched out and checks the pipeline is stopped, its topics removed, and no restart follows.
-- `Frontend:` run `npm ci && npm run build && npm run lint` in `apps/safeguard/frontend` with Node 22 or newer.
-- `Device:` run `oakctl app run apps/safeguard --device 1` on a connected RVC4. Success means `Pipeline started.` appears, the HTTPS frontend shows `color` and `danger`, and settings apply. Enable generic object detection to check `grid`, `grid_annotations`, and `pcl`.
+- `Run:` `oakctl app run .` from this directory with an RVC4 device connected. To check the frontend without a device, run `npm ci && npm run build && npm run lint` in `frontend/`.
+- `Success looks like:` `Pipeline started.` appears in the log, the HTTPS frontend shows the `color` stream with `danger` annotations, and applying settings restarts the pipeline with the new values. With generic object detection enabled, `grid`, `grid_annotations`, and `pcl` appear, and the support plane turns valid once the floor is in view.
+- `Common failure meaning:` a `RuntimeError` at startup means the device is not RVC4; a settings panel stuck on "Loading settings" means the backend crashed or never registered its services; a blank `color` stream means the page is not in a secure context; a support plane that stays invalid means the floor is out of view or failed the gravity check.
