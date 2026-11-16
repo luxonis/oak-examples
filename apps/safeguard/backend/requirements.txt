@@ -1,4 +1,4 @@
-depthai==3.12.0
+depthai==3.12.1
 depthai-nodes[box-measurement]==0.8.0
 numpy>=1.22,<2
 opencv-python-headless~=4.10.0
