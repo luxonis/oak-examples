@@ -6,6 +6,55 @@ The backend runs the box-measurement nodes from [depthai-nodes](https://github.c
 
 > **Note:** This example works only on RVC4 in standalone mode, and requires an **OAK 4 D** (Pro or non-Pro): box dimensions are computed from a stereo camera pair, so single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is enabled automatically when present.
 
+## Demo
+
+## Architecture
+
+```mermaid
+flowchart LR
+    UI["Frontend<br/>Support plane calibration and measurement views"]
+
+    subgraph OAK["OAK 4 D"]
+        Color["Color camera<br/>1920 × 1080 · 20 FPS"]
+        Stereo["Stereo cameras<br/>640 × 480 · 20 FPS"]
+        IMU["IMU<br/>Accelerometer"]
+        Resize["Resize<br/>512 × 320"]
+        Depth["Neural stereo depth<br/>Aligned to the 512 × 320 frame, organized point cloud"]
+        Encoder["H.264 encoder"]
+
+        subgraph Measurer["BoxMeasurer (depthai-nodes)"]
+            Segmentation["Instance segmentation<br/>box-instance-segmentation 512 × 320"]
+            Tracking["Tracking"]
+            Measurement["Box measurement<br/>L × W × H and volume"]
+        end
+
+        Calibration["Support plane calibration<br/>SupportPlaneCalibrator and SupportPlaneController"]
+        Preview["Support plane preview<br/>Point cloud with the highlighted candidate"]
+
+        Color --> Encoder
+        Color --> Resize
+        Resize --> Segmentation
+        Resize --> Depth
+        Stereo --> Depth
+        Segmentation --> Tracking
+        Tracking --> Measurement
+        Depth -->|"Point cloud"| Measurement
+        Depth -->|"Point cloud"| Calibration
+        IMU -->|"Gravity"| Calibration
+        Calibration -->|"Support plane + distance offset"| Measurement
+        Depth -->|"Point cloud"| Preview
+        Calibration -->|"Highlighted candidate"| Preview
+    end
+
+    Encoder -->|"Color stream"| UI
+    Measurement -->|"Detections"| UI
+    Preview -->|"Support plane preview"| UI
+    UI -->|"Support plane calibration, Recalibrate, Distance offset"| Calibration
+    UI -->|"Detection confidence threshold"| Segmentation
+```
+
+Segmentation, tracking and box measurement all run inside the `BoxMeasurer` node from depthai-nodes. It measures each box against the support plane that the operator confirmed during support plane calibration, shifted by the distance offset. The support plane preview is published only while the support plane calibration view is open.
+
 ## Features
 
 - **Live box measurement:** instance segmentation, per-box tracking and L × W × H / volume measured against the support plane
@@ -16,6 +65,32 @@ The backend runs the box-measurement nodes from [depthai-nodes](https://github.c
 ## Usage
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+
+### Support plane calibration
+
+The app doesn't remember the support plane, so it opens on support plane calibration after every start. Nothing is measured until a support plane is confirmed.
+
+1. Remove boxes and other objects from the support plane, and keep it in view.
+2. Wait for a support plane candidate to be highlighted in orange in the **Support plane preview**. The **Support plane calibration** section shows its camera distance and tilt.
+3. If the highlighted plane isn't the one boxes will rest on, press **Next candidate**. Press **Restart calibration** to discard the candidates and search again.
+4. Press **Confirm support plane**. The app switches to measuring boxes.
+
+Repeat support plane calibration whenever the camera is moved or the belt height changes: press **Recalibrate** in the **Support plane** section.
+
+### Measuring boxes
+
+1. Place boxes on the support plane. Each detected box is outlined in the color stream with its L × W × H (cm) and volume (cm³).
+2. If boxes are missed or false detections appear, change the detection confidence threshold (0 to 1) in **Detection settings**. It applies right away and resets when the app restarts.
+
+#### Distance offset
+
+If measured heights are consistently too high or too low, add a distance offset to the camera's distance from the support plane:
+
+1. Measure the real distance from the camera to the support plane.
+2. In the **Distance offset** section, enter *measured distance − detected distance* (−10 to +10 cm) with the field or the **−** and **+** buttons, and press **Apply**. The section shows the **Distance with offset**.
+3. Press **Clear offset** to remove the offset right away.
+
+Positive values move the support plane farther from the camera, so boxes measure taller. The offset mainly affects the height. It is cleared when you run support plane calibration again or restart the app.
 
 ## Standalone Mode (RVC4 only)
 
@@ -37,49 +112,3 @@ Once the app is built and running you can access the DepthAI Viewer locally by o
 
 1. You can upload oakapp to Luxonis Hub via oakctl
 2. And then you can just remotely open App UI via App detail page
-
-## Support Plane Calibration
-
-Nothing is measured until the support plane is confirmed. The app does not remember
-the support plane, so the app UI opens on the **Support plane calibration** view after
-every app start.
-
-1. **Clear the belt / support plane.** Remove boxes and other objects; the plane must be visible.
-2. The detected candidate plane is highlighted in orange in the **Support plane preview**,
-   with the camera distance and tilt next to it.
-3. If the highlighted plane is not the one boxes will rest on, press **Next candidate**
-   to go through the other detected planes.
-4. Press **Confirm support plane**. The UI switches to the measurement view.
-
-Until a plane is found the view keeps showing **Searching for a support plane…**; the
-app keeps looking on its own, so check that the support plane is clear and in view.
-Press **Restart calibration** to discard the current candidates and search again,
-for example after clearing the belt. Repeat support plane calibration whenever the
-camera is moved or re-aimed, or the belt height changes: press **Recalibrate** in the
-measurement view.
-
-## Measuring Boxes
-
-The measurement view shows the color stream with each detected box outlined and its
-L × W × H (cm) and volume (cm³) overlaid. Its toolbar has:
-
-- **Distance offset** - see below.
-- **Detection settings** - the detection confidence threshold (0 to 1). It applies
-  immediately and resets to the default when the app restarts.
-- **Recalibrate** - discards the confirmed support plane and returns to support plane
-  calibration.
-
-### Distance offset (optional)
-
-If measured heights are consistently too high or too low, add a distance offset to
-the camera's distance from the support plane:
-
-1. Measure the real distance from the camera to the support plane.
-2. In the measurement view, open **Distance offset**. It shows the detected distance.
-3. Enter the offset as *measured distance − detected distance* (−10 to +10 cm), using
-   the field or the **−** and **+** buttons, and press **Apply**. The panel shows the
-   **Distance with offset**. **Clear offset** removes the offset right away.
-
-Positive values move the support plane farther from the camera, so boxes measure
-taller. The offset mainly affects the height and applies to live measurements right
-away. It is cleared when you run support plane calibration again or restart the app.
