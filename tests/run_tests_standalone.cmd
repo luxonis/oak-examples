@@ -12,20 +12,20 @@ REM   %7 = ROOT_DIR                (e.g. .)
 REM   %8 = LOG_LEVEL               (e.g. INFO)
 REM ==============================================================================
 
-if "%4"=="" (
+if "%~4"=="" (
     echo Usage:
     echo   run_tests_standalone.cmd PYTHON_VERSION_ENV DAI_VERSION DAI_NODES_VERSION PLATFORM DEVICE_PASSWORD LOCAL_STATIC_REGISTRY ROOT_DIR LOG_LEVEL
     exit /b 1
 )
 
-set PYTHON_VERSION_ENV=%1
-set PLATFORM=%2
-set DEVICE_PASSWORD=%3
-set LOCAL_STATIC_REGISTRY=%4
-set ROOT_DIR=%5
-set LOG_LEVEL=%6
-set DAI_VERSION=%7
-set DAI_NODES_VERSION=%8
+set "PYTHON_VERSION_ENV=%~1"
+set "PLATFORM=%~2"
+set "DEVICE_PASSWORD=%~3"
+set "LOCAL_STATIC_REGISTRY=%~4"
+set "ROOT_DIR=%~5"
+set "LOG_LEVEL=%~6"
+set "DAI_VERSION=%~7"
+set "DAI_NODES_VERSION=%~8"
 
 echo ==========================================
 echo Running standalone tests with:
@@ -86,12 +86,12 @@ REM ============================================================================
 echo Running tests...
 
 pytest -v -r a --log-cli-level=%LOG_LEVEL% --log-file=out.log --color=yes ^
-    --depthai-version=%DAI_VERSION% ^
-    --depthai-nodes-version=%DAI_NODES_VERSION% ^
+    --depthai-version="%DAI_VERSION%" ^
+    --depthai-nodes-version="%DAI_NODES_VERSION%" ^
     --environment-variables=DEPTHAI_PLATFORM=%PLATFORM% ^
     --platform=%PLATFORM% ^
     --python-version=%PYTHON_VERSION_ENV% ^
-    --device-password=%DEVICE_PASSWORD% ^
-    --local-static-registry=%LOCAL_STATIC_REGISTRY% ^
+    --device-password="%DEVICE_PASSWORD%" ^
+    --local-static-registry="%LOCAL_STATIC_REGISTRY%" ^
     --root-dir "%ROOT_DIR%" ^
     -q "%~dp0test_examples_standalone.py"
