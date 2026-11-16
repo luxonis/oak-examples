@@ -83,6 +83,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - Native tracking supplies IDs, but instance masks are indexed by detection. `TrackletSegmentationMatcher` pairs them by same-frame box overlap and can reuse a cached mask for an active track.
 - Every pipeline start, including the restart after applying settings, searches for the support plane afresh; no plane is carried over. Obstacle detection shows "plane invalid" until the search finds the floor.
+- Stereo autocalibration comes from DepthAI's implicit `AutoCalibration` node (`ON_START` by default, overridable with `DEPTHAI_AUTOCALIBRATION`). Do not create an `AutoCalibration` node or call `setAutoCalibrationMode`; either disables the implicit node or the env-var override.
 - The bundled model descriptor is resolved through the DepthAI Zoo for the connected device platform. Keep the YAML under `backend/src/depthai_models/` for OAK App packaging.
 
 ## Related Examples

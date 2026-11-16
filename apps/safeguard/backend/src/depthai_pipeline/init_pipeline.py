@@ -72,14 +72,9 @@ def init_pipeline(
     """
     device = pipeline.getDefaultDevice()
     color_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
-    left_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-    right_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     color_out = color_cam.requestOutput(
         COLOR_SIZE, fps=settings.fps, enableUndistortion=True
     )
-
-    auto_calib = pipeline.create(dai.node.AutoCalibration).build(left_cam, right_cam)
-    auto_calib.initialConfig.mode = dai.AutoCalibrationConfig.CONTINUOUS
 
     preview = color_cam.requestOutput(
         (640, 360),
