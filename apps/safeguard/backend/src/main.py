@@ -1,6 +1,7 @@
 """Run SafeGuard with live controls and proximity alerts."""
 
 import logging
+import signal
 import threading
 
 import depthai as dai
@@ -19,6 +20,7 @@ class App:
         self._settings = Settings.from_env()
         self._settings_lock = threading.Lock()
         self._changed = threading.Event()
+        self._stop = threading.Event()
         self._visualizer = dai.RemoteConnection(httpPort=8082)
         self._pipeline: dai.Pipeline | None = None
         self._topics: tuple[str, ...] = ()
@@ -35,6 +37,10 @@ class App:
             self._settings = request.model_copy(deep=True)
             self._changed.set()
         return EmptyBody()
+
+    def _request_stop(self, signum: int, frame: object) -> None:
+        log.info("Application received a stop signal. Stopping the app...")
+        self._stop.set()
 
     def _stop_pipeline(self) -> None:
         """Stop processing and unregister topics from the previous pipeline."""
@@ -58,11 +64,15 @@ class App:
         log.info("Pipeline started.")
 
     def run(self) -> None:
-        """Process pipeline tasks until exit."""
+        """Process pipeline tasks until exit or a stop signal."""
+        signal.signal(signal.SIGINT, self._request_stop)
+        signal.signal(signal.SIGTERM, self._request_stop)
         try:
             self._start_pipeline()
             while self._pipeline is not None and self._pipeline.isRunning():
                 self._pipeline.processTasks()
+                if self._stop.is_set():
+                    break
                 if self._changed.is_set():
                     self._changed.clear()
                     self._stop_pipeline()
