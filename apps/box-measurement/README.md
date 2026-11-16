@@ -8,6 +8,8 @@ The backend runs the box-measurement nodes from [depthai-nodes](https://github.c
 
 ## Demo
 
+![](media/demo.gif)
+
 ## Architecture
 
 ```mermaid
