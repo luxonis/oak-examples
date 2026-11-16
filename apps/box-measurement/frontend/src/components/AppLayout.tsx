@@ -20,9 +20,10 @@ type AppLayoutProps = {
 	controls: ReactNode;
 };
 
-// The layout the other apps use: the stream fills the left, and a scrolling
-// right panel holds the title, description, the view's controls and the
-// connection indicator. Narrow screens stack the panes.
+// Box Measurement's page, shared by both views and modelled on the other
+// apps' layout: the stream fills the left, and a scrolling right panel holds
+// the app's title and description, the view's controls and the connection
+// indicator. Narrow screens stack the panes.
 function AppLayout({ stream, controls }: AppLayoutProps) {
 	const connection = useDaiConnection().connected ? CONNECTED : DISCONNECTED;
 
