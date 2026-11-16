@@ -19,7 +19,8 @@ CAMERA_RESOLUTION = (IMG_WIDTH, IMG_HEIGHT)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(args.device) if args.device else dai.Device()
-device.setIrLaserDotProjectorIntensity(1.0)
+if device.getIrDrivers() and not device.setIrLaserDotProjectorIntensity(1.0):
+    print("Failed to enable IR laser dot projector.")
 
 with dai.Pipeline(device) as p:
     platform = device.getPlatform()
