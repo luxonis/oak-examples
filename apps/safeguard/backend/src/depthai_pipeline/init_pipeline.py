@@ -1,7 +1,6 @@
 """Build the SafeGuard detection and alert pipeline."""
 
 import logging
-from functools import lru_cache
 from pathlib import Path
 
 import depthai as dai
@@ -39,14 +38,6 @@ SUPPORT_PLANE_CALIBRATION = PlaneCalibrationConfig(max_calibration_attempts=10)
 # Points farther than this from the support plane are obstacles.
 SUPPORT_PLANE_DIST_THR_MM = 45.0
 log = logging.getLogger(__name__)
-
-
-@lru_cache(maxsize=2)
-def _model_from_zoo(platform_name: str):
-    """Resolve the bundled model once per process across settings changes."""
-    model = dai.NNModelDescription.fromYamlFile(str(MODEL_YAML))
-    model.platform = platform_name
-    return dai.getModelFromZoo(model)
 
 
 def init_pipeline(
@@ -107,7 +98,9 @@ def init_pipeline(
     imu.setMaxBatchReports(10)
 
     # Person masks are paired with tracker IDs, aligned depth, and gravity.
-    archive = dai.NNArchive(_model_from_zoo(platform.name))
+    archive = dai.NNArchive(
+        dai.getModelFromZoo(dai.NNModelDescription.fromYamlFile(str(MODEL_YAML)))
+    )
     input_size = archive.getInputSize()
     if input_size is None:
         raise ValueError("segmentation model has no input size")
