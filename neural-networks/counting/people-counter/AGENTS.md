@@ -46,7 +46,7 @@ This is the simplest person-counting reference in the repository. Use it when yo
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The count is for the current frame only; there is no tracking or de-duplication over time.
 - The current code assumes the loaded detector exposes a `person` class in its metadata.
 - The filter threshold is fixed in code rather than a CLI argument.

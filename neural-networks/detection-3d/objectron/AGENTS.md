@@ -49,7 +49,7 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - Despite the README’s broader Objectron framing, the current repo state is chair-only.
 - `PADDING = 0.2` is baked into both crop generation and annotation reprojection.
 - Default FPS is intentionally low on RVC2 and lower than many detection examples because this is a two-stage geometry workflow.

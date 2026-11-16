@@ -47,7 +47,7 @@ This is the repository reference for two-stage animal pose estimation. Use it wh
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The current repo state filters to one label ID, so it is narrower than a generic wildlife detector.
 - Input is forced to NV12 in replay mode.
 - Pose quality depends on the first-stage detection boxes and the fixed padding factor.

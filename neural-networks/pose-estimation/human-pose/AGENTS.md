@@ -47,7 +47,7 @@ This is the repository reference for person detection plus human pose estimation
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The current code path is person-specific, even though the detector could emit other classes.
 - The pose parser threshold is intentionally set to `0.0` so the overlay node can do the filtering instead.
 - Replay sizing and crop padding affect downstream pose quality.

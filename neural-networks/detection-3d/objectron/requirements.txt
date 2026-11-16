@@ -1,2 +1,2 @@
-depthai==3.12.0
+depthai==3.12.1
 depthai-nodes==0.7.0

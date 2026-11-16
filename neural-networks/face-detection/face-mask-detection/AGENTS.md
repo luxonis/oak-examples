@@ -45,7 +45,7 @@ This is the repository reference for mask/no-mask detection using a PPE detector
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The current repo state uses `ppe_detection`, not a dedicated face-mask-only model.
 - `LABEL_ENCODING` exists in [main.py](main.py), but the current pipeline only filters labels; it does not build a separate label-mapper node.
 - This is a single-stage detection example, so it does not crop faces for further refinement.

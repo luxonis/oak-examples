@@ -50,7 +50,7 @@ This is the repository reference for three different strategies for drawing dete
 ## Constraints
 
 - [oakapp.toml](oakapp.toml) only packages [passthrough.py](passthrough.py), not the other tutorial variants.
-- [passthrough.py](passthrough.py) and [stretch_before_inferencing.py](stretch_before_inferencing.py) both use `dai.node.ImgDetectionsFilter` with `labelsToReject = [57]`; remaining label IDs, order, timing, geometry, and instance-mask associations are preserved. DepthAI `3.12.0` is required for the public filter.
+- [passthrough.py](passthrough.py) and [stretch_before_inferencing.py](stretch_before_inferencing.py) both use `dai.node.ImgDetectionsFilter` with `labelsToReject = [57]`; remaining label IDs, order, timing, geometry, and instance-mask associations are preserved. DepthAI `3.12.1` is required for the public filter.
 - This folder is about annotation/display alignment, not about maximizing detector quality.
 
 ## Related Examples

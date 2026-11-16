@@ -79,7 +79,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.

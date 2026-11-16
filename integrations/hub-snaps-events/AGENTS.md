@@ -78,7 +78,7 @@ This is the repository reference for sending Hub snaps from detection-driven con
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The uploader triggers when filtered detections are present at or above `minConfidence`.
 - [utils/snaps_producer.py](utils/snaps_producer.py) intentionally uses test metadata placeholders such as `snap_name="test_snap"`, `tags=["test_tag"]`, and simple `extras`.
 - The host node only checks “filtered detections exist and enough time has passed”; it does not implement richer per-detection or per-scene logic.

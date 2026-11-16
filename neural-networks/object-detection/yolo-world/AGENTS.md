@@ -49,7 +49,7 @@ This is the repository reference for open-vocabulary YOLO-World inference with s
 
 ## Constraints
 
-- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
+- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - [main.py](main.py) enforces `MAX_NUM_CLASSES = 80`.
 - This example is effectively RVC4-only and uses the `snpe` DSP backend explicitly.
 - Luxonis OS 1.40 or newer is required for the device NPU runtime.
