@@ -8,8 +8,8 @@ import {
 } from '@luxonis/ui-components';
 import { useId, useState } from 'react';
 
+import PanelSection from '../components/PanelSection';
 import RemoveIcon from '../components/RemoveIcon';
-import ToolbarPanel from '../components/ToolbarPanel';
 import { cmToMm, roundCmToMm } from '../units';
 import {
 	MAX_DISTANCE_OFFSET_CM,
@@ -18,7 +18,7 @@ import {
 
 const OFFSET_STEP_CM = 0.1;
 
-type DistanceOffsetButtonProps = {
+type DistanceOffsetSectionProps = {
 	/** Detected camera-to-support-plane distance along the optical axis. */
 	cameraDistanceCm: number;
 	offsetCm: number;
@@ -46,23 +46,23 @@ const clampOffsetCm = (offsetCm: number) =>
 
 const RANGE_TEXT = `−${MAX_DISTANCE_OFFSET_CM} to +${MAX_DISTANCE_OFFSET_CM} cm`;
 
-function DistanceOffsetButton({
+function DistanceOffsetSection({
 	cameraDistanceCm,
 	offsetCm,
-}: DistanceOffsetButtonProps) {
-	const [open, setOpen] = useState(false);
+}: DistanceOffsetSectionProps) {
 	const rangeHintId = useId();
 	const distanceOffsetMutation = useSetDistanceOffset();
 	const { isPending, error } = distanceOffsetMutation;
-	// Text input so it always shows "0.0", regardless of the browser locale
-	const [draft, setDraft] = useState('');
+	// Text input so it always shows "0.0", regardless of the browser locale.
+	// Starts from the applied offset; the view remounts after Recalibrate.
+	const [draft, setDraft] = useState(() => offsetCm.toFixed(1));
 	const draftOffsetCm = parseOffsetCm(draft);
 	const isDraftInvalid = draft.trim() !== '' && draftOffsetCm === null;
 
 	const apply = (value: number) => {
 		distanceOffsetMutation.mutate(
 			{ offset_mm: cmToMm(value) },
-			{ onSuccess: () => setOpen(false) },
+			{ onSuccess: () => setDraft(value.toFixed(1)) },
 		);
 	};
 
@@ -75,17 +75,7 @@ function DistanceOffsetButton({
 	};
 
 	return (
-		<ToolbarPanel
-			label="Distance offset"
-			open={open}
-			onOpenChange={(nextOpen) => {
-				// Start from the applied offset each time the panel opens
-				if (nextOpen) {
-					setDraft(offsetCm.toFixed(1));
-				}
-				setOpen(nextOpen);
-			}}
-		>
+		<PanelSection title="Distance offset">
 			<form
 				className="flex w-full flex-col gap-3"
 				onSubmit={(event) => {
@@ -204,8 +194,8 @@ function DistanceOffsetButton({
 					/>
 				</div>
 			</form>
-		</ToolbarPanel>
+		</PanelSection>
 	);
 }
 
-export default DistanceOffsetButton;
+export default DistanceOffsetSection;

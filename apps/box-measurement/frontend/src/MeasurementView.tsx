@@ -9,7 +9,7 @@ import {
 	MEASUREMENT_TOPICS,
 	sortTopicsBy,
 } from './streamTopics';
-import DistanceOffsetButton from './supportPlaneCalibration/DistanceOffsetButton';
+import DistanceOffsetSection from './supportPlaneCalibration/DistanceOffsetSection';
 import { useSupportPlaneCalibration } from './supportPlaneCalibration/useSupportPlaneCalibration';
 import { mmToCm } from './units';
 
@@ -60,14 +60,14 @@ function MeasurementView() {
 							/>
 						) : null}
 					</PanelSection>
-					{/* Positioned so the toolbar panels span the row */}
+					{cameraDistanceMm !== null ? (
+						<DistanceOffsetSection
+							cameraDistanceCm={mmToCm(cameraDistanceMm)}
+							offsetCm={mmToCm(distanceOffsetMm)}
+						/>
+					) : null}
+					{/* Positioned so the toolbar panel spans the row */}
 					<div className="relative flex flex-wrap gap-2">
-						{cameraDistanceMm !== null ? (
-							<DistanceOffsetButton
-								cameraDistanceCm={mmToCm(cameraDistanceMm)}
-								offsetCm={mmToCm(distanceOffsetMm)}
-							/>
-						) : null}
 						<DetectionSettingsButton />
 					</div>
 				</>
