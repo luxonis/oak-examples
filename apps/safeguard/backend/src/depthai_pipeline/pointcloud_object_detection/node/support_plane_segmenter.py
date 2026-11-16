@@ -19,8 +19,6 @@ class SupportPlaneSegmenter(dai.node.ThreadedHostNode):
     # Every this-many-th point of the cloud is classified.
     DOWNSAMPLE_FACTOR = 7
 
-    SUPPORT_PLANE_COLOR = np.array([80, 200, 80, 255], dtype=np.uint8)
-
     def __init__(self) -> None:
         super().__init__()
         self.out_obstacle = self.createOutput()
@@ -107,7 +105,7 @@ class SupportPlaneSegmenter(dai.node.ThreadedHostNode):
             self.out_support_plane,
             pcl_msg,
             camera_to_aligned(points[on_plane], self._R),
-            np.tile(self.SUPPORT_PLANE_COLOR, (int(on_plane.sum()), 1)),
+            colors[on_plane],
         )
         self._send(self.out_status, pcl_msg, SupportPlaneStatus(self._plane, self._R))
 

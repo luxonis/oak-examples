@@ -47,7 +47,7 @@ function App() {
                     <div className="stream-container">
                         <LiveStreams />
                     </div>
-                    <p className="stream-legend">Point cloud: green = support plane, orange = warning zone, red = danger zone. Camera boxes mark detected obstacles.</p>
+                    <p className="stream-legend">Point cloud: orange = warning zone, red = danger zone. Camera boxes mark detected obstacles.</p>
                 </div>
             </section>
             <div className="safeguard-divider" aria-hidden="true" />

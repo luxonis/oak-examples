@@ -28,7 +28,6 @@ CAMERA_HEIGHT_MM = 500.0
 MAX_DEPTH_MM = 6000.0
 CLOUD_GRAY = (128, 128, 128, 128)
 ZONE_COLORS = ((230, 50, 50, 255), (250, 140, 0, 255))
-SUPPORT_PLANE_GREEN = (80, 200, 80, 255)
 
 # World-down in camera axes for a level camera.
 LEVEL = np.array([0.0, 1.0, 0.0])
@@ -247,9 +246,8 @@ class ObstaclePathTests(unittest.TestCase):
         self.assertEqual([f.obstacles for f in valid if f.obstacles], [])
         camera_height = -valid[-1].status.plane.offset_mm
         self.assertAlmostEqual(camera_height, CAMERA_HEIGHT_MM, delta=5)
-        # Floor points are drawn as support plane; none keep the cloud's colour.
-        self.assertGreater(len(valid[-1].overlay_points(SUPPORT_PLANE_GREEN)), 0)
-        self.assertEqual(len(valid[-1].overlay_points(CLOUD_GRAY)), 0)
+        # Floor points stay in the overlay in the cloud's own colour.
+        self.assertGreater(len(valid[-1].overlay_points(CLOUD_GRAY)), 0)
 
     def test_box_in_danger_zone_is_one_obstacle_at_its_distance(self):
         self.start(PlaneCalibrationConfig(), support_plane_dist_thr_mm=45.0)

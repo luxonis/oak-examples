@@ -33,7 +33,7 @@ DepthAI's `ObjectTracker` assigns person IDs. A host node pairs each track with 
 ## Features
 
 - **Live alerts:** The `color` preview and `danger` annotations show tracked-person alerts at the configured FPS.
-- **Obstacle views:** With generic detection enabled, `obstacle_annotations` marks detected obstacles on the camera view, `grid` shows the bird's-eye occupancy view, `grid_annotations` reports whether the support plane is valid, and `pcl` shows green support plane points, scene-colored obstacles, and orange/red zone guides. These views open automatically when available.
+- **Obstacle views:** With generic detection enabled, `obstacle_annotations` marks detected obstacles on the camera view, `grid` shows the bird's-eye occupancy view, `grid_annotations` reports whether the support plane is valid, and `pcl` shows the scene-colored point cloud with orange/red zone guides on the support plane. These views open automatically when available.
 - **Runtime controls:** Change camera FPS, generic obstacle detection, alert timing, and zone bounds. Applying settings rebuilds the pipeline without restarting the app. Stereo auto-calibration runs continuously, and the support plane is re-verified about every half second and refit when it no longer matches the scene.
 
 Warning and danger zones use millimetres in the gravity-aligned camera frame. Negative X is left of centre; the danger zone must end closer to the camera than the warning zone.
