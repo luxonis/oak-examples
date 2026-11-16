@@ -50,7 +50,6 @@ This is the strongest standalone reference for interactive 3D object measurement
 ## Architecture
 
 - Extract rotated-box corners in RGB pixels before normalizing them for selection/drawing. Rotating normalized rectangles distorts geometry on non-square frames.
-
 - A host Sync groups RGB, detections, and aligned depth. The annotation node uses depthai-nodes `remap_message` to remap native detections and resample instance masks to the undistorted RGB frame, including rotated crops. Selection and contours use that geometry directly; background ID 255 never selects a measurement region. RGB and depth keep their own metadata, and mode messages use the RGB reference used by RGBD.
 - RGB from `CAM_A` is resized and aligned with depth from `dai.node.Depth`.
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.

@@ -42,7 +42,6 @@ This is the repository reference for hand pose plus gesture recognition. Use it 
 ## Architecture
 
 - Crop configs and their MessageGroup preserve both timestamps and the sequence number with `setBufferMetadataFrom`; FrameCropper synchronizes them to camera frames using device timestamps.
-
 - Native Keypoints and palm detections are transformed to the displayed source frame before drawing and gesture recognition. The hand rectangle is remapped from the actual crop extent, including rotation; annotation metadata follows the original detections.
 - Palm detection runs first on the full frame.
 - [utils/process.py](utils/process.py) turns detections into crop configs for the hand landmark model.

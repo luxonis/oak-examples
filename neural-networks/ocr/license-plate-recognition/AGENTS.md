@@ -42,7 +42,6 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 ## Architecture
 
 - Apply plate trimming through `setOuterBoundingBox()` before remapping. Assigning legacy coordinate fields alone leaves the native parser's stored rectangle unchanged.
-
 - The Script crop stages use ImgTransformation.remapRectTo() to map detector boxes into the actual source frame, including nested plate crops. Plate overlays consume those source-frame coordinates directly; crop configs, filtered messages, and rendered frames retain timestamps and sequence numbers. The RVC4-only restriction remains.
 - A first-stage vehicle detector runs on a very large source frame.
 - Script nodes generate crop configs for vehicles and then for license plates inside those vehicle crops.

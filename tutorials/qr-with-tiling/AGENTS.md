@@ -43,7 +43,6 @@ This is the repository reference for tiling-based QR detection with host-side de
 ## Architecture
 
 - The decoded QR results, their visualization message, and grid annotations preserve source host/device timestamps and sequence numbers; the grid also carries the preview transformation.
-
 - GatherData keeps each original image as its reference. MergeImgDetections calls native transformTo(reference.getTransformation()) on each tile before merging and NMS. This thin container adapter also supports replay geometry without requiring calibrated Align extrinsics.
 - [main.py](main.py) splits each frame into overlapping tiles with `Tiling`, crops them with `FrameCropper`, and runs QRDet on each tile.
 - `GatherData` and [utils/merge_img_detections.py](utils/merge_img_detections.py) merge tile detections back into image space.
