@@ -19,8 +19,8 @@ import {
 const OFFSET_STEP_CM = 0.1;
 
 type DistanceOffsetSectionProps = {
-	/** Detected camera-to-support-plane distance along the optical axis. */
-	cameraDistanceCm: number;
+	/** Detected camera-to-support-plane distance along the optical axis, if known. */
+	cameraDistanceCm: number | null;
 	offsetCm: number;
 };
 
@@ -43,6 +43,8 @@ const parseOffsetCm = (draft: string): number | null => {
 
 const clampOffsetCm = (offsetCm: number) =>
 	Math.min(MAX_DISTANCE_OFFSET_CM, Math.max(-MAX_DISTANCE_OFFSET_CM, offsetCm));
+
+const NO_VALUE_TEXT = '–';
 
 const RANGE_TEXT = `−${MAX_DISTANCE_OFFSET_CM} to +${MAX_DISTANCE_OFFSET_CM} cm`;
 
@@ -87,7 +89,13 @@ function DistanceOffsetSection({
 			>
 				<div className="flex items-center justify-between gap-2">
 					<Label text="Detected distance" color="normal" />
-					<Label text={`${cameraDistanceCm.toFixed(1)} cm`} />
+					<Label
+						text={
+							cameraDistanceCm === null
+								? NO_VALUE_TEXT
+								: `${cameraDistanceCm.toFixed(1)} cm`
+						}
+					/>
 				</div>
 				<div className="flex flex-col gap-1">
 					<SubLabel
@@ -164,8 +172,8 @@ function DistanceOffsetSection({
 					<Label
 						weight="bold"
 						text={
-							draftOffsetCm === null
-								? '–'
+							cameraDistanceCm === null || draftOffsetCm === null
+								? NO_VALUE_TEXT
 								: `${(cameraDistanceCm + draftOffsetCm).toFixed(1)} cm`
 						}
 					/>

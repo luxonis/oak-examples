@@ -62,12 +62,10 @@ function MeasurementView() {
 							/>
 						) : null}
 					</PanelSection>
-					{cameraDistanceCm !== null ? (
-						<DistanceOffsetSection
-							cameraDistanceCm={cameraDistanceCm}
-							offsetCm={mmToCm(distanceOffsetMm)}
-						/>
-					) : null}
+					<DistanceOffsetSection
+						cameraDistanceCm={cameraDistanceCm}
+						offsetCm={mmToCm(distanceOffsetMm)}
+					/>
 					<DetectionSettingsSection />
 				</>
 			}
