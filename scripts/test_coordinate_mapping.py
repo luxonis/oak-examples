@@ -90,12 +90,16 @@ class CoordinateMappingTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         cls.modules["volume"] = module
-        spec = importlib.util.spec_from_file_location(
-            "grid", root / "apps/qr-tiling/backend/src/tiling/tile_grid_overlay.py"
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        cls.modules["grid"] = module
+        for name, filename in (
+            ("grid", "tiling/tile_grid_overlay.py"),
+            ("fps_controller", "fps_control/fps_controller.py"),
+        ):
+            spec = importlib.util.spec_from_file_location(
+                name, root / "apps/qr-tiling/backend/src" / filename
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            cls.modules[name] = module
         spec = importlib.util.spec_from_file_location(
             "outlines",
             root
@@ -129,6 +133,37 @@ class CoordinateMappingTests(unittest.TestCase):
                         setup.append(ast.unparse(statement))
         exec("\n".join(setup), namespace)
         return namespace
+
+    def test_qr_fps_outputs_link_to_typed_grid_overlay(self):
+        # Replace the device-only Script with native host ports for linking checks.
+        class ScriptPorts(dai.node.ThreadedHostNode):
+            def run(self):
+                pass
+
+        fps_class = self.modules["fps_controller"].FPSController
+        with (
+            dai.Pipeline(False) as pipeline,
+            patch.object(
+                self.modules["grid"].BaseHostNode,
+                "__init__",
+                dai.node.HostNode.__init__,
+            ),
+        ):
+            ports = pipeline.create(ScriptPorts)
+            script = SimpleNamespace(
+                outputs={name: ports.createOutput() for name in ("rgb_nn", "rgb_display")}
+            )
+            with patch.object(
+                fps_class,
+                "getParentPipeline",
+                return_value=SimpleNamespace(create=Mock(return_value=script)),
+            ):
+                fps = pipeline.create(fps_class)
+            pipeline.create(self.modules["grid"].TileGridOverlay).build(
+                input_frame=fps.rgb_display,
+                get_tile_positions=lambda: [(0, 0, 640, 480)],
+                source_frame=fps.rgb_nn,
+            )
 
     def test_tiling_align_preserves_bursts_with_one_target(self):
         for path, name in (

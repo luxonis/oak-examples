@@ -92,6 +92,7 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Non-Obvious Repo Conventions
 
+- `FPSController` declares its Script outputs as `ImgFrame` so the typed `TileGridOverlay` inputs can link during pipeline construction.
 - `gridSize` is passed around as `(cols, rows)`, not `(rows, cols)`.
 - Initial frontend state is restored by fetching `Get Current Params Service`, not by hardcoding frontend defaults.
 - Decode enablement is a separate service from tiling configuration.
