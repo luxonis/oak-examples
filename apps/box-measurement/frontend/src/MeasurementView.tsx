@@ -1,6 +1,7 @@
 import { Streams } from '@luxonis/depthai-viewer-common';
-import { Button, StyledText } from '@luxonis/ui-components';
+import { Button, Label, StyledText } from '@luxonis/ui-components';
 import AppLayout from './components/AppLayout';
+import PanelSection from './components/PanelSection';
 import DetectionSettingsButton from './detection/DetectionSettingsButton';
 import {
 	COLOR_STREAM_TOPIC,
@@ -31,7 +32,34 @@ function MeasurementView() {
 				/>
 			}
 			controls={
-				<div className="flex flex-col gap-2">
+				<>
+					<PanelSection title="Support plane">
+						{cameraDistanceMm !== null ? (
+							<div className="flex items-center justify-between gap-2">
+								<Label text="Camera distance" color="normal" />
+								<Label text={`${mmToCm(cameraDistanceMm).toFixed(1)} cm`} />
+							</div>
+						) : null}
+						<div className="flex">
+							<Button
+								type="button"
+								variant="outline"
+								label="Recalibrate"
+								disabled={retryMutation.isPending}
+								onClick={() => {
+									// The polled status then switches back to support plane calibration.
+									retryMutation.mutate({});
+								}}
+							/>
+						</div>
+						{retryMutation.error ? (
+							<StyledText
+								size="label"
+								color="error"
+								text={retryMutation.error.message}
+							/>
+						) : null}
+					</PanelSection>
 					{/* Positioned so the toolbar panels span the row */}
 					<div className="relative flex flex-wrap gap-2">
 						{cameraDistanceMm !== null ? (
@@ -41,25 +69,8 @@ function MeasurementView() {
 							/>
 						) : null}
 						<DetectionSettingsButton />
-						<Button
-							type="button"
-							variant="outline"
-							label="Recalibrate"
-							disabled={retryMutation.isPending}
-							onClick={() => {
-								// The polled status then switches back to support plane calibration.
-								retryMutation.mutate({});
-							}}
-						/>
 					</div>
-					{retryMutation.error ? (
-						<StyledText
-							size="label"
-							color="error"
-							text={retryMutation.error.message}
-						/>
-					) : null}
-				</div>
+				</>
 			}
 		/>
 	);
