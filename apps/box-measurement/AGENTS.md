@@ -40,6 +40,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 - [backend/src/services/support_plane_controller.py](backend/src/services/support_plane_controller.py): support plane calibration state, candidate selection and distance offset
 - [backend/src/config.py](backend/src/config.py): neural depth model, camera resolutions, frame rate and default detection confidence
 - [frontend/src/App.tsx](frontend/src/App.tsx), [frontend/src/supportPlaneCalibration/SupportPlaneCalibrationView.tsx](frontend/src/supportPlaneCalibration/SupportPlaneCalibrationView.tsx) and [frontend/src/MeasurementView.tsx](frontend/src/MeasurementView.tsx): view selection and the two views
+- [frontend/src/components/AppLayout.tsx](frontend/src/components/AppLayout.tsx) and [frontend/src/components/PanelSection.tsx](frontend/src/components/PanelSection.tsx): the shared side panel layout and its titled sections
 - [oakapp.toml](oakapp.toml): container, frontend build and Python 3.11 base image
 
 ## Architecture
@@ -49,7 +50,10 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 - The `SupportPlanePreview` host node publishes the point cloud with a grid on the highlighted support plane, only while the support plane calibration view asks for it.
 - [backend/src/api/request_handler.py](backend/src/api/request_handler.py) registers services with pydantic-validated requests and responses; failures become `{"error": "..."}`.
 - One pipeline runs for the app's lifetime; it stops on pipeline stop, `SIGINT`/`SIGTERM`, or `q` from the remote connection.
-- The frontend picks its view from the polled support plane calibration state: the support plane calibration view until a support plane is confirmed, then the measurement view with **Distance offset**, **Detection settings** and **Recalibrate** in its toolbar. Toolbar panels use [frontend/src/components/ToolbarPanel.tsx](frontend/src/components/ToolbarPanel.tsx), since ui-components has no popover. Service calls go through TanStack Query + zod in [frontend/src/backend/](frontend/src/backend/).
+- The frontend picks its view from the polled support plane calibration state: the support plane calibration view until a support plane is confirmed, then the measurement view. There is no routing.
+- Both views fill the shared side panel layout of the other apps, `AppLayout`: the stream on the left, then a divider and a 420px right panel that scrolls on its own and holds the title, description, the view's controls and the connection indicator. Narrow screens stack the panes; nothing goes below the stream.
+- The right panel's controls are `PanelSection`s. The support plane calibration view has one, **Support plane calibration**; the measurement view has **Support plane** (camera distance and **Recalibrate**), **Distance offset** and **Detection settings**, always visible.
+- Service calls go through TanStack Query + zod in [frontend/src/backend/](frontend/src/backend/).
 
 ## Data Flow
 
@@ -69,7 +73,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 - `To reuse measurement in another pipeline:` install `depthai-nodes[box-measurement]` at the version in [backend/requirements.txt](backend/requirements.txt) and wire the nodes as in [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py)
 - `To act on measurements (log, store, forward):` read `BoxMeasurements` from `box_measurement.out` with a host node or output queue
-- `To add a live control:` register a service with `add_request_handler` in [backend/src/app.py](backend/src/app.py), define it like [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx), and put its UI in a `ToolbarPanel`
+- `To add a live control:` register a service with `add_request_handler` in [backend/src/app.py](backend/src/app.py), define it like [frontend/src/detection/useDetectionConfidenceThreshold.tsx](frontend/src/detection/useDetectionConfidenceThreshold.tsx), and put its UI in a `PanelSection` of the right panel, like [frontend/src/detection/DetectionSettingsSection.tsx](frontend/src/detection/DetectionSettingsSection.tsx)
 
 ## Constraints
 
@@ -97,5 +101,5 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 ## Validation
 
 - `Run:` `oakctl app run .`
-- `Success looks like:` the frontend opens on the support plane calibration view with the `Support plane preview`; after confirming a support plane it switches to the color stream, and boxes passing the camera get L × W × H and volume overlaid
+- `Success looks like:` the frontend opens on the support plane calibration view with the `Support plane preview` on the left and the calibration controls in the right panel, which reads "Connected to device"; after confirming a support plane the stream switches to the color stream, the panel to the measurement sections, and boxes passing the camera get L × W × H and volume overlaid
 - `Common failure meaning:` a non-stereo device (`UnsupportedDeviceError`), no support plane confirmed yet, the static frontend was not built, or the model download failed on first start
