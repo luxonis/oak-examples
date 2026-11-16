@@ -19,7 +19,8 @@ flowchart LR
         Stereo["Stereo cameras<br/>640 × 480 · 20 FPS"]
         IMU["IMU<br/>Accelerometer"]
         Resize["Resize<br/>512 × 320"]
-        Depth["Neural stereo depth<br/>Aligned to the 512 × 320 frame, organized point cloud"]
+        Depth["Neural stereo depth"]
+        RGBD["Align and RGBD<br/>Depth aligned to the 512 × 320 frame, organized point cloud"]
         Encoder["H.264 encoder"]
 
         subgraph Measurer["BoxMeasurer (depthai-nodes)"]
@@ -34,15 +35,16 @@ flowchart LR
         Color --> Encoder
         Color --> Resize
         Resize --> Segmentation
-        Resize --> Depth
+        Resize -->|"Align target and color"| RGBD
         Stereo --> Depth
+        Depth -->|"Depth"| RGBD
         Segmentation --> Tracking
         Tracking --> Measurement
-        Depth -->|"Point cloud"| Measurement
-        Depth -->|"Point cloud"| Calibration
+        RGBD -->|"Point cloud"| Measurement
+        RGBD -->|"Point cloud"| Calibration
         IMU -->|"Gravity"| Calibration
         Calibration -->|"Support plane + distance offset"| Measurement
-        Depth -->|"Point cloud"| Preview
+        RGBD -->|"Point cloud"| Preview
         Calibration -->|"Highlighted candidate"| Preview
     end
 
