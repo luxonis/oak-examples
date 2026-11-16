@@ -213,12 +213,12 @@ def init_pipeline(
         awareness_escalation_frames=settings.awareness_escalation_sec * settings.fps,
     )
     annotations = pipeline.create(DangerVisualizer).build(alert.out)
-    topics = ["color", "danger"]
-    visualizer.addTopic("color", preview_encoder.out)
-    visualizer.addTopic("danger", annotations.out)
+    topics = ["Video", "Annotations"]
+    visualizer.addTopic("Video", preview_encoder.out)
+    visualizer.addTopic("Annotations", annotations.out)
     if obstacles is not None:
-        visualizer.addTopic("grid", obstacles.out_grid)
-        visualizer.addTopic("grid_annotations", obstacles.out_grid_annotations)
-        visualizer.addTopic("pcl", obstacles.out_pcl)
-        topics.extend(("grid", "grid_annotations", "pcl"))
+        visualizer.addTopic("Occupancy Grid", obstacles.out_grid)
+        visualizer.addTopic("Support Plane Status", obstacles.out_grid_annotations)
+        visualizer.addTopic("Point Cloud", obstacles.out_pcl)
+        topics.extend(("Occupancy Grid", "Support Plane Status", "Point Cloud"))
     return tuple(topics)

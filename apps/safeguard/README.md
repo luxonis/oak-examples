@@ -32,12 +32,12 @@ flowchart LR
     GRID --> UI
 ```
 
-DepthAI's `ObjectTracker` assigns person IDs. A host node pairs each track with its instance mask, then evaluates aligned depth pixels in gravity-aligned warning and danger zones. The `Depth` node selects the backend for the connected device; on the tested OAK4-D with DepthAI 3.12, it selected NeuralDepth. The optional obstacle path uses automatic support plane calibration: depthai-nodes `AutoSupportPlane` runs in continuous mode, finds the support plane, and keeps re-verifying it against gravity. Points off the support plane are grouped in a polar occupancy grid, and the zone overlay is laid flat on the support plane. While no support plane passes, obstacle assessment stops and `grid_annotations` reports the plane as invalid.
+DepthAI's `ObjectTracker` assigns person IDs. A host node pairs each track with its instance mask, then evaluates aligned depth pixels in gravity-aligned warning and danger zones. The `Depth` node selects the backend for the connected device; on the tested OAK4-D with DepthAI 3.12, it selected NeuralDepth. The optional obstacle path uses automatic support plane calibration: depthai-nodes `AutoSupportPlane` runs in continuous mode, finds the support plane, and keeps re-verifying it against gravity. Points off the support plane are grouped in a polar occupancy grid, and the zone overlay is laid flat on the support plane. While no support plane passes, obstacle assessment stops and `Support Plane Status` reports the plane as invalid.
 
 ## Features
 
-- **Live alerts:** The H.264 `color` preview and `danger` annotations show tracked-person alerts at the configured FPS.
-- **Obstacle views:** With generic detection enabled, `grid` shows the bird's-eye occupancy view, `grid_annotations` reports whether the support plane is valid, and `pcl` shows the scene-colored point cloud with orange/red zone guides on the support plane. These views open automatically when available.
+- **Live alerts:** The H.264 `Video` preview and its `Annotations` overlay show tracked-person alerts at the configured FPS.
+- **Obstacle views:** With generic detection enabled, `Occupancy Grid` shows the bird's-eye occupancy view, `Support Plane Status` reports whether the support plane is valid, and `Point Cloud` shows the scene-colored point cloud with orange/red zone guides on the support plane. These views open automatically when available.
 - **Runtime controls:** Change camera FPS, generic obstacle detection, alert timing, and zone bounds. Applying settings rebuilds the pipeline without restarting the app. DepthAI's default stereo autocalibration runs at every pipeline start, including after applying settings; set `DEPTHAI_AUTOCALIBRATION=CONTINUOUS` to keep it running. The support plane is re-verified about every half second and refit when it no longer matches the scene.
 
 Warning and danger zones use millimetres in the gravity-aligned camera frame. Negative X is left of centre; the danger zone must end closer to the camera than the warning zone.

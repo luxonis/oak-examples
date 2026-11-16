@@ -27,7 +27,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - `Runs on:` RVC4 standalone only
 - `Requires:` RGB, stereo, and IMU sensors; a built static frontend; bundled person segmentation model
 - `Input:` RGB preview, depth selected by the Depth node, 50 Hz raw accelerometer, and frontend settings
-- `Output:` H.264 `color` preview and `danger` annotations; optional `grid`, `grid_annotations`, and `pcl` topics
+- `Output:` H.264 `Video` preview and its `Annotations` overlay; optional `Occupancy Grid`, `Support Plane Status`, and `Point Cloud` topics
 - `Models:` bundled Zoo `luxonis/yolov8-instance-segmentation-nano:coco-512x288`, filtered to person class
 - `Visualizer / UI:` custom HTTPS frontend built on `@luxonis/depthai-viewer-common` and `@luxonis/ui-components` with Tailwind, with raw DepthAI Visualizer on port 8082
 
@@ -77,7 +77,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - The optional point-cloud path uses Open3D through the depthai-nodes `box-measurement` extra and can be costly. Support plane state is held only in the running pipeline.
 - `init_pipeline.py` sets the support plane settings and passes them into `PointCloudObjectDetectionNode.build()`: `SUPPORT_PLANE_CALIBRATION` and the 45 mm `SUPPORT_PLANE_DIST_THR_MM` split threshold. `AutoSupportPlane` uses the default `PlaneCalibrationConfig` except for `max_calibration_attempts=10`. Without that cap a failed refit searches indefinitely, never reports `passed=False`, and the lost support plane stays valid. If a real floor is rejected, widen `max_gravity_angle_deg` before changing anything else.
 - `AutoSupportPlaneResult` and `SupportPlaneStatus` are Python `Buffer` subclasses and only travel between host nodes.
-- The `color` topic is H.264, and the browser decodes it only in a secure context (HTTPS or localhost). The standalone UI is served over HTTPS; over plain HTTP from another host the stream stays blank.
+- The `Video` topic is H.264, and the browser decodes it only in a secure context (HTTPS or localhost). The standalone UI is served over HTTPS; over plain HTTP from another host the stream stays blank.
 - The frontend uses the same stack as the other frontend examples: `@luxonis/ui-components` controls, Tailwind classes with its theme tokens, and Biome. `react` and `react-dom` stay pinned to the exact version `@luxonis/depthai-viewer-common` declares as its peer.
 
 ## Non-Obvious Repo Conventions
@@ -95,5 +95,5 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 ## Validation
 
 - `Run:` `oakctl app run .` from this directory with an RVC4 device connected. To check the frontend without a device, run `npm ci && npm run build && npm run lint` in `frontend/`.
-- `Success looks like:` `Pipeline started.` appears in the log, the HTTPS frontend shows the `color` stream with `danger` annotations, and applying settings restarts the pipeline with the new values. With generic object detection enabled, `grid`, `grid_annotations`, and `pcl` appear, and the support plane turns valid once the floor is in view.
-- `Common failure meaning:` a `RuntimeError` at startup means the device is not RVC4; a settings panel stuck on "Loading settings" means the backend crashed or never registered its services; a blank `color` stream means the page is not in a secure context; a support plane that stays invalid means the floor is out of view or failed the gravity check.
+- `Success looks like:` `Pipeline started.` appears in the log, the HTTPS frontend shows the `Video` stream with its `Annotations` overlay, and applying settings restarts the pipeline with the new values. With generic object detection enabled, `Occupancy Grid`, `Support Plane Status`, and `Point Cloud` appear, and the support plane turns valid once the floor is in view.
+- `Common failure meaning:` a `RuntimeError` at startup means the device is not RVC4; a settings panel stuck on "Loading settings" means the backend crashed or never registered its services; a blank `Video` stream means the page is not in a secure context; a support plane that stays invalid means the floor is out of view or failed the gravity check.

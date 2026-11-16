@@ -5,19 +5,19 @@ import { TopBar } from './TopBar.tsx';
 import SettingsForm from './settings/SettingsForm.tsx';
 
 const STREAM_PANEL_ORDER = [
-	'danger',
-	'color',
-	'grid',
-	'grid_annotations',
-	'pcl',
+	'Annotations',
+	'Video',
+	'Occupancy Grid',
+	'Support Plane Status',
+	'Point Cloud',
 ];
 const DEFAULT_TOPICS = new Set(STREAM_PANEL_ORDER);
 const TOPIC_GROUPS = {
-	color: 'preview',
-	danger: 'preview',
-	grid: 'grid',
-	grid_annotations: 'grid',
-	pcl: 'pcl',
+	Video: 'preview',
+	Annotations: 'preview',
+	'Occupancy Grid': 'grid',
+	'Support Plane Status': 'grid',
+	'Point Cloud': 'pcl',
 };
 
 const getStreamPanelOrder = (topicName: string) => {
