@@ -51,7 +51,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - RGB from `CAM_A` is resized and aligned with depth from `dai.node.Depth`.
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
-- Detection filtering keeps only the currently active class labels.
+- `dai.node.ImgDetectionsFilter` keeps active class labels and applies the frontend confidence threshold. Services send complete `dai.ImgDetectionsFilterConfig` snapshots through `inputConfig`, preserving the other setting. A maximum confidence of infinity keeps threshold `1.0` valid under the native strict range check.
 - The annotation node handles segmentation, selection, and display overlays.
 - An `RGBD` node creates pointcloud output for the segmented region.
 - The measurement node estimates dimensions and volume, either by oriented bounding box or height-grid over a captured support plane.
@@ -79,6 +79,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Constraints
 
+- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.

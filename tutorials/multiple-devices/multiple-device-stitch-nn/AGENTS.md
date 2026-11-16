@@ -48,6 +48,7 @@ This is the repository reference for stitching multiple camera feeds into one pa
 
 ## Constraints
 
+- Retain Python post-merge `ImgDetectionsFilter.useNms()`: the DepthAI 3.12 public filter only suppresses across separate inputs, not within the merged tile message. Changing the stitching or tile grouping is outside this filtering update.
 - This is host-only; there is no standalone packaging path.
 - Reliable stitching assumes static, vertically aligned cameras with sufficient overlap and consistent left-to-right ordering.
 - The code selects the YOLO model variant from the current platform variable after device setup, so mixed-platform multi-device runs are not the intended shape.

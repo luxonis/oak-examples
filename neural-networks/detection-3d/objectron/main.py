@@ -3,7 +3,6 @@ from pathlib import Path
 import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
-    ImgDetectionsFilter,
     GatherData,
     FrameCropper,
 )
@@ -60,8 +59,9 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_model_description, args.fps_limit
     )
 
-    first_stage_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
-    first_stage_filter.keepLabels(VALID_LABELS)
+    first_stage_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+    first_stage_filter.initialConfig.labelsToKeep = VALID_LABELS
+    det_nn.out.link(first_stage_filter.inputs["detections"])
 
     # detection processing
     crop_node = (

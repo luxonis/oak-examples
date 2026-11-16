@@ -41,12 +41,13 @@ This is the repository reference for person detection plus human pose estimation
 ## Architecture
 
 - A person detector runs first.
-- `ImgDetectionsFilter` identifies the `person` class for the pose workflow.
+- `dai.node.ImgDetectionsFilter` identifies the `person` class for the pose workflow.
 - `FrameCropper` extracts padded person crops for Lite-HRNet.
 - `GatherData` and [utils/annotation_node.py](utils/annotation_node.py) merge the keypoints and skeleton back to the original detections.
 
 ## Constraints
 
+- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The current code path is person-specific, even though the detector could emit other classes.
 - The pose parser threshold is intentionally set to `0.0` so the overlay node can do the filtering instead.
 - Replay sizing and crop padding affect downstream pose quality.

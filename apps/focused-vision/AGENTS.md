@@ -75,6 +75,7 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 ## Constraints
 
+- Retain Python `ImgDetectionsFilter.useNms()` after tile merging: the DepthAI 3.12 public filter suppresses duplicates only across separate inputs, so it does not suppress duplicates within this merged message. Keep `PickLargestBbox` for area-based selection; native confidence top-K is different.
 - The backend exits on RVC2; this is intentionally RVC4-only.
 - The default FPS limit is forced to `13` if not provided.
 - [backend/src/arguments.py](backend/src/arguments.py) defines `--media_path` and `--api_key`, but the current backend does not use either argument.

@@ -42,8 +42,7 @@ This is the repository reference for tracking objects moving toward the camera a
 ## Architecture
 
 - A `SpatialDetectionNetwork` runs on `CAM_A` with depth from `Depth`.
-- `ImgDetectionsFilter` keeps only the `person` label.
-- `ObjectTracker` produces tracklets from the filtered spatial detections.
+- `ObjectTracker` receives spatial detections directly and selects the `person` label with `setDetectionLabelsToTrack`. No separate Python filter is needed.
 - [utils/collision_avoidance_node.py](utils/collision_avoidance_node.py) derives the “approaching camera” direction/alert stream.
 - [utils/host_bird_eye_view.py](utils/host_bird_eye_view.py) renders the overhead motion view.
 

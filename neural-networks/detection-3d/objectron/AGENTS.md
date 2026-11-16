@@ -42,13 +42,14 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 ## Architecture
 
 - A first-stage YOLOv6 detector runs on camera or replay input.
-- `ImgDetectionsFilter` keeps only `VALID_LABELS = [56]`, which is the COCO `chair` label in the current code.
+- `dai.node.ImgDetectionsFilter` keeps only `VALID_LABELS = [56]`, which is the COCO `chair` label in the current code.
 - `FrameCropper` extracts padded chair crops for the Objectron model.
 - A second `ParsingNeuralNetwork` runs the `objectron_chair` model on those crops.
 - `GatherData` re-associates second-stage outputs with first-stage detections, and [utils/annotation_node.py](utils/annotation_node.py) draws the 3D skeleton/pose overlay.
 
 ## Constraints
 
+- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - Despite the README’s broader Objectron framing, the current repo state is chair-only.
 - `PADDING = 0.2` is baked into both crop generation and annotation reprojection.
 - Default FPS is intentionally low on RVC2 and lower than many detection examples because this is a two-stage geometry workflow.

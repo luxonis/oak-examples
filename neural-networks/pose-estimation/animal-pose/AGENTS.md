@@ -41,12 +41,13 @@ This is the repository reference for two-stage animal pose estimation. Use it wh
 ## Architecture
 
 - The wildlife detector runs first.
-- `ImgDetectionsFilter` keeps only `VALID_LABELS = [0]` in the current code path.
+- `dai.node.ImgDetectionsFilter` keeps only `VALID_LABELS = [0]` in the current code path.
 - `FrameCropper` extracts padded crops for the superanimal pose model.
 - `GatherData` and [utils/annotation_node.py](utils/annotation_node.py) merge detections with pose landmarks and draw the skeleton.
 
 ## Constraints
 
+- Requires DepthAI `3.12.0` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The current repo state filters to one label ID, so it is narrower than a generic wildlife detector.
 - Input is forced to NV12 in replay mode.
 - Pose quality depends on the first-stage detection boxes and the fixed padding factor.

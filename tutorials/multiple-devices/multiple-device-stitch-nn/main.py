@@ -149,6 +149,7 @@ with contextlib.ExitStack() as stack:
         input=gathered_detections.out
     )
 
+    # The 3.12 native filter only suppresses across separate inputs, not merged tiles.
     filtered_detections = (
         pipeline.create(ImgDetectionsFilter)
         .useNms(
