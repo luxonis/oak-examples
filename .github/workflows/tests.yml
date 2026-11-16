@@ -518,7 +518,7 @@ jobs:
           if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then OAKCTL_OPTION=""; fi
 
           exec hil_runner --no-shell --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity $OAKCTL_OPTION \
-              --commands "set EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT&& cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+              --commands "set EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT&& cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 \"${{ secrets.DEVICE_PASSWORD }}\" \"${{ secrets.LOCAL_STATIC_REGISTRY }}\" \"${{ inputs.root_dir }}\" \"${{ inputs.log_level }}\" \"${{ needs.setup.outputs.dai_version }}\" \"${{ needs.setup.outputs.dai_nodes_version }}\""
 
   test_standalone_mac:
     if: >
@@ -569,4 +569,4 @@ jobs:
           if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then OAKCTL_OPTION=""; fi
 
           exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity $OAKCTL_OPTION \
-              --commands "export EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT; cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+              --commands "export EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT; cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 \\\"${{ secrets.DEVICE_PASSWORD }}\\\" \\\"${{ secrets.LOCAL_STATIC_REGISTRY }}\\\" \\\"${{ inputs.root_dir }}\\\" \\\"${{ inputs.log_level }}\\\" \\\"${{ needs.setup.outputs.dai_version }}\\\" \\\"${{ needs.setup.outputs.dai_nodes_version }}\\\""
