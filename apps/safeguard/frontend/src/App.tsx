@@ -1,4 +1,5 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { cn } from '@luxonis/ui-components';
 import { useEffect, useRef } from 'react';
 import { TopBar } from './TopBar.tsx';
 import SettingsForm from './settings/SettingsForm.tsx';
@@ -54,6 +55,8 @@ function LiveStreams() {
 }
 
 function App() {
+	const { connected } = useDaiConnection();
+
 	return (
 		<main className="flex h-screen w-screen flex-row gap-6 overflow-auto bg-background p-6 text-foreground">
 			<div className="flex min-w-[760px] flex-1 shrink-0 flex-col overflow-hidden rounded-md border border-border bg-background shadow-sm">
@@ -76,6 +79,21 @@ function App() {
 					detects obstacles above the support plane.
 				</p>
 				<SettingsForm />
+
+				<div
+					className={cn(
+						'mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm',
+						connected ? 'text-success' : 'text-destructive',
+					)}
+				>
+					<div
+						className={cn(
+							'h-3 w-3 rounded-full',
+							connected ? 'bg-success' : 'bg-destructive',
+						)}
+					/>
+					<span>{connected ? 'Connected to device' : 'Disconnected'}</span>
+				</div>
 			</aside>
 		</main>
 	);

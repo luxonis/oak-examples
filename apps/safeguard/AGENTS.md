@@ -37,7 +37,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py): camera, model, depth, IMU, and topic wiring.
 - [backend/src/main.py](backend/src/main.py): service registration and pipeline restart lifecycle.
 - [backend/src/settings/settings.py](backend/src/settings/settings.py): validated runtime settings and startup defaults.
-- [frontend/src/App.tsx](frontend/src/App.tsx): live stream layout.
+- [frontend/src/App.tsx](frontend/src/App.tsx): live stream layout and the sidebar's device connection status.
 - [frontend/src/settings/SettingsForm.tsx](frontend/src/settings/SettingsForm.tsx): live controls.
 
 ## Architecture
