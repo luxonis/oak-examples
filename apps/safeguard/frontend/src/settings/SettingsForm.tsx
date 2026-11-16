@@ -33,10 +33,8 @@ function SettingsSection(props: {
 	return (
 		<section className="flex flex-col gap-3 rounded-md border border-border bg-background p-4 shadow-sm">
 			<div className="flex flex-col gap-1">
-				<h2 className="text-lg font-semibold">{props.title}</h2>
-				<p className="text-xs leading-5 text-muted-foreground">
-					{props.description}
-				</p>
+				<SubHeader role="heading" aria-level={2} text={props.title} />
+				<SubLabel text={props.description} />
 			</div>
 			{props.children}
 		</section>
