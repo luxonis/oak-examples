@@ -1,14 +1,14 @@
-# SafeGuard
+# Machine-Mounted Person Proximity Alert
 
-SafeGuard is a proximity alert example built with DepthAI. It uses person instance segmentation, native object tracking, automatically selected depth source, and IMU gravity to classify a scene as **Safe**, **Warning**, or **Danger**. An optional point-cloud path also detects generic obstacles standing on the support plane, which it finds automatically with depthai-nodes `AutoSupportPlane`.
+This example demonstrates proximity alerting from a camera mounted on a machine and looking out from the machine's perspective. It detects people in configurable warning and danger areas in front of the camera and classifies the live view as **Safe**, **Warning**, or **Danger**. The areas are defined relative to the camera, so configure them for its mounting position and the space the machine needs to monitor.
 
-The custom frontend shows the live camera, proximity alerts, optional obstacle and support plane views, and controls for the detection zones.
+The example uses person instance segmentation, native object tracking, automatically selected depth, and IMU gravity alignment. An optional point-cloud path detects generic obstacles above a support plane found with depthai-nodes `AutoSupportPlane`. The frontend shows the live camera and alert annotations, optional obstacle views, and controls for the detection areas.
 
 > **Note:** This example runs on an RVC4 device in standalone mode and requires RGB, stereo, and IMU sensors. It is an example of visual alerting, not a certified safety system.
 
 ## Demo
 
-> **TODO:** Record `media/demo.gif` and embed it here with `![](media/demo.gif)`.
+> **TODO:** Record `media/demo.gif` from a camera mounted on a machine, showing a person entering the warning and danger areas in the live annotations. Embed it here with `![](media/demo.gif)`.
 
 ## Architecture
 
@@ -40,7 +40,7 @@ DepthAI's `ObjectTracker` assigns person IDs. A host node pairs each track with 
 - **Obstacle views:** With generic detection enabled, `Occupancy Grid` shows the bird's-eye occupancy view, `Support Plane Status` reports whether the support plane is valid, and `Point Cloud` shows the scene-colored point cloud with orange/red zone guides on the support plane. These views open automatically when available.
 - **Runtime controls:** Change camera FPS, generic obstacle detection, alert timing, and zone bounds. Applying settings rebuilds the pipeline without restarting the app. DepthAI's default stereo autocalibration runs at every pipeline start, including after applying settings; set `DEPTHAI_AUTOCALIBRATION=CONTINUOUS` to keep it running. The support plane is re-verified about every half second and refit when it no longer matches the scene.
 
-Warning and danger zones use millimetres in the gravity-aligned camera frame. Negative X is left of centre; the danger zone must end closer to the camera than the warning zone.
+Warning and danger zones use millimetres in the gravity-aligned camera frame: Z extends forward from the camera and negative X is left of centre. The default danger area extends 1 m ahead and 0.5 m to either side; the warning area extends 2 m ahead and 1 m to either side. Adjust these bounds to match the camera mount and machine clearance. The danger distance must be shorter than the warning distance.
 
 Settings reset when the app restarts. Every pipeline start, including after applying settings, searches for the support plane afresh, so the plane shows as invalid briefly until the floor is found.
 
@@ -65,6 +65,6 @@ The app can be uploaded to Luxonis Hub with `oakctl` and opened from its App det
 
 ### How to Use
 
-1. Open the frontend to view the live camera and alert annotations.
-2. Adjust warning and danger distances and horizontal bounds in the right panel, then apply the settings. The pipeline restarts with the new values.
-3. Enable generic object detection to view obstacle boxes, the bird's-eye grid, support plane status, and the point cloud.
+1. Mount the camera on the machine so it looks into the area where proximity matters, then open the frontend to view the live camera and alert annotations.
+2. Adjust warning and danger distances and horizontal bounds in the right panel for that viewpoint, then apply the settings. The pipeline restarts with the new values.
+3. Enable generic object detection to view the bird's-eye grid, support plane status, and point cloud.

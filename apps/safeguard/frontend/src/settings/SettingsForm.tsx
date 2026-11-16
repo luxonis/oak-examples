@@ -50,7 +50,7 @@ function ZoneFields(props: {
 	return (
 		<SettingsSection
 			title={props.label}
-			description="Distance and horizontal bounds relative to the camera center."
+			description="Forward distance and horizontal bounds from the mounted camera."
 		>
 			<div className="flex flex-col gap-2">
 				<SubLabel text="Negative x is left of center. Positive x is right of center." />
@@ -282,7 +282,7 @@ function SettingsForm() {
 				<div className="flex flex-col items-center justify-center gap-1 p-3">
 					<Icon icon={LoaderIcon} size="lg" className="mb-3 animate-spin" />
 					<SubHeader text="Loading settings" />
-					<SubLabel text="Waiting for the SafeGuard settings service to become available." />
+					<SubLabel text="Waiting for the settings service to become available." />
 				</div>
 			</section>
 		);

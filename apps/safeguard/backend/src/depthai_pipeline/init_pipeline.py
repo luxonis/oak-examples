@@ -1,4 +1,4 @@
-"""Build the SafeGuard detection and alert pipeline."""
+"""Build the machine-mounted proximity detection and alert pipeline."""
 
 import logging
 from pathlib import Path
@@ -62,7 +62,7 @@ def init_pipeline(
     platform = device.getPlatform()
     if platform != dai.Platform.RVC4:
         raise RuntimeError(
-            f"SafeGuard requires an RVC4 device; connected device is {platform.name}"
+            f"Machine-Mounted Person Proximity Alert requires an RVC4 device; connected device is {platform.name}"
         )
     color_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
     color_out = color_cam.requestOutput(

@@ -2,11 +2,11 @@
 
 ## Summary
 
-SafeGuard is an RVC4 proximity alert example using person segmentation, automatic depth selection, and IMU gravity for warning and danger zones. It has optional point-cloud obstacle detection and a custom frontend.
+Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones use person segmentation, depth, and IMU; optional point-cloud obstacle detection and a frontend show live alerts.
 
 ## Use This Example When
 
-- You need person proximity alerts with configurable warning and danger zones on an RVC4 device.
+- You need person proximity alerts in front of a machine-mounted RVC4 camera, with warning and danger zones configured for its mounting position.
 - You want a standalone frontend/backend reference with annotated streams and live controls.
 - You want to add an optional support-plane obstacle path to a person alert pipeline.
 - You want a working example of depthai-nodes `AutoSupportPlane`, the hands-off automatic support plane calibration.
@@ -20,7 +20,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - `Category:` `apps/safeguard`
 - `Shape:` `frontend`
-- `Primary task:` person proximity alerts with optional generic obstacle detection
+- `Primary task:` machine-mounted, camera-relative person proximity alerts with optional generic obstacle detection
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)

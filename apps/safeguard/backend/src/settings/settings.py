@@ -1,4 +1,4 @@
-"""Runtime configuration for the SafeGuard example (never written to disk)."""
+"""Runtime configuration for the machine-mounted proximity alert example."""
 
 from pydantic import BaseModel, Field, model_validator
 

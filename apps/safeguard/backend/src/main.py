@@ -1,4 +1,4 @@
-"""Run SafeGuard with live controls and proximity alerts."""
+"""Run machine-mounted proximity alerts with live controls."""
 
 import logging
 import signal
@@ -54,7 +54,7 @@ class App:
 
     def _start_pipeline(self) -> None:
         settings = self._get_settings(EmptyBody())
-        log.info("SafeGuard settings: %s", settings.model_dump(mode="json"))
+        log.info("Proximity alert settings: %s", settings.model_dump(mode="json"))
         pipeline = dai.Pipeline()
         topics = init_pipeline(pipeline, settings, self._visualizer)
         pipeline.start()

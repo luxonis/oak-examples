@@ -1,4 +1,4 @@
-identifier = "com.example.apps.safeguard"
+identifier = "com.example.apps.machine-pov-proximity-alert"
 app_version = "1.0.0"
 entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/backend/src/main.py"]
 
