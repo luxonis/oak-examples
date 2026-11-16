@@ -70,7 +70,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 ## Constraints
 
-- This app is intended for RVC4 standalone mode with RGB, stereo, and IMU hardware.
+- This app is intended for RVC4 standalone mode with RGB, stereo, and IMU hardware. On any other platform, `init_pipeline()` raises `RuntimeError` at startup, before it creates any node.
 - Preserve alignment between segmentation masks and depth, and preserve sequence and timestamp metadata passed between host nodes.
 - RVC4 permits at most three outputs per camera. Reuse the 640 × 360 preview for the optional point cloud rather than adding another `Camera.requestOutput()`.
 - Settings are process-local; alerts and video are not recorded.

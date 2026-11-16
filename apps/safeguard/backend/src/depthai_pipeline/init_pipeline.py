@@ -69,8 +69,16 @@ def init_pipeline(
 
     Returns:
         Names of registered topics to remove when the pipeline stops.
+
+    Raises:
+        RuntimeError: If the pipeline's default device is not RVC4.
     """
     device = pipeline.getDefaultDevice()
+    platform = device.getPlatform()
+    if platform != dai.Platform.RVC4:
+        raise RuntimeError(
+            f"SafeGuard requires an RVC4 device; connected device is {platform.name}"
+        )
     color_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
     color_out = color_cam.requestOutput(
         COLOR_SIZE, fps=settings.fps, enableUndistortion=True
@@ -98,7 +106,7 @@ def init_pipeline(
     imu.setMaxBatchReports(10)
 
     # Person masks are paired with tracker IDs, aligned depth, and gravity.
-    archive = dai.NNArchive(_model_from_zoo(device.getPlatform().name))
+    archive = dai.NNArchive(_model_from_zoo(platform.name))
     input_size = archive.getInputSize()
     if input_size is None:
         raise ValueError("segmentation model has no input size")
