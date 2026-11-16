@@ -51,7 +51,7 @@ This is the repository reference for sending Hub snaps from detection-driven con
   - a `ReplayVideo` node when `--media_path` is used
 - `ParsingNeuralNetwork` produces detections plus passthrough frames.
 - `dai.node.ImgDetectionsFilter` keeps configured labels and detections at or above the configured confidence threshold.
-- The custom [utils/snaps_producer.py](utils/snaps_producer.py) host node time-throttles snap emission.
+- The custom [utils/snaps_producer.py](utils/snaps_producer.py) host node time-throttles snap emission and packages each frame/detection pair with `dai.FileGroup.addImageDetectionsPair`, passed as `SnapData(file_group=...)` for `depthai-nodes==0.7.0`.
 - `SnapsUploader` handles the actual upload to Hub.
 
 ## Data Flow
