@@ -29,7 +29,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - `Input:` RGB preview, depth selected by the Depth node, 50 Hz raw accelerometer, and frontend settings
 - `Output:` `color` preview and `danger` annotations; optional `grid`, `grid_annotations`, and `pcl` topics
 - `Model:` bundled Zoo `luxonis/yolov8-instance-segmentation-nano:coco-512x288`, filtered to person class
-- `Visualizer / UI:` custom HTTPS frontend, with raw DepthAI Visualizer on port 8082
+- `Visualizer / UI:` custom HTTPS frontend built on `@luxonis/depthai-viewer-common` and `@luxonis/ui-components` with Tailwind, with raw DepthAI Visualizer on port 8082
 
 ## Read First
 
@@ -78,6 +78,7 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 - `init_pipeline.py` sets the support plane settings and passes them into `PointCloudObjectDetectionNode.build()`: `SUPPORT_PLANE_CALIBRATION` and the 45 mm `SUPPORT_PLANE_DIST_THR_MM` split threshold. `AutoSupportPlane` uses the default `PlaneCalibrationConfig` except for `max_calibration_attempts=10`. Without that cap a failed refit searches indefinitely, never reports `passed=False`, and the lost support plane stays valid. If a real floor is rejected, widen `max_gravity_angle_deg` before changing anything else.
 - `AutoSupportPlaneResult` and `SupportPlaneStatus` are Python `Buffer` subclasses and only travel between host nodes.
 - Encoded topics in the custom browser frontend require HTTPS or localhost; the standalone UI is served over HTTPS.
+- The frontend uses the same stack as the other frontend examples: `@luxonis/ui-components` controls, Tailwind classes with its theme tokens, and Biome. `react` and `react-dom` stay pinned to the exact version `@luxonis/depthai-viewer-common` declares as its peer.
 
 ## Non-Obvious Repo Conventions
 
@@ -95,5 +96,5 @@ SafeGuard is an RVC4 proximity alert example using person segmentation, automati
 
 - `Run:` `python3 -m compileall -q apps/safeguard/backend/src` and `python3 scripts/validate_agents_docs.py` from the repository root.
 - `Unit tests:` from `apps/safeguard/backend`, with [backend/requirements.txt](backend/requirements.txt) installed and no device: `PYTHONPATH=src:tests python -m unittest discover -s tests -t tests`. [backend/tests/test_obstacle_path.py](backend/tests/test_obstacle_path.py) drives `PointCloudObjectDetectionNode`, including the real `AutoSupportPlane`, in a host-only pipeline with synthetic point clouds and gravity (about 10 s, because continuous mode needs repeated failed checks 0.5 s apart); [backend/tests/device_lookup.py](backend/tests/device_lookup.py) lets depthai-nodes host nodes be created without a device.
-- `Frontend:` run `npm ci && npm run build` in `apps/safeguard/frontend` with Node 22 or newer.
+- `Frontend:` run `npm ci && npm run build && npm run lint` in `apps/safeguard/frontend` with Node 22 or newer.
 - `Device:` run `oakctl app run apps/safeguard --device 1` on a connected RVC4. Success means `Pipeline started.` appears, the HTTPS frontend shows `color` and `danger`, and settings apply. Enable generic object detection to check `grid`, `grid_annotations`, and `pcl`.
