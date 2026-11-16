@@ -1,12 +1,24 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
 import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+	AddIcon,
+	Alert,
 	Badge,
 	Button,
+	Card,
+	Flex,
+	Label,
+	NormalText,
+	SubLabel,
 	Switch,
 	dismissToast,
 	toast,
 } from '@luxonis/ui-components';
 import { type PointerEvent, useEffect, useRef, useState } from 'react';
+import { AppShell } from './AppShell.tsx';
 import { callService } from './services';
 
 type Point = { x: number; y: number; label: number };
@@ -39,8 +51,18 @@ type State = {
 	options: Options;
 	metrics: Record<string, number>;
 };
-const ms = (value?: number | null) =>
-	value == null ? '—' : `${value.toFixed(1)} ms`;
+const overlayLabels = {
+	mask: 'Segmentation mask',
+	outline: 'Object outline',
+	box: 'Bounding box',
+	trail: 'Movement trail',
+};
+const stages = [
+	['Frame encoding', 'encode_ms'],
+	['Memory matching', 'memory_ms'],
+	['Mask decoding', 'decode_ms'],
+	['Memory update', 'update_ms'],
+];
 const groups = {
 	Video: 'tracking',
 	Target: 'tracking',
@@ -246,339 +268,391 @@ export default function App() {
 										: 'Select target'
 									: 'Ready';
 
+	const preparing =
+		!state ||
+		(!state.ready && state.phase !== 'error') ||
+		state.status.startsWith('Preparing ');
+	const promptCount = state?.points.length ?? 0;
+
 	return (
-		<main className="app-shell">
-			<div className="workspace">
-				<section className="camera-column">
-					<div className="camera-panel">
-						<div className={`live-stream ${snapshot ? 'stream-hidden' : ''}`}>
-							<Streams
-								defaultTopics={['Video']}
-								allowedTopics={['Video']}
-								topicGroups={groups}
-							/>
-						</div>
-						{snapshot && (
-							<div className="snapshot-wrap">
-								<div
-									className={`selection-surface ${expired || atPromptLimit ? 'selection-disabled' : ''}`}
-									style={{
-										aspectRatio: `${snapshot.width}/${snapshot.height}`,
-										width: `min(100cqw, calc(100cqh * ${snapshot.width} / ${snapshot.height}))`,
-									}}
-									onPointerDown={(event) => {
-										if (busy || expired || atPromptLimit) return;
-										event.currentTarget.setPointerCapture(event.pointerId);
-										start.current = point(event);
-									}}
-									onPointerMove={move}
-									onPointerUp={(event) => void finish(event)}
-									onPointerCancel={() => {
-										start.current = null;
-										setRect(null);
-									}}
-								>
-									<img
-										src={snapshot.image}
-										alt="Captured frame. Click the object to select it."
-										draggable={false}
-									/>
-									{state?.preview && (
-										<img
-											className="mask-preview"
-											src={state.preview}
-											alt="Selection mask"
-											draggable={false}
-										/>
-									)}
-									{state?.points.map((p, i) => (
-										<span
-											key={`${i}-${p.x}-${p.y}`}
-											className={`prompt-point ${p.label === 0 ? 'negative' : ''}`}
-											style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
-										>
-											{p.label === 0 ? '−' : '+'}
-										</span>
-									))}
-									{rect && (
-										<div
-											className="selection-box"
-											style={{
-												left: `${rect.x * 100}%`,
-												top: `${rect.y * 100}%`,
-												width: `${rect.w * 100}%`,
-												height: `${rect.h * 100}%`,
-											}}
-										/>
-									)}
-								</div>
-							</div>
-						)}
+		<AppShell
+			title="Track Anything"
+			status={
+				<Badge
+					intent={tracking ? 'success' : 'gray'}
+					variant="light"
+					label={status}
+				/>
+			}
+			streams={
+				<div className="track-camera">
+					<div className={`track-live ${snapshot ? 'track-live-hidden' : ''}`}>
+						<Streams
+							defaultTopics={['Video']}
+							allowedTopics={['Video']}
+							topicGroups={groups}
+						/>
 					</div>
-				</section>
-				<aside className="controls">
-					<header className="sidebar-header">
-						<div className="title-row">
-							<h1>Track Anything</h1>
-							<Badge
-								intent={tracking ? 'success' : 'gray'}
-								variant="light"
-								label={status}
-							/>
-						</div>
-						<p className="muted">
-							Select an object and follow its mask through the scene. Powered by
-							ONNX Runtime on OAK4.
-						</p>
-					</header>
-					<section>
-						<h2>
-							{snapshot
-								? 'Define your selection'
-								: tracking
-									? 'Following your object'
-									: 'Pick something to follow'}
-						</h2>
-						<p className="muted">
-							Select a mug, tool, toy, or another object. Keep it in view as it
-							moves.
-						</p>
-						<Button
-							type="button"
-							className="w-full"
-							onClick={() => void capture()}
-							disabled={busy || !state?.ready || !state.has_frame}
-						>
-							{snapshot
-								? expired
-									? 'Capture updated frame'
-									: 'Capture a fresh frame'
-								: tracking
-									? 'Reselect object'
-									: 'Select object'}
-						</Button>
-						{snapshot && (
-							<>
-								<div className="segmented" aria-label="Selection mode">
-									{(['include', 'exclude', 'box'] as const).map((v) => (
-										<Button
-											type="button"
-											key={v}
-											variant={mode === v ? 'filled' : 'outline'}
-											aria-pressed={mode === v}
-											disabled={busy || expired}
-											onClick={() => setMode(v)}
-										>
-											{v === 'include'
-												? '+ Include'
-												: v === 'exclude'
-													? '− Exclude'
-													: 'Box'}
-										</Button>
-									))}
-								</div>
-								<p className="muted">
-									{mode === 'box'
-										? 'Drag a box around the target. Drawing a new box replaces the previous prompts.'
-										: 'Click to refine the mask. Start with an Include point.'}{' '}
-									{state?.points.length ?? 0}/8 prompts used. A box uses 2
-									slots.
-									{atPromptLimit &&
-										' Limit reached: undo a point or draw a replacement box.'}
-								</p>
-								<div className="button-row">
-									<Button
-										type="button"
-										variant="outline"
-										className="w-full"
-										disabled={
-											busy ||
-											expired ||
-											(state?.points.length ?? 0) < 2 ||
-											(state?.points.length === 2 &&
-												state.points[0].label === 2)
-										}
-										onClick={() =>
-											void submit((state?.points ?? []).slice(0, -1))
-										}
-									>
-										Undo point
-									</Button>
-									<Button
-										type="button"
-										className="w-full"
-										disabled={busy || expired || !state?.mask_ready}
-										onClick={async () => {
-											if (
-												await action({
-													action: 'start',
-													snapshot_id: snapshot.snapshot_id,
-												})
-											) {
-												setSnapshot(null);
-												setState((s) =>
-													s
-														? {
-																...s,
-																phase: 'catching_up',
-																selection_busy: true,
-															}
-														: s,
-												);
-											}
-										}}
-									>
-										Start tracking
-									</Button>
-								</div>
-								<p className={expired ? 'selection-expired' : 'footnote'}>
-									{expired
-										? 'Snapshot expired. Capture an updated frame and select the object again.'
-										: `Snapshot is valid for ${Math.ceil(state?.selection_remaining_s ?? 0)} more seconds. Start tracking before it expires so the tracker can catch up to the live scene.`}
-								</p>
-							</>
-						)}
-						{(snapshot ||
-							tracking ||
-							state?.phase === 'catching_up' ||
-							(state?.phase === 'error' && state.ready)) && (
-							<Button
-								type="button"
-								variant="outline"
-								className="w-full mt-2"
-								disabled={sending}
-								onClick={async () => {
-									if (await action({ action: 'clear' })) {
-										setSnapshot(null);
-										setState((s) =>
-											s ? { ...s, phase: 'idle', selection_busy: false } : s,
-										);
-									}
+					{snapshot && (
+						<div className="track-snapshot">
+							<div
+								className={`track-surface ${expired || atPromptLimit ? 'track-surface-disabled' : ''}`}
+								style={{
+									aspectRatio: `${snapshot.width}/${snapshot.height}`,
+									width: `min(100cqw, calc(100cqh * ${snapshot.width} / ${snapshot.height}))`,
+								}}
+								onPointerDown={(event) => {
+									if (busy || expired || atPromptLimit) return;
+									event.currentTarget.setPointerCapture(event.pointerId);
+									start.current = point(event);
+								}}
+								onPointerMove={move}
+								onPointerUp={(event) => void finish(event)}
+								onPointerCancel={() => {
+									start.current = null;
+									setRect(null);
 								}}
 							>
-								Clear target
-							</Button>
-						)}
-					</section>
-					<section>
-						<h2>Choose your overlays</h2>
-						{(['mask', 'outline', 'box', 'trail'] as const).map((key) => (
-							<div className="toggle-row" key={key}>
-								<span id={`overlay-${key}`}>
-									{
-										{
-											mask: 'Segmentation mask',
-											outline: 'Object outline',
-											box: 'Bounding box',
-											trail: 'Movement trail',
-										}[key]
-									}
-								</span>
-								<Switch
-									aria-labelledby={`overlay-${key}`}
-									showActiveLabelOnly
-									value={
-										state?.options[key] ?? (key === 'mask' || key === 'outline')
-									}
-									disabled={!state || sending}
-									onChange={async (enabled) => {
-										if (
-											await action({
-												action: 'options',
-												options: { [key]: enabled },
-											})
-										)
-											setState((s) =>
-												s
-													? { ...s, options: { ...s.options, [key]: enabled } }
-													: s,
-											);
-									}}
+								<img
+									src={snapshot.image}
+									alt="Captured frame. Click the object to select it."
+									draggable={false}
 								/>
-							</div>
-						))}
-					</section>
-					<section className="performance">
-						<h2>Performance</h2>
-						<div className="metrics-bar">
-							<div>
-								<span>Tracking rate</span>
-								<strong>
-									{state?.metrics.fps ? state.metrics.fps.toFixed(1) : '—'}{' '}
-									<small>updates/s</small>
-								</strong>
-							</div>
-							<div>
-								<span>Processing</span>
-								<strong>{ms(state?.metrics.processing_ms)}</strong>
-							</div>
-							<div>
-								<span>Frame → result¹</span>
-								<strong>{ms(state?.metrics.frame_age_ms)}</strong>
+								{state?.preview && (
+									<img
+										className="track-mask"
+										src={state.preview}
+										alt="Selection mask"
+										draggable={false}
+									/>
+								)}
+								{state?.points.map((p, i) => (
+									<span
+										key={`${i}-${p.x}-${p.y}`}
+										className={`track-point ${p.label === 0 ? 'track-point-exclude' : ''}`}
+										style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
+									>
+										{p.label === 0 ? null : <AddIcon aria-hidden />}
+									</span>
+								))}
+								{rect && (
+									<div
+										className="track-box"
+										style={{
+											left: `${rect.x * 100}%`,
+											top: `${rect.y * 100}%`,
+											width: `${rect.w * 100}%`,
+											height: `${rect.h * 100}%`,
+										}}
+									/>
+								)}
 							</div>
 						</div>
-						<p className="footnote">
-							¹ From receipt of the camera frame to its tracking result. Browser
-							transport and display latency are additional.
-						</p>
-						<details className="runtime-details">
-							<summary>ONNX Runtime details</summary>
-							<div className="stage-grid">
-								{[
-									['Frame encoding', 'encode_ms'],
-									['Memory matching', 'memory_ms'],
-									['Mask decoding', 'decode_ms'],
-									['Memory update', 'update_ms'],
-								].map(([label, key]) => (
-									<div key={key}>
-										<span>{label}</span>
-										<strong>{ms(state?.metrics[key])}</strong>
-									</div>
-								))}
-							</div>
-							<p>
-								MobileSAM selects the object. XMem propagates its mask using
-								bounded visual memory. {state?.metrics.memory_frames ?? 0}/5
-								memory frames.
-							</p>
-							<p>
-								Model inference and memory matching run on the device's NPU
-								through ONNX Runtime QNN.
-							</p>
-						</details>
-					</section>
+					)}
+				</div>
+			}
+		>
+			{preparing && (
+				<Alert
+					role="status"
+					intent="active"
+					variant="light"
+					title={state ? state.status : 'Connecting to the camera'}
+					description={
+						state
+							? undefined
+							: 'Initial QNN preparation may take a few minutes.'
+					}
+				/>
+			)}
+			<Card
+				title={
+					snapshot
+						? 'Define your selection'
+						: tracking
+							? 'Following your object'
+							: 'Pick something to follow'
+				}
+				variant="outline"
+				intent="white"
+			>
+				<Flex direction="column" gap="sm">
+					<output aria-live="polite">
+						{!preparing && (
+							<NormalText
+								text={
+									expired
+										? 'Capture an updated frame to continue.'
+										: state.status
+								}
+							/>
+						)}
+					</output>
+					{(error || state?.runtime_error) && (
+						<Alert
+							intent="error"
+							variant="light"
+							description={error || state?.runtime_error}
+						/>
+					)}
 					{state?.phase === 'error' && !state.ready && (
 						<Button
 							type="button"
 							variant="outline"
-							className="w-full"
+							intent="gray"
 							disabled={sending}
 							onClick={() => void action({ action: 'retry' })}
 						>
 							Retry loading models
 						</Button>
 					)}
-					<output className="status-card" aria-live="polite">
-						<span
-							className={state?.ready && !state.status.startsWith('Preparing ')
-								? 'status-dot'
-								: 'spinner'}
-						/>
-						<p>
-							{state?.status.startsWith('Preparing ')
-								? state.status
-								: expired
-									? 'Capture an updated frame to continue.'
-									: state?.status || 'Connecting to the camera… Initial QNN preparation may take a few minutes.'}
-						</p>
-					</output>
-					{(error || state?.runtime_error) && (
-						<div className="error" role="alert">
-							{error || state?.runtime_error}
-						</div>
+					<Label text="Select a mug, tool, toy, or another object and follow its mask through the scene. Keep it in view as it moves." />
+					<Button
+						type="button"
+						onClick={() => void capture()}
+						disabled={busy || !state?.ready || !state.has_frame}
+					>
+						{snapshot
+							? expired
+								? 'Capture updated frame'
+								: 'Capture a fresh frame'
+							: tracking
+								? 'Reselect object'
+								: 'Select object'}
+					</Button>
+					{snapshot && (
+						<>
+							<fieldset className="flex flex-col gap-1">
+								<legend>
+									<Label text="Selection mode" />
+								</legend>
+								<div className="grid grid-cols-3 gap-2">
+									{(['include', 'exclude', 'box'] as const).map((v) => (
+										<Button
+											type="button"
+											key={v}
+											variant={mode === v ? 'filled' : 'outline'}
+											intent={mode === v ? 'active' : 'gray'}
+											aria-pressed={mode === v}
+											disabled={busy || expired}
+											onClick={() => setMode(v)}
+										>
+											{v === 'include'
+												? 'Include'
+												: v === 'exclude'
+													? 'Exclude'
+													: 'Box'}
+										</Button>
+									))}
+								</div>
+							</fieldset>
+							<Label
+								text={
+									mode === 'box'
+										? 'Drag a box around the target. Drawing a new box replaces the previous prompts.'
+										: 'Click to refine the mask. Start with an Include point.'
+								}
+							/>
+							<SubLabel
+								text={`${promptCount} of 8 prompts used. A box uses 2 slots.${
+									atPromptLimit
+										? ' Limit reached: undo a point or draw a replacement box.'
+										: ''
+								}`}
+							/>
+							<div className="grid grid-cols-2 gap-2">
+								<Button
+									type="button"
+									variant="outline"
+									intent="gray"
+									disabled={
+										busy ||
+										expired ||
+										promptCount < 2 ||
+										(state?.points.length === 2 && state.points[0].label === 2)
+									}
+									onClick={() =>
+										void submit((state?.points ?? []).slice(0, -1))
+									}
+								>
+									Undo point
+								</Button>
+								<Button
+									type="button"
+									disabled={busy || expired || !state?.mask_ready}
+									onClick={async () => {
+										if (
+											await action({
+												action: 'start',
+												snapshot_id: snapshot.snapshot_id,
+											})
+										) {
+											setSnapshot(null);
+											setState((s) =>
+												s
+													? {
+															...s,
+															phase: 'catching_up',
+															selection_busy: true,
+														}
+													: s,
+											);
+										}
+									}}
+								>
+									Start tracking
+								</Button>
+							</div>
+							{expired ? (
+								<Alert
+									role="status"
+									intent="warning"
+									variant="light"
+									description="Snapshot expired. Capture an updated frame and select the object again."
+								/>
+							) : (
+								<SubLabel
+									text={`Snapshot is valid for ${Math.ceil(state?.selection_remaining_s ?? 0)} more seconds. Start tracking before it expires so the tracker can catch up to the live scene.`}
+								/>
+							)}
+						</>
 					)}
-				</aside>
-			</div>
-		</main>
+					{(snapshot ||
+						tracking ||
+						state?.phase === 'catching_up' ||
+						(state?.phase === 'error' && state.ready)) && (
+						<Button
+							type="button"
+							variant="outline"
+							intent="gray"
+							disabled={sending}
+							onClick={async () => {
+								if (await action({ action: 'clear' })) {
+									setSnapshot(null);
+									setState((s) =>
+										s ? { ...s, phase: 'idle', selection_busy: false } : s,
+									);
+								}
+							}}
+						>
+							Clear target
+						</Button>
+					)}
+				</Flex>
+			</Card>
+			<Card title="Overlays" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					{(['mask', 'outline', 'box', 'trail'] as const).map((key) => (
+						<Flex
+							key={key}
+							direction="row"
+							align="center"
+							justify="between"
+							gap="sm"
+						>
+							<Label id={`overlay-${key}`} text={overlayLabels[key]} />
+							<Switch
+								aria-labelledby={`overlay-${key}`}
+								showActiveLabelOnly
+								value={
+									state?.options[key] ?? (key === 'mask' || key === 'outline')
+								}
+								disabled={!state || sending}
+								onChange={async (enabled) => {
+									if (
+										await action({
+											action: 'options',
+											options: { [key]: enabled },
+										})
+									)
+										setState((s) =>
+											s
+												? { ...s, options: { ...s.options, [key]: enabled } }
+												: s,
+										);
+								}}
+							/>
+						</Flex>
+					))}
+				</Flex>
+			</Card>
+			<Card title="Performance" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					<dl className="track-metrics">
+						<Metric
+							label="Tracking rate"
+							value={state?.metrics.fps || null}
+							unit="updates/s"
+						/>
+						<Metric
+							label="Processing"
+							value={state?.metrics.processing_ms}
+							unit="ms"
+						/>
+						<Metric
+							label="Frame to result"
+							value={state?.metrics.frame_age_ms}
+							unit="ms"
+						/>
+					</dl>
+					<SubLabel text="Frame to result runs from receipt of the camera frame to its tracking result. Browser transport and display latency are additional." />
+					<Accordion type="single" collapsible>
+						<AccordionItem value="runtime">
+							<AccordionTrigger>
+								<Label text="ONNX Runtime details" />
+							</AccordionTrigger>
+							<AccordionContent>
+								<Flex direction="column" gap="sm">
+									<dl className="track-metrics track-stages">
+										{stages.map(([label, key]) => (
+											<Metric
+												key={key}
+												label={label}
+												value={state?.metrics[key]}
+												unit="ms"
+											/>
+										))}
+									</dl>
+									<SubLabel
+										text={`MobileSAM selects the object. XMem propagates its mask using bounded visual memory. ${state?.metrics.memory_frames ?? 0} of 5 memory frames.`}
+									/>
+									<SubLabel text="Model inference and memory matching run on the device's NPU through ONNX Runtime QNN." />
+								</Flex>
+							</AccordionContent>
+						</AccordionItem>
+					</Accordion>
+				</Flex>
+			</Card>
+		</AppShell>
+	);
+}
+
+type MetricProps = {
+	label: string;
+	value?: number | null;
+	unit: string;
+};
+
+function Metric({ label, value, unit }: MetricProps) {
+	return (
+		<div>
+			<dt>
+				<SubLabel text={label} />
+			</dt>
+			<dd>
+				{value == null ? (
+					<NormalText text="No data" />
+				) : (
+					<>
+						<NormalText
+							weight="bold"
+							className="tabular-nums"
+							text={value.toFixed(1)}
+						/>{' '}
+						<SubLabel text={unit} />
+					</>
+				)}
+			</dd>
+		</div>
 	);
 }

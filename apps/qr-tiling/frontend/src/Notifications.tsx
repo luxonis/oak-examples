@@ -8,7 +8,7 @@ type NotificationOptions = {
 	durationMs?: number;
 };
 
-type NotificationContextValue = {
+type NotificationApi = {
 	notify: (message: string, options?: NotificationOptions) => void;
 };
 
@@ -28,19 +28,17 @@ function getToastTone(
 }
 
 export function useNotifications() {
-	const notify = useCallback<NotificationContextValue['notify']>(
-		(message, options) => {
-			const durationMs = options?.durationMs ?? 4500;
-			const type = options?.type ?? 'info';
-			toast({
-				title: message,
-				duration: durationMs,
-				permanent: durationMs <= 0,
-				...getToastTone(type),
-			});
-		},
-		[],
-	);
+	const notify = useCallback<NotificationApi['notify']>((message, options) => {
+		const durationMs = options?.durationMs ?? 4500;
+		const type = options?.type ?? 'info';
+
+		toast({
+			title: message,
+			duration: durationMs,
+			permanent: durationMs <= 0,
+			...getToastTone(type),
+		});
+	}, []);
 
 	return { notify };
 }

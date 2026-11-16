@@ -348,9 +348,17 @@ See [main.py](./raw-stream/main.py) custom_service function for a working backen
 
 ### Styling
 
-Use Tailwind utility classes for layout and custom styling, and prefer reusable
-components from `@luxonis/ui-components` for common controls such as buttons,
-inputs, sliders, switches, and toasts.
+Start from the shared page shell that every example frontend uses. Copy
+[AppShell.tsx](./raw-stream/frontend/src/AppShell.tsx) and
+[index.css](./raw-stream/frontend/src/index.css) into `src/`, then render your page through
+`AppShell` with your streams and a side column of `Card` controls. See
+[App.tsx](./raw-stream/frontend/src/App.tsx) for the smallest example and
+[docs/design.md](../docs/design.md) for the design rules.
+
+Build controls and text from `@luxonis/ui-components`, and use Tailwind utility classes for
+layout only. The Luxonis libraries load their own Tailwind utilities after yours, so a
+responsive class such as `md:flex-row` loses to their `.flex-col`. Put layout that changes
+with the screen width in plain CSS below the `/* App-specific styles */` line in `index.css`.
 
 ______________________________________________________________________
 

@@ -1,4 +1,14 @@
-import { Button, Switch } from '@luxonis/ui-components';
+import {
+	Alert,
+	Button,
+	Card,
+	Flex,
+	Header,
+	Label,
+	NormalText,
+	SubLabel,
+	Switch,
+} from '@luxonis/ui-components';
 import { useState } from 'react';
 
 interface DistanceDisplayProps {
@@ -8,12 +18,23 @@ interface DistanceDisplayProps {
 	hasInvalidDepth?: boolean;
 	trackingEnabled?: boolean;
 	onToggleTracking?: () => void;
+	onClear: () => void;
 }
 
 type UnitSystem = 'metric' | 'imperial';
 type Rounding = 1 | 2 | 3 | 4;
 
-const roundingOptions: Rounding[] = [1, 2, 3, 4];
+type Choice<T> = { value: T; label: string };
+
+const unitOptions: Choice<UnitSystem>[] = [
+	{ value: 'metric', label: 'Metric' },
+	{ value: 'imperial', label: 'Imperial' },
+];
+
+const roundingOptions: Choice<Rounding>[] = [1, 2, 3, 4].map((value) => ({
+	value: value as Rounding,
+	label: String(value),
+}));
 
 export function DistanceDisplay({
 	distance,
@@ -22,6 +43,7 @@ export function DistanceDisplay({
 	hasInvalidDepth = false,
 	trackingEnabled = true,
 	onToggleTracking,
+	onClear,
 }: DistanceDisplayProps) {
 	const [unitSystem, setUnitSystem] = useState<UnitSystem>('metric');
 	const [rounding, setRounding] = useState<Rounding>(3);
@@ -52,103 +74,119 @@ export function DistanceDisplay({
 	};
 
 	return (
-		<section
-			className={`rounded-md border bg-background p-4 text-center shadow-sm ${
-				distance !== null ? 'border-foreground' : 'border-border'
-			}`}
-		>
-			<div className="mb-5 flex flex-col gap-4">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="grid grid-cols-2 gap-2">
-						<Button
-							size="sm"
-							variant={unitSystem === 'metric' ? 'filled' : 'outline'}
-							intent={unitSystem === 'metric' ? 'active' : 'gray'}
-							onClick={() => setUnitSystem('metric')}
-						>
-							Metric
-						</Button>
-						<Button
-							size="sm"
-							variant={unitSystem === 'imperial' ? 'filled' : 'outline'}
-							intent={unitSystem === 'imperial' ? 'active' : 'gray'}
-							onClick={() => setUnitSystem('imperial')}
-						>
-							Imperial
-						</Button>
-					</div>
+		<>
+			<Card title="Measurement" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					{distance !== null ? (
+						<Flex direction="column" gap="xs">
+							<p className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
+								<Header text={formatDistance(distance)} color="success" />
+								{stdDeviation !== null &&
+								stdDeviation !== undefined &&
+								stdDeviation > 0 ? (
+									<Label text={`± ${formatDistance(stdDeviation)}`} />
+								) : null}
+							</p>
+							<SubLabel text="3D Euclidean distance" />
+						</Flex>
+					) : pointCount === 2 ? (
+						<Flex direction="column" gap="xs">
+							<NormalText text="Calculating distance..." />
+							<SubLabel text="Two points selected" />
+						</Flex>
+					) : (
+						<Label text="Select two points to measure" />
+					)}
+
+					{hasInvalidDepth && (distance !== null || pointCount === 2) ? (
+						<Alert
+							intent="warning"
+							description="Invalid depth detected. Try selecting different points."
+						/>
+					) : null}
 
 					{onToggleTracking ? (
-						<div className="flex items-center gap-3">
-							<span className="text-sm font-medium">Tracking</span>
+						<Flex direction="row" align="center" justify="between" gap="sm">
+							<Flex direction="column">
+								<Label id="tracking-label" text="Track points" />
+								<SubLabel text="Points follow the target as it moves." />
+							</Flex>
 							<Switch
+								aria-labelledby="tracking-label"
 								value={trackingEnabled}
 								onChange={onToggleTracking}
 								showActiveLabelOnly
 							/>
-						</div>
+						</Flex>
 					) : null}
-				</div>
 
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<span className="text-sm font-medium">Precision</span>
-					<div className="grid grid-cols-4 gap-1">
-						{roundingOptions.map((decimals) => (
-							<Button
-								key={decimals}
-								className="h-8 w-8 p-0"
-								size="sm"
-								variant={rounding === decimals ? 'filled' : 'outline'}
-								intent={rounding === decimals ? 'active' : 'gray'}
-								onClick={() => setRounding(decimals)}
-							>
-								{decimals}
-							</Button>
-						))}
-					</div>
-				</div>
-			</div>
+					<Button
+						variant="outline"
+						intent="gray"
+						onClick={onClear}
+						disabled={pointCount === 0}
+					>
+						Clear points
+					</Button>
+				</Flex>
+			</Card>
 
-			{distance !== null ? (
-				<div>
-					<div className="mb-4 text-3xl font-bold text-success">
-						{formatDistance(distance)}
-						{stdDeviation !== null &&
-						stdDeviation !== undefined &&
-						stdDeviation > 0 ? (
-							<span className="ml-2 text-lg font-normal text-success">
-								+/- {formatDistance(stdDeviation)}
-							</span>
-						) : null}
-					</div>
-					{hasInvalidDepth ? <InvalidDepthWarning /> : null}
-					<div className="text-sm text-muted-foreground">
-						3D Euclidean distance
-					</div>
-				</div>
-			) : pointCount === 2 ? (
-				<div>
-					<div className="mb-3 text-lg text-warning">
-						Calculating distance...
-					</div>
-					{hasInvalidDepth ? <InvalidDepthWarning /> : null}
-					<div className="text-sm text-muted-foreground">
-						Two points selected
-					</div>
-				</div>
-			) : (
-				<div className="mb-4 text-base text-muted-foreground">
-					Select two points to measure
-				</div>
-			)}
-		</section>
+			<Card title="Display" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					<ChoiceGroup
+						legend="Units"
+						options={unitOptions}
+						selected={unitSystem}
+						onSelect={setUnitSystem}
+						className="grid grid-cols-2 gap-2"
+					/>
+					<ChoiceGroup
+						legend="Decimal places"
+						options={roundingOptions}
+						selected={rounding}
+						onSelect={setRounding}
+						className="grid grid-cols-4 gap-2"
+					/>
+				</Flex>
+			</Card>
+		</>
 	);
 }
 
-function InvalidDepthWarning() {
+function ChoiceGroup<T extends string | number>({
+	legend,
+	options,
+	selected,
+	onSelect,
+	className,
+}: {
+	legend: string;
+	options: Choice<T>[];
+	selected: T;
+	onSelect: (value: T) => void;
+	className: string;
+}) {
 	return (
-		<div className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-sm text-destructive">
-			Invalid depth detected. Try selecting different points.
-		</div>
+		<fieldset className="flex flex-col gap-1">
+			<legend>
+				<Label text={legend} />
+			</legend>
+			<div className={className}>
+				{options.map(({ value, label }) => {
+					const isSelected = value === selected;
+					return (
+						<Button
+							key={value}
+							variant={isSelected ? 'filled' : 'outline'}
+							intent={isSelected ? 'active' : 'gray'}
+							aria-pressed={isSelected}
+							onClick={() => onSelect(value)}
+						>
+							{label}
+						</Button>
+					);
+				})}
+			</div>
+		</fieldset>
 	);
 }
