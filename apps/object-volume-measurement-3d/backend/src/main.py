@@ -41,8 +41,11 @@ platform = device.getPlatformAsString()
 if platform != "RVC4":
     raise ValueError("This example is supported only on RVC4 platform")
 
-device.setIrLaserDotProjectorIntensity(1.0)
-device.setIrFloodLightIntensity(1)
+if device.getIrDrivers():
+    if not device.setIrLaserDotProjectorIntensity(1.0):
+        logger.warning("Failed to enable IR laser dot projector.")
+    if not device.setIrFloodLightIntensity(1):
+        logger.warning("Failed to enable IR flood light.")
 
 frame_type = dai.ImgFrame.Type.BGR888i
 text_features = extract_text_embeddings(
