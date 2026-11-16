@@ -36,7 +36,7 @@ class DangerVisualizer(dai.node.HostNode):
         DangerSource.POINTCLOUD: "Point Cloud",
     }
     _STATE_LABEL_POSITION = (0.02, 0.07)
-    _STATE_LABEL_SIZE = 48
+    _STATE_LABEL_SIZE = 24
     _BOX_THICKNESS = 2.0
 
     def __init__(self) -> None:
@@ -90,7 +90,7 @@ class DangerVisualizer(dai.node.HostNode):
         if state_style is not None:
             outline_color, state_fill_color = state_style
             helper.draw_rectangle(
-                (0.0, 0.0),
+                (0, 0),
                 (1.0, 1.0),
                 outline_color=outline_color,
                 fill_color=state_fill_color,

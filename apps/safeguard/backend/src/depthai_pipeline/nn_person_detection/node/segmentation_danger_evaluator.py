@@ -17,7 +17,7 @@ from depthai_pipeline.nn_person_detection.message.tracked_segmentation import (
     TrackedSegmentationFrame,
 )
 from settings.settings import SpatialZone
-from util.ground_alignment import rotation_from_imu
+from util.aligned_frame import rotation_from_imu
 
 logger = logging.getLogger(__name__)
 

@@ -4,14 +4,20 @@ import cv2
 import depthai as dai
 import numpy as np
 
-from util.ground_alignment import ground_to_camera
+from util.aligned_frame import aligned_to_camera
 
-from ..message import BoundingBox, Obstacle, Obstacles, OccupancyMask, PlaneValidity
+from ..message import (
+    BoundingBox,
+    Obstacle,
+    Obstacles,
+    OccupancyMask,
+    SupportPlaneStatus,
+)
 
 
 @dataclass(frozen=True)
 class BinnedPoints:
-    """Ground-frame points with matching angle and range bin indices.
+    """Support-plane-aligned points with matching angle and range bin indices.
 
     Each array uses the same index for a point and its two polar-grid cells.
     """
@@ -25,7 +31,7 @@ class OccupancyGridDetectionNode(dai.node.HostNode):
     """Bin obstacle points into a polar grid and extract obstacle components.
 
     Publishes normalized image boxes and nearest points for each component,
-    plus a binary occupancy mask. Incoming points use ground-frame millimeters.
+    plus a binary occupancy mask. Incoming points use support-plane-aligned millimeters.
     """
 
     # Grid resolution
@@ -47,7 +53,7 @@ class OccupancyGridDetectionNode(dai.node.HostNode):
             None  # (fx, fy, cx, cy)
         )
         self._frame_size: tuple[int, int] | None = None  # (w, h)
-        # cam->ground rotation for the current frame; set in process()
+        # cam->support-plane-aligned rotation for the current frame; set in process()
         self._R: np.ndarray | None = None
 
         self._initialize_grid(hfov_deg)
@@ -55,34 +61,29 @@ class OccupancyGridDetectionNode(dai.node.HostNode):
     def build(
         self,
         obstacle_pcl: dai.Node.Output,
-        plane_valid: dai.Node.Output,
+        support_plane_status: dai.Node.Output,
         intrinsics: tuple[float, float, float, float],
         frame_size: tuple[int, int],
     ) -> "OccupancyGridDetectionNode":
         self._intrinsics = intrinsics
         self._frame_size = frame_size
 
-        self.link_args(obstacle_pcl, plane_valid)
+        self.link_args(obstacle_pcl, support_plane_status)
         return self
 
     def process(
         self,
         obstacle_msg: dai.Buffer,
-        plane_valid_msg: dai.Buffer,
+        status_msg: dai.Buffer,
     ) -> None:
         try:
             assert isinstance(obstacle_msg, dai.PointCloudData)
-            assert isinstance(plane_valid_msg, PlaneValidity)
+            assert isinstance(status_msg, SupportPlaneStatus)
 
             obstacle_pts = obstacle_msg.getPoints()
-            plane_valid = bool(plane_valid_msg.plane_valid)
-            self._R = (
-                np.asarray(plane_valid_msg.R, dtype=np.float32)
-                if plane_valid and plane_valid_msg.R.size == 9
-                else None
-            )
+            self._R = status_msg.R if status_msg.valid else None
 
-            if plane_valid:
+            if status_msg.valid:
                 obstacle_binned = self._bin_points_to_grid(obstacle_pts)
                 self._build_count_grid(obstacle_binned)
                 occupancy_mask = self._compute_occupancy_mask()
@@ -122,7 +123,7 @@ class OccupancyGridDetectionNode(dai.node.HostNode):
         )
 
     def _bin_points_to_grid(self, points: np.ndarray) -> BinnedPoints:
-        """Map ground-frame 3D points to horizontal angle and planar range bins.
+        """Map support-plane-aligned points to horizontal angle and planar range bins.
 
         Args:
             points: Nx3 points in millimeters.
@@ -236,7 +237,7 @@ class OccupancyGridDetectionNode(dai.node.HostNode):
         return obstacles
 
     def _project_points_normalized(self, points: np.ndarray) -> np.ndarray:
-        """Project ground-frame points into normalized image coordinates."""
+        """Project support-plane-aligned points into normalized image coordinates."""
         if self._intrinsics is None or self._frame_size is None:
             raise ValueError(
                 "Projection parameters not set. Ensure build() has been called."
@@ -248,8 +249,8 @@ class OccupancyGridDetectionNode(dai.node.HostNode):
         img_w, img_h = self._frame_size
 
         points = np.atleast_2d(points)
-        # Incoming points are ground-frame; pinhole projection needs camera-frame
-        points_cam = ground_to_camera(points, self._R)
+        # Incoming points are support-plane-aligned; projection needs camera-frame
+        points_cam = aligned_to_camera(points, self._R)
         z = points_cam[:, 2]
         valid = z > 1e-6
         if not np.any(valid):

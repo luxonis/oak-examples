@@ -1,8 +1,14 @@
+"""Rotations between the camera frame and a frame aligned with world-down.
+
+Camera frame: x=right, y=down, z=forward.
+Aligned frame: x'=right, y'=world-down, z'=forward along the horizontal.
+"""
+
 import numpy as np
 
 
 def rotation_from_imu(imu_g: np.ndarray) -> np.ndarray | None:
-    """Map camera-frame points to a ground-aligned frame using IMU data.
+    """Map camera-frame points to a gravity-aligned frame using IMU data.
 
     Built from an IMU accelerometer reading; in this pipeline imu_g points
     along world-up in camera coordinates, so we negate to get world-down.
@@ -18,10 +24,7 @@ def rotation_from_imu(imu_g: np.ndarray) -> np.ndarray | None:
 
 
 def rotation_from_down_vector(down_vector: np.ndarray) -> np.ndarray | None:
-    """Build a camera-to-ground rotation from a world-down vector.
-
-    Camera frame: x=right, y=down, z=forward.
-    Ground-aligned frame: x'=right, y'=down, z'=forward-on-ground.
+    """Build a camera-to-aligned rotation from a world-down vector.
 
     Args:
         down_vector: Three-component world-down vector in camera axes.
@@ -57,11 +60,11 @@ def rotation_from_down_vector(down_vector: np.ndarray) -> np.ndarray | None:
     return np.stack([right, down, forward], axis=0)
 
 
-def camera_to_ground(points: np.ndarray, R: np.ndarray) -> np.ndarray:
-    """Rotate (N, 3) points from camera frame into the ground-aligned frame."""
+def camera_to_aligned(points: np.ndarray, R: np.ndarray) -> np.ndarray:
+    """Rotate (N, 3) points from camera frame into the aligned frame."""
     return points @ R.T
 
 
-def ground_to_camera(points: np.ndarray, R: np.ndarray) -> np.ndarray:
-    """Rotate (N, 3) points from the ground-aligned frame back to camera frame."""
+def aligned_to_camera(points: np.ndarray, R: np.ndarray) -> np.ndarray:
+    """Rotate (N, 3) points from the aligned frame back to camera frame."""
     return points @ R

@@ -2,24 +2,22 @@
 venv/
 .venv/
 
-# Node.js dependencies are installed during the frontend build
+# Node.js
+# ignore node_modules, it will be reinstalled in the container
 node_modules/
 
-# Multimedia and local model files
+# Multimedia files
 media/
+
+# Local models
 *.onnx
 
 # Documentation
 README.md
-AGENTS.md
 
 # Local development and validation
 __pycache__/
-*.pyc
-.pytest_cache/
 .ruff_cache/
-frontend/dist/
-frontend/styled-system/
 evidence/
 *.oakapp
 
@@ -29,7 +27,16 @@ evidence/
 .github/
 .gitlab/
 
-# Uncomment a line if the build needs one of these files
+# The following files are ignored by default
+# uncomment a line if you explicitly need it
+
+# !*.oakapp
+
+# Python
 # !**/.mypy_cache/
+# !**/.ruff_cache/
+
+# IDE files
 # !**/.idea
 # !**/.vscode
+# !**/.zed

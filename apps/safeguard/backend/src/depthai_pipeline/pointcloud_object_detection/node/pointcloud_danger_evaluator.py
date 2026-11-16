@@ -8,7 +8,7 @@ from depthai_pipeline.common.message.danger_classification import (
 from settings.settings import SpatialZone
 from util.danger_zones import classify_obstacle, max_level
 
-from ..message import Obstacles, PlaneValidity
+from ..message import Obstacles, SupportPlaneStatus
 
 
 class PointCloudDangerEvaluator(dai.node.HostNode):
@@ -26,15 +26,15 @@ class PointCloudDangerEvaluator(dai.node.HostNode):
     def build(
         self,
         obstacles: dai.Node.Output,
-        plane_valid: dai.Node.Output,
+        support_plane_status: dai.Node.Output,
     ) -> "PointCloudDangerEvaluator":
-        self.link_args(obstacles, plane_valid)
+        self.link_args(obstacles, support_plane_status)
         return self
 
-    def process(self, obstacles_msg: dai.Buffer, plane_valid_msg: dai.Buffer) -> None:
-        """Publish an unavailable assessment when no valid ground plane exists."""
+    def process(self, obstacles_msg: dai.Buffer, status_msg: dai.Buffer) -> None:
+        """Publish an unavailable assessment when no valid support plane exists."""
         assert isinstance(obstacles_msg, Obstacles)
-        assert isinstance(plane_valid_msg, PlaneValidity)
+        assert isinstance(status_msg, SupportPlaneStatus)
 
         assessment = DangerAssessment()
         assessment.source = DangerSource.POINTCLOUD
@@ -43,7 +43,7 @@ class PointCloudDangerEvaluator(dai.node.HostNode):
         assessment.danger_detections = []
         assessment.nearest_point_mm = None
 
-        if plane_valid_msg.plane_valid:
+        if status_msg.valid:
             obstacle_levels = [
                 classify_obstacle(
                     obstacle=obstacle,

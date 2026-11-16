@@ -156,7 +156,7 @@ class PolarGridRenderer:
         return img
 
     def _xz_to_render_pixel(self, x_mm: float, z_mm: float) -> tuple[int, int] | None:
-        """Map ground-plane (x, z) in millimeters to supersampled render-space pixels."""
+        """Map support-plane-aligned (x, z) millimeters to supersampled render pixels."""
         if z_mm <= 1e-6:
             return None
 

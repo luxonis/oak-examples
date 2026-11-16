@@ -18,7 +18,7 @@ class BoundingBox:
 class Obstacle:
     """One connected obstacle with a normalized box and nearest 3D point.
 
-    Point coordinates are ground-aligned millimeters. ``nearest_point_depth``
+    Point coordinates are support-plane-aligned millimeters. ``nearest_point_depth``
     is forward z distance; ``nearest_point_radial`` is planar x/z range.
     """
 
