@@ -2,7 +2,7 @@ import { Streams } from '@luxonis/depthai-viewer-common';
 import { Button, Label, StyledText } from '@luxonis/ui-components';
 import AppLayout from './components/AppLayout';
 import PanelSection from './components/PanelSection';
-import DetectionSettingsButton from './detection/DetectionSettingsButton';
+import DetectionSettingsSection from './detection/DetectionSettingsSection';
 import {
 	COLOR_STREAM_TOPIC,
 	DETECTIONS_TOPIC,
@@ -66,10 +66,7 @@ function MeasurementView() {
 							offsetCm={mmToCm(distanceOffsetMm)}
 						/>
 					) : null}
-					{/* Positioned so the toolbar panel spans the row */}
-					<div className="relative flex flex-wrap gap-2">
-						<DetectionSettingsButton />
-					</div>
+					<DetectionSettingsSection />
 				</>
 			}
 		/>
