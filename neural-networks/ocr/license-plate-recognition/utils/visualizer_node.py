@@ -19,7 +19,9 @@ class VisualizeLicensePlates(dai.node.HostNode):
         frame = frame_message.getCvFrame()
         frame_h, frame_w = frame.shape[:2]
         # Each item matches a selected region and its explicit (vehicle, plate) index.
-        for lp_detection, result in zip(results.reference_data.detections, results.items):
+        for lp_detection, result in zip(
+            results.reference_data.detections, results.items
+        ):
             text = "".join(result["ocr"].classes)
             license_plate = result["crop"].getCvFrame()
 

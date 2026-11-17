@@ -100,10 +100,9 @@ class PlateRegions(dai.node.HostNode):
             plate = selected.transformTo(frame.getTransformation()).detections[0]
             plate.xmin, plate.ymin = max(0, plate.xmin), max(0, plate.ymin)
             plate.xmax, plate.ymax = min(1, plate.xmax), min(1, plate.ymax)
-            if (
-                (plate.xmax - plate.xmin) * frame.getWidth() <= 40
-                or (plate.ymax - plate.ymin) * frame.getHeight() <= 10
-            ):
+            if (plate.xmax - plate.xmin) * frame.getWidth() <= 40 or (
+                plate.ymax - plate.ymin
+            ) * frame.getHeight() <= 10:
                 continue
             plates.append(plate)
             indices.append((vehicle_index, plate_index))
