@@ -12,6 +12,8 @@ Running this example requires a **Luxonis device** connected to your computer. R
 
 You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
+The H.264 `Video` stream requires localhost or HTTPS in the browser.
+
 Here is a list of all available parameters:
 
 ```
@@ -26,12 +28,14 @@ Here is a list of all available parameters:
 | Key      | Description                          |
 | -------- | ------------------------------------ |
 | `c`      | Capture an image                     |
-| `e`      | Autoexposure                         |
+| `e`      | Toggle autoexposure                  |
 | `t`      | Trigger autofocus                    |
-| `f`      | Autofocus (continuous)               |
+| `f`      | Toggle continuous autofocus          |
 | `w`      | Auto white balance lock (true/false) |
 | `r`      | Auto exposure lock (true/false)      |
 | `+`, `-` | Increase/decrease selected control   |
+
+Turning autoexposure off uses the latest camera exposure time and ISO as manual settings when available.
 
 The following controls can be selected and modified with `+` and `-` keys:
 

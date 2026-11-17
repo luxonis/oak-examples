@@ -2,12 +2,9 @@ import depthai as dai
 from depthai_nodes.utils import AnnotationHelper
 
 
-class OCRAnnotationNode(dai.node.ThreadedHostNode):
+class OCRAnnotationNode(dai.node.HostNode):
     def __init__(self):
         super().__init__()
-
-        self.input = self.createInput()
-        self.passthrough = self.createInput()
 
         self.frame_output = self.createOutput(
             possibleDatatypes=[
@@ -16,48 +13,70 @@ class OCRAnnotationNode(dai.node.ThreadedHostNode):
         )
         self.text_annotations_output = self.createOutput()
 
-    def run(self):
-        while self.isRunning():
-            text_descriptions = self.input.get()
-            passthrough_frame = self.passthrough.get()
+        self.min_confidence = 0.0
+        self.min_text_length = 1
 
-            reference = text_descriptions.reference_data
-            source_size = reference.getTransformation().getSize()
-            detections_list = reference.transformTo(
-                passthrough_frame.getTransformation()
-            ).detections
-            recognitions_list = text_descriptions.items
+    def build(
+        self,
+        frame_output: dai.Node.Output,
+        gathered_output: dai.Node.Output,
+        min_confidence: float = 0.0,
+        min_text_length: int = 1,
+    ) -> "OCRAnnotationNode":
+        self.link_args(frame_output, gathered_output)
+        self.min_confidence = min_confidence
+        self.min_text_length = min_text_length
+        return self
 
-            w, h = passthrough_frame.getWidth(), passthrough_frame.getHeight()
+    def process(self, frame: dai.ImgFrame, gathered: dai.Buffer) -> None:
+        sequence_num = gathered.getSequenceNum()
+        # HostNode syncs timestamps; reject any pair with different frame IDs.
+        if frame.getSequenceNum() != sequence_num:
+            return
 
-            if len(recognitions_list) >= 1:
-                annotation_helper = AnnotationHelper()
+        helper = AnnotationHelper()
+        reference = gathered.reference_data
+        source_size = reference.getTransformation().getSize()
+        detections = reference.transformTo(frame.getTransformation()).detections
+        recognitions = gathered.items
+        width, height = frame.getWidth(), frame.getHeight()
+        for original, detection, recognition in zip(
+            reference.detections, detections, recognitions
+        ):
+            parts = [part.strip() for part in recognition.classes if part.strip()]
+            text = " ".join(parts)
+            scores = [float(score) for score in recognition.scores]
+            confidence = min(scores) if scores else 0.0
+            pixel_points = (
+                detection.getBoundingBox().denormalize(width, height).getPoints()
+            )
+            points = [
+                dai.Point2f(point.x / width, point.y / height, True)
+                for point in pixel_points
+            ]
+            shown = (
+                bool(text)
+                and len(text) >= self.min_text_length
+                and confidence >= self.min_confidence
+            )
+            if not shown:
+                continue
 
-                for original, detection, recognition in zip(
-                    reference.detections, detections_list, recognitions_list
-                ):
-                    rect = detection.getBoundingBox().denormalize(w, h)
-                    anchor = rect.getPoints()[3]
+            helper.draw_polyline(points, fill_color=None, thickness=2, closed=True)
+            x0 = max(0.0, min(p.x for p in points))
+            y0 = max(0.0, min(p.y for p in points))
+            y1 = min(1.0, max(p.y for p in points))
+            y = y0 - 0.01 if y0 > 0.07 else min(0.98, y1 + 0.01)
+            font_rect = original.getBoundingBox().denormalize(*source_size)
+            size = max(16, min(28, int(min(font_rect.size.width, font_rect.size.height))))
+            helper.draw_text(
+                f"{text}  {confidence:.2f}",
+                (min(0.98, x0), y),
+                size=size,
+            )
 
-                    text_line = ""
-                    for text, score in zip(recognition.classes, recognition.scores):
-                        if len(text) <= 2 or score < 0.25:
-                            continue
-
-                        text_line += text + " "
-
-                    font_rect = original.getBoundingBox().denormalize(*source_size)
-                    size = max(1, int(min(font_rect.size.width, font_rect.size.height)))
-                    annotation_helper.draw_text(
-                        text_line, [anchor.x / w + 0.02, anchor.y / h + 0.02], size=size
-                    )
-
-                annotations = annotation_helper.build(
-                    text_descriptions.getTimestamp(), text_descriptions.getSequenceNum()
-                )
-                annotations.setBufferMetadataFrom(text_descriptions)
-                annotations.setTransformation(passthrough_frame.getTransformation())
-
-            self.frame_output.send(passthrough_frame)
-            if len(recognitions_list) >= 1:
-                self.text_annotations_output.send(annotations)
+        annotations = helper.build(gathered.getTimestamp(), sequence_num)
+        annotations.setBufferMetadataFrom(gathered)
+        annotations.setTransformation(frame.getTransformation())
+        self.frame_output.send(frame)
+        self.text_annotations_output.send(annotations)

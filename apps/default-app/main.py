@@ -28,10 +28,6 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 
 NN_DIMENSIONS = (512, 288)
 
-if not device.setIrLaserDotProjectorIntensity(1):
-    print(
-        "Failed to set IR laser projector intensity. Maybe your device does not support this feature."
-    )
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
     platform = device.getPlatform()
@@ -80,7 +76,8 @@ with dai.Pipeline(device) as pipeline:
                 cam_mono_2 = feature.socket
                 break
     if cam_mono_1 and cam_mono_2:
-        device.setIrLaserDotProjectorIntensity(1)
+        if device.getIrDrivers() and not device.setIrLaserDotProjectorIntensity(1):
+            logger.warning("Failed to enable IR laser dot projector.")
         cam_out = cameraNode.requestOutput(
             (640, 480), type=dai.ImgFrame.Type.NV12, enableUndistortion=True
         )
