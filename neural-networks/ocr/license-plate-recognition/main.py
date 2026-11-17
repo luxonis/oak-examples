@@ -1,10 +1,12 @@
 from pathlib import Path
+from datetime import timedelta
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import FrameCropper, GatherData, ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
 from utils.visualizer_node import VisualizeLicensePlates
+from utils.crop_regions import PlateRegions, VehicleRegions
 
 REQ_WIDTH, REQ_HEIGHT = (
     1920 * 2,
@@ -89,55 +91,43 @@ with dai.Pipeline(device) as pipeline:
         vehicle_det_resize_node.out, vehicle_det_model_nn_archive
     )
 
-    # process vehicle detections
-    config_sender_node = pipeline.create(dai.node.Script)
-    config_sender_node.setScriptPath(
-        Path(__file__).parent / "utils/config_sender_script.py"
+    vehicles = pipeline.create(VehicleRegions).build(vehicle_det_nn.out)
+    vehicle_crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=vehicles.out,
+            outputSize=(lp_det_model_w, lp_det_model_h),
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+        )
+        .build(inputImage=input_node_out)
     )
-    config_sender_node.setLogLevel(dai.LogLevel.CRITICAL)
-
-    input_node_out.link(config_sender_node.inputs["frame_input"])
-    vehicle_det_nn.out.link(config_sender_node.inputs["detections_input"])
-
-    vehicle_crop_node = pipeline.create(dai.node.ImageManip)
-    vehicle_crop_node.initialConfig.setReusePreviousImage(False)
-    vehicle_crop_node.inputConfig.setReusePreviousMessage(False)
-    vehicle_crop_node.inputImage.setReusePreviousMessage(False)
-    vehicle_crop_node.setMaxOutputFrameSize(lp_det_model_w * lp_det_model_h * 3)
-
-    config_sender_node.outputs["output_config"].link(vehicle_crop_node.inputConfig)
-    config_sender_node.outputs["output_frame"].link(vehicle_crop_node.inputImage)
-
-    # per vehicle license plate detection
-    lp_config_sender = pipeline.create(dai.node.Script)
-    lp_config_sender.setScriptPath(
-        Path(__file__).parent / "utils/license_plate_sender_script.py"
-    )
-    lp_config_sender.setLogLevel(dai.LogLevel.CRITICAL)
-
-    input_node_out.link(lp_config_sender.inputs["frame_input"])
 
     lp_det_nn = pipeline.create(ParsingNeuralNetwork).build(
         vehicle_crop_node.out, lp_det_model_nn_archive
     )
-    config_sender_node.outputs["output_vehicle_detections"].link(
-        lp_config_sender.inputs["detections_input"]
+    lp_det_nn.input.setBlocking(True)
+    lp_det_nn.setNumInferenceThreads(1)
+    vehicle_plates = pipeline.create(GatherData).build(
+        cameraFps=args.fps_limit,
+        inputData=lp_det_nn.out,
+        inputReference=vehicles.reference,
     )
-    lp_det_nn.out.link(lp_config_sender.inputs["license_plate_detections"])
-
-    # resize detected licence plates to ocr model input size
-    lp_crop_node = pipeline.create(dai.node.ImageManip)
-    lp_crop_node.initialConfig.setReusePreviousImage(False)
-    lp_crop_node.inputConfig.setReusePreviousMessage(False)
-    lp_crop_node.inputImage.setReusePreviousMessage(False)
-    lp_crop_node.setMaxOutputFrameSize(ocr_model_w * ocr_model_h * 3)
-
-    lp_config_sender.outputs["lp_crop_config"].link(lp_crop_node.inputConfig)
-    lp_config_sender.outputs["lp_crop_frame"].link(lp_crop_node.inputImage)
+    plates = pipeline.create(PlateRegions).build(vehicle_plates.out, input_node_out)
+    lp_crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=plates.out,
+            outputSize=(ocr_model_w, ocr_model_h),
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+        )
+        .build(inputImage=input_node_out)
+    )
 
     ocr_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         lp_crop_node.out, ocr_model_nn_archive
     )
+    ocr_nn.input.setBlocking(True)
+    ocr_nn.setNumInferenceThreads(1)
     ocr_nn.getParser(0).setIgnoredIndexes(
         [
             0,
@@ -184,17 +174,22 @@ with dai.Pipeline(device) as pipeline:
     display_resize_node.setMaxOutputFrameSize(1280 * 720 * 3)
     input_node_out.link(display_resize_node.inputImage)
 
-    # annotation
-    visualizer_node = pipeline.create(VisualizeLicensePlates)
-    lp_config_sender.outputs["output_valid_detections"].link(
-        visualizer_node.vehicle_detections
+    # Pair each OCR output with its own crop before gathering by source frame.
+    ocr_crops = pipeline.create(dai.node.Sync)
+    ocr_crops.setSyncThreshold(timedelta(microseconds=1))
+    ocr_crops.setSyncAttempts(-1)
+    ocr_crops.inputs["ocr"].setBlocking(True)
+    ocr_crops.inputs["crop"].setBlocking(True)
+    ocr_nn.out.link(ocr_crops.inputs["ocr"])
+    ocr_nn.passthrough.link(ocr_crops.inputs["crop"])
+    recognized_plates = pipeline.create(GatherData).build(
+        cameraFps=args.fps_limit,
+        inputData=ocr_crops.out,
+        inputReference=plates.reference,
     )
-    display_resize_node.out.link(visualizer_node.input_frame)
-    ocr_nn.out.link(visualizer_node.ocr_results)
-    lp_config_sender.outputs["output_valid_crops"].link(
-        visualizer_node.lp_crop_detections
+    visualizer_node = pipeline.create(VisualizeLicensePlates).build(
+        display_resize_node.out, recognized_plates.out
     )
-    lp_crop_node.out.link(visualizer_node.lp_crop_images)
 
     # visualization
     visualizer.addTopic("License Plates", visualizer_node.out)

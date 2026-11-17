@@ -35,7 +35,6 @@ signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 _, args = initialize_argparser()
 
 logger.error("Starting")
-frame_type = dai.ImgFrame.Type.BGR888i
 HIGH_RES_WIDTH, HIGH_RES_HEIGHT = 2000, 2000
 LOW_RES_WIDTH, LOW_RES_HEIGHT = 640, 640
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -92,10 +91,7 @@ with dai.Pipeline(device) as pipeline:
         preview_stream=switch_naive.rgb,
         det_stream=switch_naive.has_detections,
         out_size=(320, 320),
-        frame_type=frame_type,
         padding=0.02,
-        pool_size=5,
-        cfg_queue_size=5,
     )
     black_image_generator_naive = host_nodes.BlackFrame().build(
         switch_naive.no_detections
@@ -151,10 +147,7 @@ with dai.Pipeline(device) as pipeline:
         preview_stream=switch_2_stage.rgb,
         det_stream=switch_2_stage.has_detections,
         out_size=(320, 320),
-        frame_type=frame_type,
         padding=0.02,
-        pool_size=7,
-        cfg_queue_size=5,
     )
     black_image_generator_2_stage = host_nodes.BlackFrame().build(
         switch_2_stage.no_detections
@@ -225,10 +218,7 @@ with dai.Pipeline(device) as pipeline:
         preview_stream=switch_tiling.rgb,
         det_stream=switch_tiling.has_detections,
         out_size=(320, 320),
-        frame_type=frame_type,
         padding=0.02,
-        pool_size=5,
-        cfg_queue_size=5,
     )
     black_image_generator_tiling = host_nodes.BlackFrame().build(
         switch_tiling.no_detections

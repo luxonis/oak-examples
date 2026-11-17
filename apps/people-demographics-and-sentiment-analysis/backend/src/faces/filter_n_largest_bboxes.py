@@ -35,7 +35,9 @@ class FilterNLargestBBoxes(dai.node.HostNode):
         filtered_detections = dai.ImgDetections()
         filtered_detections.detections = n_detections
         filtered_detections.setTimestamp(face_detections.getTimestamp())
+        filtered_detections.setTimestampDevice(face_detections.getTimestampDevice())
         filtered_detections.setSequenceNum(face_detections.getSequenceNum())
+        filtered_detections.setTransformation(face_detections.getTransformation())
         self.out.send(filtered_detections)
 
     @staticmethod

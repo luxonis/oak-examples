@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Callable
 
 import depthai as dai
@@ -31,23 +30,17 @@ _PYZBAR_DECODE, _PYZBAR_LOAD_ERROR = _load_pyzbar_decoder()
 _ZXINGCPP, _ZXINGCPP_LOAD_ERROR = _load_zxing_decoder()
 
 
-class BarcodeDecoder(dai.node.ThreadedHostNode):
+class BarcodeDecoder(dai.node.HostNode):
     """
     Custom host node that receives ImgFrame messages,
-    runs barcode decoding backends on the host and emits raw bytes
-    in dai.Buffer messages.
+    runs barcode decoding backends on the host and emits one MessageGroup per
+    crop, including an empty group when decoding fails.
     """
 
     _logged_backend_status = False
 
     def __init__(self):
         super().__init__()
-
-        self.input = self.createInput()
-        self.input.setPossibleDatatypes([(dai.DatatypeEnum.ImgFrame, True)])
-
-        self.output = self.createOutput()
-        self.output.setPossibleDatatypes([(dai.DatatypeEnum.Buffer, True)])
 
         if not BarcodeDecoder._logged_backend_status:
             if _PYZBAR_DECODE is None and _ZXINGCPP is None:
@@ -70,23 +63,27 @@ class BarcodeDecoder(dai.node.ThreadedHostNode):
 
             BarcodeDecoder._logged_backend_status = True
 
-    def run(self):
-        while self.isRunning():
-            in_msg = self.input.tryGet()
-            if in_msg is None:
-                time.sleep(0.001)
-                continue
+    def build(self, crops: dai.Node.Output) -> "BarcodeDecoder":
+        self.link_args(crops)
+        self.inputs["crop"].setBlocking(True)
+        return self
 
-            cv_frame = in_msg.getCvFrame()
-            barcodes = decode_frame_with_available_backends(cv_frame)
+    def process(self, crop: dai.ImgFrame) -> None:
+        result = dai.MessageGroup()
+        for index, payload in enumerate(
+            decode_frame_with_available_backends(crop.getCvFrame())
+        ):
+            buf = dai.Buffer()
+            buf.setData(payload)
+            buf.setTimestamp(crop.getTimestamp())
+            buf.setTimestampDevice(crop.getTimestampDevice())
+            buf.setSequenceNum(crop.getSequenceNum())
+            result[f"{index:05d}"] = buf
 
-            for barcode_data in barcodes:
-                buf = dai.Buffer()
-                buf.setData(barcode_data)
-                self.output.send(buf)
-
-            if not barcodes:
-                time.sleep(0.001)
+        result.setTimestamp(crop.getTimestamp())
+        result.setTimestampDevice(crop.getTimestampDevice())
+        result.setSequenceNum(crop.getSequenceNum())
+        self.out.send(result)
 
 
 def decode_frame_with_available_backends(cv_frame) -> list[bytes]:

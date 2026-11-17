@@ -35,16 +35,16 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 - [README.md](README.md)
 - [main.py](main.py)
-- [utils/config_sender_script.py](utils/config_sender_script.py)
-- [utils/license_plate_sender_script.py](utils/license_plate_sender_script.py)
+- [utils/crop_regions.py](utils/crop_regions.py)
 - [utils/visualizer_node.py](utils/visualizer_node.py)
 
 ## Architecture
 
 - A first-stage vehicle detector runs on a very large source frame.
-- Script nodes generate crop configs for vehicles and then for license plates inside those vehicle crops.
+- `VehicleRegions` keeps the vehicle class/confidence selection and ROI expansion. `FrameCropper` extracts vehicle crops, and `GatherData` collects one plate-detection result per vehicle.
 - A second detector finds plates inside each vehicle crop.
-- A third OCR stage reads the cropped plates.
+- `PlateRegions` selects the best plate per vehicle, preserves the plate inset and minimum source-pixel size, and remaps it to the original frame before a second `FrameCropper` extracts the full-resolution OCR input.
+- `CropRegions.source` and `.indices` explicitly retain the original vehicle detection indexes and each selected `(vehicle_index, plate_index)`. OCR outputs are synchronized with NN passthrough crops, then gathered against those selected regions.
 - [utils/visualizer_node.py](utils/visualizer_node.py) fuses the stages back into a 1280×720 source-frame overlay and keeps plate previews within the frame bounds.
 
 ## Constraints
@@ -52,6 +52,8 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - `REQ_WIDTH` and `REQ_HEIGHT` are set to doubled `1920x1080`, which makes this much heavier than most examples; a separate `ImageManip` resizes the display to 1280×720 before it reaches the host visualizer.
 - The OCR parser ignores a long list of token indexes in code, so blindly swapping OCR models is risky.
+- Keep plate/OCR NN inputs and both OCR/crop Sync inputs blocking; each frame's results rely on crop order, with one inference thread per stage. Use a positive Sync tolerance (1 microsecond); zero never matches in this SDK.
+- Preserve both timestamps, sequence numbers, and transformations on ROI/reference messages. Empty vehicle/plate references must still reach `GatherData` so the output continues without crops.
 
 ## Related Examples
 
@@ -63,4 +65,4 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `License Plates` with detected vehicles, plates, and OCR text merged into one output
-- `Common failure meaning:` the device is not RVC4, the scene resolution is too poor for the crop cascade, or one of the scripted crop stages is no longer aligned with the model outputs
+- `Common failure meaning:` the device is not RVC4, the scene resolution is too poor for the crop cascade, or crop/result counts or reference metadata no longer match

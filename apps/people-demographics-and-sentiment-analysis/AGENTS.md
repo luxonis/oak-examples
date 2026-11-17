@@ -54,7 +54,7 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 - A camera source node produces preview and encoded video.
 - Face detection finds candidate faces.
-- Cropping logic creates face crops for second-stage models.
+- `FaceCropsNode` uses `FrameCropper` to produce synchronized 300×300 letterboxed face crops and `GatherData` to associate them with the filtered face detections.
 - Separate second-stage NNs estimate emotions, age/gender, and re-id embeddings.
 - A people tracker runs on the full frame.
 - Join logic associates face features with tracked people.
@@ -87,6 +87,7 @@ This is the strongest standalone reference in the repo for multi-stage people an
 - The backend defaults to `15` FPS if no limit is provided.
 - The frontend updates the face strip and stats by polling `Get Faces` once per second.
 - Only three face tiles are displayed in the frontend even if more people are in view.
+- The same ordered face crop stream fans out to emotion, age/gender and re-id models. Keep the face limiter's device timestamp and transformation along with host timestamp/sequence number; the cropper synchronizes against the original preview.
 
 ## Non-Obvious Repo Conventions
 

@@ -4,6 +4,8 @@ This example demonstrates how to detect and decode barcodes in real-time using c
 
 The system processes high-resolution camera input, intelligently crops detected barcode regions, and applies multiple fallback decoding strategies including rotation and color inversion to maximize recognition success rates.
 
+`FrameCropper` synchronizes each source frame with its expanded barcode regions. `GatherData` associates one decoder result per crop with the original detection, including crops with no decoded payload, before updating the overlay.
+
 ## ⚠️ Important Notice
 
 **This application will work poorly on fixed focus devices.** The barcode detection and decoding algorithms require clear, focused images to function effectively. Fixed focus cameras may struggle to capture sharp barcode images at varying distances, leading to:
