@@ -68,7 +68,9 @@ class OCRAnnotationNode(dai.node.HostNode):
             y1 = min(1.0, max(p.y for p in points))
             y = y0 - 0.01 if y0 > 0.07 else min(0.98, y1 + 0.01)
             font_rect = original.getBoundingBox().denormalize(*source_size)
-            size = max(16, min(28, int(min(font_rect.size.width, font_rect.size.height))))
+            size = max(
+                16, min(28, int(min(font_rect.size.width, font_rect.size.height)))
+            )
             helper.draw_text(
                 f"{text}  {confidence:.2f}",
                 (min(0.98, x0), y),
