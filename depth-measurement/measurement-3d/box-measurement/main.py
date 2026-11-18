@@ -76,7 +76,9 @@ with dai.Pipeline(device) as p:
 
     sync = p.create(dai.node.Sync)
     sync.setRunOnHost(True)
-    sync.setSyncThreshold(timedelta(milliseconds=1))
+    # PointCloud carries the depth timestamp; RGB and stereo are not
+    # hardware-synced on every device, so pair the nearest frames.
+    sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
     point_cloud.outputPointCloud.link(sync.inputs["pcl"])
     color_output.link(sync.inputs["rgb"])
     nn.out.link(sync.inputs["detections"])
