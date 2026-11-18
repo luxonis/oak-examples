@@ -44,7 +44,7 @@ This is the best reference in the repository for live manual camera tuning throu
 ## Architecture
 
 - The script creates one RGB camera on `CAM_A`.
-- Frames are streamed to the Visualizer as `Video`.
+- The camera output is encoded as H.264 for the Visualizer's `Video` topic.
 - A custom host node, [utils/manual_camera_control.py](utils/manual_camera_control.py), receives the live frames.
 - That host node publishes a `Camera Configuration` annotation overlay and sends `CameraControl` messages into the camera `inputControl` queue.
 - Keyboard input is read from `visualizer.waitKey(...)` and forwarded into the host node with `handle_key_press(...)`.
@@ -52,7 +52,7 @@ This is the best reference in the repository for live manual camera tuning throu
 ## Data Flow
 
 - `keyboard input -> ManualCameraControl host node -> camera inputControl queue`
-- `CAM_A -> Video`
+- `CAM_A -> H.264 encoder -> Video`
 - `CAM_A frames -> ManualCameraControl host node -> Camera Configuration`
 
 ## Modification Guide
@@ -73,12 +73,14 @@ This is the best reference in the repository for live manual camera tuning throu
 - The example assumes the color camera is on `CAM_A`.
 - Keyboard interaction only works when the Visualizer window is receiving key events.
 - Captured images are written to the current working directory as `capture_<WxH>_<seq>.jpg`.
+- H.264 playback in the Visualizer requires localhost or HTTPS.
 - Manual exposure range is clamped based on FPS, so changing FPS changes the maximum allowed exposure time.
 
 ## Non-Obvious Repo Conventions
 
 - Selecting a control first, then using `+` or `-`, is the main interaction pattern; `+` and `-` do nothing useful until a control is selected.
 - Changing manual exposure or ISO disables autoexposure internally.
+- Turning autoexposure off applies the latest available frame exposure and ISO as manual settings.
 - Setting manual white balance also clears AWB lock if it was enabled.
 - `Camera Configuration` is an annotation-only topic, not a second video stream.
 

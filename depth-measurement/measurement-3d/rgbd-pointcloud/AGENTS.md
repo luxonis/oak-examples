@@ -80,7 +80,7 @@ This is the minimal colored point-cloud reference in the repo. Use it when you n
 
 - This example assumes a stereo mono pair on `CAM_B` and `CAM_C`.
 - RGB mode assumes the color camera is on `CAM_A`.
-- `device.setIrLaserDotProjectorIntensity(1)` may fail on devices that do not expose that feature.
+- The IR dot projector is optional. The script skips it when no IR driver is detected and reports a failed enable attempt without stopping the point-cloud pipeline.
 - The point cloud is published directly from `PointCloud.outputPointCloud`; there is no host-side filtering or resampling layer here.
 - The color input must be `RGB888i` with the same size as the depth frame; other types fall back to an uncolored cloud.
 

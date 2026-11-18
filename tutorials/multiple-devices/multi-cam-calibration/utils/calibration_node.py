@@ -46,6 +46,7 @@ class CalibrationNode(dai.node.HostNode):
         self.trans_vec: Optional[np.ndarray] = None
         self.world_to_cam: Optional[np.ndarray] = None
         self.cam_to_world: Optional[np.ndarray] = None
+        self.still_transformation = None
 
         # Intrinsic matrices and device info
         self.intrinsic_mat_still: Optional[np.ndarray] = (
@@ -223,6 +224,10 @@ class CalibrationNode(dai.node.HostNode):
                 )
                 return False
 
+            self.still_transformation = in_still_msg.getTransformation()
+            self.intrinsic_mat_still = np.array(
+                self.still_transformation.getIntrinsicMatrix()
+            )
             raw_cv_frame = in_still_msg.getCvFrame()
             print(
                 f"[{self.mxid}] CalibrationNode: ImgFrame received (type: {in_still_msg.getType()}, size: {in_still_msg.getWidth()}x{in_still_msg.getHeight()})."
@@ -239,6 +244,10 @@ class CalibrationNode(dai.node.HostNode):
             self.processing = False
 
     def process(self, frame_message: dai.ImgFrame) -> None:
+        self.preview_width, self.preview_height = (
+            frame_message.getWidth(),
+            frame_message.getHeight(),
+        )
         annotations_builder = AnnotationHelper()
 
         status_text = f"Selected for Calib: {self.calib}"
@@ -275,6 +284,7 @@ class CalibrationNode(dai.node.HostNode):
             and self.rot_vec is not None
             and self.trans_vec is not None
             and self.intrinsic_mat_still is not None
+            and self.still_transformation is not None
             and self.preview_width > 0
             and self.preview_height > 0
         ):
@@ -296,13 +306,14 @@ class CalibrationNode(dai.node.HostNode):
                 self.distortion_coef,
             )
 
-            scale_x = self.preview_width / self.still_width
-            scale_y = self.preview_height / self.still_height
-
-            scaled_projected_points_for_preview = [
-                [pt[0] * scale_x, pt[1] * scale_y]
-                for pt in img_points_axes_high_res.reshape(-1, 2)
+            projected_points = [
+                self.still_transformation.remapPointTo(
+                    frame_message.getTransformation(),
+                    dai.Point2f(float(x), float(y), False),
+                )
+                for x, y in img_points_axes_high_res.reshape(-1, 2)
             ]
+            scaled_projected_points_for_preview = [(p.x, p.y) for p in projected_points]
 
             p_origin, p_x, p_y, p_z = np.array(scaled_projected_points_for_preview)
 
@@ -335,6 +346,8 @@ class CalibrationNode(dai.node.HostNode):
                 )
 
         dai_annotations = annotations_builder.build(
-            frame_message.getTimestampDevice(), frame_message.getSequenceNum()
+            frame_message.getTimestamp(), frame_message.getSequenceNum()
         )
+        dai_annotations.setBufferMetadataFrom(frame_message)
+        dai_annotations.setTransformation(frame_message.getTransformation())
         self.annotation_out.send(dai_annotations)

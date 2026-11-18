@@ -51,7 +51,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - RGB from `CAM_A` is resized and aligned with depth from `dai.node.Depth`.
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
-- Detection filtering keeps only the currently active class labels.
+- Detection filtering applies the active classes and frontend confidence threshold. Runtime config updates must preserve both settings.
 - The annotation node handles segmentation, selection, and display overlays.
 - A `PointCloud` node (organized mode, `setLengthUnit(CENTIMETER)`) creates colored pointcloud output for the segmented region from the masked depth and RGB frames, so the measurement code works in centimeters end to end with no unit conversion.
 - The point cloud explicitly targets `CAM_A` coordinates, matching the intrinsics used by the measurement overlay.
@@ -80,6 +80,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Constraints
 
+- Selection masks and aligned depth must share the undistorted RGB pixel grid.
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
