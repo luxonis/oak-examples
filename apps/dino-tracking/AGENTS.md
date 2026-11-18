@@ -83,6 +83,7 @@ This is the best standalone reference for class-free interactive tracking based 
 
 ## Constraints
 
+- Both model inputs must preserve the preview's field of view; click and feature-grid indexing share normalized coordinates.
 - This example is RVC4 standalone only.
 - Initial startup may take longer because model assets must become available before the `Video` topic appears.
 - The frontend intentionally waits for the `Video` topic before enabling stream interaction.

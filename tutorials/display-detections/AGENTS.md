@@ -37,20 +37,19 @@ This is the repository reference for three different strategies for drawing dete
 - [passthrough.py](passthrough.py)
 - [crop_highres.py](crop_highres.py)
 - [stretch_before_inferencing.py](stretch_before_inferencing.py)
-- [utils/translate_cropped_detections.py](utils/translate_cropped_detections.py)
 - [oakapp.toml](oakapp.toml)
 
 ## Architecture
 
 - [passthrough.py](passthrough.py) displays the detector’s passthrough frame directly, so annotations stay naturally aligned with the NN input.
-- [crop_highres.py](crop_highres.py) runs the detector on a cropped `512x288` region from a `640x480` frame, then uses [utils/translate_cropped_detections.py](utils/translate_cropped_detections.py) to map detections back into the larger frame space.
+- [crop_highres.py](crop_highres.py) runs the detector on a cropped `512x288` region from a `640x480` frame, then uses `dai.node.Align` to map detections back into the larger frame space.
 - [stretch_before_inferencing.py](stretch_before_inferencing.py) keeps a `1920x1440` full view while a stretched `512x288` branch feeds inference.
 - All three scripts use the same YOLOv6 model family and publish their visual comparison through the DepthAI Visualizer.
 
 ## Constraints
 
 - [oakapp.toml](oakapp.toml) only packages [passthrough.py](passthrough.py), not the other tutorial variants.
-- [passthrough.py](passthrough.py) and [stretch_before_inferencing.py](stretch_before_inferencing.py) both apply a host-side `FilterDets` that removes raw label `57`.
+- [passthrough.py](passthrough.py) and [stretch_before_inferencing.py](stretch_before_inferencing.py) both reject label `57`.
 - This folder is about annotation/display alignment, not about maximizing detector quality.
 
 ## Related Examples
