@@ -11,7 +11,7 @@ def get_disparity_scale(config: dai.StereoDepthConfig, platform: dai.Platform) -
     if hasattr(config, "getDisparityScale"):
         return int(config.getDisparityScale())
 
-    # DepthAI 3.11 compatibility: RVC2 filters normalize disparity with an
+    # Compatibility for DepthAI releases without getDisparityScale() (incl. 3.12.1): RVC2 filters normalize disparity with an
     # integer multiplier. Older getMaxDisparity() reports the 8192 ceiling,
     # so calculate the actual encoding directly (e.g. 760 * 10 = 7600).
     maximum = (
