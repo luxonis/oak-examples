@@ -34,7 +34,7 @@ class MergeImgDetections(BaseHostNode):
             transformation = msg.reference_data.getTransformation()
             if transformation is not None:
                 width, height = transformation.getSize()
-                # Repair DepthAI 3.11 legacy bounds without losing the rotated rectangle.
+                # Update axis-aligned bounds while preserving the rotated rectangle.
                 for detection in detections:
                     rect = detection.getBoundingBox().denormalize(width, height)
                     xmin, ymin, xmax, ymax = rect.getOuterRect()
