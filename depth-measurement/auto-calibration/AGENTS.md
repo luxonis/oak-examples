@@ -58,8 +58,8 @@ Automatic runtime stereo calibration with on-start or continuous operation, live
 ## Constraints
 
 - This example must never flash EEPROM or deliberately alter initial calibration. Keep the explicit `flashCalibration=False`.
-- AutoCalibration 3.11 supports matching native 1280x800 or 640x400 sensor modes; reject incompatible pairs before starting.
-- `AutoCalibrationResult` cannot be published directly through RemoteConnection in DepthAI 3.11. Inspect the HUD annotations or console JSON.
+- AutoCalibration in DepthAI 3.12 supports matching native 1280x800 or 640x400 sensor modes; reject incompatible pairs before starting.
+- `AutoCalibrationResult` cannot be published directly through RemoteConnection in DepthAI 3.12. Inspect the HUD annotations or console JSON.
 - A failed cycle retains the active calibration. Final failure messages have zero confidence fields; SDK info logs contain retry metrics.
 - The HUD displays the latest completed result while subsequent continuous cycles run.
 - Runtime updates are temporary. Manual controls and persistence belong to the separate DynamicCalibration example.

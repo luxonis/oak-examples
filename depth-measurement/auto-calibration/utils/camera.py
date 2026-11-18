@@ -2,7 +2,7 @@ import depthai as dai
 
 
 def select_stereo_resolution(features):
-    """Select matching native sensor modes supported by AutoCalibration 3.11."""
+    """Select matching native sensor modes supported by AutoCalibration in DepthAI 3.12."""
     cameras = {feature.socket: feature for feature in features}
     pair = (dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C)
     if any(socket not in cameras for socket in pair):

@@ -40,11 +40,11 @@ AutoCalibration owns its internal DynamicCalibration worker and samples unrectif
 
 Native acceptance rules remain enabled: five validation images, calibration confidence above `0.9`, the SDK's lens-specific data-confidence threshold, and up to five iterations. Poor scene coverage or texture can cause retries or unsuccessful cycles. The HUD shows the latest completed result while another continuous cycle runs.
 
-A passed result can validate the existing parameters without changing them. Accepted calibration changes are applied by the SDK to runtime device geometry. A failed result leaves the active calibration unchanged. DepthAI 3.11 reports zero confidence fields on final failure; use SDK info logs (`DEPTHAI_LEVEL=info`) to inspect individual retries.
+A passed result can validate the existing parameters without changing them. Accepted calibration changes are applied by the SDK to runtime device geometry. A failed result leaves the active calibration unchanged. DepthAI 3.12 reports zero confidence fields on final failure; use SDK info logs (`DEPTHAI_LEVEL=info`) to inspect individual retries.
 
 Automatic calibration never writes EEPROM here, and runtime changes disappear after device restart. The SDK's implicit pipeline calibration procedure is disabled so it cannot run alongside this explicit node. Use the separate manual Dynamic Calibration example when you need diagnostic commands or an explicit persistence workflow.
 
-DepthAI 3.11 cannot publish `AutoCalibrationResult` directly through RemoteConnection. The small host status node converts results into HUD annotations and console JSON; it does not apply or flash calibration.
+DepthAI 3.12 cannot publish `AutoCalibrationResult` directly through RemoteConnection. The small host status node converts results into HUD annotations and console JSON; it does not apply or flash calibration.
 
 ## Standalone Mode (RVC4 Only)
 
