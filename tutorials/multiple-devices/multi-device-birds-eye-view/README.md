@@ -7,7 +7,7 @@ How it works:
 1. **Calibration**: the `MultiDeviceCalibration` node estimates the pose of every device relative to one origin device (first run only).
 2. **Merged point cloud**: a first pipeline runs a `Depth` node on every device and one host `PointCloud` node that merges them in the common calibration origin.
 3. **Ground plane**: a RANSAC fit in [utils/plane.py](utils/plane.py) finds the largest roughly horizontal plane in that cloud.
-4. **Planar projection**: a second pipeline sends an undistorted view per device to one host `Stitching` node in `PLANAR_PROJECTION` mode; `setPlane` receives the fitted plane, which is expressed in the same origin frame as the camera transformations.
+4. **Planar projection**: a second pipeline sends the full-resolution color frames of every device to one host `Stitching` node in `PLANAR_PROJECTION` mode; `setPlane` receives the fitted plane, which is expressed in the same origin frame as the camera transformations.
 
 Only the ground is correct in the result. Everything that rises above the floor, such as people or furniture, is smeared away from the cameras.
 
@@ -20,7 +20,9 @@ Fitting the ground plane to the merged point cloud...
 Ground plane: 37% of the points, origin camera 0.88 m above it, normal [0.02, -1.00, -0.02]
 ```
 
-The Visualizer then shows the undistorted input of every device and the `Birds-eye view` topic.
+The Visualizer then shows a preview of every device and the `Birds-eye view` topic.
+
+The projection uses full-resolution frames, which are large. Keep `--fps_limit` low (default 5) so the network link can carry them.
 
 The devices must see the floor and be mounted roughly upright: the ground is searched among planes within 45° of the vertical axis of the origin camera.
 
@@ -51,11 +53,11 @@ Here is a list of all available parameters:
                       (default: calibration.json next to main.py)
 --calibrate           Calibrate again even if the calibration file exists
 -n, --sample-count SAMPLE_COUNT
-                      Number of synchronized image groups collected for the calibration (default: 10)
+                      Number of synchronized image groups collected for the calibration (default: 5)
 --known-distance KNOWN_DISTANCE
                       Measured distance in centimeters between the calibration cameras of the first two
                       devices. Required when no device has a CAM_B/CAM_C stereo pair.
---fps_limit FPS_LIMIT FPS limit of the cameras. (default: 10)
+--fps_limit FPS_LIMIT FPS limit of the cameras. (default: 5)
 --max-range MAX_RANGE Distance in meters from a camera beyond which the ground is not drawn (default: 4.0)
 ```
 

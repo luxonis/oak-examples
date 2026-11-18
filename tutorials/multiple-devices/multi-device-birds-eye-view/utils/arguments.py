@@ -50,7 +50,7 @@ def initialize_argparser():
         "-n",
         "--sample-count",
         type=int,
-        default=10,
+        default=5,
         help="Number of synchronized image groups collected for the calibration",
     )
 
@@ -66,7 +66,7 @@ def initialize_argparser():
         "--fps_limit",
         help="FPS limit of the cameras.",
         required=False,
-        default=10,
+        default=5,
         type=int,
     )
 

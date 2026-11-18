@@ -8,12 +8,11 @@ import numpy as np
 
 from utils.arguments import initialize_argparser
 from utils.calibration import load_or_calibrate, select_devices
-from utils.pinhole_view import PinholeView
 from utils.plane import fit_ground_plane
 
 HTTP_PORT = 8082
 DEPTH_SIZE = (640, 400)
-VIEW_SIZE = (1280, 800)  # Camera view sent to the host for the projection
+PREVIEW_SIZE = (640, 400)  # Camera preview shown next to the result
 MAX_VIEW_SIZE = (1280, 1280)
 WARMUP_CLOUDS = 10  # First clouds are skipped while exposure and depth settle
 PLANE_CLOUDS = 3  # Merged point clouds accumulated for the plane fit
@@ -95,15 +94,16 @@ def main():
             camera = pipeline.create(dai.node.Camera, device).build(
                 dai.CameraBoardSocket.CAM_A, sensorFps=args.fps_limit
             )
-            view = camera.requestOutput(
-                VIEW_SIZE,
-                type=dai.ImgFrame.Type.NV12,
-                fps=args.fps_limit,
-                enableUndistortion=True,
+            # Full-resolution frames keep the whole sensor field of view for the projection.
+            views.append(
+                camera.requestFullResolutionOutput(
+                    type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+                )
             )
-            # See utils/pinhole_view.py: needed for scaled camera outputs on depthai 3.12.
-            views.append(pipeline.create(PinholeView).build(view).output)
-            visualizer.addTopic(f"Input - {device_id}", view, group="Inputs")
+            preview = camera.requestOutput(
+                PREVIEW_SIZE, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+            )
+            visualizer.addTopic(f"Input - {device_id}", preview, group="Inputs")
 
         stitching = pipeline.create(dai.node.Stitching).build(views)
         stitching.setMode(dai.node.Stitching.Mode.PLANAR_PROJECTION)
