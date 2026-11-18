@@ -41,12 +41,11 @@ This is the simplest person-counting reference in the repository. Use it when yo
 ## Architecture
 
 - `ParsingNeuralNetwork` runs the person detector on camera or replay input.
-- `dai.node.ImgDetectionsFilter` keeps only the `person` label and applies a fixed confidence threshold of `0.5`.
+- `ImgDetectionsFilter` keeps only the `person` label and applies a fixed confidence threshold of `0.5`.
 - [utils/annotation_node.py](utils/annotation_node.py) converts the filtered detections into a count annotation topic.
 
 ## Constraints
 
-- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - The count is for the current frame only; there is no tracking or de-duplication over time.
 - The current code assumes the loaded detector exposes a `person` class in its metadata.
 - The filter threshold is fixed in code rather than a CLI argument.

@@ -45,11 +45,10 @@ This is the repository reference for open-vocabulary YOLO-World inference with s
 - The CLIP text-encoder session runs on the OAK4 DSP in standalone mode.
 - `ParsingNeuralNetwork` is wired manually as a multi-input model with image and text inputs.
 - The text tensor is sent once through `inputs["texts"]` and then reused.
-- `dai.node.ImgDetectionsFilter` and [utils/detections_label_mapper.py](utils/detections_label_mapper.py) keep only the configured prompt labels and map them back to their class names.
+- `ImgDetectionsFilter` and [utils/detections_label_mapper.py](utils/detections_label_mapper.py) keep only the configured prompt labels and map them back to their class names.
 
 ## Constraints
 
-- Requires DepthAI `3.12.1` for the public detection filter. Single-input filtering preserves label IDs and detection order and reindexes instance masks.
 - [main.py](main.py) enforces `MAX_NUM_CLASSES = 80`.
 - This example is effectively RVC4-only and uses the `snpe` DSP backend explicitly.
 - Luxonis OS 1.40 or newer is required for the device NPU runtime.

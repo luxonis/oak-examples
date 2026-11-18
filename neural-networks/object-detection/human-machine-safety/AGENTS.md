@@ -50,7 +50,7 @@ This is the repository reference for distance-based safety checks between detect
 
 ## Constraints
 
-- Retain the Python `ImgDetectionsFilter` after merging: it receives `SpatialImgDetections`. The native public filter accepts only `ImgDetections` and would lose the spatial contract needed for distance measurements.
+- Filtering must preserve `SpatialImgDetections`; distance calculations require the spatial coordinates.
 - The current code hardcodes `DANGEROUS_OBJECTS = ["bottle", "cup"]`.
 - The example requires three cameras and aligned depth.
 - Palm and object labels are merged into one namespace, so label offsets matter if you modify the model set.

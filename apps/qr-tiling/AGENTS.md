@@ -82,7 +82,6 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Constraints
 
-- Retain Python post-merge `ImgDetectionsFilter.useNms()`: the DepthAI 3.12 public filter only suppresses across separate inputs, not within the merged tile message.
 - This example is RVC4 standalone only.
 - `libzbar-dev` is installed in [oakapp.toml](oakapp.toml) because QR decoding depends on it.
 - Tile count directly affects throughput, so the frontend may change FPS behavior when configuration changes.

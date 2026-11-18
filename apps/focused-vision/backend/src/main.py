@@ -202,7 +202,6 @@ with dai.Pipeline(device) as pipeline:
     face_detections_tiling_merged = pipeline.create(
         host_nodes.MergeImgDetections
     ).build(collection_out=face_detection_tiling_remapper.out)
-    # The 3.12 native filter only suppresses across separate inputs, not merged tiles.
     face_detection_tiling_filter = (
         pipeline.create(ImgDetectionsFilter)
         .minConfidence(

@@ -49,7 +49,6 @@ This is the repository reference for tiling-based QR detection with host-side de
 
 ## Constraints
 
-- Retain Python post-merge `ImgDetectionsFilter.useNms()`: the DepthAI 3.12 public filter only suppresses across separate inputs, not within the merged tile message.
 - The README explicitly treats this as OAK4-only due to missing RVC2 bindings, even though RVC2 YAMLs are present.
 - If `pyzbar` is unavailable, detections still exist but decoded labels remain empty in [utils/host_qr_scanner.py](utils/host_qr_scanner.py).
 - Tiling lowers throughput by design; this is the accuracy-for-speed tradeoff the tutorial is demonstrating.

@@ -112,7 +112,6 @@ with dai.Pipeline(device) as pipeline:
     )
     print(f"merged_detections ID: {merged_detections.id=}")
 
-    # The 3.12 native filter only suppresses across separate inputs, not merged tiles.
     filtered_detections = (
         pipeline.create(ImgDetectionsFilter)
         .useNms(
