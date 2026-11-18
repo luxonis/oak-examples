@@ -29,9 +29,7 @@ def main():
     expected_hash = hashlib.sha256((source / binary_name).read_bytes()).hexdigest()
     if hashlib.sha256(Path(installed).read_bytes()).hexdigest() != expected_hash:
         raise RuntimeError("Installed oakctl does not match the caller artifact")
-    expected_version = output(str(source / binary_name), "version")
-    if output(installed, "version") != expected_version:
-        raise RuntimeError("Installed oakctl version does not match the artifact")
+    oakctl_version = output(installed, "version")
     agents = list((root / ".artifacts").glob("oak-agent-*-arm-rvc4.tar.lz4"))
     if len(agents) != 1:
         raise RuntimeError("Expected one RVC4 oak-agent archive")
@@ -57,9 +55,7 @@ def main():
         actual_agent = output(installed, "adb", "shell", "oak-agent", "--version")
         if actual_agent != expected_agent:
             raise RuntimeError(f"Expected agent {expected_agent}, got {actual_agent}")
-        print(
-            f"Verified oakctl {expected_version} (sha256 {expected_hash})", flush=True
-        )
+        print(f"Verified oakctl {oakctl_version} (sha256 {expected_hash})", flush=True)
         print(f"Verified oak-agent {actual_agent}", flush=True)
     finally:
         if host == "windows":
