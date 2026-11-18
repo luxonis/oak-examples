@@ -222,11 +222,12 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
             assert isinstance(det_msg, dai.ImgDetections)
             inPointCloud: dai.PointCloudData = pcl_msg
             inRGB: dai.ImgFrame = rgb_msg
-            parser_output = remap_message(
-                det_msg, det_msg.getTransformation(), rgb_msg.getTransformation()
-            )
 
             try:
+                # Map detections and masks onto the original RGB pixel grid.
+                parser_output = remap_message(
+                    det_msg, det_msg.getTransformation(), inRGB.getTransformation()
+                )
                 points, colors = inPointCloud.getPointsRGB()
                 if points is None:
                     print("AnnotationNode: Empty PCL points array.")
