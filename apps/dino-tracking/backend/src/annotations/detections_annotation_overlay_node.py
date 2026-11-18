@@ -112,4 +112,5 @@ class DetectionsAnnotationOverlay(BaseHostNode):
         out.setSequenceNum(ref_msg.getSequenceNum())
         out.setTimestamp(ref_msg.getTimestamp())
         out.setTimestampDevice(ref_msg.getTimestampDevice())
+        out.setTransformation(ref_msg.getTransformation())
         self.out.send(out)

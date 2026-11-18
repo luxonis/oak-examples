@@ -127,7 +127,7 @@ with dai.Pipeline(device) as pipeline:
 
     # resize detected licence plates to ocr model input size
     lp_crop_node = pipeline.create(dai.node.ImageManip)
-    vehicle_crop_node.initialConfig.setReusePreviousImage(False)
+    lp_crop_node.initialConfig.setReusePreviousImage(False)
     lp_crop_node.inputConfig.setReusePreviousMessage(False)
     lp_crop_node.inputImage.setReusePreviousMessage(False)
     lp_crop_node.setMaxOutputFrameSize(ocr_model_w * ocr_model_h * 3)
@@ -177,12 +177,19 @@ with dai.Pipeline(device) as pipeline:
         ]
     )
 
+    # Keep the source detail in the display without sending 4K frames to the host.
+    display_resize_node = pipeline.create(dai.node.ImageManip)
+    display_resize_node.initialConfig.setOutputSize(1280, 720)
+    display_resize_node.initialConfig.setReusePreviousImage(False)
+    display_resize_node.setMaxOutputFrameSize(1280 * 720 * 3)
+    input_node_out.link(display_resize_node.inputImage)
+
     # annotation
     visualizer_node = pipeline.create(VisualizeLicensePlates)
     lp_config_sender.outputs["output_valid_detections"].link(
         visualizer_node.vehicle_detections
     )
-    vehicle_det_nn.passthrough.link(visualizer_node.input_frame)
+    display_resize_node.out.link(visualizer_node.input_frame)
     ocr_nn.out.link(visualizer_node.ocr_results)
     lp_config_sender.outputs["output_valid_crops"].link(
         visualizer_node.lp_crop_detections

@@ -312,6 +312,8 @@ class CalibrationNode(dai.node.HostNode):
                 )
 
         dai_annotations = annotations_builder.build(
-            frame_message.getTimestampDevice(), frame_message.getSequenceNum()
+            frame_message.getTimestamp(), frame_message.getSequenceNum()
         )
+        dai_annotations.setBufferMetadataFrom(frame_message)
+        dai_annotations.setTransformation(frame_message.getTransformation())
         self.annotation_out.send(dai_annotations)

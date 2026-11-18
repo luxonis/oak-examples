@@ -1,10 +1,10 @@
 import depthai as dai
 import numpy as np
 import cv2
-from .helper_functions import reverse_resize_and_pad
 import time
 
 from depthai_nodes.utils import AnnotationHelper
+from depthai_nodes.node.utils.message_remapping import remap_message
 from .cuboid_fitter import CuboidFitter
 
 
@@ -13,9 +13,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
     def __init__(self):
         dai.node.ThreadedHostNode.__init__(self)
-        self.inputPCL = self.createInput()
-        self.inputRGB = self.createInput()
-        self.inputDet = self.createInput()
+        self.inputSync = self.createInput()
 
         self.outputANN = self.createOutput()
         self.outputANNCuboid = self.createOutput()
@@ -137,27 +135,23 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
     def _draw_box_and_label(self, det: dai.ImgDetection) -> None:
         """Draws rotated rect and label"""
 
-        # Annotation coordinates are normalized to the actual NN input image.
-        rr = det.getBoundingBox()
-        cx, cy = rr.center.x, rr.center.y
-        w, h = rr.size.width, rr.size.height
-        angle = rr.angle
+        # Rotate in RGB pixels before normalizing the corners for annotations.
+        width, height = self.frame_size
+        corners = [
+            (p.x / width, p.y / height)
+            for p in det.getBoundingBox().denormalize(width, height).getPoints()
+        ]
 
         color = (1.0, 0.5, 0.5, 1.0)  # Red
         bg_color = (1.0, 1.0, 0.0, 1.0)
 
-        self.helper_det.draw_rotated_rect(
-            (cx, cy),
-            (w, h),
-            angle,
+        self.helper_det.draw_polyline(
+            corners,
+            closed=True,
             outline_color=color,
             fill_color=None,
             thickness=2,
         )
-
-        # choose first corner for label
-        corners = rr.getPoints()
-        corner0 = (corners[0].x, corners[0].y)
 
         if self.fit:
             label = (
@@ -176,7 +170,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
         self.helper_det.draw_text(
             label,
-            corner0,
+            corners[0],
             color=color,
             background_color=bg_color,
             size=18,
@@ -192,9 +186,10 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
     def run(self):
         while self.isRunning():
-            pcl_msg = self.inputPCL.get()
-            rgb_msg = self.inputRGB.get()
-            det_msg = self.inputDet.get()
+            group = self.inputSync.get()
+            pcl_msg = group["pcl"]
+            rgb_msg = group["rgb"]
+            det_msg = group["detections"]
 
             if pcl_msg is None or rgb_msg is None or det_msg is None:
                 print(
@@ -208,7 +203,9 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
             assert isinstance(det_msg, dai.ImgDetections)
             inPointCloud: dai.PointCloudData = pcl_msg
             inRGB: dai.ImgFrame = rgb_msg
-            parser_output: dai.ImgDetections = det_msg
+            parser_output = remap_message(
+                det_msg, det_msg.getTransformation(), rgb_msg.getTransformation()
+            )
 
             try:
                 points, colors = inPointCloud.getPointsRGB()
@@ -216,16 +213,26 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
                     print("AnnotationNode: Empty PCL points array.")
                     continue
 
-                width, height = inPointCloud.getWidth(), inPointCloud.getHeight()
+                width, height = inRGB.getWidth(), inRGB.getHeight()
+                self.frame_size = (width, height)
                 self.cloud_transformation = inPointCloud.getTransformation()
                 self.image_transformation = inRGB.getTransformation()
+                mask = parser_output.getCvSegmentationMask()
+                if mask is None:
+                    continue
+                if (
+                    inPointCloud.isSparse()
+                    or (inPointCloud.getWidth(), inPointCloud.getHeight())
+                    != (width, height)
+                    or len(points) != width * height
+                    or mask.shape != (height, width)
+                ):
+                    raise ValueError(
+                        "An organized RGB-aligned cloud and mask are required"
+                    )
                 rgba_img = colors.reshape(height, width, 4)
                 bgr_img = cv2.cvtColor(rgba_img, cv2.COLOR_BGRA2BGR)
-                mask = parser_output.getCvSegmentationMask()
                 detections = parser_output.detections
-                mask_full = reverse_resize_and_pad(
-                    mask, (width, height), (inRGB.getWidth(), inRGB.getHeight())
-                )  # This is still a heavy operation
 
                 timestamp = inPointCloud.getTimestamp()
                 seq_num = inPointCloud.getSequenceNum()
@@ -234,11 +241,14 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
                 self.helper_cuboid = AnnotationHelper()
 
                 for idx, det in enumerate(detections):
-                    self._annotate_detection(det, idx, mask_full, points, bgr_img)
+                    self._annotate_detection(det, idx, mask, points, bgr_img)
 
                 ann_msg = self.helper_det.build(timestamp, seq_num)
                 ann_msg_cuboid = self.helper_cuboid.build(timestamp, seq_num)
 
+                for message in (ann_msg, ann_msg_cuboid):
+                    message.setBufferMetadataFrom(inPointCloud)
+                    message.setTransformation(inRGB.getTransformation())
                 self.outputANN.send(ann_msg)
                 self.outputANNCuboid.send(ann_msg_cuboid)
 

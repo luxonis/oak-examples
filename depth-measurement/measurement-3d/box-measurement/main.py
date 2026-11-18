@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import timedelta
 
 import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
@@ -15,7 +16,8 @@ CAMERA_RESOLUTION = (IMG_WIDTH, IMG_HEIGHT)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(args.device) if args.device else dai.Device()
-device.setIrLaserDotProjectorIntensity(1.0)
+if device.getIrDrivers() and not device.setIrLaserDotProjectorIntensity(1.0):
+    print("Failed to enable IR laser dot projector.")
 
 with dai.Pipeline(device) as p:
     platform = device.getPlatform()
@@ -72,13 +74,16 @@ with dai.Pipeline(device) as p:
     nn.getParser().setConfidenceThreshold(0.7)
     nn.getParser().setIouThreshold(0.5)
 
+    sync = p.create(dai.node.Sync)
+    sync.setRunOnHost(True)
+    sync.setSyncThreshold(timedelta(milliseconds=1))
+    point_cloud.outputPointCloud.link(sync.inputs["pcl"])
+    color_output.link(sync.inputs["rgb"])
+    nn.out.link(sync.inputs["detections"])
+
     box_processing = p.create(BoxProcessingNode)
+    sync.out.link(box_processing.inputSync)
 
-    point_cloud.outputPointCloud.link(box_processing.inputPCL)
-    nn.passthrough.link(box_processing.inputRGB)
-    nn.out.link(box_processing.inputDet)
-
-    # Display the exact undistorted image used for geometry and inference.
     visualizer.addTopic("Video Stream", color_output, "images")
     visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
     visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")

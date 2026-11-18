@@ -39,7 +39,6 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 - [main.py](main.py): pipeline wiring, platform branching, and Visualizer topics
 - [utils/box_processing_node.py](utils/box_processing_node.py): host-side mask rendering, point-cloud filtering, and cuboid-fit annotations
 - [utils/cuboid_fitter.py](utils/cuboid_fitter.py): fitting logic used to estimate dimensions
-- [utils/helper_functions.py](utils/helper_functions.py): mask resize/pad helpers
 - [utils/arguments.py](utils/arguments.py): CLI surface
 - [oakapp.toml](oakapp.toml): packaging and bundled model path
 
@@ -51,7 +50,7 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 - `ImageManip` resizes RGB frames to the model input size before `ParsingNeuralNetwork`.
 - The custom [utils/box_processing_node.py](utils/box_processing_node.py) threaded host node receives:
   - RGBD point clouds
-  - the NN passthrough RGB frame
+  - the original undistorted RGB frame
   - parsed detections and segmentation masks
 - That host node projects the fitted cuboid back into image space and publishes two separate annotation layers.
 
@@ -59,29 +58,28 @@ This is the strongest reference in the repo for RGBD box measurement with instan
 
 - `CAM_A -> ImageManip -> ParsingNeuralNetwork -> detections + segmentation mask`
 - `Depth -> PointCloud -> Pointcloud`
-- `pointcloud + NN passthrough + detections -> BoxProcessingNode -> Box Detections + Cuboid Fit`
+- `synchronized pointcloud + RGB + detections -> BoxProcessingNode -> Box Detections + Cuboid Fit`
 - `CAM_A preview -> Video Stream`
 
 ## Modification Guide
 
 - `Safe to change:` topic names, FPS limit default, parser thresholds, projector usage, label text
 - `Requires care:` camera sockets, RGB/depth alignment path, model input dimensions, calibration usage, point-cloud color assumptions
-- `Likely to break if changed blindly:` organized point-cloud dimensions, frame transformation metadata, and mask reprojection logic
+- `Likely to break if changed blindly:` the organized cloud/mask pixel relationship, synchronized inputs, and frame transformation metadata
 
 ## Common Adaptations
 
 - `To swap the model:` replace the YAML/model pair in [depthai_models/](depthai_models/) and keep the same parser contract
 - `To reuse only the measurement host logic:` keep [utils/box_processing_node.py](utils/box_processing_node.py) and feed it your own point cloud plus detections
 - `To remove the cuboid overlay:` keep `outputANN` and drop the `outputANNCuboid` topic
-- `To test alignment changes:` start from the `PointCloud` and `ImageAlign` branch in [main.py](main.py)
+- `To test alignment changes:` check the `PointCloud` wiring in [main.py](main.py) and mask remapping in [utils/box_processing_node.py](utils/box_processing_node.py)
 
 ## Constraints
 
 - The README explicitly calls out cuboid-fit instability and dimension jumps; this is a reference demo, not a hardened metrology pipeline.
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
-- Processing dimensions come from point-cloud and NN passthrough messages. Cuboid overlays use `ImgTransformation.project3DPointTo` from cloud to image coordinates.
-- RVC2 disables the median filter path, so stereo behavior differs by platform.
+- Masks and organized point clouds must share the undistorted RGB pixel grid. Cuboid overlays use `ImgTransformation.project3DPointTo` from cloud to image coordinates.
 
 ## Non-Obvious Repo Conventions
 
