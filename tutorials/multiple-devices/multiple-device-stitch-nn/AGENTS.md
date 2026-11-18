@@ -48,6 +48,7 @@ This is the repository reference for stitching multiple camera feeds into one pa
 
 ## Constraints
 
+- The panorama uses a virtual image transformation; first-camera timestamps do not synchronize the devices.
 - This is host-only; there is no standalone packaging path.
 - Reliable stitching assumes static, vertically aligned cameras with sufficient overlap and consistent left-to-right ordering.
 - The code selects the YOLO model variant from the current platform variable after device setup, so mixed-platform multi-device runs are not the intended shape.

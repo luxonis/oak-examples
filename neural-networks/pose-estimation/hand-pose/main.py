@@ -105,20 +105,6 @@ with dai.Pipeline(device) as pipeline:
         inputReference=detection_nn.out,
     )
 
-    # annotation
-    connection_pairs = (
-        pose_nn_archive.getConfig()
-        .model.heads[0]
-        .metadata.extraParams["skeleton_edges"]
-    )
-    annotation_node = pipeline.create(AnnotationNode).build(
-        gathered_data=gather_data.out,
-        video=input_node,
-        padding_factor=PADDING,
-        confidence_threshold=CONFIDENCE_THRESHOLD,
-        connections_pairs=connection_pairs,
-    )
-
     # video encoding
     video_encode_manip = pipeline.create(dai.node.ImageManip)
     video_encode_manip.setMaxOutputFrameSize(768 * 768 * 3)
@@ -132,6 +118,19 @@ with dai.Pipeline(device) as pipeline:
         args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
     )
     video_encode_manip.out.link(video_encoder.input)
+
+    # annotation
+    connection_pairs = (
+        pose_nn_archive.getConfig()
+        .model.heads[0]
+        .metadata.extraParams["skeleton_edges"]
+    )
+    annotation_node = pipeline.create(AnnotationNode).build(
+        gathered_data=gather_data.out,
+        video=video_encode_manip.out,
+        confidence_threshold=CONFIDENCE_THRESHOLD,
+        connections_pairs=connection_pairs,
+    )
 
     # visualization
     visualizer.addTopic("Video", video_encoder.out, "images")

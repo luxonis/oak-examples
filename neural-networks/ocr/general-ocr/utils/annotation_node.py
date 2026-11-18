@@ -6,7 +6,11 @@ class OCRAnnotationNode(dai.node.HostNode):
     def __init__(self):
         super().__init__()
 
-        self.frame_output = self.createOutput()
+        self.frame_output = self.createOutput(
+            possibleDatatypes=[
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
+            ]
+        )
         self.text_annotations_output = self.createOutput()
 
         self.min_confidence = 0.0
@@ -31,14 +35,18 @@ class OCRAnnotationNode(dai.node.HostNode):
             return
 
         helper = AnnotationHelper()
-        detections = gathered.reference_data.detections
+        reference = gathered.reference_data
+        source_size = reference.getTransformation().getSize()
+        detections = reference.transformTo(frame.getTransformation()).detections
         recognitions = gathered.items
-        for detection, recognition in zip(detections, recognitions):
+        width, height = frame.getWidth(), frame.getHeight()
+        for original, detection, recognition in zip(
+            reference.detections, detections, recognitions
+        ):
             parts = [part.strip() for part in recognition.classes if part.strip()]
             text = " ".join(parts)
             scores = [float(score) for score in recognition.scores]
             confidence = min(scores) if scores else 0.0
-            width, height = frame.getWidth(), frame.getHeight()
             pixel_points = (
                 detection.getBoundingBox().denormalize(width, height).getPoints()
             )
@@ -59,7 +67,10 @@ class OCRAnnotationNode(dai.node.HostNode):
             y0 = max(0.0, min(p.y for p in points))
             y1 = min(1.0, max(p.y for p in points))
             y = y0 - 0.01 if y0 > 0.07 else min(0.98, y1 + 0.01)
-            size = max(16, min(28, int((y1 - y0) * frame.getHeight() * 0.8)))
+            font_rect = original.getBoundingBox().denormalize(*source_size)
+            size = max(
+                16, min(28, int(min(font_rect.size.width, font_rect.size.height)))
+            )
             helper.draw_text(
                 f"{text}  {confidence:.2f}",
                 (min(0.98, x0), y),
@@ -67,5 +78,7 @@ class OCRAnnotationNode(dai.node.HostNode):
             )
 
         annotations = helper.build(gathered.getTimestamp(), sequence_num)
+        annotations.setBufferMetadataFrom(gathered)
+        annotations.setTransformation(frame.getTransformation())
         self.frame_output.send(frame)
         self.text_annotations_output.send(annotations)
