@@ -61,6 +61,9 @@ This is the repository reference for the simplest multi-device pipeline patterns
 - [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): use this when the next step is cross-device calibration
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when multiple devices should collaborate in 3D space
 - [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when multiple devices should be stitched into one panorama-like view
+- [tutorials/multiple-devices/multi-device-point-cloud](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-point-cloud): merged 3D point cloud of calibrated devices
+- [tutorials/multiple-devices/multi-device-panorama](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-panorama): calibrated panorama of all devices
+- [tutorials/multiple-devices/multi-device-birds-eye-view](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-birds-eye-view): top-down ground view of calibrated devices
 
 ## Validation
 

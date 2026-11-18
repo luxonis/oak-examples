@@ -5,7 +5,7 @@ from datetime import timedelta
 import depthai as dai
 
 from utils.arguments import initialize_argparser
-from utils.calibration import load_or_calibrate, select_devices
+from utils.calibration import check_calibrated, load_or_calibrate, select_devices
 
 HTTP_PORT = 8082
 SIZE = (640, 400)  # Depth and color size per device
@@ -36,6 +36,7 @@ def main():
         for info in device_infos:
             device = pipeline.addDevice(info)
             device_id = device.getDeviceId()
+            check_calibrated(calibration, device_id)
             print(f"=== Connected to device: {device_id}")
 
             color = pipeline.create(dai.node.Camera, device).build(

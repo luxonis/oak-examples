@@ -10,7 +10,7 @@ The following GIF shows bird's-eye view of fused detections of label `person` fr
 
 ## Usage
 
-> Before you can run this demo you need to calibrate the cameras, the goal is to figure out the exact position and orientation of every camera relative to each other, so the application can fuse their individual views into a single, unified coordinate system. Go to [multi-device-calibration](../multi-device-calibration) and generate the calibration file for your devices. Once calibration is complete, do not move your cameras. If you do, you will need to re-calibrate. By default the file is read from `../multi-device-calibration/calibration.json`; use `--calibration` to point somewhere else.
+> Before you can run this demo you need to calibrate the cameras, the goal is to figure out the exact position and orientation of every camera relative to each other, so the application can fuse their individual views into a single, unified coordinate system. Go to [multi-device-calibration](../multi-device-calibration) and generate the calibration file for your devices. Once calibration is complete, do not move your cameras. If you do, you will need to re-calibrate. By default the file is read from `calibration.json` next to `main.py`: save it there with `python main.py -o ../spatial-detection-fusion/calibration.json` in the calibration example, or pass its path with `--calibration`.
 
 The program prints the connected camera sockets for each device before starting the pipeline. Below is an example output:
 
@@ -31,7 +31,7 @@ Here is a list of all available parameters:
 ```
 -c, --calibration CALIBRATION
                       Calibration JSON saved by the multi-device-calibration example
-                      (default: ../multi-device-calibration/calibration.json)
+                      (default: calibration.json next to main.py)
 -d, --devices DEVICES [DEVICES ...]
                       Device IDs or IP addresses to use. If omitted, every device in the calibration is used.
 --fps_limit FPS_LIMIT FPS limit for the model runtime (default: 30)
@@ -45,6 +45,8 @@ Moreover, you need to prepare a **Python >= 3.10** environment with the followin
 
 - [DepthAI](https://pypi.org/project/depthai/)
 - [DepthAI Nodes](https://pypi.org/project/depthai-nodes/)
+- [NumPy](https://pypi.org/project/numpy/)
+- [SciPy](https://pypi.org/project/scipy/)
 
 You can simply install them by running:
 

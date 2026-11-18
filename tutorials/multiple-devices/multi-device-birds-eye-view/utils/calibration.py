@@ -46,6 +46,7 @@ def calibrate(
         calibration.sync.setSyncThreshold(timedelta(seconds=5))
 
         first_cameras = []
+        has_stereo_pair = False
         for info in device_infos:
             device = pipeline.addDevice(info)
             device_id = device.getDeviceId()
@@ -53,6 +54,7 @@ def calibrate(
             # A factory-calibrated stereo pair fixes the metric scale; single cameras need --known-distance.
             if all(socket in connected for socket in STEREO_SOCKETS):
                 sockets = STEREO_SOCKETS
+                has_stereo_pair = True
             elif dai.CameraBoardSocket.CAM_A in connected:
                 sockets = (dai.CameraBoardSocket.CAM_A,)
             else:
@@ -78,6 +80,11 @@ def calibrate(
                 socket_b,
                 known_distance,
                 dai.LengthUnit.CENTIMETER,
+            )
+        elif not has_stereo_pair:
+            raise RuntimeError(
+                "No device has a CAM_B/CAM_C stereo pair, so the scale is unknown. "
+                "Pass --known-distance with the measured distance between the first two devices."
             )
 
         control_queue = calibration.inputControl.createInputQueue()
@@ -113,3 +120,17 @@ def load_or_calibrate(
     else:
         print(f"Using calibration {args.calibration}; pass --calibrate to redo it")
     return dai.beta.MultiDeviceCalibrationHandler(args.calibration)
+
+
+def check_calibrated(
+    calibration: dai.beta.MultiDeviceCalibrationHandler, device_id: str
+) -> None:
+    """Fail early when a selected device is missing from the loaded calibration."""
+    graph = calibration.getGraph()
+    calibrated_ids = {edge.fromDeviceId for edge in graph}
+    calibrated_ids |= {edge.extrinsics.toDeviceId for edge in graph}
+    if device_id not in calibrated_ids:
+        raise RuntimeError(
+            f"Device {device_id} is not part of the calibration. "
+            "Pass --calibrate to calibrate the selected devices again."
+        )

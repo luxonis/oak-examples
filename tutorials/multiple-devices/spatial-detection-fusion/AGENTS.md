@@ -25,7 +25,7 @@ This is the repository reference for fusing spatial detections from multiple cal
 - `Standalone path:` none
 - `Frontend:` none
 - `Runs on:` host mode only, with two or more calibrated stereo-capable devices in one pipeline
-- `Requires:` a `calibration.json` from the multi-device-calibration example, stereo-capable cameras, and host-side SciPy/OpenCV dependencies
+- `Requires:` a `calibration.json` from the multi-device-calibration example, stereo-capable cameras, and host-side SciPy/NumPy dependencies
 - `Input:` live `CAM_A/B/C` per device
 - `Output:` per-device passthrough/detections plus `BEV Canvas`, `BEV Cameras`, `BEV History Trails`, and `BEV Detections`
 - `Models:` fixed model slug in [utils/config.py](utils/config.py)
@@ -60,6 +60,9 @@ This is the repository reference for fusing spatial detections from multiple cal
 - [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): run this first to create the required calibration file
 - [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you only need independent streams per device
 - [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the single-device spatial-detection baseline
+- [tutorials/multiple-devices/multi-device-point-cloud](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-point-cloud): merged 3D point cloud of calibrated devices
+- [tutorials/multiple-devices/multi-device-panorama](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-panorama): calibrated panorama of all devices
+- [tutorials/multiple-devices/multi-device-birds-eye-view](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-birds-eye-view): top-down ground view of calibrated devices
 
 ## Validation
 

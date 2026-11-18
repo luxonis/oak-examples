@@ -7,7 +7,7 @@ import depthai as dai
 import numpy as np
 
 from utils.arguments import initialize_argparser
-from utils.calibration import load_or_calibrate, select_devices
+from utils.calibration import check_calibrated, load_or_calibrate, select_devices
 from utils.plane import fit_ground_plane
 
 HTTP_PORT = 8082
@@ -31,6 +31,7 @@ def estimate_ground_plane(device_infos, calibration, fps, max_range):
 
         for info in device_infos:
             device = pipeline.addDevice(info)
+            check_calibrated(calibration, device.getDeviceId())
             depth = pipeline.create(dai.node.Depth, device).build(
                 dai.node.Depth.Algorithm.AUTO, fps, DEPTH_SIZE
             )
@@ -89,6 +90,7 @@ def main():
         for info in device_infos:
             device = pipeline.addDevice(info)
             device_id = device.getDeviceId()
+            check_calibrated(calibration, device_id)
             print(f"=== Connected to device: {device_id}")
 
             # The projection needs an undistorted frame at the sensor's native size:

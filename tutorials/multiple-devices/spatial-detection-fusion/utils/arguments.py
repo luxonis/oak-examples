@@ -1,11 +1,7 @@
 import argparse
 from pathlib import Path
 
-DEFAULT_CALIBRATION = (
-    Path(__file__).resolve().parents[2]
-    / "multi-device-calibration"
-    / "calibration.json"
-)
+DEFAULT_CALIBRATION = Path(__file__).resolve().parents[1] / "calibration.json"
 
 
 def initialize_argparser():

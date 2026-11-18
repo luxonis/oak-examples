@@ -58,7 +58,7 @@ Here is a list of all available parameters:
                       Measured distance in centimeters between the calibration cameras of the first two
                       devices. Required when no device has a CAM_B/CAM_C stereo pair.
 --fps_limit FPS_LIMIT FPS limit of the cameras. (default: 10)
---max-range MAX_RANGE Distance in meters from a camera beyond which the ground is not drawn (default: 4.0)
+--max-range MAX_RANGE Distance in meters from the origin device beyond which the ground is not drawn (default: 4.0)
 ```
 
 ### Peripheral Mode

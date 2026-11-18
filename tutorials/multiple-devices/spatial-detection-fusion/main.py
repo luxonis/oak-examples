@@ -16,7 +16,7 @@ def main():
     if not args.calibration.exists():
         print(
             f"Calibration file {args.calibration} not found. "
-            "Run the multi-device-calibration example first."
+            "Run the multi-device-calibration example first or pass --calibration."
         )
         return
     calibration = dai.beta.MultiDeviceCalibrationHandler(args.calibration)

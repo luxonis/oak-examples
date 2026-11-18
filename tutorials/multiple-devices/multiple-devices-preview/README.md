@@ -76,7 +76,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-This will run the demo using only internal DepthAI cameras.
+This will run the demo on the discovered USB devices only; IP devices such as OAK4 are skipped.
 
 ```bash
 python main.py --include-ip
@@ -88,7 +88,7 @@ This will also discover and use any TCP/IP cameras on the network.
 python main.py --max-devices 3
 ```
 
-This will stop after configuring the first 3 devices.
+This will use only the first 3 discovered devices.
 
 ```bash
 python main.py --include-ip --max-devices 3

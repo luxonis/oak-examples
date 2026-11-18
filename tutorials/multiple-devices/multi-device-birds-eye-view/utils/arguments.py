@@ -74,7 +74,7 @@ def initialize_argparser():
         "--max-range",
         type=float,
         default=4.0,
-        help="Distance in meters from a camera beyond which the ground is not drawn",
+        help="Distance in meters from the origin device beyond which the ground is not drawn",
     )
 
     args = parser.parse_args()

@@ -5,7 +5,7 @@ from datetime import timedelta
 import depthai as dai
 
 from utils.arguments import initialize_argparser
-from utils.calibration import load_or_calibrate, select_devices
+from utils.calibration import check_calibrated, load_or_calibrate, select_devices
 
 HTTP_PORT = 8082
 VIEW_SIZE = (1280, 800)  # Camera view sent to the host for stitching
@@ -31,6 +31,7 @@ def main():
         for info in device_infos:
             device = pipeline.addDevice(info)
             device_id = device.getDeviceId()
+            check_calibrated(calibration, device_id)
             print(f"=== Connected to device: {device_id}")
 
             camera = pipeline.create(dai.node.Camera, device).build(

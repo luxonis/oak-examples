@@ -103,7 +103,7 @@ KNOWN_FAILING = {
         "rules": {"and": [{"platform": "all"}]},
     },
     "tutorials/multiple-devices/multiple-devices-preview": {
-        "reason": "Needs --include-ip flag turned to work on RVC4.",
+        "reason": "Discovery skips IP-only devices by default; RVC4 needs --include-ip or --devices.",
         "rules": {"and": [{"platform": ["rvc4"]}]},
     },
     "tutorials/multiple-devices/spatial-detection-fusion": {
