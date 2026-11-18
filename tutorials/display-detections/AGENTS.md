@@ -41,7 +41,6 @@ This is the repository reference for three different strategies for drawing dete
 
 ## Architecture
 
-- The cropped detections are remapped to the full frame with `dai.node.Align`, using the actual crop transformation. Align runs on the host on RVC2.
 - [passthrough.py](passthrough.py) displays the detector’s passthrough frame directly, so annotations stay naturally aligned with the NN input.
 - [crop_highres.py](crop_highres.py) runs the detector on a cropped `512x288` region from a `640x480` frame, then uses `dai.node.Align` to map detections back into the larger frame space.
 - [stretch_before_inferencing.py](stretch_before_inferencing.py) keeps a `1920x1440` full view while a stretched `512x288` branch feeds inference.
@@ -61,7 +60,6 @@ This is the repository reference for three different strategies for drawing dete
 
 ## Validation
 
-- `Geometry checks:` Move the crop away from the top-left corner, then try letterboxing and rotation; the full-frame overlay must still follow the objects.
 - `Passthrough:` `python3 passthrough.py`
 - `Crop mapping:` `python3 crop_highres.py`
 - `Success looks like:` the Visualizer clearly shows how each script aligns detections to its chosen display frame

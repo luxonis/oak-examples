@@ -41,9 +41,6 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 
 ## Architecture
 
-- Recognition crops expand the native detector rectangle, remap it with ImgTransformation.remapRectTo() to the synchronized source, and derive clipped bounds in source pixels. Filtered detections retain their detector coordinate space and order for GatherData.
-- A device Script forwards source dimensions, transformation, and timing in an empty `ImgFrame(0)`. The crop-control host Sync uses device timestamps for compatibility with RVC2 Script metadata.
-- Text annotations transform the reference detections to the final displayed NV12 frame. Anchors use display pixels; font sizes use the shorter detector-space edge so preview resizing and rotated-rectangle axis swaps do not enlarge labels. Annotations preserve source timestamps and sequence numbers.
 - A text detector runs on the input stream first.
 - [utils/host_process_detections.py](utils/host_process_detections.py) filters detections and turns expanded rotated rectangles into upright, white-letterboxed recognition crop configs.
 - `FrameCropper` extracts word/line crops for the OCR model.
@@ -68,7 +65,6 @@ This is the repository reference for a two-stage OCR pipeline: text detection fo
 
 ## Validation
 
-- `Geometry checks:` Exercise offset, letterboxed, and rotated detector inputs at two source/preview resolutions, including tiny positive/negative angles. Check stable label sizes, recognition crop bounds, text placement, empty groups, per-region ordering, and both timestamps.
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows full-resolution encoded `Video` and upright recognized text in `Text` annotations
 - `Common failure meaning:` crops are not being generated correctly, the detector and recognizer are out of sync, or the scene resolution is too low for the OCR stage

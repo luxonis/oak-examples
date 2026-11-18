@@ -50,16 +50,12 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Architecture
 
-- MergeImgDetections recalculates legacy bounds from rotated rectangles in target pixels before NMS, preserving the native rotated rectangles. The decoder also derives its crops in pixels; this avoids DepthAI 3.11 rotation errors on non-square frames.
-- Align caches the latest target transformation with `inputAlignTo.setWaitForMessage(False)`, allowing every tile/crop to emit without waiting for another camera frame. Its detection input uses `input.setBlocking(True)` so bursts apply backpressure instead of dropping crop results before collection.
-- The tile grid remaps each corner from the actual high-resolution frame transformation to the display frame, including rotated/cropped views.
-- dai.node.Align remaps each native tile detection to the high-resolution QR-decoder frame before MessageCollector, merge, and NMS. The merged message inherits the aligned leaf transformation because Collection has no transformation of its own.
 - One RGB camera produces a high-resolution NN stream and a lower-resolution display stream.
 - `FPSController` gates the frame rate for both paths.
 - `Tiling` generates manip configs for tiled crops over the high-resolution image.
 - `FrameCropper` extracts the tiles.
 - A parsing NN runs QR detection per tile.
-- Native tile detections are remapped before collection, merged, filtered with NMS, and optionally decoded.
+- `Align` maps tile detections to high-resolution RGB before collection, merging, NMS, and optional decoding.
 - `PipelineHealthMonitor` feeds safe FPS targets back into the controller as tile count changes.
 - A tile-grid overlay is rendered onto the display stream, then encoded for frontend viewing.
 
@@ -93,7 +89,6 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Non-Obvious Repo Conventions
 
-- `FPSController` declares its Script outputs as `ImgFrame` so the typed `TileGridOverlay` inputs can link during pipeline construction.
 - `gridSize` is passed around as `(cols, rows)`, not `(rows, cols)`.
 - Initial frontend state is restored by fetching `Get Current Params Service`, not by hardcoding frontend defaults.
 - Decode enablement is a separate service from tiling configuration.
@@ -108,7 +103,6 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Validation
 
-- `Geometry checks:` Change the grid and overlap while scanning QR codes at tile boundaries. Check merged metadata and decoder crops at a second sensor resolution.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend loads current tiling settings, changing rows or columns updates the backend, and QR detections remain stable while FPS adjusts under higher load
 - `Common failure meaning:` the static frontend was not built, `libzbar` or model assets are unavailable, or the tiling/state service contract drifted

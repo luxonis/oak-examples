@@ -2,10 +2,6 @@
 
 This example runs two-stage text detection and recognition with the existing PaddlePaddle [Text Detection](https://models.luxonis.com/luxonis/paddle-text-detection/131d855c-60b1-4634-a14d-1269bb35dcd2) and [Text Recognition](https://models.luxonis.com/luxonis/paddle-text-recognition/9ae12b58-3551-49b1-af22-721ba4bcf269) models from the Luxonis Model Zoo. It rectifies rotated detections, preserves the aspect ratio of recognition crops with white padding, and draws the recognized text and confidence over the full-resolution source video. The Visualizer exposes `Video` and `Text`.
 
-Recognition crop bounds use the actual source dimensions and transformation, including detector crops, letterboxing, and rotation. A device Script sends only source metadata to the crop-control host node. Text annotations are remapped to the final displayed frame, with text anchors calculated in pixels; crop association and original timestamps are preserved.
-
-Label sizes use the shorter detector-space edge, keeping them stable when the preview is enlarged or native remapping swaps a rotated rectangle's axes.
-
 ## Demo
 
 ![Detection Output](media/highway-sign-ocr.gif)

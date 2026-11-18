@@ -13,12 +13,6 @@ It uses 3 models from our ZOO:
 
 Take a look at [How to Train and Deploy a License Plate Detector to the Luxonis OAK](https://blog.roboflow.com/oak-deploy-license-plate/) tutorial for training a custom detector using the Roboflow platform.
 
-The Script crop stages use ImgTransformation.remapRectTo() to map detector boxes into the actual source frame, including nested plate crops. The visualizer transforms plate detections to the displayed frame before drawing, preserving alignment through crops, letterboxing, and rotation. Crop configs, filtered messages, and rendered frames retain timestamps and sequence numbers. The RVC4-only restriction remains.
-
-Plate trimming updates the stored bounding box through `setOuterBoundingBox()` before remapping, including for native parser outputs.
-
-Overlay bounds come from the denormalized rotated rectangle so rotations remain accurate on non-square previews.
-
 ## Demo
 
 ![Detection Output](media/lpr.gif)

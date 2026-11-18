@@ -52,7 +52,6 @@ This is the best standalone reference for class-free interactive tracking based 
 
 ## Architecture
 
-- Segmentation and DINO inputs are stretched from the same display frame, preserving its field of view for normalized click/grid indexing. The preview explicitly enables undistortion, and depthai-nodes `remap_message` resamples outline masks to it, including rotated crops; selection and rendered-frame transformations are preserved. Grid interpolation remains intentional within this shared field of view.
 - One RGB camera feeds three branches: display, segmentation, and DINO embedding extraction.
 - FastSAM segmentation produces masks.
 - A frontend click chooses the target mask.
@@ -84,7 +83,7 @@ This is the best standalone reference for class-free interactive tracking based 
 
 ## Constraints
 
-- Both model inputs come from this undistorted preview. The shared affine mask remapper requires the same source camera and distortion geometry; it does not project between cameras.
+- Both model inputs must preserve the preview's field of view; click and feature-grid indexing share normalized coordinates.
 - This example is RVC4 standalone only.
 - Initial startup may take longer because model assets must become available before the `Video` topic appears.
 - The frontend intentionally waits for the `Video` topic before enabling stream interaction.
@@ -105,7 +104,6 @@ This is the best standalone reference for class-free interactive tracking based 
 
 ## Validation
 
-- `Geometry checks:` Change camera/model aspect ratios and check clicks, reference extraction, outlines, heatmaps, and tracker boxes on off-center objects. Verify metadata through the rendered Video branch.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows the video stream, clicks select a target, and switching between heatmap and bbox views changes the backend-rendered overlay
 - `Common failure meaning:` the `Video` topic never becomes available, model assets are unavailable, or service names drifted between backend and frontend

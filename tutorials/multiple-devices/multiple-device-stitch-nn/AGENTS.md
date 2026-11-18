@@ -41,8 +41,6 @@ This is the repository reference for stitching multiple camera feeds into one pa
 
 ## Architecture
 
-- After native remapping, the merger recalculates legacy bounds from rotated rectangles in panorama pixels before NMS. This preserves the native rotated geometry and avoids DepthAI 3.11 normalized-space rotation errors on non-square panoramas.
-- The full panorama and resized inference canvas share an explicit virtual-image transformation. The first camera supplies output timestamps/sequence numbers; this does not synchronize devices. MergeImgDetections uses native transformTo() within that virtual image, separately from physical-camera homographies.
 - [main.py](main.py) creates one camera pipeline per device, then feeds all outputs into the threaded [utils/stitch.py](utils/stitch.py) host node.
 - [utils/stitch.py](utils/stitch.py) estimates homography/camera parameters once, unless `recalculate_homography()` is triggered with `r`.
 - The stitched output is tiled and passed through YOLOv6 so detections cover the wide panorama in smaller NN-sized chunks.
@@ -50,6 +48,7 @@ This is the repository reference for stitching multiple camera feeds into one pa
 
 ## Constraints
 
+- The panorama uses a virtual image transformation; first-camera timestamps do not synchronize the devices.
 - This is host-only; there is no standalone packaging path.
 - Reliable stitching assumes static, vertically aligned cameras with sufficient overlap and consistent left-to-right ordering.
 - The code selects the YOLO model variant from the current platform variable after device setup, so mixed-platform multi-device runs are not the intended shape.
@@ -63,7 +62,6 @@ This is the repository reference for stitching multiple camera feeds into one pa
 
 ## Validation
 
-- `Geometry checks:` Recalculate the panorama, change output size, and exercise the concatenation fallback. Tile detections must match both panorama outputs and retain the first-camera metadata.
 - `Run:` `python3 main.py`
 - `Recalculate:` focus the Visualizer and press `r`
 - `Success looks like:` the Visualizer shows a stitched panorama with detection overlays, and pressing `r` recomputes alignment

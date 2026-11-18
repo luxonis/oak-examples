@@ -44,9 +44,6 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Architecture
 
-- A device Script forwards only source dimensions, transformation, and timing metadata to the crop-control host node; image pixels stay on the existing image branches. Create its empty message with `ImgFrame(0)` because RVC2 Script bindings require an explicit payload size.
-- CropFace's host Sync explicitly uses device timestamps: RVC2 Script timestamp getters expose device time, whereas NN detections also carry converted host timestamps.
-- CropFace remaps detections to the synchronized source frame and uses its actual dimensions. The crop center stays inside the source; smaller replay frames use the available area and resize it to the output size.
 - The example starts from a live camera or a replayed video file.
 - A preprocessing `ImageManip` resizes frames into the detector input size.
 - A `ParsingNeuralNetwork` runs YuNet face detection.
@@ -76,13 +73,14 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Constraints
 
-- The camera requests `3840x2880`; crop normalization uses actual source dimensions. The target output defaults to `1920x1088`, and smaller sources require upscaling.
+- The crop uses actual source dimensions and outputs `1920x1088`; smaller sources require upscaling.
 - Only the first detected face is used for zooming.
 - When no face is detected, `CropFace` sends `setSkipCurrentImage(True)` and the crop branch intentionally skips that frame.
 - In standalone mode, the default packaged path uses camera input; `--media_path` is mainly a peripheral-mode workflow unless you edit the app config.
 
 ## Non-Obvious Repo Conventions
 
+- Crop-control Sync uses device timestamps to match RVC2 Script metadata.
 - Default FPS is platform-dependent when not provided: `30` on RVC4 and `5` on RVC2.
 - The detector input frame type differs by platform: `BGR888i` on RVC4 and `BGR888p` on RVC2.
 - `crop_manip.inputConfig.setReusePreviousMessage(False)` is an important synchronization requirement for this example.
@@ -97,7 +95,6 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Validation
 
-- `Geometry checks:` Replay a non-3840x2880 video and test faces at each edge. Verify the crop stays centered as far as its bounds allow and output metadata follows the detections.
 - `Run:` `python3 main.py`
 - `Media replay run:` `python3 main.py --media_path <PATH_TO_VIDEO>`
 - `Standalone run:` `oakctl app run .`
