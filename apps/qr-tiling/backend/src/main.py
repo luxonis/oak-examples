@@ -4,7 +4,6 @@ import signal
 
 import depthai as dai
 from depthai_nodes.node import (
-    CoordinatesMapper,
     FrameCropper,
     ImgDetectionsFilter,
     MessageCollector,
@@ -95,20 +94,22 @@ with dai.Pipeline(device) as pipeline:
         input=tiling_cropper.out, nnSource=nn_archive
     )
 
+    detections_in_display_space = pipeline.create(dai.node.Align)
+    detections_in_display_space.input.setBlocking(True)
+    detections_in_display_space.inputAlignTo.setWaitForMessage(False)
+    nn.out.link(detections_in_display_space.input)
+    fps_controller.rgb_nn.link(detections_in_display_space.inputAlignTo)
+
     collected_detections = pipeline.create(MessageCollector).build(
-        inputData=nn.out,
+        inputData=detections_in_display_space.outputAligned,
         cameraFps=300000,
     )
     print(f"collected_detections ID: {collected_detections.id=}")
 
-    detections_in_display_space = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=fps_controller.rgb_nn,
-        fromTransformationInput=collected_detections.out,
-    )
     print(f"detections_in_display_space ID: {detections_in_display_space.id=}")
 
     merged_detections = pipeline.create(MergeImgDetections).build(
-        input=detections_in_display_space.out
+        input=collected_detections.out
     )
     print(f"merged_detections ID: {merged_detections.id=}")
 
@@ -148,7 +149,7 @@ with dai.Pipeline(device) as pipeline:
     grid_overlay = pipeline.create(TileGridOverlay).build(
         input_frame=fps_controller.rgb_display,
         get_tile_positions=tiling_service.get_tile_positions,
-        tile_size=TILING_SIZE,
+        source_frame=fps_controller.rgb_nn,
     )
     print(f"grid_overlay ID: {grid_overlay.id=}")
 

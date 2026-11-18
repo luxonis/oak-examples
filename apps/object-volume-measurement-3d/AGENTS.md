@@ -79,6 +79,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Constraints
 
+- Selection masks and aligned depth must share the undistorted RGB pixel grid.
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
