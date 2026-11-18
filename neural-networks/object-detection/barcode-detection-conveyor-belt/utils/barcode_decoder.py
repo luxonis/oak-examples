@@ -65,6 +65,7 @@ class BarcodeDecoder(dai.node.HostNode):
 
     def build(self, crops: dai.Node.Output) -> "BarcodeDecoder":
         self.link_args(crops)
+        # Dropping a crop would leave GatherData waiting for its decoder result.
         self.inputs["crop"].setBlocking(True)
         return self
 

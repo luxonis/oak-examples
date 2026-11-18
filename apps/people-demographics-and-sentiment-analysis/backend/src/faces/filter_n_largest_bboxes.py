@@ -34,6 +34,7 @@ class FilterNLargestBBoxes(dai.node.HostNode):
 
         filtered_detections = dai.ImgDetections()
         filtered_detections.detections = n_detections
+        # Preserve source metadata so face crops align with the original preview.
         filtered_detections.setTimestamp(face_detections.getTimestamp())
         filtered_detections.setTimestampDevice(face_detections.getTimestampDevice())
         filtered_detections.setSequenceNum(face_detections.getSequenceNum())

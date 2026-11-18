@@ -52,7 +52,6 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - The 2-stage branch runs person detection, crops a high-resolution person region, remaps coordinates, then runs face detection on that crop.
 - The tiling branch slices the high-resolution image into overlapping tiles, runs face detection on each tile, merges detections, and crops the largest face result.
 - Custom host nodes provide black fallback frames when no detections exist so the comparison layout remains stable.
-- All detection-driven crops use `FrameCropper`, including the three final head-preview paths in `build_roi_cropper`; tiling keeps its existing config-driven `FrameCropper`.
 
 ## Data Flow
 
@@ -86,7 +85,6 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - Although `INDEX.md` classifies this as a frontend app, most of the runtime state still flows through standard Visualizer topics rather than custom backend services.
 - The branch comparison uses custom host nodes heavily, so this is not a good "minimal on-device only" reference.
 - High-resolution cropping is the main idea to preserve object detail; the face detector input size stays small even when the source image is large.
-- Final head crops retain 320×320 letterboxing, normalized padding, largest-face selection and black-frame fallbacks. The shared cropper chooses BGR888i on this RVC4-only path.
 
 ## Related Examples
 

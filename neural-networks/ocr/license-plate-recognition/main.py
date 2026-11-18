@@ -105,6 +105,7 @@ with dai.Pipeline(device) as pipeline:
     lp_det_nn = pipeline.create(ParsingNeuralNetwork).build(
         vehicle_crop_node.out, lp_det_model_nn_archive
     )
+    # Both crop inference stages must preserve result count and order for GatherData.
     lp_det_nn.input.setBlocking(True)
     lp_det_nn.setNumInferenceThreads(1)
     vehicle_plates = pipeline.create(GatherData).build(
@@ -176,6 +177,7 @@ with dai.Pipeline(device) as pipeline:
 
     # Pair each OCR output with its own crop before gathering by source frame.
     ocr_crops = pipeline.create(dai.node.Sync)
+    # A zero Sync threshold does not match even identical timestamps.
     ocr_crops.setSyncThreshold(timedelta(microseconds=1))
     ocr_crops.setSyncAttempts(-1)
     ocr_crops.inputs["ocr"].setBlocking(True)

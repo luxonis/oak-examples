@@ -3,8 +3,6 @@
 This example demonstrates how to run 3 stage inference on DepthAI. Its focus is on an automatic license plate recognition (ALPR) task.
 First, a vehicle is detected on the image, the cropped image is then fed into a license plate detection model. The cropped license plate is sent to a text recognition (OCR) network, which tries to decode the license plates texts.
 
-Both crop stages use `FrameCropper`, with `GatherData` preserving the source frame and vehicle/plate indexes across the cascade. OCR crops come from the original high-resolution frame, and the highest-confidence plate per vehicle is retained after confidence and size checks.
-
 It uses 3 models from our ZOO:
 
 - [YOLOv6 nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) for vehicle detection.
