@@ -1,98 +1,81 @@
-#!/usr/bin/env python3
-"""ToF colorized point cloud streamed to the DepthAI Visualizer.
-
-Open http://localhost:8082 in a browser after starting this script.
-"""
-
 import depthai as dai
-from utils.mode_menu import ModeMenu
 
-FPS = 30.0
+from utils.arguments import initialize_argparser
+from utils.tof_mode_control import MODES, DEFAULT_MODE_KEY, ToFModeControl
+
 SIZE = (640, 400)
 
-MODES = {
-    "close": (
-        dai.ToFConfig.Profile.LOW_RANGE,
-        dai.ImageFiltersPresetMode.TOF_LOW_RANGE,
-    ),
-    "mid": (dai.ToFConfig.Profile.MID_RANGE, dai.ImageFiltersPresetMode.TOF_MID_RANGE),
-    "far": (
-        dai.ToFConfig.Profile.HIGH_RANGE,
-        dai.ImageFiltersPresetMode.TOF_HIGH_RANGE,
-    ),
-}
+_, args = initialize_argparser()
 
+visualizer = dai.RemoteConnection(httpPort=8082)
+device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+platform = device.getPlatform()
 
-def main():
-    menu = None
-    try:
-        with dai.Pipeline() as p:
-            device = p.getDefaultDevice()
+with dai.Pipeline(device) as pipeline:
+    print("Creating pipeline...")
 
-            if device.getPlatform() == dai.Platform.RVC2:
-                RGB_SOCKET = dai.CameraBoardSocket.CAM_C
-            else:
-                RGB_SOCKET = dai.CameraBoardSocket.CAM_A
+    rgb_socket = (
+        dai.CameraBoardSocket.CAM_C
+        if platform == dai.Platform.RVC2
+        else dai.CameraBoardSocket.CAM_A
+    )
+    color = pipeline.create(dai.node.Camera).build(rgb_socket, sensorFps=args.fps_limit)
+    color_out = color.requestOutput(
+        SIZE,
+        type=dai.ImgFrame.Type.RGB888i,
+        fps=args.fps_limit,
+        enableUndistortion=True,
+    )
+    video_out = color.requestOutput(
+        SIZE, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+    )
 
-            color = p.create(dai.node.Camera).build(RGB_SOCKET, sensorFps=FPS)
-            colorOut = color.requestOutput(
-                SIZE, fps=FPS, type=dai.ImgFrame.Type.RGB888i, enableUndistortion=True
-            )
+    tof = pipeline.create(dai.node.ToF).build(
+        boardSocket=dai.CameraBoardSocket.AUTO,
+        presetMode=MODES[DEFAULT_MODE_KEY][2],
+        fps=args.fps_limit,
+    )
 
-            tof = p.create(dai.node.ToF)
-            tof.build(
-                boardSocket=dai.CameraBoardSocket.AUTO,
-                presetMode=dai.ImageFiltersPresetMode.TOF_HIGH_RANGE,
-                fps=FPS,
-            )
+    align = pipeline.create(dai.node.ImageAlign)
+    align.setRunOnHost(True)
+    tof.depth.link(align.input)
+    color_out.link(align.inputAlignTo)
 
-            align = p.create(dai.node.ImageAlign)
-            align.setRunOnHost(True)
-            tof.depth.link(align.input)
-            colorOut.link(align.inputAlignTo)
+    point_cloud = pipeline.create(dai.node.PointCloud)
+    point_cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
+    point_cloud.setTargetCoordinateSystem(rgb_socket)
+    align.outputAligned.link(point_cloud.inputDepth)
+    color_out.link(point_cloud.inputColor)
 
-            pc = p.create(dai.node.PointCloud)
-            pc.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
-            pc.setTargetCoordinateSystem(RGB_SOCKET)
-            align.outputAligned.link(pc.inputDepth)
-            colorOut.link(pc.inputColor)
+    encoder = pipeline.create(dai.node.VideoEncoder)
+    encoder.setDefaultProfilePreset(
+        args.fps_limit, dai.VideoEncoderProperties.Profile.MJPEG
+    )
+    video_out.link(encoder.input)
 
-            base_config_queue = tof.tofBaseInputConfig.createInputQueue()
-            filter_config_queue = (
-                tof.imageFiltersInputConfig.createInputQueue()
-                if device.getPlatform() == dai.Platform.RVC2
-                else None
-            )
-            remote = dai.RemoteConnection(httpPort=8083)
-            remote.addTopic("pcl", pc.outputPointCloud, "3d")
+    # RVC4 applies ToF filtering on device; RVC2 needs the host filter preset too.
+    mode_control = pipeline.create(ToFModeControl).build(
+        frames=color_out,
+        tof_config_queue=tof.tofBaseInputConfig.createInputQueue(),
+        filter_config_queue=(
+            tof.imageFiltersInputConfig.createInputQueue()
+            if platform == dai.Platform.RVC2
+            else None
+        ),
+    )
 
-            p.start()
-            remote.registerPipeline(p)
-            menu = ModeMenu(MODES)
-            menu.start()
-            print("Visualizer running at http://localhost:8082")
+    visualizer.addTopic("Point Cloud", point_cloud.outputPointCloud, "3d")
+    visualizer.addTopic("Color", encoder.out, "images")
+    visualizer.addTopic("ToF Mode", mode_control.output, "images")
 
-            while p.isRunning():
-                requested = menu.requested
-                if requested != menu.selected:
-                    profile, preset = MODES[requested]
-                    config = dai.ToFConfig()
-                    config.setProfilePreset(profile)
-                    base_config_queue.send(config)
-                    if filter_config_queue is not None:
-                        image_config = dai.ImageFiltersConfig()
-                        image_config.setProfilePreset(preset)
-                        filter_config_queue.send(image_config)
-                    menu.selected = requested
-                    print(f"ToF mode: {requested} range", flush=True)
-                key = remote.waitKey(1)
-                if key == ord("q"):
-                    break
-    finally:
-        if menu is not None:
-            menu.shutdown()
-            menu.server_close()
+    print("Pipeline created.")
+    pipeline.start()
+    print("Pipeline started.")
+    visualizer.registerPipeline(pipeline)
 
-
-if __name__ == "__main__":
-    main()
+    while pipeline.isRunning():
+        key = visualizer.waitKey(1)
+        if key == ord("q"):
+            print("Got q key from the remote connection!")
+            break
+        mode_control.handle_key_press(key)

@@ -2,61 +2,60 @@
 
 ## Summary
 
-A minimal ToF colorized point-cloud pipeline displayed in the DepthAI Viewer, copied from the DepthAI-core ToF point-cloud example. Use it as a starting point for RGB-aligned ToF point clouds.
+This is the ToF point-cloud reference in the repo. Use it when you need ToF depth aligned to a color camera, a colorized point cloud in the DepthAI Visualizer, and runtime switching between close, mid, and far ToF range profiles.
 
 ## Use This Example When
 
 - You need ToF depth aligned to a color camera.
-- You want a colorized point cloud in the browser-based Viewer.
+- You want a colorized point cloud in the browser-based Visualizer.
+- You need to change the ToF range profile at runtime without restarting the pipeline.
 
 ## Do Not Use This Example When
 
 - You need a ToF-only device without a color camera.
-- You need individual filter controls or standalone packaging.
+- You need individual ToF filter controls; this example only switches presets.
+- You need stereo depth instead of ToF. Use [rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud).
 
 ## Quick Facts
 
 - `Category:` `depth-measurement/measurement-3d/tof-pointcloud`
-- `Shape:` `script`
-- `Primary task:` RGB-aligned ToF point-cloud visualization
+- `Shape:` `script+standalone`
+- `Primary task:` RGB-aligned ToF point-cloud visualization with runtime range switching
 - `Entrypoint:` [main.py](main.py)
-- `Standalone path:` none
-- `Runs on:` host Python with RVC2 or RVC4 ToF and color hardware
-- `Requires:` DepthAI and a browser
-- `Output:` Viewer `pcl` topic in the `3d` group at http://localhost:8082
+- `Standalone path:` [oakapp.toml](oakapp.toml)
+- `Runs on:` host Python with RVC2 or RVC4, or standalone on RVC4
+- `Requires:` a device with a ToF sensor and a color camera
+- `Output:` Visualizer topics `Point Cloud` (`3d`), `Color` and `ToF Mode` (`images`)
 
 ## Read First
 
-- [main.py](main.py): complete pipeline
-- [README.md](README.md): running the example
-- [requirements.txt](requirements.txt): SDK version
+- [main.py](main.py): pipeline and key handling loop
+- [utils/tof_mode_control.py](utils/tof_mode_control.py): range modes, key handling, and mode overlay
+- [utils/arguments.py](utils/arguments.py): CLI arguments
+- [oakapp.toml](oakapp.toml): standalone packaging
 
 ## Architecture
 
 - Based on `depthai-core/examples/python/ToF/tof_pointcloud.py`.
-- ToF uses automatic socket selection, high-range preset, and a requested 30 FPS.
-- Color uses `CAM_A` on RVC4 or `CAM_C` on RVC2, with undistorted 640×400 RGB output.
-- Host `ImageAlign` aligns ToF depth to color; `PointCloud` combines aligned depth and color.
-- `RemoteConnection` publishes the point cloud. Viewer `q` exits the pipeline.
-- [utils/mode_menu.py](utils/mode_menu.py) serves a range selector at port 8082 around the Viewer iframe at port 8083. [utils/mode_menu.html](utils/mode_menu.html) provides Close, Mid, and Far range choices.
-- The menu starts serving only after the pipeline starts and the Viewer is registered, so its iframe cannot load before the Viewer server is ready.
-- Mode changes send a `ToFConfig` with the selected low/mid/high range profile to `tofBaseInputConfig` without restarting the pipeline. RVC2 also receives the corresponding `ImageFiltersConfig` preset; RVC4 uses device processing.
+- `ToF` uses automatic socket selection and starts with the far-range preset.
+- Color uses `CAM_A` on RVC4 or `CAM_C` on RVC2. An undistorted 640x400 `RGB888i` output feeds alignment and point-cloud color. A second NV12 output is MJPEG-encoded for the `Color` stream.
+- Host `ImageAlign` aligns ToF depth to color. `PointCloud` combines aligned depth and color in millimeters, in the color camera coordinate system.
+- `ToFModeControl` is a `HostNode` that follows the manual-camera-control pattern. The main loop passes `RemoteConnection.waitKey()` keys to it. Keys `1`, `2`, and `3` send a `ToFConfig` range profile to `tofBaseInputConfig` without restarting the pipeline. On RVC2 it also sends the matching `ImageFiltersConfig` preset; RVC4 filters on the device.
+- `ToFModeControl` publishes an `ImgAnnotations` overlay with the active mode, timestamped from the color frames.
 
 ## Constraints
 
 - Requires a color camera at the selected socket as well as ToF.
-- RVC4 ToF depth already includes device processing; this example does not request `rawDepth`.
-- There is no Open3D, OpenCV display, Tkinter UI, or custom confidence filter.
-- The pipeline runs on the host and has no standalone packaging.
-- Both HTTP ports 8082 and 8083, and Viewer WebSocket port 8765, must be accessible when viewing remotely.
+- Excluded from CI runnability tests because the test devices have no ToF sensor (see [tests/constants.py](https://github.com/luxonis/oak-examples/blob/main/tests/constants.py)).
+- Peripheral mode sends color and depth frames to the host for alignment, so a slow network link lowers FPS. Standalone mode avoids this.
 
 ## Related Examples
 
-- [RGBD point cloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): unified-depth alternative
+- [rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): stereo-depth point cloud alternative
+- [manual-camera-control](https://github.com/luxonis/oak-examples/tree/main/camera-controls/manual-camera-control): source of the key-press control and overlay pattern
 
 ## Validation
 
-- Run `DEPTHAI_DEVICE_NAME_LIST=<device-ip> python3 main.py`.
-- Open http://localhost:8082 and display the `pcl` topic in 3D.
-- Success: a live colorized point cloud, with no desktop display windows.
-- Switch between Close, Mid, and Far range and confirm the stream continues.
+- Run `python3 main.py --device <device-ip>` or `oakctl app run .` on an RVC4 ToF device.
+- Open the Visualizer and display the `Point Cloud` topic in 3D.
+- Success: a live colorized point cloud; pressing `1`, `2`, `3` changes the highlighted mode in the `ToF Mode` overlay and the depth range without stopping the stream.
