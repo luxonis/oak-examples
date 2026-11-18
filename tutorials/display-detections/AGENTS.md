@@ -49,7 +49,7 @@ This is the repository reference for three different strategies for drawing dete
 ## Constraints
 
 - [oakapp.toml](oakapp.toml) only packages [passthrough.py](passthrough.py), not the other tutorial variants.
-- [passthrough.py](passthrough.py) and [stretch_before_inferencing.py](stretch_before_inferencing.py) both apply a host-side `FilterDets` that removes raw label `57`.
+- [passthrough.py](passthrough.py) and [stretch_before_inferencing.py](stretch_before_inferencing.py) both reject label `57`.
 - This folder is about annotation/display alignment, not about maximizing detector quality.
 
 ## Related Examples
