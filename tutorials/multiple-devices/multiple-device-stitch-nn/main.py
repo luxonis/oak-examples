@@ -21,6 +21,28 @@ OVERLAP_MODES = (
 STEREO_SOCKETS = (dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C)
 
 
+def calibrated_sockets(device):
+    """Connected cameras that have factory intrinsics; others cannot be calibrated or undistorted."""
+    calibrated = device.readCalibration().getEepromData().cameraData
+    sockets = [s for s in device.getConnectedCameras() if s in calibrated]
+    if not sockets:
+        raise RuntimeError(
+            f"Device {device.getDeviceId()} has no factory calibration for its connected cameras "
+            f"{[s.name for s in device.getConnectedCameras()]}"
+        )
+    return sockets
+
+
+def panorama_socket(device):
+    """CAM_A when it is calibrated, otherwise the first calibrated camera (e.g. FFC boards)."""
+    sockets = calibrated_sockets(device)
+    return (
+        dai.CameraBoardSocket.CAM_A
+        if dai.CameraBoardSocket.CAM_A in sockets
+        else min(sockets, key=int)
+    )
+
+
 def calibrate(device_ids, output, sample_count, known_distance):
     """Estimate the pose between the devices with MultiDeviceCalibration and save it as JSON."""
     with dai.Pipeline(createImplicitDevice=False) as pipeline:
@@ -32,16 +54,11 @@ def calibrate(device_ids, output, sample_count, known_distance):
         first_cameras = []
         for identifier in device_ids:
             device = pipeline.addDevice(dai.DeviceInfo(identifier))
-            connected = device.getConnectedCameras()
             # A factory-calibrated stereo pair fixes the metric scale; single cameras need --known-distance.
-            if all(socket in connected for socket in STEREO_SOCKETS):
+            if all(socket in calibrated_sockets(device) for socket in STEREO_SOCKETS):
                 sockets = STEREO_SOCKETS
-            elif dai.CameraBoardSocket.CAM_A in connected:
-                sockets = (dai.CameraBoardSocket.CAM_A,)
             else:
-                raise RuntimeError(
-                    f"Device {identifier} needs CAM_A or CAM_B/CAM_C; connected: {connected}"
-                )
+                sockets = (panorama_socket(device),)
             print(
                 f"Calibrating {device.getDeviceId()} with {', '.join(s.name for s in sockets)}"
             )
@@ -132,8 +149,10 @@ def main():
         for index, identifier in enumerate(args.devices):
             device = pipeline.addDevice(dai.DeviceInfo(identifier))
             platform = device.getPlatform()
+            socket = panorama_socket(device)
+            print(f"Panorama source {index}: {device.getDeviceId()} {socket.name}")
             camera = pipeline.create(dai.node.Camera, device).build(
-                dai.CameraBoardSocket.CAM_A, sensorFps=args.fps_limit
+                socket, sensorFps=args.fps_limit
             )
             # Detect on undistorted frames: boxes mapped from a distorted image are not rectangles.
             network_input = dai.ImgFrameCapability()

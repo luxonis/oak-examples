@@ -1,1 +1,1 @@
-depthai==3.12.0
+depthai==3.12.1

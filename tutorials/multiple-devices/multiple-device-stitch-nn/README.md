@@ -38,14 +38,16 @@ flowchart LR
 1. **Calibrate.** When no calibration file exists (or `--calibrate` is given),
    [main.py](main.py) first runs a short pipeline with
    `dai.beta.node.MultiDeviceCalibration`. It uses `CAM_B` and `CAM_C` of each
-   device that has a factory stereo pair, which fixes the metric scale, and
-   `CAM_A` otherwise. After `--sample-count` synchronized image groups the
+   device that has a factory-calibrated stereo pair, which fixes the metric
+   scale, and the panorama camera otherwise. Only connected cameras with
+   factory intrinsics are used; on boards where `CAM_A` is not calibrated
+   (some FFC setups) the first calibrated camera replaces it. After `--sample-count` synchronized image groups the
    node solves the pose between the devices and the result is saved as JSON.
 2. **Apply the calibration.** The main pipeline loads the JSON and calls
    `pipeline.setMultiDeviceCalibration()`, so every camera transformation is
    expressed in one shared coordinate system.
 3. **Detect per camera.** Each device runs `DetectionNetwork` on an undistorted
-   `CAM_A` stream. A host `Sync` groups the detections of one capture moment
+   `CAM_A` (or replacement) stream. A host `Sync` groups the detections of one capture moment
    and `MessageDemux` routes each camera into its own filter input.
 4. **Stitch.** `Stitching` in `PANORAMA` mode with `setUseInputCalibration(True)`
    composes the undistorted views from the calibrated poses. No image features
@@ -68,7 +70,7 @@ The current overlap handling can be changed while the example runs:
 ## Run
 
 Requires Python >= 3.10 and the pinned dependency in `requirements.txt`
-(`depthai==3.12.0` from PyPI; it includes the beta calibration node).
+(`depthai==3.12.1` from PyPI; it includes the beta calibration node).
 
 ```bash
 # From the repository root:
@@ -123,13 +125,15 @@ rejected rather than resized.
 | `Calibration failed` or timeout                                       | All cameras need to see the same textured, well-lit scene at the same time. Avoid moving objects and glare. Devices without a stereo pair need `--known-distance`.                                          |
 | Panorama appears but the seam is misaligned                           | The rig moved since calibration or the calibration is weak; rerun with `--calibrate`. Nearby objects also shift between cameras (parallax), which no calibration removes.                                   |
 | `ImgDetectionsFilter dropping rounds until a valid reference arrives` | Normal once at startup, before the first panorama. If it persists and no panorama appears, check that every camera delivers frames (`--show-inputs`) and that the calibration covers every selected device. |
+| `has no factory calibration for its connected cameras`                | The device EEPROM has no intrinsics for any connected camera, so it can be neither calibrated nor undistorted. Use a factory-calibrated device.                                                             |
+| Panorama much slower than `-fps`                                      | Network bandwidth: one 1280x800 NV12 view at 10 FPS is about 120 Mbit/s. Use gigabit Ethernet, or `--panorama-scale 1` / lower `-fps` on 100 Mbit links.                                                    |
 | Boxes jump or lag behind the image                                    | Lower `-fps`, use wired Ethernet for network cameras and keep all devices on the same link. The devices are free-running; `--sync-threshold-ms` sets how far apart their frames may be.                     |
 | Duplicate boxes in the overlap                                        | Raise the overlap by lowering the IoU threshold (`S`) or switch to averaging (`3`). Objects cut by a camera edge yield two partial boxes that may not overlap enough.                                       |
 
 ## Limitations
 
 - The cameras must stay fixed relative to each other after calibration.
-- Only `CAM_A` of each device is stitched; the calibration itself may use the
+- Only one camera per device is stitched (`CAM_A`, or the first calibrated camera when `CAM_A` has no factory calibration); the calibration itself may use the
   stereo cameras.
 - The example does not estimate depth or build a shared 3D world; see
   [spatial-detection-fusion](../spatial-detection-fusion/) for that.

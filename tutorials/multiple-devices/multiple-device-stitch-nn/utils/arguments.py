@@ -12,7 +12,7 @@ def initialize_argparser():
         "--devices",
         nargs="+",
         required=True,
-        help="At least two device IDs or IPs; CAM_A of each device becomes one panorama source",
+        help="At least two device IDs or IPs; CAM_A (or the first calibrated camera) of each device becomes one panorama source",
     )
     parser.add_argument(
         "--calibration",
