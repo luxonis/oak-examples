@@ -72,11 +72,29 @@ with dai.Pipeline(device) as pipeline:
     )
     det_nn.setNumPoolFrames(30)
 
+    source_metadata = pipeline.create(dai.node.Script)
+    source_metadata.setScript("""
+while True:
+    source = node.inputs["source"].get()
+    metadata = ImgFrame(0)
+    metadata.setWidth(source.getWidth())
+    metadata.setHeight(source.getHeight())
+    metadata.setTransformation(source.getTransformation())
+    metadata.setTimestamp(source.getTimestamp())
+    metadata.setTimestampDevice(source.getTimestampDevice())
+    metadata.setSequenceNum(source.getSequenceNum())
+    node.outputs["metadata"].send(metadata)
+""")
+    input_node_out.link(source_metadata.inputs["source"])
+    source_metadata.outputs["metadata"].setPossibleDatatypes(
+        [(dai.DatatypeEnum.ImgFrame, True)]
+    )
+
     # detection processing and crops config creation
     crop_configs_creator = pipeline.create(CropConfigsCreator)
     crop_configs_creator.build(
         det_nn.out,
-        (REQ_WIDTH, REQ_HEIGHT),
+        source_metadata.outputs["metadata"],
         (rec_model_w, rec_model_h),
         resize_mode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
         confidence_threshold=args.detection_confidence,
@@ -107,27 +125,27 @@ with dai.Pipeline(device) as pipeline:
         inputReference=crop_configs_creator.detections_output,
     )
 
-    # annotation
-    annotation_node = pipeline.create(OCRAnnotationNode).build(
-        input_node_out,
-        gather_data_node.out,
-        min_confidence=args.recognition_confidence,
-        min_text_length=args.min_text_length,
-    )
-
     # video encoding
     video_encode_manip = pipeline.create(dai.node.ImageManip)
     video_encode_manip.setMaxOutputFrameSize(REQ_WIDTH * REQ_HEIGHT * 3)
     video_encode_manip.initialConfig.setOutputSize(REQ_WIDTH, REQ_HEIGHT)
     video_encode_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
-    annotation_node.frame_output.link(video_encode_manip.inputImage)
+    input_node_out.link(video_encode_manip.inputImage)
+
+    # Match annotation coordinates to the final displayed frame.
+    annotation_node = pipeline.create(OCRAnnotationNode).build(
+        video_encode_manip.out,
+        gather_data_node.out,
+        min_confidence=args.recognition_confidence,
+        min_text_length=args.min_text_length,
+    )
 
     video_encoder = pipeline.create(dai.node.VideoEncoder)
     video_encoder.setMaxOutputFrameSize(REQ_WIDTH * REQ_HEIGHT * 3)
     video_encoder.setDefaultProfilePreset(
         args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
     )
-    video_encode_manip.out.link(video_encoder.input)
+    annotation_node.frame_output.link(video_encoder.input)
 
     # visualization
     visualizer.addTopic("Video", video_encoder.out)

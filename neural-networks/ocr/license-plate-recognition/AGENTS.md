@@ -49,6 +49,7 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 ## Constraints
 
+- Use `setOuterBoundingBox()` for plate trimming; remapping reads the native rectangle rather than legacy coordinate fields.
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - `REQ_WIDTH` and `REQ_HEIGHT` are set to doubled `1920x1080`, which makes this much heavier than most examples; a separate `ImageManip` resizes the display to 1280×720 before it reaches the host visualizer.
 - The OCR parser ignores a long list of token indexes in code, so blindly swapping OCR models is risky.

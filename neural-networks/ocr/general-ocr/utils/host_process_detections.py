@@ -20,8 +20,8 @@ class CropConfigsCreator(dai.node.HostNode):
         The output link for the ImageManipConfig messages.
     detections_output : dai.Output
         The output link for the dai.ImgDetections message.
-    source_size : Tuple[int, int]
-        The size of the source image (width, height).
+    source : dai.Node.Output
+        Source frames or metadata frames defining the recognition crop space.
     target_size : Optional[Tuple[int, int]] = None
         The size of the target image (width, height). If None, crop sizes will not be uniform.
     resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.LETTERBOX
@@ -35,14 +35,15 @@ class CropConfigsCreator(dai.node.HostNode):
     def __init__(self) -> None:
         """Initializes the node."""
         super().__init__()
+        self.inputs["source"].getParent().setTimestampSource(
+            dai.node.Sync.TimestampSource.DEVICE
+        )
         self.config_output = self.createOutput()
         self.detections_output = self.createOutput(
             possibleDatatypes=[
                 dai.Node.DatatypeHierarchy(dai.DatatypeEnum.Buffer, True)
             ]
         )
-        self._w: int = None
-        self._h: int = None
         self._target_w: int = None
         self._target_h: int = None
         self.resize_mode: dai.ImageManipConfig.ResizeMode = None
@@ -51,30 +52,12 @@ class CropConfigsCreator(dai.node.HostNode):
         self.min_crop_height: int = 12
 
     @property
-    def w(self) -> int:
-        return self._w
-
-    @property
-    def h(self) -> int:
-        return self._h
-
-    @property
     def target_w(self) -> int:
         return self._target_w
 
     @property
     def target_h(self) -> int:
         return self._target_h
-
-    @w.setter
-    def w(self, w: int):
-        self._validate_positive_integer(w)
-        self._w = w
-
-    @h.setter
-    def h(self, h: int):
-        self._validate_positive_integer(h)
-        self._h = h
 
     @target_w.setter
     def target_w(self, target_w: int):
@@ -89,7 +72,7 @@ class CropConfigsCreator(dai.node.HostNode):
     def build(
         self,
         detections_input: dai.Node.Output,
-        source_size: Tuple[int, int],
+        source: dai.Node.Output,
         target_size: Optional[Tuple[int, int]] = None,
         resize_mode: dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.LETTERBOX,
         confidence_threshold: float = 0.5,
@@ -102,8 +85,8 @@ class CropConfigsCreator(dai.node.HostNode):
         ----------
         detections_input : dai.Node.Output
             The input link for the dai.ImgDetections message
-        source_size : Tuple[int, int]
-            The size of the source image (width, height).
+        source : dai.Node.Output
+            Original source frames, or metadata frames with their size and transformation.
         target_size : Optional[Tuple[int, int]]
             The size of the target image (width, height). If None, crop sizes will not be uniform.
         resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.LETTERBOX
@@ -113,9 +96,6 @@ class CropConfigsCreator(dai.node.HostNode):
         min_crop_width, min_crop_height : int
             Minimum expanded outer-box dimensions in source pixels.
         """
-
-        self.w = source_size[0]
-        self.h = source_size[1]
 
         if target_size is not None:
             self.target_w = target_size[0]
@@ -131,11 +111,13 @@ class CropConfigsCreator(dai.node.HostNode):
         self.min_crop_width = min_crop_width
         self.min_crop_height = min_crop_height
 
-        self.link_args(detections_input)
+        self.link_args(detections_input, source)
 
         return self
 
-    def process(self, detections_input: dai.Buffer) -> None:
+    def process(
+        self, detections_input: dai.ImgDetections, source: dai.ImgFrame
+    ) -> None:
         """Process the input detections and create crop configurations. This function is
         ran every time a new dai.ImgDetections message is
         received.
@@ -147,10 +129,7 @@ class CropConfigsCreator(dai.node.HostNode):
 
         assert isinstance(detections_input, dai.ImgDetections)
 
-        sequence_num = detections_input.getSequenceNum()
-        timestamp = detections_input.getTimestamp()
-        timestamp_device = detections_input.getTimestampDevice()
-
+        width, height = source.getWidth(), source.getHeight()
         detections = detections_input.detections
 
         configs_group = dai.MessageGroup()
@@ -158,15 +137,18 @@ class CropConfigsCreator(dai.node.HostNode):
         for detection in detections:
             if detection.confidence > self.confidence_threshold:
                 rect = detection.getBoundingBox()
-                rect = self._expand_rect(rect)
-
-                # The angle is defined in pixels, so compute the outer box
-                # after denormalizing the rotated rectangle.
-                xmin, ymin, xmax, ymax = rect.denormalize(self.w, self.h).getOuterRect()
+                rect.size = dai.Size2f(
+                    rect.size.width * 1.03, rect.size.height * 1.10, True
+                )
+                rect = detections_input.getTransformation().remapRectTo(
+                    source.getTransformation(), rect
+                )
+                # Rotated outer bounds must be calculated in source pixels.
+                xmin, ymin, xmax, ymax = rect.denormalize(width, height).getOuterRect()
                 xmin = int(max(0, xmin))
                 ymin = int(max(0, ymin))
-                xmax = int(min(self.w, xmax))
-                ymax = int(min(self.h, ymax))
+                xmax = int(min(width, xmax))
+                ymax = int(min(height, ymax))
 
                 if (
                     xmax - xmin < self.min_crop_width
@@ -183,22 +165,16 @@ class CropConfigsCreator(dai.node.HostNode):
                 if self.target_w is not None and self.target_h is not None:
                     cfg.setOutputSize(self.target_w, self.target_h, self.resize_mode)
 
-                cfg.setTimestamp(timestamp)
-                cfg.setTimestampDevice(timestamp_device)
-                cfg.setSequenceNum(sequence_num)
+                cfg.setBufferMetadataFrom(detections_input)
                 # MessageGroup iterates keys lexicographically. Fixed-width keys
                 # keep crop output order aligned with valid_detections at 10+ boxes.
                 configs_group[f"cfg_{len(valid_detections) - 1:05d}"] = cfg
 
-        configs_group.setTimestamp(timestamp)
-        configs_group.setTimestampDevice(timestamp_device)
-        configs_group.setSequenceNum(sequence_num)
+        configs_group.setBufferMetadataFrom(detections_input)
         self.config_output.send(configs_group)
 
         valid_msg = dai.ImgDetections()
-        valid_msg.setSequenceNum(sequence_num)
-        valid_msg.setTimestamp(timestamp)
-        valid_msg.setTimestampDevice(timestamp_device)
+        valid_msg.setBufferMetadataFrom(detections_input)
         valid_msg.detections = valid_detections
         valid_msg.setTransformation(detections_input.getTransformation())
 
@@ -207,13 +183,3 @@ class CropConfigsCreator(dai.node.HostNode):
     def _validate_positive_integer(self, value: int) -> None:
         if not isinstance(value, int) or value <= 0:
             raise ValueError(f"Expected a positive integer, got {value!r}")
-
-    def _expand_rect(self, rect: dai.RotatedRect) -> dai.RotatedRect:
-        s = rect.size
-        c = rect.center
-        # Keep center and size explicitly normalized for the rotated crop.
-        return dai.RotatedRect(
-            dai.Point2f(c.x, c.y, True),
-            dai.Size2f(s.width * 1.03, s.height * 1.10, True),
-            rect.angle,
-        )

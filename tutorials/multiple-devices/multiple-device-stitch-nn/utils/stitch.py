@@ -82,9 +82,12 @@ class Stitch(dai.node.ThreadedHostNode):
     def run(self):
         while self.isRunning():
             images = []
+            reference = None
             for input in self.inputs:
                 input_frame = input.get()
                 assert isinstance(input_frame, dai.ImgFrame)
+                if reference is None:
+                    reference = input_frame
                 images.append(input_frame.getCvFrame())
 
             try:
@@ -94,9 +97,20 @@ class Stitch(dai.node.ThreadedHostNode):
                 stitched = cv2.hconcat(images)
 
             img_frame = dai.ImgFrame()
-            self.out_full_res.send(
-                img_frame.setCvFrame(stitched.copy(), dai.ImgFrame.Type.BGR888p)
-            )
-            stitched = cv2.resize(stitched, self.output_resolution)
             img_frame.setCvFrame(stitched, dai.ImgFrame.Type.BGR888p)
-            self.out.send(img_frame)
+            img_frame.setBufferMetadataFrom(reference)
+            height, width = stitched.shape[:2]
+            transformation = dai.ImgTransformation(width, height)
+            img_frame.setTransformation(transformation)
+            self.out_full_res.send(img_frame)
+
+            resized_frame = dai.ImgFrame()
+            resized_frame.setCvFrame(
+                cv2.resize(stitched, self.output_resolution), dai.ImgFrame.Type.BGR888p
+            )
+            resized_frame.setBufferMetadataFrom(reference)
+            transformation.addScale(
+                self.output_resolution[0] / width, self.output_resolution[1] / height
+            )
+            resized_frame.setTransformation(transformation)
+            self.out.send(resized_frame)
