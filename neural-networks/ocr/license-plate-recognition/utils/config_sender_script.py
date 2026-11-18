@@ -11,6 +11,11 @@ try:
                 continue
             if d.confidence < 0.7:
                 continue
+            d.setBoundingBox(
+                detections_message.getTransformation().remapRectTo(
+                    frame.getTransformation(), d.getBoundingBox()
+                )
+            )
             d.xmin = max(0, min(1, d.xmin * 0.9))
             d.ymin = max(0, min(1, d.ymin * 0.9))
             d.xmax = max(0, min(1, d.xmax * 1.1))
@@ -34,13 +39,19 @@ try:
             cfg.setOutputSize(640, 640)
             cfg.setReusePreviousImage(False)
             cfg.setTimestamp(detections_message.getTimestamp())
+            cfg.setTimestampDevice(detections_message.getTimestampDevice())
+            cfg.setSequenceNum(detections_message.getSequenceNum())
             node.outputs["output_config"].send(cfg)
             node.outputs["output_frame"].send(frame)
 
         vehicle_detections_msg = ImgDetections()
         vehicle_detections_msg.detections = vehicle_detections
         vehicle_detections_msg.setTimestamp(detections_message.getTimestamp())
-        vehicle_detections_msg.setTransformation(detections_message.getTransformation())
+        vehicle_detections_msg.setTimestampDevice(
+            detections_message.getTimestampDevice()
+        )
+        vehicle_detections_msg.setSequenceNum(detections_message.getSequenceNum())
+        vehicle_detections_msg.setTransformation(frame.getTransformation())
 
         node.warn("sending vehicle crop config")
         node.outputs["output_vehicle_detections"].send(vehicle_detections_msg)

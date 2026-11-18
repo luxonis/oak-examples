@@ -1,5 +1,6 @@
 import depthai as dai
 from depthai_nodes.utils import AnnotationHelper
+from depthai_nodes.node.utils.message_remapping import remap_message
 from typing import Dict, Tuple, Optional
 import numpy as np
 import cv2
@@ -13,9 +14,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
     """Interactive annotation / selection node
 
     Inputs:
-      - in_detections: dai.ImgDetections produced by NN parser
-      - in_rgb_stream: RGB ImgFrame
-      - in_depth_stream: depth ImgFrame (will be masked to create segmented PCL)
+      - in_sync: synchronized RGB, aligned detections/mask, and aligned depth
 
     Outputs:
       - out_ann: filtered detections (optionally only the clicked instance)
@@ -31,9 +30,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
     def __init__(self, label_encoding: Dict[int, str] = {}) -> None:
         dai.node.ThreadedHostNode.__init__(self)
 
-        self.in_detections = self.createInput()
-        self.in_rgb_stream = self.createInput()
-        self.in_depth_stream = self.createInput()
+        self.in_sync = self.createInput()
         self.in_meas_result = self.createInput()
         # This feedback is display state, and is not consumed during plane capture
         # or without a selection. Never let old results block the PCL pipeline.
@@ -49,9 +46,6 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
         self._selection_point: Optional[Tuple[float, float]] = None  # normalized coords
         self._keep_top_only: bool = True
-
-        self._src_trans = None
-        self._dst_trans = None
 
         self._plane_capture: bool = False
 
@@ -96,30 +90,27 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
     def build(
         self,
-        detections: dai.Node.Output,
-        rgb_stream: Optional[dai.Node.Output] = None,
-        depth_stream: Optional[dai.Node.Output] = None,
+        synchronized: dai.Node.Output,
         label_encoding: Optional[Dict[int, str]] = None,
     ) -> "AnnotationNode":
         if label_encoding is not None:
             self.setLabelEncoding(label_encoding)
 
-        detections.link(self.in_detections)
-
-        if rgb_stream is not None:
-            rgb_stream.link(self.in_rgb_stream)
-
-        if depth_stream is not None:
-            depth_stream.link(self.in_depth_stream)
+        synchronized.link(self.in_sync)
 
         return self
 
-    def _send_mode(self, mode: int, src_msg: dai.ImgFrame) -> None:
-        b = dai.Buffer()
-        b.setData(bytes([mode & 0xFF]))
-        b.setTimestamp(src_msg.getTimestamp())
-        b.setSequenceNum(src_msg.getSequenceNum())
-        self.out_selection.send(b)
+    def _send_outputs(self, helper, rgb: dai.ImgFrame, depth: dai.ImgFrame, mode: int):
+        mode_message = dai.Buffer()
+        mode_message.setData(bytes([mode]))
+        mode_message.setBufferMetadataFrom(rgb)
+        annotations = helper.build(rgb.getTimestamp(), rgb.getSequenceNum())
+        annotations.setBufferMetadataFrom(rgb)
+        annotations.setTransformation(rgb.getTransformation())
+        self.out_selection.send(mode_message)
+        self.out_ann.send(annotations)
+        self.out_segm.send(rgb)
+        self.out_segm_depth.send(depth)
 
     def point_in_convex_quad(
         self, px: float, py: float, corners, eps: float = 1e-9
@@ -141,52 +132,14 @@ class AnnotationNode(dai.node.ThreadedHostNode):
         return all(v >= -eps for v in s) or all(v <= eps for v in s)
 
     def _contains_point(self, det, sx_rgb, sy_rgb) -> bool:
-        # corners are NN-normalized → warp to RGB-normalized
-        rr = det.getBoundingBox()
-        pts_nn_norm = [(p.x, p.y) for p in rr.getPoints()]
-        pts_rgb_norm = self._nn_to_rgb_norm_pts(pts_nn_norm)
-        return self.point_in_convex_quad(sx_rgb, sy_rgb, pts_rgb_norm)
+        width, height = self._dst_size
+        corners = [
+            (p.x / width, p.y / height)
+            for p in det.getBoundingBox().denormalize(width, height).getPoints()
+        ]
+        return self.point_in_convex_quad(sx_rgb, sy_rgb, corners)
 
-    def _prepare_mask_transform(
-        self, src_T: dai.ImgTransformation, dst_T: dai.ImgTransformation
-    ):
-        """Precompute homography to warp NN-space masks into RGB-space.
-
-        Args:
-          src_T: ImgTransformation for the NN input space (sensor→NN)
-          dst_T: ImgTransformation for the RGB image space (sensor→RGB)
-        """
-        A = np.array(src_T.getMatrix(), dtype=np.float32)
-        B = np.array(dst_T.getMatrix(), dtype=np.float32)
-
-        # NN -> RGB
-        try:
-            self._H_nn_to_rgb = B @ np.linalg.inv(A)
-        except np.linalg.LinAlgError:
-            self._H_nn_to_rgb = B @ np.linalg.pinv(A)
-
-        dw, dh = dst_T.getSize()
-        self._dst_size = (int(dw), int(dh))
-
-    def _mask_nn_to_rgb(self, mask_src_2d: np.ndarray) -> np.ndarray:
-        """
-        Warp a NN-space mask to RGB-space using the precomputed homography.
-        """
-        dst_w, dst_h = self._dst_size
-
-        mask = mask_src_2d
-        if mask.dtype not in (np.int16, np.float32, np.uint8, np.uint16):
-            mask = mask.astype(np.int16, copy=False)
-
-        return cv2.warpPerspective(
-            mask,
-            self._H_nn_to_rgb,
-            (dst_w, dst_h),
-            flags=cv2.INTER_NEAREST,
-            borderValue=-1,
-        )
-
-    # ---- drawing (NN-normalized coords for AnnotationHelper) ----
+    # Detections and mask pixels have already been aligned to RGB by Align.
     def _draw_mask(self, helper: AnnotationHelper, mask: np.ndarray, idx: int):
         if idx == 255:  # background
             return
@@ -201,73 +154,37 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             epsilon = 0.01 * cv2.arcLength(cnt, True)
             approx = cv2.approxPolyDP(cnt, epsilon, True)
             pts = approx.reshape(-1, 2)
-            # NN-normalized points
             pts_norm = [(float(x) / w, float(y) / h) for x, y in pts]
-            self._warp_polygon_and_draw(
-                helper,
+            helper.draw_polyline(
                 pts_norm,
+                closed=True,
                 outline_color=(1.0, 0.5, 1.0, 0.0),
                 fill_color=(1.0, 0.5, 1.0, 0.4),
                 thickness=1,
             )
 
     def _draw_rotrect_and_label(self, helper: AnnotationHelper, det, text: str):
-        # rr corners are NN-normalized already (0..1 in NN space)
-        rr = det.getBoundingBox()
-        corners = rr.getPoints()
-        pts_nn_norm = [(p.x, p.y) for p in corners]
-        # draw polygon in RGB space
-        self._warp_polygon_and_draw(
-            helper,
-            pts_nn_norm,
+        width, height = self._dst_size
+        corners = [
+            (p.x / width, p.y / height)
+            for p in det.getBoundingBox().denormalize(width, height).getPoints()
+        ]
+        helper.draw_polyline(
+            corners,
+            closed=True,
             outline_color=(1.0, 0.5, 1.0, 1.0),
             fill_color=None,
             thickness=2,
         )
-        # label at first corner (warp a single point)
-        lbl_xy = self._nn_to_rgb_norm_pts([(pts_nn_norm[0][0], pts_nn_norm[0][1])])[0]
         draw_label(
             helper,
             text,
-            lbl_xy,
+            corners[0],
             *self._dst_size,
             color=(0.5, 0.15, 1.0, 1.0),
             background_color=(1.0, 1.0, 0.0, 0.8),
             size=16,
         )
-
-    def _nn_to_rgb_norm_pts(self, pts_norm):
-        """
-        pts_norm: list of (u,v) normalized to NN input (0..1)
-        returns: list of (U,V) normalized to RGB frame (0..1)
-        """
-        # sizes
-        sw, sh = self._src_trans.getSize()
-        dw, dh = self._dst_size
-
-        # to NN pixels
-        P = np.array([[u * sw, v * sh, 1.0] for (u, v) in pts_norm], dtype=np.float32).T
-        # homography NN->RGB
-        Q = self._H_nn_to_rgb @ P
-        Q /= Q[2:3, :] + 1e-12
-        # to RGB-normalized
-        U = (Q[0, :] / float(dw)).clip(0, 1)
-        V = (Q[1, :] / float(dh)).clip(0, 1)
-        return list(zip(U.tolist(), V.tolist()))
-
-    def _warp_polygon_and_draw(self, helper, pts_nn_norm, **poly_kwargs):
-        pts_rgb_norm = self._nn_to_rgb_norm_pts(pts_nn_norm)
-        helper.draw_polyline(pts_rgb_norm, closed=True, **poly_kwargs)
-
-    def _clear_dets_and_mask(self, det) -> None:
-        """
-        Clears detections and masks
-        """
-        det.detections = []
-        m = getattr(det, "masks", None)
-        if m is not None and getattr(m, "size", 0):
-            # -1 - background
-            det.masks = np.full_like(m, -1)
 
     def _poll_measurement_result(self):
         buf = self.in_meas_result.tryGet()
@@ -283,9 +200,13 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
     def run(self) -> None:
         while self.isRunning():
-            det_msg = self.in_detections.get()
-            img_msg = self.in_rgb_stream.get()
-            depth_msg = self.in_depth_stream.get()
+            group = self.in_sync.get()
+            det_msg = group["detections"]
+            img_msg = group["rgb"]
+            depth_msg = group["depth"]
+            det_msg = remap_message(
+                det_msg, det_msg.getTransformation(), img_msg.getTransformation()
+            )
 
             depth_map = depth_msg.getFrame()
             rgb = img_msg.getCvFrame()
@@ -294,23 +215,9 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
             H, W = rgb.shape[:2]
 
-            # Note: for temp sync of pcl and MODE messages in measurement node (to do)
-            rgbF = dai.ImgFrame()
-            rgbF.setType(img_msg.getType())
-            rgbF.setWidth(W)
-            rgbF.setHeight(H)
-            rgbF.setData(img_msg.getData())
-            rgbF.setTimestamp(depth_msg.getTimestamp())
-            rgbF.setTimestampDevice(depth_msg.getTimestampDevice())
-            rgbF.setSequenceNum(depth_msg.getSequenceNum())
-            rgbF.setTransformation(img_msg.getTransformation())
-
-            if self._src_trans is None or self._dst_trans is None:
-                self._src_trans = det_msg.getTransformation()
-                self._dst_trans = img_msg.getTransformation()
-                self._prepare_mask_transform(
-                    self._src_trans, self._dst_trans
-                )  # To transform mask from NN space to rgb space
+            self._dst_size = (W, H)
+            if depth_map.shape != (H, W):
+                raise ValueError("Depth and RGB must share aligned pixel geometry")
 
             assert isinstance(det_msg, dai.ImgDetections)
             for detection in det_msg.detections:
@@ -320,26 +227,21 @@ class AnnotationNode(dai.node.ThreadedHostNode):
 
             # Plane capture when switch to heightgrid
             if self._plane_capture:
-                self._send_mode(self.MODE_PLANE_CAPTURE, depth_msg)
-                self.out_ann.send(
-                    AnnotationHelper().build(
-                        img_msg.getTimestamp(), img_msg.getSequenceNum()
-                    )
-                )
-                self.out_segm.send(rgbF)
-                self.out_segm_depth.send(depth_msg)  # full-scene depth
+                self._send_outputs(helper, img_msg, depth_msg, self.MODE_PLANE_CAPTURE)
                 continue
 
             m = det_msg.getCvSegmentationMask()
             dets = det_msg.detections
-            mask_rgb = None
+            mask_rgb = m
+            if m is not None and m.shape != (H, W):
+                raise ValueError("Instance mask must be remapped to RGB geometry")
 
             # no click show everything
             if self._selection_point is None:
                 # draw masks + boxes + labels for ALL detections
                 if m is not None and m.size:
                     # assume instance id == detection index (as produced by parser)
-                    present_ids = set(int(v) for v in np.unique(m) if v >= 0)
+                    present_ids = set(int(v) for v in np.unique(m) if v != 255)
                     for idx in present_ids:
                         self._draw_mask(helper, m, idx)
                 for d in dets:
@@ -347,11 +249,7 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                     self._draw_rotrect_and_label(helper, d, label_txt)
 
                 # emit: annotations + full depth + all dets
-                ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
-                self._send_mode(self.MODE_NOSELECTION, depth_msg)
-                self.out_ann.send(ann_msg)
-                self.out_segm.send(rgbF)
-                self.out_segm_depth.send(depth_msg)
+                self._send_outputs(helper, img_msg, depth_msg, self.MODE_NOSELECTION)
                 continue
 
             # with a click keep only the instance under the click
@@ -367,31 +265,23 @@ class AnnotationNode(dai.node.ThreadedHostNode):
             if not kept_idx:
                 # click hit nothing behave like no selection (signal NOSELECTION)
                 if m is not None and m.size:
-                    present_ids = set(int(v) for v in np.unique(m) if v >= 0)
+                    present_ids = set(int(v) for v in np.unique(m) if v != 255)
                     for idx in present_ids:
                         self._draw_mask(helper, m, idx)
                 for d in dets:
                     label_txt = f"{d.labelName} {getattr(d, 'confidence', 0.0):.2f}"
                     self._draw_rotrect_and_label(helper, d, label_txt)
 
-                ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
-                self._send_mode(self.MODE_NOSELECTION, depth_msg)
-                self.out_ann.send(ann_msg)
-                self.out_segm.send(rgbF)
-                self.out_segm_depth.send(depth_msg)
+                self._send_outputs(helper, img_msg, depth_msg, self.MODE_NOSELECTION)
 
                 self.clearSelection()
                 self.clearCachedMeasurements()
 
                 continue
 
-            # transform mask NN space -> RGB space
-            if m is not None:
-                mask_rgb = self._mask_nn_to_rgb(m)
-
             # keep only the chosen detection
             sel_i = kept_idx[0]
-            selected_mid = -1
+            selected_mid = 255
 
             # pick the mask instance id under the click
             if mask_rgb is not None and mask_rgb.size:
@@ -401,12 +291,12 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 selected_mid = (
                     int(mask_rgb[py, px])
                     if mask_rgb is not None and mask_rgb.size
-                    else -1
+                    else 255
                 )
 
-            if m is not None and selected_mid != -1:
+            if m is not None and selected_mid != 255:
                 # draw the masks of every detection, measurements only for the selected one
-                present_ids = set(int(v) for v in np.unique(m) if v >= 0)
+                present_ids = set(int(v) for v in np.unique(m) if v != 255)
                 for idx in present_ids:
                     self._draw_mask(helper, m, idx)
 
@@ -439,29 +329,20 @@ class AnnotationNode(dai.node.ThreadedHostNode):
                 depthF.setWidth(W)
                 depthF.setHeight(H)
                 depthF.setData(depth_u16.tobytes())
-                depthF.setTimestamp(depth_msg.getTimestamp())
-                depthF.setTimestampDevice(depth_msg.getTimestampDevice())
-                depthF.setSequenceNum(depth_msg.getSequenceNum())
+                depthF.setBufferMetadataFrom(depth_msg)
+                depthF.setInstanceNum(depth_msg.getInstanceNum())
                 depthF.setTransformation(depth_msg.getTransformation())
 
-                ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
-                self._send_mode(self.MODE_MEASURE, depthF)
-                self.out_ann.send(ann_msg)
-                self.out_segm.send(rgbF)
-                self.out_segm_depth.send(depthF)
+                self._send_outputs(helper, img_msg, depthF, self.MODE_MEASURE)
                 continue
 
             # No valid instance under click - show all (signal NOSELECTION)
             if m is not None and m.size:
-                present_ids = set(int(v) for v in np.unique(m) if v >= 0)
+                present_ids = set(int(v) for v in np.unique(m) if v != 255)
                 for idx in present_ids:
                     self._draw_mask(helper, m, idx)
             for d in dets:
                 label_txt = f"{d.labelName} {getattr(d, 'confidence', 0.0):.2f}"
                 self._draw_rotrect_and_label(helper, d, label_txt)
 
-            ann_msg = helper.build(img_msg.getTimestamp(), img_msg.getSequenceNum())
-            self._send_mode(self.MODE_NOSELECTION, depth_msg)
-            self.out_ann.send(ann_msg)
-            self.out_segm.send(rgbF)
-            self.out_segm_depth.send(depth_msg)
+            self._send_outputs(helper, img_msg, depth_msg, self.MODE_NOSELECTION)

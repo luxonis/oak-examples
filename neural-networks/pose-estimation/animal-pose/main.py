@@ -3,7 +3,6 @@ from pathlib import Path
 import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
-    ImgDetectionsFilter,
     GatherData,
     FrameCropper,
 )
@@ -61,8 +60,9 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_nn_archive, fps=args.fps_limit
     )
 
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(detection_nn.out)
-    detections_filter.keepLabels(VALID_LABELS)
+    detections_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+    detections_filter.initialConfig.labelsToKeep = VALID_LABELS
+    detection_nn.out.link(detections_filter.inputs["detections"])
 
     # detection processing
     pose_manip = (
@@ -98,7 +98,6 @@ with dai.Pipeline(device) as pipeline:
     annotation_node = pipeline.create(AnnotationNode).build(
         input_detections=gather_data.out,
         connection_pairs=connection_pairs,
-        padding=PADDING,
     )
 
     # visualization

@@ -39,7 +39,6 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - [main.py](main.py): pipeline wiring, platform branching, and Visualizer topics
 - [utils/box_processing_node.py](utils/box_processing_node.py): host-side mask rendering, point-cloud filtering, and cuboid-fit annotations
 - [utils/cuboid_fitter.py](utils/cuboid_fitter.py): fitting logic used to estimate dimensions
-- [utils/helper_functions.py](utils/helper_functions.py): intrinsics readout plus mask resize/pad helpers
 - [utils/arguments.py](utils/arguments.py): CLI surface
 - [oakapp.toml](oakapp.toml): packaging and bundled model path
 
@@ -68,14 +67,14 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 
 - `Safe to change:` topic names, FPS limit default, parser thresholds, projector usage, label text
 - `Requires care:` camera sockets, RGB/depth alignment path, model input dimensions, calibration usage, point-cloud color assumptions, the point-cloud length unit (the `CuboidFitter` thresholds and labels assume centimeters)
-- `Likely to break if changed blindly:` the fixed `640x400` and `512x320` assumptions in [utils/box_processing_node.py](utils/box_processing_node.py), intrinsics scaling, and mask reprojection logic
+- `Likely to break if changed blindly:` the organized cloud/mask pixel relationship, synchronized inputs, and transformation-derived intrinsics
 
 ## Common Adaptations
 
 - `To swap the model:` replace the YAML/model pair in [depthai_models/](depthai_models/) and keep the same parser contract
 - `To reuse only the measurement host logic:` keep [utils/box_processing_node.py](utils/box_processing_node.py) and feed it your own point cloud plus detections
 - `To remove the cuboid overlay:` keep `outputANN` and drop the `outputANNCuboid` topic
-- `To test alignment changes:` start from the `Depth.setAlignTo` and `PointCloud` branch in [main.py](main.py)
+- `To test alignment changes:` start from the `Depth.setAlignTo` and `PointCloud` branch in [main.py](main.py) and mask remapping in [utils/box_processing_node.py](utils/box_processing_node.py)
 
 ## Constraints
 
@@ -83,15 +82,14 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
 - The fitter still requires three perpendicular planes. It removes rejected plane candidates from its search cloud so a parallel residual cannot consume every attempt, but this does not guarantee a valid fit on noisy or incomplete depth.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
-- [utils/box_processing_node.py](utils/box_processing_node.py) hardcodes `IMG_WIDTH=640`, `IMG_HEIGHT=400`, `NN_WIDTH=512`, and `NN_HEIGHT=320`.
-- RVC2 disables the median filter path, so stereo behavior differs by platform.
+- Masks and organized point clouds must share the undistorted RGB pixel grid.
 
 ## Non-Obvious Repo Conventions
 
 - [oakapp.toml](oakapp.toml) adds a standalone packaging path but does not mean the example is RVC4-only.
 - `Box Detections` and `Cuboid Fit` are separate annotation topics layered over the same preview stream.
-- Intrinsics are read for `CAM_A` at NN resolution, because the cuboid overlay is projected into model-space image coordinates.
-- The point cloud comes from `pcl.outputPointCloud`, not from a custom host reconstruction step. [utils/box_processing_node.py](utils/box_processing_node.py) reshapes it to `(IMG_HEIGHT, IMG_WIDTH)`, which only works because the node runs in organized mode.
+- Intrinsics are read from the current undistorted RGB transformation, because masks, detections, and cuboid overlays share that frame.
+- The point cloud comes from `pcl.outputPointCloud`, not from a custom host reconstruction step. [utils/box_processing_node.py](utils/box_processing_node.py) reshapes it to the RGB frame size, which only works because the node runs in organized mode.
 - The `Pointcloud` Visualizer topic therefore carries centimeters, while the Visualizer's distance controls assume millimeters.
 
 ## Related Examples

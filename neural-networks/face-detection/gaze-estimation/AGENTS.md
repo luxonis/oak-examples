@@ -50,9 +50,9 @@ This is the repository reference for a multi-input, three-stage gaze estimation 
 ## Constraints
 
 - This is a multi-input pipeline with several blocking/max-size settings; it is much easier to break than the simpler two-stage face examples.
-- Host-created config groups, crop configs, tensors, and annotations must preserve both the source timestamp and device timestamp so downstream nodes can synchronize them with camera frames.
+- Host-created configs, tensors, and annotations must preserve source host/device timestamps. Crop-control Sync uses device time to match RVC2 Script metadata.
 - RVC4 uses a larger requested source resolution than RVC2 in [main.py](main.py).
-- Replay or camera sizing changes can invalidate the crop logic if done blindly.
+- Replay and camera inputs must preserve their transformations; crop geometry follows the actual source frame.
 
 ## Related Examples
 

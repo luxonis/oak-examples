@@ -7,10 +7,8 @@ IMG_SHAPE = (640, 400)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
-if not device.setIrLaserDotProjectorIntensity(1):
-    print(
-        "Failed to set IR laser projector intensity. Maybe your device does not support this feature."
-    )
+if device.getIrDrivers() and not device.setIrLaserDotProjectorIntensity(1):
+    print("Failed to enable IR laser dot projector.")
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 

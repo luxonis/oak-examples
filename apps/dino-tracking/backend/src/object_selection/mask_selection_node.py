@@ -96,5 +96,6 @@ class MaskSelection(BaseHostNode):
         out.setSequenceNum(segmentation.getSequenceNum())
         out.setTimestamp(segmentation.getTimestamp())
         out.setTimestampDevice(segmentation.getTimestampDevice())
+        out.setTransformation(segmentation.getTransformation())
 
         self.out.send(out)

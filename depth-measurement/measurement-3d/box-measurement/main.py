@@ -5,22 +5,19 @@ import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork
 from utils.box_processing_node import BoxProcessingNode
 from utils.arguments import initialize_argparser
-from utils.helper_functions import read_intrinsics
 
 
 _, args = initialize_argparser()
 EXAMPLE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = EXAMPLE_DIR / "depthai_models"
 
-NN_WIDTH, NN_HEIGHT = 512, 320
-INPUT_SHAPE = (NN_WIDTH, NN_HEIGHT)
-
 IMG_WIDTH, IMG_HEIGHT = 640, 400
 CAMERA_RESOLUTION = (IMG_WIDTH, IMG_HEIGHT)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(args.device) if args.device else dai.Device()
-device.setIrLaserDotProjectorIntensity(1.0)
+if device.getIrDrivers() and not device.setIrLaserDotProjectorIntensity(1.0):
+    print("Failed to enable IR laser dot projector.")
 
 with dai.Pipeline(device) as p:
     platform = device.getPlatform()
@@ -80,7 +77,6 @@ with dai.Pipeline(device) as p:
     nn.getParser().setIouThreshold(0.5)
 
     box_processing = p.create(BoxProcessingNode)
-    box_processing.intrinsics = read_intrinsics(device, NN_WIDTH, NN_HEIGHT)
 
     # Pair the cloud and detections with their original, undistorted RGB frame.
     sync = p.create(dai.node.Sync)

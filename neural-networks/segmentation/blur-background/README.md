@@ -1,6 +1,6 @@
 # Background blurring
 
-This example shows how to blur the background and leave only people in focus. The example uses [DeepLab-V3-Plue](https://hub.luxonis.com/ai/models/1189a661-fd0a-44fd-bc9e-64b94d60cb49) model for segmenting the image.
+This example shows how to blur the background and leave only people in focus. The example uses [DeepLab-V3-Plus](https://hub.luxonis.com/ai/models/1189a661-fd0a-44fd-bc9e-64b94d60cb49) model for segmenting the image.
 
 ## Demo
 

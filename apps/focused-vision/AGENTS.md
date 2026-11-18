@@ -49,15 +49,15 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 - The backend builds one RGB camera source and splits it into high-resolution and low-resolution outputs.
 - The naive branch runs face detection directly on low-resolution RGB and crops the largest detected face.
-- The 2-stage branch runs person detection, crops a high-resolution person region, remaps coordinates, then runs face detection on that crop.
-- The tiling branch slices the high-resolution image into overlapping tiles, runs face detection on each tile, merges detections, and crops the largest face result.
+- The 2-stage branch runs person detection, crops a high-resolution person region, runs face detection, then aligns face detections to high-resolution RGB.
+- The tiling branch slices the high-resolution image into overlapping tiles, runs face detection on each tile, aligns and merges detections, and crops the largest face result.
 - Custom host nodes provide black fallback frames when no detections exist so the comparison layout remains stable.
 
 ## Data Flow
 
 - `RGB low-res -> face detector -> largest bbox -> cropper -> Non-Focus Head Crops`
 - `RGB low-res -> person detector -> crop high-res person -> face detector -> remap -> cropper -> Focused Vision Head Crops`
-- `RGB high-res -> Tiling -> per-tile face detector -> merge + filter -> cropper -> Focused with Tiling`
+- `RGB high-res -> Tiling -> per-tile face detector -> Align -> merge + filter -> cropper -> Focused with Tiling`
 - `RGB low-res -> H264 encoder -> 640x640 RGB`
 
 ## Modification Guide
