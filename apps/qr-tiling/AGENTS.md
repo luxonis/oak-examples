@@ -55,14 +55,14 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 - `Tiling` generates manip configs for tiled crops over the high-resolution image.
 - `FrameCropper` extracts the tiles.
 - A parsing NN runs QR detection per tile.
-- Detection collections are remapped into display space, merged, filtered with NMS, and optionally decoded.
+- `Align` maps tile detections to high-resolution RGB before collection, merging, NMS, and optional decoding.
 - `PipelineHealthMonitor` feeds safe FPS targets back into the controller as tile count changes.
 - A tile-grid overlay is rendered onto the display stream, then encoded for frontend viewing.
 
 ## Data Flow
 
-- `RGB high-res -> Tiling -> FrameCropper -> QR detector NN -> collected detections`
-- `collected detections -> coordinate remap -> merge -> NMS -> QRDecoder -> Visualizations`
+- `RGB high-res -> Tiling -> FrameCropper -> QR detector NN -> Align -> collected detections`
+- `collected detections -> merge -> NMS -> QRDecoder -> Visualizations`
 - `RGB display -> TileGridOverlay -> VideoEncoder -> Video`
 - `pipeline health -> FPSController target_fps`
 - `frontend services -> tiling config / decode state -> backend`

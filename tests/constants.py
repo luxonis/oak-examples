@@ -127,6 +127,15 @@ KNOWN_FAILING = {
             ],
         },
     },
+    "apps/box-measurement": {
+        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
+        "rules": {
+            "or": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
     "integrations/roboflow-dataset": {
         "reason": "Can't run without arguments (e.g. roboflow api-key)",
         "rules": {"and": [{"platform": "all"}]},

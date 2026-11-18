@@ -25,7 +25,7 @@ This is the repository reference for host-run Foundation Stereo inference compar
 - `Standalone path:` none
 - `Frontend:` none
 - `Runs on:` host mode only; requires a device with color, left, and right cameras
-- `Requires:` strong host compute, stereo mono pair, and device IR projector support for the intended baseline
+- `Requires:` strong host compute and a stereo mono pair; an IR dot projector is optional
 - `Input:` live stereo mono cameras only
 - `Output:` `FS Result`, `Disparity`, `Rectified right`, and `Rectified left`
 - `Models:` Foundation Stereo is downloaded/managed through [utils/fs_inferer.py](utils/fs_inferer.py) rather than packaged YAML files in this example directory
@@ -49,7 +49,7 @@ This is the repository reference for host-run Foundation Stereo inference compar
 ## Constraints
 
 - This example is intentionally host-only and compute-heavy.
-- It expects a device with three cameras and explicitly enables the IR dot projector.
+- It expects a device with three cameras and enables the IR dot projector when an IR driver is detected.
 - The model is not packaged through `oakapp.toml`; this is not the right baseline for standalone deployment.
 
 ## Related Examples

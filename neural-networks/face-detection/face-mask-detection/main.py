@@ -1,10 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import (
-    ParsingNeuralNetwork,
-    ImgDetectionsFilter,
-)
+from depthai_nodes.node import ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
 
@@ -54,9 +51,10 @@ with dai.Pipeline(device) as pipeline:
         input_node, det_model_description, fps=args.fps_limit
     )
 
-    # filter and rename detection labels
-    det_process_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
-    det_process_filter.keepLabels(list(LABEL_ENCODING.keys()))
+    # Keep the original PPE label IDs and names.
+    det_process_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+    det_process_filter.initialConfig.labelsToKeep = list(LABEL_ENCODING)
+    det_nn.out.link(det_process_filter.inputs["detections"])
 
     # visualization
     visualizer.addTopic("Video", det_nn.passthrough, "images")
