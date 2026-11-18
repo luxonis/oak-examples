@@ -64,6 +64,6 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Checked on 18 November 2026:` a synthetic RVC4 peripheral pipeline passed both real crop stages and parent/crop/OCR association checks for 0/1/12 vehicles with host probes replacing the models. Full models, camera/replay and packaged standalone comparisons remain pending.
+- `Checked on 18 November 2026 with DepthAI 3.12.1:` a synthetic RVC4 peripheral pipeline passed both real crop stages and parent/crop/OCR association checks for 0/1/12 vehicles with host probes replacing the models. Full models, camera/replay and packaged standalone comparisons remain pending.
 - `Success looks like:` the Visualizer shows `License Plates` with detected vehicles, plates, and OCR text merged into one output
 - `Common failure meaning:` the device is not RVC4, the scene resolution is too poor for the crop cascade, or crop/result counts or reference metadata no longer match

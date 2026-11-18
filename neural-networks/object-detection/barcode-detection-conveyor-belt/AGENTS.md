@@ -67,6 +67,6 @@ This is the repository reference for barcode-region detection followed by host-s
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Checked on 18 November 2026:` synthetic RVC2 and RVC4 peripheral pipelines passed rotated cropping, metadata/order, and delayed/dropped-result recovery checks. Model/decoder, camera/replay and packaged standalone comparisons remain pending.
+- `Checked on 18 November 2026 with DepthAI 3.12.1:` synthetic RVC2 and RVC4 peripheral pipelines passed rotated cropping, metadata/order, and delayed/dropped-result recovery checks. Model/decoder, camera/replay and packaged standalone comparisons remain pending.
 - `Success looks like:` the Visualizer shows `Barcode Overlay`, and detected barcodes receive decoded overlays
 - `Common failure meaning:` the detector is not finding barcode regions, the source resolution is too low, or the host decoder is not receiving valid crops

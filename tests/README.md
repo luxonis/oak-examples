@@ -4,7 +4,7 @@ We can test every example in a way where we verify that it is running for a cert
 
 ## U07 crop scheduling validation
 
-The hardware-free regression suite uses DepthAI 3.11.0 and depthai-nodes 0.8.0.
+The hardware-free regression suite uses DepthAI 3.12.1 and depthai-nodes 0.8.0.
 It exercises the SDK's Python matching methods and native messages with synthetic
 queues and a controlled clock, without constructing or starting a pipeline:
 
@@ -13,7 +13,7 @@ DEPTHAI_TELEMETRY=0 python3 -m unittest discover -s tests -p test_crop_gathering
 ```
 
 Local result on 18 November 2026: all 12 tests passed with Python 3.12.3,
-DepthAI 3.11.0 and depthai-nodes 0.8.0 on Linux, without a device. The grouping
+DepthAI 3.12.1 and depthai-nodes 0.8.0 on Linux, without a device. The grouping
 checks exercise all four examples' local gatherer implementations.
 
 It covers zero/one/12 detections, delayed crops followed by empty frames,
@@ -50,7 +50,7 @@ decoder backend, observed outputs and any fallback. No speedup is claimed.
 
 ### Synthetic hardware pipeline results
 
-Passed on 18 November 2026 with Python 3.12.3, DepthAI 3.11.0 and
+Passed on 18 November 2026 with Python 3.12.3, DepthAI 3.12.1 and
 depthai-nodes 0.8.0. The RVC4 was an OAK4-D R7 running OS 1.45.0.
 These checks ran host pipelines over Ethernet; no application bundles were built.
 

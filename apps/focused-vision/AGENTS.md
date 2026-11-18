@@ -100,6 +100,6 @@ This example is the best RVC4 reference for preserving detail when the target ob
 ## Validation
 
 - `Run:` `oakctl app run .`
-- `Checked on 18 November 2026:` synthetic RVC4 peripheral pipelines passed display-crop metadata/order and delayed/dropped-result recovery checks. Full models and packaged standalone output comparisons remain pending.
+- `Checked on 18 November 2026 with DepthAI 3.12.1:` synthetic RVC4 peripheral pipelines passed display-crop metadata/order and delayed/dropped-result recovery checks. Full models and packaged standalone output comparisons remain pending.
 - `Success looks like:` the Visualizer shows the RGB preview plus three comparison outputs for naive, 2-stage, and tiling approaches
 - `Common failure meaning:` the app is running on a non-RVC4 platform, the expected bundled models are missing, or the frontend topic expectations no longer match the backend outputs

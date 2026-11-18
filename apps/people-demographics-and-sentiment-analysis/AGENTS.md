@@ -108,6 +108,6 @@ This is the strongest standalone reference in the repo for multi-stage people an
 ## Validation
 
 - `Run:` `oakctl app run .`
-- `Checked on 18 November 2026:` synthetic RVC4 peripheral pipelines passed face-crop/three-face-limit and three-branch fan-out recovery checks with host probes replacing the models. Full models and packaged standalone comparisons remain pending.
+- `Checked on 18 November 2026 with DepthAI 3.12.1:` synthetic RVC4 peripheral pipelines passed face-crop/three-face-limit and three-branch fan-out recovery checks with host probes replacing the models. Full models and packaged standalone comparisons remain pending.
 - `Success looks like:` the frontend shows the annotated stream, the face strip updates as people appear, and aggregate stats change over time
 - `Common failure meaning:` the app is not running on RVC4, one of the second-stage models is unavailable, or the `Get Faces` service payload no longer matches the frontend expectation
