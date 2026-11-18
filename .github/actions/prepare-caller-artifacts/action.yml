@@ -1,0 +1,77 @@
+name: Prepare caller artifacts
+description: Install this caller run's artifacts on a job-owned HiL testbed.
+
+inputs:
+  host:
+    required: true
+    description: Testbed host OS.
+  suite:
+    required: true
+    description: Examples suite.
+  platform:
+    default: rvc4
+    description: Device platform.
+  python:
+    default: "3.12"
+    description: Python matrix value.
+
+runs:
+  using: composite
+  steps:
+    - name: Initialize testbed reservation
+      id: init
+      shell: bash
+      env:
+        HOST_OS: ${{ inputs.host }}
+        SUITE: ${{ inputs.suite }}
+        PLATFORM: ${{ inputs.platform }}
+        PYTHON_VERSION: ${{ inputs.python }}
+      run: |
+        bash "$GITHUB_WORKSPACE/oak-examples/tests/ci/manage-caller-testbed.sh" init
+
+    - name: Fetch pinned caller installation helpers
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ steps.init.outputs.helpers_ref }}
+        token: ${{ github.token }}
+        path: ${{ steps.init.outputs.helpers_path }}
+        persist-credentials: false
+        sparse-checkout: |
+          ci/hil/prepare-examples.sh
+          ci/hil/prepare-examples.ps1
+          ci/hil/install-examples-oakctl.py
+          ci/scripts/agent-rvc4-installer.sh
+        sparse-checkout-cone-mode: false
+
+    - name: Download caller oak-agent
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ steps.init.outputs.oak_agent }}
+        repository: ${{ github.repository }}
+        run-id: ${{ github.run_id }}
+        github-token: ${{ github.token }}
+        path: ${{ steps.init.outputs.artifacts_path }}
+
+    - name: Download caller oakctl and tools
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ steps.init.outputs.oakctl }}
+        repository: ${{ github.repository }}
+        run-id: ${{ github.run_id }}
+        github-token: ${{ github.token }}
+        path: ${{ steps.init.outputs.artifacts_path }}
+
+    - name: Download caller mock release server
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ steps.init.outputs.release_server }}
+        repository: ${{ github.repository }}
+        run-id: ${{ github.run_id }}
+        github-token: ${{ github.token }}
+        path: ${{ steps.init.outputs.artifacts_path }}/release-server
+
+    - name: Reserve, install and verify caller binaries
+      shell: bash
+      run: |
+        bash "$GITHUB_WORKSPACE/oak-examples/tests/ci/manage-caller-testbed.sh" prepare
