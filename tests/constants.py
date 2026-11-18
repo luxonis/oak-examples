@@ -86,6 +86,18 @@ KNOWN_FAILING = {
         "reason": "Needs ros base image",
         "rules": {"and": [{"mode": ["peripheral"]}]},
     },
+    "tutorials/multiple-devices/multi-device-birds-eye-view": {
+        "reason": "Test suite doesn't support multi-device testing",
+        "rules": {"and": [{"platform": "all"}]},
+    },
+    "tutorials/multiple-devices/multi-device-panorama": {
+        "reason": "Test suite doesn't support multi-device testing",
+        "rules": {"and": [{"platform": "all"}]},
+    },
+    "tutorials/multiple-devices/multi-device-point-cloud": {
+        "reason": "Test suite doesn't support multi-device testing",
+        "rules": {"and": [{"platform": "all"}]},
+    },
     "tutorials/multiple-devices/multi-device-calibration": {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
