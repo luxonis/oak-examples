@@ -40,6 +40,7 @@ type WorkflowInterface = {
 	outputs: string[];
 	parameters: WorkflowParameter[];
 	pipeline?: PipelineStatus;
+	qnn_preparing?: boolean;
 };
 
 type Payload = {
@@ -126,6 +127,7 @@ export function MessageInput() {
 	const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(
 		null,
 	);
+	const [qnnPreparing, setQnnPreparing] = useState(false);
 	const lastErrorToastRef = useRef<string | null>(null);
 
 	const applyInterface = useCallback((data: unknown) => {
@@ -139,6 +141,7 @@ export function MessageInput() {
 		setWorkflowInterface(iface as WorkflowInterface);
 		setInterfaceError(false);
 		setPipelineStatus(iface.pipeline ?? null);
+		setQnnPreparing(Boolean(iface.qnn_preparing));
 
 		const values: Record<string, string> = {};
 		for (const param of iface.parameters) {
@@ -184,6 +187,7 @@ export function MessageInput() {
 						| null;
 					if (iface?.status === 'ok' && iface.pipeline) {
 						setPipelineStatus(iface.pipeline);
+						setQnnPreparing(Boolean(iface.qnn_preparing));
 					}
 				},
 				HEALTH_POLL_MS,
@@ -336,7 +340,7 @@ export function MessageInput() {
 						</p>
 					) : (
 						<p className="text-sm text-muted-foreground">
-							Loading workflow interface...
+							Loading workflow interface. Initial QNN model preparation may take a few minutes.
 						</p>
 					)}
 					<Button
@@ -362,6 +366,14 @@ export function MessageInput() {
 				</div>
 			</header>
 
+			{(qnnPreparing || submitting || refreshing) && (
+				<output className="rounded-md border border-border bg-muted p-3 text-sm" aria-live="polite">
+					{qnnPreparing
+						? 'Preparing the workflow model for QNN. The first run may take a few minutes while its graph is optimized.'
+						: 'Updating the workflow. QNN model preparation may take a few minutes on first use.'}
+				</output>
+			)}
+
 			{pipelineStatus?.error ? (
 				<div
 					role="alert"
@@ -383,7 +395,7 @@ export function MessageInput() {
 				</div>
 			) : pipelineStatus && !pipelineStatus.running ? (
 				<p className="text-sm text-muted-foreground">
-					Inference pipeline is starting...
+					Inference pipeline is starting. QNN model preparation may take a few minutes on first use.
 				</p>
 			) : null}
 

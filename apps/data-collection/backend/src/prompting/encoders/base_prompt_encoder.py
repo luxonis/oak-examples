@@ -50,8 +50,16 @@ class BasePromptEncoder(ABC):
 
     def _make_session(self, path: str) -> InferenceSession:
         """Create a QNN session using the standalone app's NPU runtime."""
+        log.info(
+            "%s: preparing model for QNN; first use may take a few minutes while the graph is optimized",
+            type(self).__name__,
+        )
         session = onnx_qnn_session(self._pin_input_shapes(path), fp16=True)
-        log.info(f"{type(self).__name__}: providers={session.get_providers()}")
+        log.info(
+            "%s: ONNX session ready; providers=%s",
+            type(self).__name__,
+            session.get_providers(),
+        )
         return session
 
     def _npu_input_shape(self) -> Optional[tuple]:

@@ -17,7 +17,6 @@ class AnnotationNode(dai.node.HostNode):
             ]
         )
         self.confidence_threshold = 0.5
-        self.padding_factor = 0.1
         self.connection_pairs = [[]]
 
     def build(
@@ -25,11 +24,9 @@ class AnnotationNode(dai.node.HostNode):
         gathered_data: dai.Node.Output,
         video: dai.Node.Output,
         confidence_threshold: float,
-        padding_factor: float,
         connections_pairs: List[List[int]],
     ) -> "AnnotationNode":
         self.confidence_threshold = confidence_threshold
-        self.padding_factor = padding_factor
         self.connection_pairs = connections_pairs
         self.link_args(gathered_data, video)
         return self
@@ -37,7 +34,9 @@ class AnnotationNode(dai.node.HostNode):
     def process(self, gathered_data: dai.Buffer, video_message: dai.ImgFrame) -> None:
         assert isinstance(gathered_data, GatheredData)
 
-        detections_message: dai.ImgDetections = gathered_data.reference_data
+        detections_message = gathered_data.reference_data.transformTo(
+            video_message.getTransformation()
+        )
         detections_list: List[dai.ImgDetection] = detections_message.detections
 
         new_dets = dai.ImgDetections()
@@ -47,7 +46,9 @@ class AnnotationNode(dai.node.HostNode):
         det_list = []
 
         for ix, detection in enumerate(detections_list):
-            keypoints_msg: Keypoints = gathered_data.items[ix]["0"]
+            keypoints_msg: Keypoints = gathered_data.items[ix]["0"].transformTo(
+                video_message.getTransformation()
+            )
             confidence_msg: Predictions = gathered_data.items[ix]["1"]
             handness_msg: Predictions = gathered_data.items[ix]["2"]
 
@@ -57,29 +58,16 @@ class AnnotationNode(dai.node.HostNode):
             if hand_confidence < self.confidence_threshold:
                 continue
 
-            width = detection.getBoundingBox().size.width
             height = detection.getBoundingBox().size.height
 
-            xmin = detection.getBoundingBox().center.x - width / 2
-            xmax = detection.getBoundingBox().center.x + width / 2
-            ymin = detection.getBoundingBox().center.y - height / 2
-            ymax = detection.getBoundingBox().center.y + height / 2
-
-            padding = self.padding_factor
-
-            slope_x = (xmax + padding) - (xmin - padding)
-            slope_y = (ymax + padding) - (ymin - padding)
-
             new_det = dai.ImgDetection()
-            rotated_rect = detection.getBoundingBox()
+            crop_transform = gathered_data.items[ix]["0"].getTransformation()
             new_det.setBoundingBox(
-                dai.RotatedRect(
-                    rotated_rect.center,
-                    dai.Size2f(
-                        rotated_rect.size.width + 2 * padding,
-                        rotated_rect.size.height + 2 * padding,
+                crop_transform.remapRectTo(
+                    video_message.getTransformation(),
+                    dai.RotatedRect(
+                        dai.Point2f(0.5, 0.5, True), dai.Size2f(1, 1, True), 0
                     ),
-                    rotated_rect.angle,
                 )
             )
             new_det.label = 0
@@ -91,8 +79,8 @@ class AnnotationNode(dai.node.HostNode):
             ys = []
 
             for kp in keypoints_msg.getKeypoints():
-                x = min(max(xmin - padding + slope_x * kp.imageCoordinates.x, 0.0), 1.0)
-                y = min(max(ymin - padding + slope_y * kp.imageCoordinates.y, 0.0), 1.0)
+                x = kp.imageCoordinates.x
+                y = kp.imageCoordinates.y
                 xs.append(x)
                 ys.append(y)
 
@@ -125,8 +113,7 @@ class AnnotationNode(dai.node.HostNode):
             )
 
         new_dets.detections = det_list
-        new_dets.setTimestamp(detections_message.getTimestamp())
-        new_dets.setSequenceNum(detections_message.getSequenceNum())
+        new_dets.setBufferMetadataFrom(detections_message)
         self.out_detections.send(new_dets)
 
         annotations = annotation_helper.build(
@@ -134,4 +121,6 @@ class AnnotationNode(dai.node.HostNode):
             sequence_num=detections_message.getSequenceNum(),
         )
 
+        annotations.setBufferMetadataFrom(detections_message)
+        annotations.setTransformation(video_message.getTransformation())
         self.out_pose_annotations.send(annotations)

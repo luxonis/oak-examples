@@ -231,7 +231,7 @@ export default function App() {
 		!connection.connected || !state
 			? 'Connecting'
 			: state?.phase === 'loading'
-				? 'Loading models'
+				? 'Preparing models for QNN'
 				: state?.phase === 'catching_up'
 					? 'Catching up'
 					: state?.phase === 'tracking'
@@ -559,11 +559,17 @@ export default function App() {
 						</Button>
 					)}
 					<output className="status-card" aria-live="polite">
-						<span className={state?.ready ? 'status-dot' : 'spinner'} />
+						<span
+							className={state?.ready && !state.status.startsWith('Preparing ')
+								? 'status-dot'
+								: 'spinner'}
+						/>
 						<p>
-							{expired
-								? 'Capture an updated frame to continue.'
-								: state?.status || 'Connecting to the camera…'}
+							{state?.status.startsWith('Preparing ')
+								? state.status
+								: expired
+									? 'Capture an updated frame to continue.'
+									: state?.status || 'Connecting to the camera… Initial QNN preparation may take a few minutes.'}
 						</p>
 					</output>
 					{(error || state?.runtime_error) && (

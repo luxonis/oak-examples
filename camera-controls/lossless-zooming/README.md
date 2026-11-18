@@ -1,6 +1,6 @@
 # Lossless Zooming
 
-This example demonstrates how to perform lossless zooming on the device. It will zoom into the first face it detects. It will crop 1080p frames, centered around the face. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
+This example demonstrates how to perform lossless zooming on the device. It will zoom into the first face it detects. It outputs a `1920x1088` crop centered around the face where source bounds allow. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
 
 ## Demo
 
