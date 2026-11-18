@@ -26,7 +26,7 @@ This is the repository reference for a multi-device bird's-eye view: the ground 
 - `Frontend:` none
 - `Runs on:` host mode only, with two or more DepthAI devices in one pipeline
 - `Requires:` two or more stereo-capable devices that see the floor, mounted roughly upright, plus host-side NumPy
-- `Input:` stereo depth per device for the plane fit, then live full-resolution `CAM_A` NV12 per device
+- `Input:` stereo depth per device for the plane fit, then live undistorted `CAM_B` at native sensor size per device
 - `Output:` the fitted plane in the terminal, `Input - <device id>` topics and a `Birds-eye view` topic
 - `Models:` none
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
@@ -44,14 +44,14 @@ This is the repository reference for a multi-device bird's-eye view: the ground 
 - [utils/calibration.py](utils/calibration.py) runs `dai.beta.node.MultiDeviceCalibration` in its own pipeline on the first run and saves `calibration.json`; later runs load it with `MultiDeviceCalibrationHandler`.
 - [main.py](main.py) builds one `dai.Pipeline(createImplicitDevice=False)`, applies the calibration with `pipeline.setMultiDeviceCalibration` and creates the per-device nodes with `pipeline.create(node, device)`.
 - `estimate_ground_plane` runs a first pipeline with one `Depth` per device and a host `PointCloud` node, then [utils/plane.py](utils/plane.py) fits the ground with RANSAC.
-- The second pipeline feeds `requestFullResolutionOutput` frames of every device into a host `Stitching` node in `PLANAR_PROJECTION` mode configured with `setPlane` and `setMaxRange`; a separate `640x400` preview goes to the Visualizer.
+- The second pipeline reads the native `CAM_B` size from `getConnectedCameraFeatures`, requests an undistorted output of exactly that size per device and feeds it into a host `Stitching` node in `PLANAR_PROJECTION` mode configured with `setPlane` and `setMaxRange`.
 
 ## Constraints
 
 - At least two devices are required; moving a device invalidates `calibration.json` until `--calibrate` is run.
 - The metric scale comes from a `CAM_B`/`CAM_C` stereo pair or from `--known-distance`.
 - The devices are not hardware-synchronized; frames are grouped within one frame period.
-- The projection inputs must come from `requestFullResolutionOutput`: on depthai 3.12 a `requestOutput` with an explicit size makes the node report that no input sees the plane. Full-resolution frames limit the rate to about 5 FPS.
+- The projection inputs must be undistorted and at the sensor's native size: on depthai 3.12 a resized output makes the node report that no input sees the plane, and distorted frames paint false content beside the cameras. That is why the example uses `CAM_B` and the view is grayscale.
 - The multi-device pipeline and calibration APIs require `depthai>=3.12`.
 
 ## Related Examples

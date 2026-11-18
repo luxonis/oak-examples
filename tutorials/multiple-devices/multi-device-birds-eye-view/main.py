@@ -12,7 +12,7 @@ from utils.plane import fit_ground_plane
 
 HTTP_PORT = 8082
 DEPTH_SIZE = (640, 400)
-PREVIEW_SIZE = (640, 400)  # Camera preview shown next to the result
+SOCKET = dai.CameraBoardSocket.CAM_B  # Left stereo camera, projected onto the ground
 MAX_VIEW_SIZE = (1280, 1280)
 WARMUP_CLOUDS = 10  # First clouds are skipped while exposure and depth settle
 PLANE_CLOUDS = 3  # Merged point clouds accumulated for the plane fit
@@ -91,19 +91,25 @@ def main():
             device_id = device.getDeviceId()
             print(f"=== Connected to device: {device_id}")
 
+            # The projection needs an undistorted frame at the sensor's native size:
+            # on depthai 3.12 a resized output makes the node reject most of the image.
+            features = next(
+                (f for f in device.getConnectedCameraFeatures() if f.socket == SOCKET),
+                None,
+            )
+            if features is None:
+                raise RuntimeError(f"Device {device_id} has no {SOCKET.name} camera")
             camera = pipeline.create(dai.node.Camera, device).build(
-                dai.CameraBoardSocket.CAM_A, sensorFps=args.fps_limit
+                SOCKET, sensorFps=args.fps_limit
             )
-            # Full-resolution frames keep the whole sensor field of view for the projection.
-            views.append(
-                camera.requestFullResolutionOutput(
-                    type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-                )
+            view = camera.requestOutput(
+                (features.width, features.height),
+                type=dai.ImgFrame.Type.NV12,
+                fps=args.fps_limit,
+                enableUndistortion=True,
             )
-            preview = camera.requestOutput(
-                PREVIEW_SIZE, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
-            )
-            visualizer.addTopic(f"Input - {device_id}", preview, group="Inputs")
+            views.append(view)
+            visualizer.addTopic(f"Input - {device_id}", view, group="Inputs")
 
         stitching = pipeline.create(dai.node.Stitching).build(views)
         stitching.setMode(dai.node.Stitching.Mode.PLANAR_PROJECTION)
