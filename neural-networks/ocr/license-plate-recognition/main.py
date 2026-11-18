@@ -2,11 +2,11 @@ from pathlib import Path
 from datetime import timedelta
 
 import depthai as dai
-from depthai_nodes.node import FrameCropper, GatherData, ParsingNeuralNetwork
+from depthai_nodes.node import FrameCropper, ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
 from utils.visualizer_node import VisualizeLicensePlates
-from utils.crop_regions import PlateRegions, VehicleRegions
+from utils.crop_regions import GatherCrops, PlateRegions, VehicleRegions
 
 REQ_WIDTH, REQ_HEIGHT = (
     1920 * 2,
@@ -108,12 +108,14 @@ with dai.Pipeline(device) as pipeline:
     # Both crop inference stages must preserve result count and order for GatherData.
     lp_det_nn.input.setBlocking(True)
     lp_det_nn.setNumInferenceThreads(1)
-    vehicle_plates = pipeline.create(GatherData).build(
+    vehicle_plates = pipeline.create(GatherCrops).build(
         cameraFps=args.fps_limit,
         inputData=lp_det_nn.out,
         inputReference=vehicles.reference,
     )
-    plates = pipeline.create(PlateRegions).build(vehicle_plates.out, input_node_out)
+    plates = pipeline.create(PlateRegions).build(
+        vehicle_plates.out, (REQ_WIDTH, REQ_HEIGHT)
+    )
     lp_crop_node = (
         pipeline.create(FrameCropper)
         .fromImgDetections(
@@ -184,7 +186,7 @@ with dai.Pipeline(device) as pipeline:
     ocr_crops.inputs["crop"].setBlocking(True)
     ocr_nn.out.link(ocr_crops.inputs["ocr"])
     ocr_nn.passthrough.link(ocr_crops.inputs["crop"])
-    recognized_plates = pipeline.create(GatherData).build(
+    recognized_plates = pipeline.create(GatherCrops).build(
         cameraFps=args.fps_limit,
         inputData=ocr_crops.out,
         inputReference=plates.reference,

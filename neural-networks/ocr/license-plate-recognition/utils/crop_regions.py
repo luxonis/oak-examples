@@ -1,6 +1,24 @@
 import depthai as dai
 
 from depthai_nodes import GatheredData
+from depthai_nodes.node import GatherData
+
+
+class GatherCrops(GatherData):
+    """Keep empty frames from overtaking pending crop results."""
+
+    def _send_ready_data(self) -> None:
+        while not self._ready_timestamps.empty():
+            timestamp = self._ready_timestamps.get()
+            if timestamp != min(self._reference_data):
+                self._ready_timestamps.put(timestamp)
+                return
+            gathered = GatheredData(
+                reference_data=self._reference_data.pop(timestamp),
+                items=self._data_by_reference_ts.pop(timestamp, None) or [],
+            )
+            self._clear_old_data(gathered)
+            self.out.send(gathered)
 
 
 class CropRegions(dai.Buffer):
@@ -63,15 +81,22 @@ class PlateRegions(dai.node.HostNode):
         self.reference = self.createOutput()
 
     def build(
-        self, detections: dai.Node.Output, frames: dai.Node.Output
+        self, detections: dai.Node.Output, frame_size: tuple[int, int]
     ) -> "PlateRegions":
-        self.link_args(detections, frames)
+        self._frame_size = frame_size
+        self.link_args(detections)
         return self
 
-    def process(self, detections: dai.Buffer, frame: dai.ImgFrame) -> None:
+    def process(self, detections: dai.Buffer) -> None:
         assert isinstance(detections, GatheredData)
-        if detections.getSequenceNum() != frame.getSequenceNum():
-            return
+        # Undo the vehicle-detector resize to recover source-frame geometry.
+        transformation = detections.reference_data.regions.getTransformation()
+        detection_width, detection_height = transformation.getSize()
+        frame_width, frame_height = self._frame_size
+        transformation.addScale(
+            frame_width / detection_width, frame_height / detection_height
+        )
+        transformation.setSize(frame_width, frame_height)
 
         plates = []
         indices = []
@@ -97,22 +122,27 @@ class PlateRegions(dai.node.HostNode):
             selected = dai.ImgDetections()
             selected.detections = [plate]
             selected.setTransformation(plate_detections.getTransformation())
-            plate = selected.transformTo(frame.getTransformation()).detections[0]
-            plate.xmin, plate.ymin = max(0, plate.xmin), max(0, plate.ymin)
-            plate.xmax, plate.ymax = min(1, plate.xmax), min(1, plate.ymax)
-            if (plate.xmax - plate.xmin) * frame.getWidth() <= 40 or (
+            mapped = selected.transformTo(transformation).detections[0]
+            # Remapping may represent an axis-aligned box with a 90-degree angle.
+            plate.setOuterBoundingBox(
+                max(0, mapped.xmin),
+                max(0, mapped.ymin),
+                min(1, mapped.xmax),
+                min(1, mapped.ymax),
+            )
+            if (plate.xmax - plate.xmin) * frame_width <= 40 or (
                 plate.ymax - plate.ymin
-            ) * frame.getHeight() <= 10:
+            ) * frame_height <= 10:
                 continue
             plates.append(plate)
             indices.append((vehicle_index, plate_index))
 
         regions = dai.ImgDetections()
         regions.detections = plates
-        regions.setTransformation(frame.getTransformation())
-        regions.setTimestamp(frame.getTimestamp())
-        regions.setTimestampDevice(frame.getTimestampDevice())
-        regions.setSequenceNum(frame.getSequenceNum())
+        regions.setTransformation(transformation)
+        regions.setTimestamp(detections.getTimestamp())
+        regions.setTimestampDevice(detections.getTimestampDevice())
+        regions.setSequenceNum(detections.getSequenceNum())
         # source retains all vehicle/plate outputs; indices identify each selected parent.
         self.reference.send(CropRegions(regions, detections, indices))
         self.out.send(regions)
