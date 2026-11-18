@@ -43,7 +43,7 @@ This is the repository reference for tiling-based QR detection with host-side de
 ## Architecture
 
 - [main.py](main.py) splits each frame into overlapping tiles with `Tiling`, crops them with `FrameCropper`, and runs QRDet on each tile.
-- `CoordinatesMapper`, `GatherData`, and [utils/merge_img_detections.py](utils/merge_img_detections.py) merge tile detections back into image space.
+- `GatherData` and [utils/merge_img_detections.py](utils/merge_img_detections.py) merge tile detections back into image space.
 - `ImgDetectionsFilter.useNms()` suppresses duplicate tile detections after merging.
 - [utils/host_qr_scanner.py](utils/host_qr_scanner.py) optionally decodes each detected QR crop with `pyzbar` and emits both annotation output and grid visualization.
 

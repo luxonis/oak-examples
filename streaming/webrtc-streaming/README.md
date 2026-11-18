@@ -1,6 +1,6 @@
 # WebRTC Streaming
 
-This example demonstrates how to setup a WebRTC server to configure the device and stream the results and preview from it.
+This example demonstrates how to set up a WebRTC server to configure the device and stream the results and preview from it.
 
 ## Demo
 

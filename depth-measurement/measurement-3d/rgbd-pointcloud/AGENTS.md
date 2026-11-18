@@ -72,10 +72,9 @@ This is the minimal RGBD point-cloud reference in the repo. Use it when you need
 
 ## Constraints
 
-- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - This example assumes a stereo mono pair on `CAM_B` and `CAM_C`.
 - RGB mode assumes the color camera is on `CAM_A`.
-- `device.setIrLaserDotProjectorIntensity(1)` may fail on devices that do not expose that feature.
+- The IR dot projector is optional. The script skips it when no IR driver is detected and reports a failed enable attempt without stopping the point-cloud pipeline.
 - The point cloud is published directly from `RGBD`; there is no host-side filtering or resampling layer here.
 
 ## Non-Obvious Repo Conventions

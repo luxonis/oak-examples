@@ -1,22 +1,14 @@
 KNOWN_FAILING = {
-    "depth-measurement/measurement-3d/rgbd-pointcloud": {
-        "reason": "DepthAI 3.12.0 requires Python >=3.9",
-        "rules": {"and": [{"python_version": ["3.8"]}]},
-    },
-    "apps/default-app": {
-        "reason": "DepthAI 3.12.0 requires Python >=3.9",
-        "rules": {"and": [{"python_version": ["3.8"]}]},
-    },
     "apps/focused-vision": {
         "reason": "RVC4 only app",
         "rules": {"and": [{"platform": ["rvc2"]}]},
     },
     "apps/object-volume-measurement-3d": {
-        "reason": "RVC4 only app; DepthAI 3.12.0 requires Python >=3.9",
+        "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {
-            "or": [
-                {"and": [{"mode": ["peripheral"]}, {"platform": ["rvc2"]}]},
-                {"python_version": ["3.8"]},
+            "and": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
             ],
         },
     },
@@ -30,11 +22,11 @@ KNOWN_FAILING = {
         },
     },
     "apps/p2p-measurement": {
-        "reason": "RVC4 only app; DepthAI 3.12.0 requires Python >=3.9",
+        "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {
-            "or": [
-                {"and": [{"mode": ["peripheral"]}, {"platform": ["rvc2"]}]},
-                {"python_version": ["3.8"]},
+            "and": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
             ],
         },
     },
@@ -119,17 +111,26 @@ KNOWN_FAILING = {
         "rules": {"and": [{"mode": ["peripheral"]}]},
     },
     "integrations/foxglove": {
-        "reason": "No matching distribution found for open3d~=0.18 on Windows; DepthAI 3.12.0 requires Python >=3.9",
-        "rules": {"or": [{"os": ["win"]}, {"python_version": ["3.8"]}]},
+        "reason": "No matching distribution found for open3d~=0.18 on Windows",
+        "rules": {"and": [{"os": ["win"]}]},
     },
     "integrations/rerun": {
-        "reason": "No matching distribution found for rerun-sdk==0.15.1 on Windows; DepthAI 3.12.0 requires Python >=3.9",
-        "rules": {"or": [{"os": ["win"]}, {"python_version": ["3.8"]}]},
+        "reason": "No matching distribution found for rerun-sdk==0.15.1 on Windows",
+        "rules": {"and": [{"os": ["win"]}]},
     },
     "apps/data-collection": {
         "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {
             "and": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
+    "apps/box-measurement": {
+        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
+        "rules": {
+            "or": [
                 {"mode": ["peripheral"]},
                 {"platform": ["rvc2"]},
             ],
@@ -184,8 +185,8 @@ KNOWN_FAILING = {
         "rules": {"and": [{"platform": ["rvc4"]}]},
     },
     "depth-measurement/measurement-3d/box-measurement": {
-        "reason": "No matching distribution found for open3d~=0.18 on Windows; DepthAI 3.12.0 requires Python >=3.9",
-        "rules": {"or": [{"os": ["win"]}, {"python_version": ["3.8"]}]},
+        "reason": "No matching distribution found for open3d~=0.18 on Windows",
+        "rules": {"and": [{"os": ["win"]}]},
     },
     "streaming/on-device-encoding": {
         "reason": "Cannot open include file: 'libavutil/mathematics.h'",

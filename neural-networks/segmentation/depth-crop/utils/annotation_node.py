@@ -2,6 +2,7 @@ import cv2
 import depthai as dai
 import numpy as np
 from depthai_nodes import PRIMARY_COLOR
+from depthai_nodes.node.utils.message_remapping import remap_message
 
 
 class AnnotationNode(dai.node.HostNode):
@@ -40,13 +41,16 @@ class AnnotationNode(dai.node.HostNode):
         frame = preview.getCvFrame()
 
         assert isinstance(mask, dai.SegmentationMask)
+        mask = remap_message(
+            mask, mask.getTransformation(), preview.getTransformation()
+        )
 
         mask_data = mask.getCvMask()
-        mask_data = cv2.resize(
-            mask_data,
-            (frame.shape[1], frame.shape[0]),
-            interpolation=cv2.INTER_NEAREST,
-        )
+        depth_frame = depth.getCvFrame()
+        if mask_data.shape != frame.shape[:2] or depth_frame.shape != frame.shape:
+            raise ValueError(
+                "Mask, aligned depth and preview must share pixel geometry"
+            )
 
         mask = np.zeros_like(frame)
         color = [
@@ -58,24 +62,21 @@ class AnnotationNode(dai.node.HostNode):
 
         mask_overlay = cv2.addWeighted(frame, 1, mask, 0.5, 0)
 
-        depth_frame = depth.getCvFrame()
-        depth_frame = cv2.resize(depth_frame, (frame.shape[1], frame.shape[0]))
-
         # cut out the mask from the depth frame
         mask_data = np.where(mask_data == self.person_class, 1, 0).astype(np.uint8)
         cutout_frame = depth_frame * mask_data[:, :, np.newaxis]
 
         mask_overlay_msg = dai.ImgFrame()
         mask_overlay_msg.setCvFrame(mask_overlay, dai.ImgFrame.Type.NV12)
-        mask_overlay_msg.setTimestamp(preview.getTimestamp())
 
         cutout_msg = dai.ImgFrame()
         cutout_msg.setCvFrame(cutout_frame, dai.ImgFrame.Type.NV12)
-        cutout_msg.setTimestamp(preview.getTimestamp())
 
         depth_msg = dai.ImgFrame()
         depth_msg.setCvFrame(depth_frame, dai.ImgFrame.Type.NV12)
-        depth_msg.setTimestamp(preview.getTimestamp())
+        for message in (mask_overlay_msg, cutout_msg, depth_msg):
+            message.setBufferMetadataFrom(preview)
+            message.setTransformation(preview.getTransformation())
 
         self.output_segmentation.send(mask_overlay_msg)
         self.output_cutout.send(cutout_msg)

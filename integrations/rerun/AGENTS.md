@@ -74,7 +74,6 @@ This is the repository reference for streaming DepthAI data into Rerun Viewer. U
 
 ## Constraints
 
-- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - The example always creates the RGB stream from `CAM_A`; there is no no-color mode.
 - Keep `pipeline.processTasks(waitForTasks=False)` non-blocking so Python host-node threads can acquire the GIL.
 - Keep `PointCloud.initialConfig.setOrganized(True)` so each point retains its pixel index for color lookup.

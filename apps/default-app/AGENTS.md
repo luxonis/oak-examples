@@ -72,10 +72,9 @@ This is the baseline packaged application in the repository. It is the best refe
 
 ## Constraints
 
-- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - Stereo output is conditional and will not exist on RGB-only devices.
 - The script assumes the main RGB camera is on `CAM_A`.
-- `device.setIrLaserDotProjectorIntensity(1)` may fail on devices that do not expose that feature.
+- The optional stereo branch enables the IR dot projector only when an IR driver is detected; it reports a failed enable attempt without stopping the app.
 - RVC4 and RVC2 use different depth alignment paths, so treat the stereo branch as platform-specific code.
 
 ## Non-Obvious Repo Conventions

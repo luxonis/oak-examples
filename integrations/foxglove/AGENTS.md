@@ -74,7 +74,6 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
 
 ## Constraints
 
-- DepthAI is pinned to `3.12.0` and requires Python 3.9 or newer.
 - This example does not use `dai.RemoteConnection`; there is no built-in Visualizer fallback.
 - Keep the RGB alignment reference undistorted when point-cloud mode is enabled.
 - Point-cloud preprocessing depends on Open3D even though the final viewer is Foxglove.

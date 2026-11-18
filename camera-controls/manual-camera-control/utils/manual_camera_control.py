@@ -54,6 +54,8 @@ class ManualCameraControl(dai.node.HostNode):
         self._ae_comp = 0
         self._ae_lock = False
         self._ae_enabled = True
+        self._auto_exp_time = None
+        self._auto_sens_iso = None
         self._awb_lock = False
         self._saturation = 0
         self._contrast = 0
@@ -87,6 +89,12 @@ class ManualCameraControl(dai.node.HostNode):
         return self
 
     def process(self, frame: dai.ImgFrame) -> None:
+        if self._ae_enabled:
+            exp_time = int(frame.getExposureTime().total_seconds() * 1_000_000)
+            sens_iso = frame.getSensitivity()
+            if exp_time > 0 and sens_iso > 0:
+                self._auto_exp_time = exp_time
+                self._auto_sens_iso = sens_iso
         annot = self._get_annotations(frame.getTimestamp())
         if self._capture:
             self._capture_frame(frame)
@@ -107,13 +115,33 @@ class ManualCameraControl(dai.node.HostNode):
             ctrl.setAutoFocusTrigger()
             print("Autofocus trigger (and disable continuous)")
         elif key_str == "f":
-            ctrl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.CONTINUOUS_VIDEO)
-            self._af_mode = dai.CameraControl.AutoFocusMode.CONTINUOUS_VIDEO
-            print("Autofocus enable, continuous")
+            if self._af_mode == dai.CameraControl.AutoFocusMode.CONTINUOUS_VIDEO:
+                self._af_mode = dai.CameraControl.AutoFocusMode.OFF
+                print("Continuous autofocus off")
+            else:
+                self._af_mode = dai.CameraControl.AutoFocusMode.CONTINUOUS_VIDEO
+                print("Continuous autofocus on")
+            ctrl.setAutoFocusMode(self._af_mode)
         elif key_str == "e":
-            ctrl.setAutoExposureEnable()
-            print("Autoexposure enable")
-            self._ae_enabled = True
+            if self._ae_enabled:
+                if self._auto_exp_time is not None:
+                    self._exp_time = clamp(self._auto_exp_time, EXP_MIN, self._exp_max)
+                    self._sens_iso = clamp(self._auto_sens_iso, SENS_MIN, SENS_MAX)
+                ctrl.setManualExposure(self._exp_time, self._sens_iso)
+                self._ae_enabled = False
+                print(
+                    "Autoexposure off; manual exposure:",
+                    self._exp_time,
+                    "iso:",
+                    self._sens_iso,
+                )
+            else:
+                ctrl.setAutoExposureEnable()
+                self._ae_enabled = True
+                print("Autoexposure on")
+            if self._ae_lock:
+                self._ae_lock = False
+                ctrl.setAutoExposureLock(False)
         elif key_str == "w":
             self._awb_lock = not self._awb_lock
             ctrl.setAutoWhiteBalanceLock(self._awb_lock)
@@ -213,6 +241,7 @@ class ManualCameraControl(dai.node.HostNode):
                 self._lens_pos + change * LENS_STEP, LENS_MIN, LENS_MAX
             )
             ctrl.setManualFocus(self._lens_pos)
+            self._af_mode = dai.CameraControl.AutoFocusMode.OFF
             print("Setting manual focus, lens position:", self._lens_pos)
         elif self._selected_control == OtherControls.LUMA_DENOISE:
             self._luma_denoise = clamp(self._luma_denoise + change, 0, 4)
@@ -231,7 +260,7 @@ class ManualCameraControl(dai.node.HostNode):
         txts = [
             ("Camera Configuration (Keyboard controls)", False),
             (f"Autoexposure (e): {self._ae_enabled}", False),
-            (f"Autofocus (t, f): {self._af_mode.name}", False),
+            (f"Autofocus (t, f to toggle): {self._af_mode.name}", False),
             (f"AWB lock (w): {self._awb_lock}", False),
             (f"AE lock (r): {self._ae_lock}", False),
             ("", False),
