@@ -27,12 +27,12 @@ python3 main.py --mode continuous --auto-interval 30 --device <DEVICE_IP_OR_ID>
 
 Open the Visualizer URL printed by the application. `AutoCalib HUD` belongs to the same image group as the stereo/depth previews. Press `q` in the Visualizer to quit.
 
-| Argument | Default | Meaning |
-| --- | --- | --- |
-| `-d`, `--device` | First available device | Device name, ID, or IP address |
-| `-fps`, `--fps_limit` | `10` | Positive stereo camera FPS limit |
-| `--mode` | `on-start` | `on-start` or `continuous` |
-| `--auto-interval` | `30` | Positive pause in seconds after each continuous cycle |
+| Argument              | Default                | Meaning                                               |
+| --------------------- | ---------------------- | ----------------------------------------------------- |
+| `-d`, `--device`      | First available device | Device name, ID, or IP address                        |
+| `-fps`, `--fps_limit` | `10`                   | Positive stereo camera FPS limit                      |
+| `--mode`              | `on-start`             | `on-start` or `continuous`                            |
+| `--auto-interval`     | `30`                   | Positive pause in seconds after each continuous cycle |
 
 ## Calibration Behavior
 
