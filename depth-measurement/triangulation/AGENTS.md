@@ -83,12 +83,10 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 ## Constraints
 
 - RVC2 YuNet explicitly uses 6-SHAVE superblob variants and one inference thread so the stereo rectification branch fits the resource budget.
-
 - `RectifiedColor` runs on the host because RVC4 `ImageManip` cannot convert StereoDepth RAW8 to the model color format. This adds a host round trip, while retaining geometry and metadata.
-
 - This is a demo association strategy, not a robust multi-face matching system.
 - Only one face on each side is accepted; multiple faces suppress measurements. This does not guarantee identity association, so use a single-face scene.
-- [utils/stereo_inference.py](utils/stereo_inference.py) uses signed horizontal disparity, calibrated baseline in mm and rectified-left intrinsics. It rejects disparity <= 0.5 px, non-finite points and vertical errors > 3 px. XYZ is in mm in the rectified-left camera frame: X right, Y down, Z forward.
+- [utils/stereo_inference.py](utils/stereo_inference.py) uses signed horizontal disparity, calibrated baseline in mm and rectified-left intrinsics. It rejects disparity `<= 0.5` px, non-finite points and vertical errors > 3 px. XYZ is in mm in the rectified-left camera frame: X right, Y down, Z forward.
 - It assumes a horizontal stereo pair and corresponding YuNet keypoint indices. Rectification cannot fix incorrect detection association.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
 
@@ -112,5 +110,4 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows left, right, and combined views with face boxes, keypoints, disparity lines, and measurement text
 - `Common failure meaning:` the stereo camera topology is missing, the YuNet model bundle is unavailable, or left/right detections are not pairing well enough for triangulation
-
 - Run `python3 -m unittest discover -s tests -p test_rectified_geometry.py` from the repository root for known-depth/off-axis synthetic geometry and invalid correspondence regressions. Validate real scale with measured distances; an office scene alone does not establish accuracy.

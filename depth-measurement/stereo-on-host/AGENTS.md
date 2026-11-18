@@ -74,12 +74,11 @@ Host-side stereo benchmark example. It compares device `StereoDepth` disparity a
 - [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration): runtime tuning of on-device stereo depth
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): host-side spatial ROI measurement
 - [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): RGB-aligned point clouds
-- [tutorials/camera-stereo-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-stereo-depth): simpler stereo depth baseline
+- [tutorials/camera-depth](https://github.com/luxonis/oak-examples/tree/main/tutorials/camera-depth): simpler stereo depth baseline
 
 ## Validation
 
 - `Run:` `python3 main.py`
 - `Success looks like:` Visualizer shows `Left Cam`, `Right Cam`, `Rectified Left`, `Rectified Right`, `Depth generated`, `Depth SGBM`, and `SSIM score`
 - `Common failure meaning:` missing stereo cameras, missing calibration, or missing host dependencies such as OpenCV/scikit-image
-
 - Check that rectified image features lie on the same rows, and confirm all seven topics update on RVC2 and RVC4. Compare with a measured-distance scene before claiming metric accuracy.
