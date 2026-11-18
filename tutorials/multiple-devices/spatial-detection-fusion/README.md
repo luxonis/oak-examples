@@ -10,42 +10,31 @@ The following GIF shows bird's-eye view of fused detections of label `person` fr
 
 ## Usage
 
-> Before you can run this demo you need to calibrate the cameras, the goal is to figure out the exact position and orientation of every camera relative to each other, so the application can fuse their individual views into a single, unified "world". Go to [multi-cam-calibration](../multi-cam-calibration) and generate a calibration file for each camera. Once calibration is complete, do not move your cameras. If you do, you will need to re-calibrate. Make sure that the `calibration_data_dir` in the [`config.py`](config.py) is set correctly.
+> Before you can run this demo you need to calibrate the cameras, the goal is to figure out the exact position and orientation of every camera relative to each other, so the application can fuse their individual views into a single, unified coordinate system. Go to [multi-device-calibration](../multi-device-calibration) and generate the calibration file for your devices. Once calibration is complete, do not move your cameras. If you do, you will need to re-calibrate. By default the file is read from `../multi-device-calibration/calibration.json`; use `--calibration` to point somewhere else.
 
-The program will also print the USB speed and connected camera sockets for each connected device before starting its pipeline. Below is an example output:
-
-```
-Found 2 DepthAI devices to configure.
-✅ Loaded extrinsics for 14442C1011D6C5D600 (Friendly ID: 1)
-✅ Loaded extrinsics for 19443010F1E61F1300 (Friendly ID: 2)
-Proceeding with 2 devices that have extrinsics.
-
-Successfully connected to device 14442C1011D6C5D600 for main pipeline.
-
-Skipping initialization of device 14442C1011D6C5D600 as it is already initialized.
-    >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
-    >>> USB speed: SUPER
-        Pipeline for 14442C1011D6C5D600 configured. Ready to be started.
-
-Attempting to connect to device: 19443010F1E61F1300...
-=== Successfully connected to device: 19443010F1E61F1300
-    >>> Pipeline created for device: 19443010F1E61F1300
-    >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
-    >>> USB speed: SUPER
-        Pipeline for 19443010F1E61F1300 configured. Ready to be started.
+The program prints the connected camera sockets for each device before starting the pipeline. Below is an example output:
 
 ```
+=== Connected to device: 2727018817
+    >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
+=== Connected to device: 3121428587
+    >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
+Pipeline started with 2 devices.
+```
 
-Running this example requires at least one (or multiple) **Luxonis device(s)** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+Running this example requires at least two calibrated, stereo-capable **Luxonis devices** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
 You can run the example using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
 Here is a list of all available parameters:
 
 ```
---include-ip                   Also include IP-only cameras (e.g. OAK-4) in the device list
---max-devices MAX_DEVICES      Limit the total number of devices to this count
---fps_limit FPS_LIMIT          FPS limit for the model runtime (default: 30)
+-c, --calibration CALIBRATION
+                      Calibration JSON saved by the multi-device-calibration example
+                      (default: ../multi-device-calibration/calibration.json)
+-d, --devices DEVICES [DEVICES ...]
+                      Device IDs or IP addresses to use. If omitted, every device in the calibration is used.
+--fps_limit FPS_LIMIT FPS limit for the model runtime (default: 30)
 ```
 
 ### Peripheral Mode
@@ -55,6 +44,7 @@ You can find more information about the supported devices and the set up instruc
 Moreover, you need to prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/)
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/)
 
 You can simply install them by running:
 
@@ -62,11 +52,17 @@ You can simply install them by running:
 pip install -r requirements.txt
 ```
 
-The system employs a *main device* architecture. Upon launch, the first available OAK device is designated as the central communication hub.
+### How it works
 
-- **Main Device**: This camera is responsible for more than just its own detections, it also facilitates the communication of the `HostNode`s (`FusionManager` and `BirgsEyeView`).
+The example runs one `dai.Pipeline` across all devices:
 
-- **Secondary Devices**: All other connected cameras act as secondary data sources. They perform their own spatial detection and then stream their results directly to the `FusionManager` running on the main device's pipeline.
+- **Per device**: a `Camera`, a `Depth` node and a `SpatialDetectionNetwork` are created on the device with `pipeline.create(node, device)`. Each device reports `SpatialImgDetections` in the coordinate system of its own camera.
+- **Shared calibration**: `pipeline.setMultiDeviceCalibration` loads the calibration graph, so the transformation attached to every message refers to one common origin.
+- **Synchronization**: a host `Sync` node groups one detection message per device by timestamp.
+- **Fusion**: the `FusionManager` host node moves all detections into the camera frame of the first device with `SpatialImgDetections.transformTo` and groups detections of the same label that are closer than `DISTANCE_THRESHOLD_M`.
+- **Visualization**: the `BirdsEyeView` host node draws the top-down view of that frame: X to the right, the first camera's viewing direction up.
+
+The first device should be mounted roughly level, because the bird's-eye view looks along its vertical axis. Settings are in [`utils/config.py`](utils/config.py).
 
 ### Examples
 
@@ -74,28 +70,22 @@ The system employs a *main device* architecture. Upon launch, the first availabl
 python main.py
 ```
 
-This will run the demo using only internal DepthAI cameras.
+This will run the demo with every device listed in the default calibration file.
 
 ```bash
-python main.py --include-ip
+python main.py --calibration /path/to/calibration.json
 ```
 
-This will also discover and use any TCP/IP cameras on the network.
+This will use the devices and poses from another calibration file.
 
 ```bash
-python main.py --max-devices 3
+python main.py --devices 192.168.1.10 192.168.1.11
 ```
 
-This will stop after configuring the first 3 devices.
+This will use only the named devices; they must be part of the calibration. The first one defines the bird's-eye view.
 
 ```bash
-python main.py --include-ip --max-devices 3
+python main.py --fps_limit 15
 ```
 
-This will include IP cameras and then only use the first 3 discovered devices.
-
-```bash
-python main.py --fps_limit 30
-```
-
-This will run the demo with an FPS limit of 30 for all cameras.
+This will run the demo with an FPS limit of 15 for all cameras.

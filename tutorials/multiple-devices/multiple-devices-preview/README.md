@@ -1,12 +1,25 @@
 # Multiple devices per host
 
-This example demonstrates how to connect and use multiple DepthAI (OAK) devices simultaneously on a single host machine. Each connected device will initialize a pipeline, and an RGB preview from each will be displayed independently.
+This example demonstrates how to use multiple DepthAI (OAK) devices simultaneously from a single host machine. One `dai.Pipeline` spans all devices: every device is added with `pipeline.addDevice` and its nodes are created on it with `pipeline.create(node, device)`.
 
 This tutorial contains three main scripts:
 
 1. [main.py](main.py) – Displays RGB previews from multiple connected devices.
 2. [multi-device-yolov6.py](multi-device-yolov6.py) – Runs YOLOv6 object detection on all devices.
-3. [multi-device-encoding.py](multi-device-encoding.py) – Streams and decodes H.264 video from all devices.
+3. [multi-device-encoding.py](multi-device-encoding.py) – Streams H.264 video from all devices.
+
+The part shared by all three scripts is in [utils/utility.py](utils/utility.py):
+
+```python
+with dai.Pipeline(createImplicitDevice=False) as pipeline:
+    for info in device_infos:
+        device = pipeline.addDevice(info)
+        camera = pipeline.create(dai.node.Camera, device).build(
+            dai.CameraBoardSocket.CAM_A
+        )
+        ...
+    pipeline.start()
+```
 
 ## Demo
 
@@ -18,21 +31,13 @@ Program will also print USB speed, and connected cameras for each connected devi
 
 ```
 Found 2 DepthAI devices to configure.
-
-Attempting to connect to device: 19443010F1E61F1300...
-=== Successfully connected to device: 19443010F1E61F1300
+=== Connected to device: 19443010F1E61F1300
     >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
     >>> USB speed: SUPER
-    Pipeline created for device: 19443010F1E61F1300
-    Pipeline for 19443010F1E61F1300 configured. Ready to be started.
-
-Attempting to connect to device: 14442C1011D6C5D600...
-=== Successfully connected to device: 14442C1011D6C5D600
+=== Connected to device: 14442C1011D6C5D600
     >>> Cameras: ['CAM_A', 'CAM_B', 'CAM_C']
     >>> USB speed: SUPER
-    Pipeline created for device: 14442C1011D6C5D600
-    Pipeline for 14442C1011D6C5D600 configured. Ready to be started.
-
+Pipeline started with 2 device(s).
 ```
 
 ## Usage
@@ -44,9 +49,11 @@ You can run the example using your computer as host ([`PERIPHERAL` mode](#periph
 Here is a list of all available parameters:
 
 ```
---include-ip          Also include IP-only cameras (e.g. OAK-4) in the device list
+-d, --devices DEVICES [DEVICES ...]
+                      Device IDs or IP addresses to use. If omitted, the devices are discovered.
+--include-ip          Also include IP-only cameras (e.g. OAK-4) when discovering devices
 --max-devices MAX_DEVICES
-                        Limit the total number of devices to this count
+                      Limit the number of discovered devices to this count
 ```
 
 ### Peripheral Mode
@@ -56,7 +63,6 @@ You can find more information about the supported devices and the set up instruc
 Moreover, you need to prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/)
-- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/)
 
 You can simply install them by running:
 
@@ -90,25 +96,30 @@ python main.py --include-ip --max-devices 3
 
 This will include IP cameras and then only use the first 3 discovered devices.
 
+```bash
+python main.py --devices 192.168.1.10 14442C1011D6C5D600
+```
+
+This will use exactly the named devices. Prefer this on a network with many cameras.
+
 #### Object detection on multiple devices
 
-Script [multi-device-yolov6.py](multi-device-yolov6.py) will run `YOLOv6 Nano` single shot object detector on all devices and display detections on frames.
-If you would want to display detections on high-res frames, check [tutorial here](https://docs.luxonis.com/projects/api/en/latest/tutorials/dispaying_detections/).
+Script [multi-device-yolov6.py](multi-device-yolov6.py) will run `YOLOv6 Nano` single shot object detector on all devices and display detections on frames. Each device runs its own `DetectionNetwork` with the model build for its platform.
 
 ![demo_2](https://github.com/user-attachments/assets/a700342c-2105-40b0-a831-66efb094b19c)
 
 Run this script with
 
 ```bash
-python3 multi-device-yolov6.py [--include-ip] [--max-devices N]
+python3 multi-device-yolov6.py [--devices ID_OR_IP ...] [--include-ip] [--max-devices N]
 ```
 
 #### H.264 encoding on multiple devices
 
-The [multi-device-encoding.py](multi-device-encoding.py) script will connect to multiple devices and stream encoded H.264 frames from all devices to the host. On host computer we run a thread for each device, boot the device, get frames, decode them, and put them in a queue which the main thread reads and displays the frame on the main thread.
+The [multi-device-encoding.py](multi-device-encoding.py) script encodes the color camera of every device to H.264 on the device and streams the encoded video to the host, where the Visualizer decodes and displays it.
 
 Run this script with
 
 ```bash
-python3 multi-device-encoding.py [--include-ip] [--max-devices N]
+python3 multi-device-encoding.py [--devices ID_OR_IP ...] [--include-ip] [--max-devices N]
 ```

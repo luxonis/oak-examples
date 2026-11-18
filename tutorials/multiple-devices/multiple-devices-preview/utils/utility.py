@@ -1,83 +1,65 @@
+from typing import Callable, List, Optional
+
 import depthai as dai
-from typing import List, Optional, Callable, Dict, Any
+
+HTTP_PORT = 8082
 
 
-def filter_devices(
-    devices: List[dai.DeviceInfo],
+def select_devices(
+    devices: List[str],
     include_ip: bool = False,
     max_devices: Optional[int] = None,
-    warn_if_many_ip: Optional[int] = 5,
 ) -> List[dai.DeviceInfo]:
+    """Return the devices named on the command line, or discover them.
+
+    Discovery skips IP-only devices (e.g. OAK-4) unless include_ip is set, so a
+    shared network full of cameras is not opened by accident.
     """
-    Args:
-        devices: list of all DeviceInfo from dai.Device.getAllAvailableDevices()
-        include_ip: if False, drop all TCP_IP attachments (e.g. OAK-4). If True, keep them.
-        max_devices: if set, only return up to this many devices (first-come).
-        warn_if_many_ip: if include_ip and the count of IP devices >= this, emit a warning.
+    if devices:
+        return [dai.DeviceInfo(device) for device in devices]
+
+    infos = dai.Device.getAllAvailableDevices()
+    if not include_ip:
+        infos = [
+            info for info in infos if info.protocol != dai.XLinkProtocol.X_LINK_TCP_IP
+        ]
+    if max_devices is not None and len(infos) > max_devices:
+        print(f"Using the first {max_devices} of {len(infos)} discovered devices.")
+        infos = infos[:max_devices]
+    return infos
+
+
+def run_multi_device_pipeline(
+    device_infos: List[dai.DeviceInfo],
+    setup_device: Callable[[dai.Pipeline, dai.Device, dai.RemoteConnection], None],
+) -> None:
+    """Build ONE pipeline that spans all devices and run it until 'q' is pressed.
+
+    setup_device creates the nodes of a single device; it is called once per device.
     """
-    internal, ip_only = [], []
-    for d in devices:
-        if d.protocol == dai.XLinkProtocol.X_LINK_TCP_IP:
-            ip_only.append(d)
-        else:
-            internal.append(d)
+    if not device_infos:
+        print("No DepthAI devices found.")
+        return
+    print(f"Found {len(device_infos)} DepthAI devices to configure.")
 
-    if include_ip:
-        result = internal + ip_only
-        if warn_if_many_ip and len(ip_only) >= warn_if_many_ip:
-            print(
-                f"⚠️  Warning: {len(ip_only)} IP-only devices detected. You may saturate your network."
-            )
-    else:
-        result = internal
+    # No implicit device: devices are added explicitly and nodes are created on them.
+    with dai.Pipeline(createImplicitDevice=False) as pipeline:
+        visualizer = dai.RemoteConnection(httpPort=HTTP_PORT)
 
-    if max_devices is not None and len(result) > max_devices:
-        print(f"⚠️  Capping device list to first {max_devices} of {len(result)} total.")
-        result = result[:max_devices]
+        for info in device_infos:
+            device = pipeline.addDevice(info)
+            print(f"=== Connected to device: {device.getDeviceId()}")
+            print(f"    >>> Cameras: {[c.name for c in device.getConnectedCameras()]}")
+            print(f"    >>> USB speed: {device.getUsbSpeed().name}")
+            setup_device(pipeline, device, visualizer)
 
-    return result
+        pipeline.start()
+        visualizer.registerPipeline(pipeline)
+        print(f"Pipeline started with {len(device_infos)} device(s).")
 
-
-def setup_devices(
-    devices_info: List[dai.DeviceInfo],
-    visualizer: dai.RemoteConnection,
-    setup_device_pipeline: Callable[
-        [dai.DeviceInfo, dai.RemoteConnection], Optional[Dict[str, Any]]
-    ],
-) -> List[Dict[str, Any]]:
-    initialized_setups: List[Dict[str, Any]] = []
-    for dev_info in devices_info:
-        setup_info = setup_device_pipeline(dev_info, visualizer)
-        if setup_info:
-            initialized_setups.append(setup_info)
-        else:
-            print(
-                f"--- Failed to set up device {dev_info.getDeviceId()}. Skipping. ---"
-            )
-    return initialized_setups
-
-
-def start_pipelines(
-    setups: List[Dict[str, Any]], visualizer: dai.RemoteConnection
-) -> List[Dict[str, Any]]:
-    active_pipelines_info: List[Dict[str, Any]] = []
-    for setup in setups:
-        try:
-            print(f"\nStarting pipeline for device {setup['mxid']}...")
-            setup["pipeline"].start()
-
-            visualizer.registerPipeline(setup["pipeline"])
-            print(f"Pipeline for {setup['mxid']} registered with visualizer.")
-            active_pipelines_info.append(setup)
-        except Exception as e:
-            print(
-                f"Error starting or registering pipeline for device {setup['mxid']}: {e}"
-            )
-            setup["device"].close()
-            continue
-    return active_pipelines_info
-
-
-def any_pipeline_running(pipelines: List[Dict[str, Any]]) -> bool:
-    """Return True if at least one pipeline is still running."""
-    return any(item["pipeline"].isRunning() for item in pipelines)
+        while pipeline.isRunning():
+            pipeline.processTasks()
+            key = visualizer.waitKey(1)
+            if key == ord("q"):
+                print("Got 'q' key from the remote connection! Shutting down.")
+                break

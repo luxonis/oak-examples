@@ -1,4 +1,11 @@
 import argparse
+from pathlib import Path
+
+DEFAULT_CALIBRATION = (
+    Path(__file__).resolve().parents[2]
+    / "multi-device-calibration"
+    / "calibration.json"
+)
 
 
 def initialize_argparser():
@@ -11,16 +18,19 @@ def initialize_argparser():
     )
 
     parser.add_argument(
-        "--include-ip",
-        action="store_true",
-        help="Also include IP-only cameras (e.g. OAK-4) in the device list",
+        "-c",
+        "--calibration",
+        type=Path,
+        default=DEFAULT_CALIBRATION,
+        help="Calibration JSON saved by the multi-device-calibration example",
     )
 
     parser.add_argument(
-        "--max-devices",
-        type=int,
-        default=None,
-        help="Limit the total number of devices to this count",
+        "-d",
+        "--devices",
+        nargs="+",
+        default=[],
+        help="Device IDs or IP addresses to use. If omitted, every device in the calibration is used.",
     )
 
     parser.add_argument(
