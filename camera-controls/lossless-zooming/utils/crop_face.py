@@ -17,8 +17,8 @@ class CropFace(dai.node.HostNode):
         The input link for the dai.ImgDetections message.
     config_output : dai.Output
         The output link for the ImageManipConfig messages.
-    source_size : Tuple[int, int]
-        The size of the source image (width, height).
+    source : dai.Node.Output
+        Original frames whose transformation and dimensions define the crop space.
     target_size : Optional[Tuple[int, int]] = (1920, 1080)
         The size of the target image (width, height).
     resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.STRETCH
@@ -27,6 +27,9 @@ class CropFace(dai.node.HostNode):
 
     def __init__(self) -> None:
         super().__init__()
+        self.inputs["source"].getParent().setTimestampSource(
+            dai.node.Sync.TimestampSource.DEVICE
+        )
         self.config_output = self.createOutput(
             possibleDatatypes=[
                 dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImageManipConfig, True)
@@ -39,7 +42,7 @@ class CropFace(dai.node.HostNode):
     def build(
         self,
         detections_input: dai.Node.Output,
-        source_size: Tuple[int, int],
+        source: dai.Node.Output,
         target_size: Tuple[int, int] = (1920, 1080),
         resize_mode: dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.CENTER_CROP,
     ):
@@ -49,37 +52,32 @@ class CropFace(dai.node.HostNode):
         ----------
         detections_input : dai.Node.Output
             The input link for the dai.ImgDetections message
-        source_size : Tuple[int, int]
-            The size of the source image (width, height).
+        source : dai.Node.Output
+            Original source frames, including replay frames.
         target_size : Optional[Tuple[int, int]]
             The size of the target image (width, height).
         resize_mode : dai.ImageManipConfig.ResizeMode = dai.ImageManipConfig.ResizeMode.CENTER_CROP
             The resize mode to use when target size is set. Options are: CENTER_CROP, LETTERBOX, NONE, STRETCH.
         """
 
-        self.source_size = source_size
         self.target_size = target_size
         self.resize_mode = resize_mode
-        self.link_args(detections_input)
+        self.link_args(detections_input, source)
 
         return self
 
-    def process(self, detection_message: dai.Buffer):
+    def process(self, detection_message: dai.ImgDetections, source: dai.ImgFrame):
         """Process the input detections and create a crop config. This function is
         ran every time a new dai.ImgDetections message is received.
 
         Sends one crop configuration to the config_output link.
         """
         assert isinstance(detection_message, dai.ImgDetections)
-        timestamp = detection_message.getTimestamp()
-        sequence_num = detection_message.getSequenceNum()
-
-        dets = detection_message.detections
+        dets = detection_message.transformTo(source.getTransformation()).detections
         # Skip the current frame / load new frame
         cfg = dai.ImageManipConfig()
         cfg.setSkipCurrentImage(True)
-        cfg.setTimestamp(timestamp)
-        cfg.setSequenceNum(sequence_num)
+        cfg.setBufferMetadataFrom(detection_message)
 
         if len(dets) > 0:
             cfg.setSkipCurrentImage(False)
@@ -89,11 +87,13 @@ class CropFace(dai.node.HostNode):
             x = rect.center.x
             y = rect.center.y
             x_avg, y_avg = self._average_filter(x, y)
-            crop_w = self.target_size[0] / self.source_size[0]
-            crop_h = self.target_size[1] / self.source_size[1]
+            crop_w = min(self.target_size[0] / source.getWidth(), 1.0)
+            crop_h = min(self.target_size[1] / source.getHeight(), 1.0)
+            x_avg = min(max(x_avg, crop_w / 2), 1 - crop_w / 2)
+            y_avg = min(max(y_avg, crop_h / 2), 1 - crop_h / 2)
 
             crop_rectangle = dai.RotatedRect(
-                dai.Point2f(x_avg, y_avg), dai.Size2f(crop_w, crop_h), 0
+                dai.Point2f(x_avg, y_avg, True), dai.Size2f(crop_w, crop_h, True), 0
             )
 
             cfg.addCropRotatedRect(crop_rectangle, normalizedCoords=True)

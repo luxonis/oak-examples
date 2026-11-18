@@ -30,6 +30,8 @@ class FPSController(dai.node.ThreadedHostNode):
         super().__init__()
         self._pipeline = self.getParentPipeline()
         self._script = self._pipeline.create(dai.node.Script)
+        for output in (self.rgb_nn, self.rgb_display):
+            output.setPossibleDatatypes([(dai.DatatypeEnum.ImgFrame, False)])
 
     def build(
         self,
