@@ -75,7 +75,8 @@ with dai.Pipeline(device) as p:
 
     sync = p.create(dai.node.Sync)
     sync.setRunOnHost(True)
-    sync.setSyncThreshold(timedelta(milliseconds=1))
+    # PointCloud keeps the depth timestamp, which can trail RGB by a few ms.
+    sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
     pcl.outputPointCloud.link(sync.inputs["pcl"])
     color_output.link(sync.inputs["rgb"])
     nn.out.link(sync.inputs["detections"])
