@@ -35,7 +35,7 @@ if [[ "${EXTERNALLY_MANAGED_OAKCTL_OAKAGENT:-false}" == true ]]; then
   command -v oakctl
   shasum -a 256 "$(command -v oakctl)"
   oakctl version
-  adb shell "oak-agent --version" || true
+  adb shell "oak-agent --version"
 else
   echo "Updating oakctl if available..."
   if command -v oakctl >/dev/null 2>&1; then

@@ -53,7 +53,7 @@ ENTRYPOINT ["sh", "-c", "\
         command -v oakctl && \
         sha256sum \"$(command -v oakctl)\" && \
         oakctl version && \
-        (oakctl adb shell oak-agent --version || true); \
+        oakctl adb shell oak-agent --version; \
     fi && \
     echo 'Installing dependencies...' && \
     pip install --no-cache-dir -r tests/requirements.txt && \
