@@ -46,6 +46,14 @@ def main():
             check=True,
             timeout=60,
         )
+        # A freshly started ADB server may need time to find the device.
+        subprocess.run(
+            [installed, "adb", "wait-for-device"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            check=True,
+            timeout=60,
+        )
         actual_agent = output(installed, "adb", "shell", "oak-agent", "--version")
         if actual_agent != expected_agent:
             raise RuntimeError(f"Expected agent {expected_agent}, got {actual_agent}")
