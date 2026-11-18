@@ -1,24 +1,6 @@
 import depthai as dai
 
 from depthai_nodes import GatheredData
-from depthai_nodes.node import GatherData
-
-
-class GatherCrops(GatherData):
-    """Keep empty frames from overtaking pending crop results."""
-
-    def _send_ready_data(self) -> None:
-        while not self._ready_timestamps.empty():
-            timestamp = self._ready_timestamps.get()
-            if timestamp != min(self._reference_data):
-                self._ready_timestamps.put(timestamp)
-                return
-            gathered = GatheredData(
-                reference_data=self._reference_data.pop(timestamp),
-                items=self._data_by_reference_ts.pop(timestamp, None) or [],
-            )
-            self._clear_old_data(gathered)
-            self.out.send(gathered)
 
 
 class CropRegions(dai.Buffer):

@@ -1,6 +1,8 @@
 import depthai as dai
 
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData
+from depthai_nodes.node import ParsingNeuralNetwork
+
+from gather_crops import GatherCrops
 
 
 class SecondStageNNNode(dai.node.ThreadedHostNode):
@@ -10,7 +12,7 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
     Receives detection crops from the first stage and runs them through:
         -> ImageManip (resize to NN input resolution);
         -> ParsingNeuralNetwork (run the model);
-        -> GatherData (synchronize NN outputs with the correct reference detections).
+        -> GatherCrops (synchronize NN outputs with the correct reference detections).
 
     Exposes:
       - synced_out: NN outputs aligned with reference detections (for PeopleJoinNode)
@@ -27,7 +29,7 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
 
         self._img_manip: dai.node.ImageManip = self.createSubnode(dai.node.ImageManip)
         self._nn: ParsingNeuralNetwork = self.createSubnode(ParsingNeuralNetwork)
-        self._gather: GatherData = self.createSubnode(GatherData)
+        self._gather: GatherCrops = self.createSubnode(GatherCrops)
 
         self.synced_out: dai.Node.Output = self._gather.out
 
@@ -41,7 +43,7 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
         """
         @param image_source: Source RGB frames.
         @param archive: NN archive providing the model and input resolution.
-        @param reference_detections: Detections from the first-stage NN model, used by GatherData to sync
+        @param reference_detections: Detections from the first-stage NN model, used by GatherCrops to sync
                                      NN outputs to the correct detections.
         @param camera_fps: Camera FPS.
         """
@@ -54,6 +56,9 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
         image_source.link(self._img_manip.inputImage)
 
         self._nn.build(self._img_manip.out, archive)
+        # Every crop must produce one ordered result for its reference face.
+        self._nn.input.setBlocking(True)
+        self._nn.setNumInferenceThreads(1)
 
         self._gather.build(
             cameraFps=camera_fps,

@@ -6,11 +6,11 @@ import depthai as dai
 import host_nodes
 import pipeline_builders
 from arguments import initialize_argparser
+from gather_crops import GatherCrops
 from depthai_nodes.node import (
     ImgDetectionsFilter,
     ExtendedNeuralNetwork,
     FrameCropper,
-    GatherData,
     CoordinatesMapper,
     ParsingNeuralNetwork,
     Tiling,
@@ -120,6 +120,8 @@ with dai.Pipeline(device) as pipeline:
         input=frame_cropper.out,
         nnSource=FACE_DETECTION_MODEL,
     )
+    face_det_nn.input.setBlocking(True)
+    face_det_nn.setNumInferenceThreads(1)
     frame_cropper.fromImgDetections(
         inputImgDetections=largest_people_detection_cropped.out,
         outputSize=face_det_nn._nn_archive.getInputSize(),
@@ -127,7 +129,7 @@ with dai.Pipeline(device) as pipeline:
     ).build(
         inputImage=rgb_high_res_out,
     )
-    face_det_collector = pipeline.create(GatherData).build(
+    face_det_collector = pipeline.create(GatherCrops).build(
         inputData=face_det_nn.out,
         inputReference=largest_people_detection_cropped.out,
         cameraFps=args.fps_limit,
@@ -182,7 +184,9 @@ with dai.Pipeline(device) as pipeline:
         input=frame_cropper_tiling.out,
         nnSource=nn_source,
     )
-    face_detection_tiling_collector = pipeline.create(GatherData).build(
+    face_detection_nn_tiling.input.setBlocking(True)
+    face_detection_nn_tiling.setNumInferenceThreads(1)
+    face_detection_tiling_collector = pipeline.create(GatherCrops).build(
         inputData=face_detection_nn_tiling.out,
         inputReference=rgb_high_res_out,
         cameraFps=args.fps_limit,

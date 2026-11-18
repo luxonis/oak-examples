@@ -6,7 +6,8 @@ from depthai_nodes.node import FrameCropper, ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
 from utils.visualizer_node import VisualizeLicensePlates
-from utils.crop_regions import GatherCrops, PlateRegions, VehicleRegions
+from utils.crop_regions import PlateRegions, VehicleRegions
+from utils.gather_crops import GatherCrops
 
 REQ_WIDTH, REQ_HEIGHT = (
     1920 * 2,

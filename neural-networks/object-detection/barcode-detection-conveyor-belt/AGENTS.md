@@ -37,6 +37,7 @@ This is the repository reference for barcode-region detection followed by host-s
 - [main.py](main.py)
 - [utils/barcode_decoder.py](utils/barcode_decoder.py)
 - [utils/barcode_regions.py](utils/barcode_regions.py)
+- [utils/gather_crops.py](utils/gather_crops.py)
 - [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py)
 
 ## Architecture
@@ -45,13 +46,15 @@ This is the repository reference for barcode-region detection followed by host-s
 - [utils/barcode_regions.py](utils/barcode_regions.py) expands and rotates detected barcode regions.
 - `FrameCropper` crops those regions from the original input.
 - [utils/barcode_decoder.py](utils/barcode_decoder.py) performs host-side decoding on the cropped regions, trying `pyzbar` first and falling back to `zxing-cpp` when `pyzbar` is unavailable.
-- `GatherData` associates decoder results with detections before [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py) displays them.
+- `GatherCrops`, a bounded `GatherData` subclass, associates decoder results with detections before [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py) displays them.
 
 ## Constraints
 
 - The live camera path assumes a very large `2592x1944` source and manual exposure tuning in [main.py](main.py).
 - Decode quality depends on both the first-stage detector and the crop/resize path.
 - Each crop must produce one decoder result, including an empty result when decoding fails; gathering depends on result count and order.
+- `GatherCrops` preserves frame order and drops an entire incomplete frame after two seconds or when more than 64 reference frames are pending. Late results are discarded, so empty frames cannot overtake a pending decode.
+- `GatherCrops` relies on depthai-nodes 0.8.0 internals; recheck ordering and expiry when updating that dependency. The timeout and pending-frame limit are class constants in [utils/gather_crops.py](utils/gather_crops.py).
 - `pyzbar` may be unavailable on some hosts if its `zbar` runtime is missing or cannot be loaded; the example falls back to `zxing-cpp`, but decode behavior may differ slightly between backends.
 - This is not a generic barcode scanner; it is optimized around a conveyor-style workflow.
 
@@ -64,5 +67,6 @@ This is the repository reference for barcode-region detection followed by host-s
 ## Validation
 
 - `Run:` `python3 main.py`
+- `Checked on 18 November 2026:` synthetic RVC2 and RVC4 peripheral pipelines passed rotated cropping, metadata/order, and delayed/dropped-result recovery checks. Model/decoder, camera/replay and packaged standalone comparisons remain pending.
 - `Success looks like:` the Visualizer shows `Barcode Overlay`, and detected barcodes receive decoded overlays
 - `Common failure meaning:` the detector is not finding barcode regions, the source resolution is too low, or the host decoder is not receiving valid crops

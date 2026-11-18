@@ -1,5 +1,7 @@
 import depthai as dai
-from depthai_nodes.node import FrameCropper, GatherData
+from depthai_nodes.node import FrameCropper
+
+from gather_crops import GatherCrops
 
 
 class FaceCropsNode(dai.node.ThreadedHostNode):
@@ -8,7 +10,7 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
 
     preview + face detections
         -> FrameCropper (synchronized face crops)
-        -> GatherData (sync crops with reference detections)
+        -> GatherCrops (sync crops with reference detections)
 
     Exposes:
       - out: Face crops for second-stage NNs
@@ -26,7 +28,7 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
         self._resize_mode = resize_mode
 
         self._cropper: FrameCropper = self.createSubnode(FrameCropper)
-        self._gather: GatherData = self.createSubnode(GatherData)
+        self._gather: GatherCrops = self.createSubnode(GatherCrops)
 
         self.out: dai.Node.Output = self._cropper.out
         self.synced_out: dai.Node.Output = self._gather.out
@@ -39,12 +41,12 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
         face_reference_detections: dai.Node.Output,
     ) -> "FaceCropsNode":
         """
-        @param camera_fps: The frames per second (FPS) of the camera, used by GatherData.
+        @param camera_fps: The frames per second (FPS) of the camera, used by GatherCrops.
         @param preview_source: Node output that produces RGB/preview frames (dai.ImgFrame).
         @param detections_source: Node output that produces face detections (ImgDetections)
                                   used to define crop ROIs.
         @param face_reference_detections: Node output that produces face detections (dai.ImgDetections)
-                                          used as reference for synchronization in GatherData.
+                                          used as reference for synchronization in GatherCrops.
         """
         self._cropper.fromImgDetections(
             inputImgDetections=detections_source,

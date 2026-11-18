@@ -2,6 +2,88 @@
 
 We can test every example in a way where we verify that it is running for a certain period on a specific platform, python, and depthai version.
 
+## U07 crop scheduling validation
+
+The hardware-free regression suite uses DepthAI 3.11.0 and depthai-nodes 0.8.0.
+It exercises the SDK's Python matching methods and native messages with synthetic
+queues and a controlled clock, without constructing or starting a pipeline:
+
+```bash
+DEPTHAI_TELEMETRY=0 python3 -m unittest discover -s tests -p test_crop_gathering.py -v
+```
+
+Local result on 18 November 2026: all 12 tests passed with Python 3.12.3,
+DepthAI 3.11.0 and depthai-nodes 0.8.0 on Linux, without a device. The grouping
+checks exercise all four examples' local gatherer implementations.
+
+It covers zero/one/12 detections, delayed crops followed by empty frames,
+results arriving before references, lost crops, late results, expiry with idle
+inputs, pending-frame and orphan-result limits, empty decoder results, rotated
+barcode ROI expansion, parent indices across multiple vehicles/plates,
+multi-head face results, and missing-tile recovery with frame references.
+These are message-level checks; they do not establish device crop quality,
+model output parity, decoder backend parity, or performance.
+
+All four U07 examples keep identical local `GatherCrops` subclasses so
+each example remains independently copyable/packageable. They retain the SDK's
+matching/counting implementation, emit complete groups in source timestamp
+order, and discard whole incomplete frames after two seconds or when more than
+64 reference frames are pending. At most 64 orphan results are retained. Late
+results for completed/discarded frames are ignored. Adjust the class constants
+for slower workloads and recheck the regression suite when upgrading the SDK.
+Per-crop inference uses blocking inputs and one inference thread to preserve
+result count and order, including all three people-demographics model branches.
+
+### U07 example dispositions and device checks
+
+| Example                                      | Disposition                                                                                                                                         | Full application validation still required                                                 |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `barcode-detection-conveyor-belt`            | Replace retry/reuse scheduler with `FrameCropper`; bounded `GatherCrops` joins one decoder result per region.                                       | RVC2 peripheral and RVC4 peripheral/standalone; camera/replay; pyzbar and zxing-cpp paths. |
+| `license-plate-recognition`                  | Replace both Script crop stages with `FrameCropper`; preserve vehicle/plate indices and task-specific ROI selection.                                | RVC4 peripheral/standalone; camera/replay; compare crop geometry and OCR association.      |
+| `people-demographics-and-sentiment-analysis` | Replace generated Script/ImageManip scheduler with `FrameCropper`; use bounded grouping for crops and all three model branches.                     | RVC4 standalone; verify face cards and all three feature results stay associated.          |
+| `focused-vision`                             | Replace generated display-crop scheduler with `FrameCropper`; use bounded grouping for two-stage and tiled inference; retain black fallback frames. | RVC4 standalone; compare naive, two-stage and tiling outputs.                              |
+
+For every supported path, exercise zero/one/many detections, slow second stages,
+dropped frames and recovery, and rotated regions. Include multiple vehicles
+with multiple plate candidates for ALPR. Record device/SDK versions, input,
+decoder backend, observed outputs and any fallback. No speedup is claimed.
+
+### Synthetic hardware pipeline results
+
+Passed on 18 November 2026 with Python 3.12.3, DepthAI 3.11.0 and
+depthai-nodes 0.8.0. The RVC4 was an OAK4-D R7 running OS 1.45.0.
+These checks ran host pipelines over Ethernet; no application bundles were built.
+
+| Platform/path                 | Exercised behavior                                                                                                                                                           | Result                                                                                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RVC2 peripheral               | Real `FrameCropper` with generic and expanded barcode ROIs; 0/1/12 detections, a 20-degree rotated region, 20 ms per-crop probe delay, and one intentionally missing result. | Passed crop count, source metadata and order checks. Incomplete sequence 5 expired; sequences 6 and 7 resumed, producing `[0, 1, 2, 3, 4, 6, 7]`. |
+| RVC4 peripheral               | Same crop/group cases with interleaved BGR frames.                                                                                                                           | Passed the same assertions and dropped-result recovery.                                                                                           |
+| RVC4 app pipeline components  | Actual focused-vision display cropper and people-demographics face cropper/three-face limiter; fan-out to three delayed host probes in place of the second-stage models.     | Passed 0/1/12-detection cases, crop dimensions, metadata and per-branch recovery after suppressing sequence 5 results.                            |
+| RVC4 ALPR pipeline components | Actual vehicle and plate `FrameCropper` stages and ROI selectors; synthetic plate detections/OCR probes; 0/1/12 vehicles and two plate candidates per vehicle.               | Passed selected parent indices, crop/OCR association and source-coordinate checks for every emitted frame.                                        |
+
+The probes substitute for model inference and barcode decoding. Live camera/replay
+comparisons, pyzbar/zxing-cpp behavior and packaged RVC4 standalone runs remain
+pending in the application matrix above.
+
+### Additional candidate search
+
+Searched Python and C++ sources under `apps`, `camera-controls`, `cpp`,
+`custom-frontend`, `depth-measurement`, `integrations`, `neural-networks`,
+`streaming` and `tutorials` for generated Scripts, ImageManip crop configs,
+image skip/reuse calls, `FrameCropper` and `GatherData`.
+No further standard detection-to-crop scheduler was identified beyond the four
+initial examples; the remaining implementations have the dispositions below.
+
+| Remaining implementation                                                    | U07 disposition                                                                                                                                          |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `camera-controls/lossless-zooming/utils/crop_face.py`                       | Retain smoothed, fixed-size face-centered NV12 zoom windows. This is a camera/encoder control policy rather than a standard second-stage detection crop. |
+| `neural-networks/pose-estimation/hand-pose/utils/process.py`                | Already uses `FrameCropper.fromManipConfigs` and `GatherData`; retain its padded, axis-aligned palm ROI policy.                                          |
+| `neural-networks/face-detection/gaze-estimation/utils/process_keypoints.py` | Already uses shared crop/group nodes; retain keypoint-derived left/right eye and face ROI generation.                                                    |
+| `neural-networks/ocr/general-ocr/utils/host_process_detections.py`          | Already uses shared crop/group nodes; retain text-specific expansion, size/confidence selection, rotation and white crop background.                     |
+| QR/tiling examples and multi-device stitched inference                      | Already use shared crop/group nodes; retain tile-layout configuration.                                                                                   |
+| `tutorials/display-detections/crop_highres.py` and full-FOV resize controls | Retain fixed demonstration crop and interactive resize configuration; neither schedules per-detection crops.                                             |
+| Other Script nodes                                                          | Networking, NN data handling, LED control or FPS policy; no further crop scheduler to migrate.                                                           |
+
 ## Installation
 
 To install the requirements you can do:

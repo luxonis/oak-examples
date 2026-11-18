@@ -37,6 +37,7 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 - [backend/src/main.py](backend/src/main.py): all three comparison branches and published topics
 - [backend/src/pipeline_builders.py](backend/src/pipeline_builders.py): RGB split, cropper, and encoder helper builders
+- [backend/src/gather_crops.py](backend/src/gather_crops.py): bounded, ordered crop/result grouping
 - [backend/src/host_nodes/pick_largest_bbox.py](backend/src/host_nodes/pick_largest_bbox.py): largest-detection selection
 - [backend/src/host_nodes/face_detection_from_gathered_data.py](backend/src/host_nodes/face_detection_from_gathered_data.py): 2-stage detection remapping logic
 - [backend/src/host_nodes/merge_img_detections.py](backend/src/host_nodes/merge_img_detections.py): tiled detection merging
@@ -52,6 +53,7 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - The 2-stage branch runs person detection, crops a high-resolution person region, remaps coordinates, then runs face detection on that crop.
 - The tiling branch slices the high-resolution image into overlapping tiles, runs face detection on each tile, merges detections, and crops the largest face result.
 - Custom host nodes provide black fallback frames when no detections exist so the comparison layout remains stable.
+- Both multi-stage and tiled inference use `GatherCrops`, a `GatherData` subclass, to preserve source-frame order and discard incomplete groups without shifting crop indices.
 
 ## Data Flow
 
@@ -77,6 +79,8 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 - The backend exits on RVC2; this is intentionally RVC4-only.
 - The default FPS limit is forced to `13` if not provided.
+- Crop inference uses blocking inputs and one inference thread to preserve result count and order. `GatherCrops` drops whole incomplete frames after two seconds or when more than 64 references are pending, and ignores late results.
+- `GatherCrops` uses depthai-nodes 0.8.0 internals. Recheck its ordering/expiry tests when upgrading the dependency; tune its class constants for slower workloads.
 - [backend/src/arguments.py](backend/src/arguments.py) defines `--media_path` and `--api_key`, but the current backend does not use either argument.
 - [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) still references a `Custom Service` that the backend does not register.
 
@@ -96,5 +100,6 @@ This example is the best RVC4 reference for preserving detail when the target ob
 ## Validation
 
 - `Run:` `oakctl app run .`
+- `Checked on 18 November 2026:` synthetic RVC4 peripheral pipelines passed display-crop metadata/order and delayed/dropped-result recovery checks. Full models and packaged standalone output comparisons remain pending.
 - `Success looks like:` the Visualizer shows the RGB preview plus three comparison outputs for naive, 2-stage, and tiling approaches
 - `Common failure meaning:` the app is running on a non-RVC4 platform, the expected bundled models are missing, or the frontend topic expectations no longer match the backend outputs
