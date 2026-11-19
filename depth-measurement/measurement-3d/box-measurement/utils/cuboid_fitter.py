@@ -304,9 +304,10 @@ class CuboidFitter:
                 self.planes.append(plane_eq)
                 points = self.point_cloud.select_by_index(inliers)
                 self.plane_points.append(points)
-                self.point_cloud = self.point_cloud.select_by_index(
-                    inliers, invert=True
-                )
+
+            # Also remove rejected planes from the search cloud. Otherwise a
+            # remaining patch parallel to an accepted face wins every retry.
+            self.point_cloud = self.point_cloud.select_by_index(inliers, invert=True)
 
         return len(self.planes) == 3
 

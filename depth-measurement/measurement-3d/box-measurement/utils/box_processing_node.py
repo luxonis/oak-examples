@@ -1,7 +1,6 @@
 import depthai as dai
 import numpy as np
 import cv2
-import time
 
 from depthai_nodes.utils import AnnotationHelper
 from depthai_nodes.node.utils.message_remapping import remap_message
@@ -13,8 +12,9 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
     def __init__(self):
         dai.node.ThreadedHostNode.__init__(self)
-        self.inputSync = self.createInput()
+        self.inputSynced = self.createInput(blocking=False, queueSize=1)
 
+        self.outputRGB = self.createOutput()
         self.outputANN = self.createOutput()
         self.outputANNCuboid = self.createOutput()
 
@@ -24,9 +24,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
         self.fit = False
         self.helper_det = None
         self.helper_cuboid = None
-        self.last_successful_fit = 0
-        self.dimensions_cache = None
-        self.cache_duration = 1.0  # seconds
+        self.fit_failure = ""
 
     def _draw_mask(self, mask: np.ndarray, idx: int):
         """
@@ -107,27 +105,47 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
     ):
         """Fits cuboid and draws its 3D outline as lines."""
 
+        self.fit = False
+        self.fitter.reset()
+        if mask is None:
+            self.fit_failure = "No segmentation mask available"
+            return
+
         mask_bool = mask == idx
         pts3d = pcl.reshape((*mask.shape, 3))[mask_bool]
         cols = cv2.cvtColor(pcl_color, cv2.COLOR_BGR2RGB)[mask_bool]
+        valid = np.isfinite(pts3d).all(axis=1) & (pts3d[:, 2] > 0)
+        pts3d, cols = pts3d[valid], cols[valid]
+        if len(pts3d) < self.fitter.sample_points:
+            self.fit_failure = "Not enough valid depth points"
+            return
 
-        self.fitter.reset()
         self.fitter.set_point_cloud(pts3d, cols)
+        if len(self.fitter.point_cloud.points) < self.fitter.sample_points:
+            self.fit_failure = "Not enough depth points after filtering"
+            return
 
         if not self.fitter.fit_orthogonal_planes():
-            self.fit = False
+            self.fit_failure = (
+                f"Could fit only {len(self.fitter.planes)} of 3 perpendicular faces"
+            )
             return
 
         dimensions, corners = self.fitter.calculate_dimensions_corners_MAD()
-
-        # print('Dimensions: ', dimensions)
+        corners = np.asarray(corners)
+        if (
+            np.shape(dimensions) != (3,)
+            or not np.all(np.isfinite(dimensions))
+            or np.any(dimensions <= 0)
+            or corners.shape != (8, 3)
+            or not np.all(np.isfinite(corners))
+        ):
+            self.fit_failure = "Could not estimate valid box dimensions"
+            return
 
         self.dimensions = dimensions
         self.fit = True
-        self.last_successful_fit = time.time()
-        self.dimensions_cache = dimensions
 
-        corners = np.asarray(corners)
         outline = self.fitter.get_3d_lines_o3d(corners)
         corners3d = np.asarray(outline.points)
         self._draw_cuboid_outline(corners3d)
@@ -158,15 +176,8 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
                 f"Box ({det.confidence:.2f}) "
                 f"{self.dimensions[0]:.1f} x {self.dimensions[1]:.1f} x {self.dimensions[2]:.1f} cm"
             )
-        elif self.dimensions_cache is not None and (
-            time.time() - self.last_successful_fit < self.cache_duration
-        ):
-            label = (
-                f"Box ({det.confidence:.2f}) "
-                f"{self.dimensions_cache[0]:.1f} x {self.dimensions_cache[1]:.1f} x {self.dimensions_cache[2]:.1f} cm"
-            )
         else:
-            label = f"{'Box'} {det.confidence:.2f}"
+            label = f"Box ({det.confidence:.2f}): measurement unavailable"
 
         self.helper_det.draw_text(
             label,
@@ -175,39 +186,45 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
             background_color=bg_color,
             size=18,
         )
+        if not self.fit:
+            self.helper_det.draw_text(
+                self.fit_failure,
+                (corners[0][0], min(corners[0][1] + 24 / height, 0.95)),
+                color=color,
+                background_color=bg_color,
+                size=14,
+            )
 
     def _annotate_detection(
         self, det: dai.ImgDetection, idx: int, mask: np.ndarray, pcl, pcl_colors
     ):
         """Draw all annotations (mask, 3D box fit, bounding box + label) for a single detection."""
-        self._draw_mask(mask, idx)
+        if mask is not None:
+            self._draw_mask(mask, idx)
         self._fit_cuboid(idx, mask, pcl, pcl_colors)
         self._draw_box_and_label(det)
 
     def run(self):
         while self.isRunning():
-            group = self.inputSync.get()
+            group = self.inputSynced.get()
+            if group is None:
+                continue
+
             pcl_msg = group["pcl"]
             rgb_msg = group["rgb"]
             det_msg = group["detections"]
-
-            if pcl_msg is None or rgb_msg is None or det_msg is None:
-                print(
-                    f"AnnotationNode: Missing messages - PCL: {pcl_msg is None}, RGB: {rgb_msg is None}, Det: {det_msg is None}"
-                )
-                time.sleep(0.005)
-                continue
 
             assert isinstance(pcl_msg, dai.PointCloudData)
             assert isinstance(rgb_msg, dai.ImgFrame)
             assert isinstance(det_msg, dai.ImgDetections)
             inPointCloud: dai.PointCloudData = pcl_msg
             inRGB: dai.ImgFrame = rgb_msg
-            parser_output = remap_message(
-                det_msg, det_msg.getTransformation(), rgb_msg.getTransformation()
-            )
 
             try:
+                # Map detections and masks onto the original RGB pixel grid.
+                parser_output = remap_message(
+                    det_msg, det_msg.getTransformation(), inRGB.getTransformation()
+                )
                 points, colors = inPointCloud.getPointsRGB()
                 if points is None:
                     print("AnnotationNode: Empty PCL points array.")
@@ -218,24 +235,22 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
                 self.cloud_transformation = inPointCloud.getTransformation()
                 self.image_transformation = inRGB.getTransformation()
                 mask = parser_output.getCvSegmentationMask()
-                if mask is None:
-                    continue
                 if (
                     inPointCloud.isSparse()
                     or (inPointCloud.getWidth(), inPointCloud.getHeight())
                     != (width, height)
                     or len(points) != width * height
-                    or mask.shape != (height, width)
+                    or (mask is not None and mask.shape != (height, width))
                 ):
                     raise ValueError(
                         "An organized RGB-aligned cloud and mask are required"
                     )
                 rgba_img = colors.reshape(height, width, 4)
-                bgr_img = cv2.cvtColor(rgba_img, cv2.COLOR_BGRA2BGR)
+                bgr_img = cv2.cvtColor(rgba_img, cv2.COLOR_RGBA2BGR)
                 detections = parser_output.detections
 
-                timestamp = inPointCloud.getTimestamp()
-                seq_num = inPointCloud.getSequenceNum()
+                timestamp = inRGB.getTimestamp()
+                seq_num = inRGB.getSequenceNum()
 
                 self.helper_det = AnnotationHelper()
                 self.helper_cuboid = AnnotationHelper()
@@ -247,10 +262,12 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
                 ann_msg_cuboid = self.helper_cuboid.build(timestamp, seq_num)
 
                 for message in (ann_msg, ann_msg_cuboid):
-                    message.setBufferMetadataFrom(inPointCloud)
+                    message.setBufferMetadataFrom(inRGB)
                     message.setTransformation(inRGB.getTransformation())
                 self.outputANN.send(ann_msg)
                 self.outputANNCuboid.send(ann_msg_cuboid)
+                # Publish the matching frame only after its overlays are ready.
+                self.outputRGB.send(inRGB)
 
             except Exception as e:
                 print(

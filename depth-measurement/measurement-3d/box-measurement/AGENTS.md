@@ -47,21 +47,21 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - `CAM_A` provides the RGB stream used for display and inference.
 - `Depth` owns depth-source selection and aligns its depth output to RGB before `PointCloud`.
 - `PointCloud` is configured with `setOrganized(True)` so the cloud keeps one point per pixel in frame order (invalid pixels have `z = 0`), and with `setLengthUnit(CENTIMETER)` so the cuboid fitter works and reports in centimeters without any host-side unit conversion.
-- The point cloud explicitly targets `CAM_A` coordinates, matching the intrinsics used to project cuboid corners.
+- The point cloud explicitly targets `CAM_A` coordinates; cuboid corners are projected with the cloud's own frame transformation.
 - A platform-specific box instance-segmentation archive is loaded from [depthai_models/](depthai_models/).
 - `ImageManip` resizes RGB frames to the model input size before `ParsingNeuralNetwork`.
-- The custom [utils/box_processing_node.py](utils/box_processing_node.py) threaded host node receives:
+- A host-side `Sync` groups the following inputs within half a camera frame interval before passing them to [utils/box_processing_node.py](utils/box_processing_node.py):
   - organized, colored point clouds from `PointCloud.outputPointCloud`
   - the original undistorted RGB frame
   - parsed detections and segmentation masks
-- That host node projects the fitted cuboid back into image space and publishes two separate annotation layers.
+- That host node projects the fitted cuboid back into image space and publishes two separate annotation layers, then forwards the matching RGB frame for display. All three outputs use the RGB frame's timestamp and sequence number.
+- Failed measurements show `measurement unavailable` and a reason beside the box, including the number of perpendicular faces fitted. Dimensions are shown only for the current successful fit; they are not cached across detections.
 
 ## Data Flow
 
 - `CAM_A -> ImageManip -> ParsingNeuralNetwork -> detections + segmentation mask`
 - `Depth + RGB -> PointCloud -> Pointcloud`
-- `synchronized pointcloud + RGB + detections -> BoxProcessingNode -> Box Detections + Cuboid Fit`
-- `CAM_A preview -> Video Stream`
+- `pointcloud + original RGB + detections -> Sync -> BoxProcessingNode -> Box Detections + Cuboid Fit + Video Stream`
 
 ## Modification Guide
 
@@ -80,6 +80,7 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 
 - The README explicitly calls out cuboid-fit instability and dimension jumps; this is a reference demo, not a hardened metrology pipeline.
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
+- The fitter still requires three perpendicular planes. It removes rejected plane candidates from its search cloud so a parallel residual cannot consume every attempt, but this does not guarantee a valid fit on noisy or incomplete depth.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
 - Masks and organized point clouds must share the undistorted RGB pixel grid. Cuboid overlays use `ImgTransformation.project3DPointTo` from cloud to image coordinates.
 
@@ -104,4 +105,5 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Video Stream`, `Box Detections`, `Cuboid Fit`, and `Pointcloud`, and detected boxes receive dimension labels when the fit succeeds
+- `Failure feedback:` a detected box shows `measurement unavailable` and the specific depth, plane-fit, or dimension failure in the `Box Detections` overlay on `Video Stream`
 - `Common failure meaning:` stereo alignment is poor, the device lacks the expected camera topology, the model bundle is unavailable, or the cuboid fit is failing on noisy depth

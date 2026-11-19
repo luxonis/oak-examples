@@ -73,18 +73,20 @@ with dai.Pipeline(device) as p:
     nn.getParser().setConfidenceThreshold(0.7)
     nn.getParser().setIouThreshold(0.5)
 
+    box_processing = p.create(BoxProcessingNode)
+
+    # Pair the cloud and detections with their original, undistorted RGB frame.
     sync = p.create(dai.node.Sync)
     sync.setRunOnHost(True)
     # PointCloud keeps the depth timestamp, which can trail RGB by a few ms.
     sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
+    sync.setSyncAttempts(-1)
     pcl.outputPointCloud.link(sync.inputs["pcl"])
     color_output.link(sync.inputs["rgb"])
     nn.out.link(sync.inputs["detections"])
+    sync.out.link(box_processing.inputSynced)
 
-    box_processing = p.create(BoxProcessingNode)
-    sync.out.link(box_processing.inputSync)
-
-    visualizer.addTopic("Video Stream", color_output, "images")
+    visualizer.addTopic("Video Stream", box_processing.outputRGB, "images")
     visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
     visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
     visualizer.addTopic("Pointcloud", pcl.outputPointCloud, "point_clouds")
