@@ -61,7 +61,7 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
     def _draw_cuboid_outline(self, corners: np.ndarray):
         """Draws the cuboid outline in 3D space based on the corners."""
-        # Cloud points are in millimeters in the depth optical coordinate system.
+        # Cloud points are in centimeters in the CAM_A optical coordinate system.
         # Native projection includes rectification, extrinsics and the NN resize.
         width, height = self.image_transformation.getSize()
         pts2d_norm = []

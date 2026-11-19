@@ -39,19 +39,18 @@ with dai.Pipeline(device) as p:
         enableUndistortion=True,
     )
 
-    point_cloud = p.create(dai.node.PointCloud)
-    point_cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
-    # Mask indexing requires one point for every depth pixel.
-    point_cloud.initialConfig.setOrganized(True)
-
     depth = p.create(dai.node.Depth)
     depth.build(
         dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=CAMERA_RESOLUTION
     )
     depth.setAlignTo(color_output)
-    depth.depth.link(point_cloud.inputDepth)
 
-    color_output.link(point_cloud.inputColor)
+    pcl = p.create(dai.node.PointCloud)
+    pcl.initialConfig.setOrganized(True)
+    pcl.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+    pcl.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
+    depth.depth.link(pcl.inputDepth)
+    color_output.link(pcl.inputColor)
 
     manip = p.create(dai.node.ImageManip)
     manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
@@ -76,10 +75,9 @@ with dai.Pipeline(device) as p:
 
     sync = p.create(dai.node.Sync)
     sync.setRunOnHost(True)
-    # PointCloud carries the depth timestamp; RGB and stereo are not
-    # hardware-synced on every device, so pair the nearest frames.
+    # PointCloud keeps the depth timestamp, which can trail RGB by a few ms.
     sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
-    point_cloud.outputPointCloud.link(sync.inputs["pcl"])
+    pcl.outputPointCloud.link(sync.inputs["pcl"])
     color_output.link(sync.inputs["rgb"])
     nn.out.link(sync.inputs["detections"])
 
@@ -89,7 +87,7 @@ with dai.Pipeline(device) as p:
     visualizer.addTopic("Video Stream", color_output, "images")
     visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
     visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
-    visualizer.addTopic("Pointcloud", point_cloud.outputPointCloud, "point_clouds")
+    visualizer.addTopic("Pointcloud", pcl.outputPointCloud, "point_clouds")
 
     print("Pipeline created.")
     p.start()

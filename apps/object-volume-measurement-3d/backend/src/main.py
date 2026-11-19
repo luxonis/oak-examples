@@ -135,19 +135,19 @@ with dai.Pipeline(device) as pipeline:
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
 
-    # Native PointCloud preserves the aligned depth frame transformation.
-    point_cloud = pipeline.create(dai.node.PointCloud)
-    point_cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
-    point_cloud.initialConfig.setOrganized(True)
+    pcl_seg = pipeline.create(dai.node.PointCloud)
+    pcl_seg.initialConfig.setOrganized(True)
+    pcl_seg.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+    pcl_seg.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
     # Its internal Sync must accept the same pairs and clock as the upstream Sync.
-    point_cloud.sync.setSyncThreshold(sync.getSyncThreshold())
-    point_cloud.sync.setTimestampSource(sync.getTimestampSource())
-    annotation_node.out_segm.link(point_cloud.inputColor)
-    annotation_node.out_segm_depth.link(point_cloud.inputDepth)
+    pcl_seg.sync.setSyncThreshold(sync.getSyncThreshold())
+    pcl_seg.sync.setTimestampSource(sync.getTimestampSource())
+    annotation_node.out_segm_depth.link(pcl_seg.inputDepth)
+    annotation_node.out_segm.link(pcl_seg.inputColor)
 
     # Measurement node
     measurement_node = pipeline.create(MeasurementNode).build(
-        point_cloud.outputPointCloud, annotation_node.out_selection, imu.out
+        pcl_seg.outputPointCloud, annotation_node.out_selection, imu.out
     )
     measurement_node.out_result.link(annotation_node.in_meas_result)
 
@@ -240,7 +240,7 @@ with dai.Pipeline(device) as pipeline:
 
     visualizer.addTopic("Video", cam_out, "images")
     visualizer.addTopic("Detections", annotation_node.out_ann, "images")
-    visualizer.addTopic("Pointclouds", point_cloud.outputPointCloud, "point_clouds")
+    visualizer.addTopic("Pointclouds", pcl_seg.outputPointCloud, "point_clouds")
     visualizer.addTopic("Measurement Overlay", measurement_node.out_ann, "images")
     visualizer.addTopic("Plane Status", measurement_node.out_plane_status, "images")
 
