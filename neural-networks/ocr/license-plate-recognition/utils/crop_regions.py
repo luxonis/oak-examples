@@ -94,13 +94,14 @@ class PlateRegions(dai.node.HostNode):
                 continue
 
             # Keep the ALPR-specific inset, then map the crop back to source pixels.
+            xmin, ymin = best.xmin * 1.02, best.ymin * 1.03
+            xmax, ymax = best.xmax * 0.98, best.ymax * 0.97
+            if xmax <= xmin or ymax <= ymin:
+                continue
             plate = dai.ImgDetection()
             plate.confidence = best.confidence
             plate.label = best.label
-            plate.xmin, plate.ymin = best.xmin * 1.02, best.ymin * 1.03
-            plate.xmax, plate.ymax = best.xmax * 0.98, best.ymax * 0.97
-            if plate.xmax <= plate.xmin or plate.ymax <= plate.ymin:
-                continue
+            plate.setOuterBoundingBox(xmin, ymin, xmax, ymax)
             selected = dai.ImgDetections()
             selected.detections = [plate]
             selected.setTransformation(plate_detections.getTransformation())

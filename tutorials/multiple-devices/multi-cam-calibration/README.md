@@ -17,7 +17,7 @@ The core extrinsic calibration uses OpenCV as follows:
    - It outputs the rotation vector (`rvec`) and translation vector (`tvec`), which together define the 3D pose of the checkerboard relative to the camera. These are the extrinsic parameters.
 4. **Saving & Visualization**:
    - The computed pose (`rvec`, `tvec`) is saved.
-   - For display, [`cv2.projectPoints`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga1019495a2c8d1743ed5cc23fa0daff8c) is used. It takes the 3D coordinates of the world axes (defined at the checkerboard's origin), the calculated `rvec` and `tvec`, and the camera's high-resolution intrinsic matrix to project these axes onto the 2D image plane. These projected 2D points are then scaled and normalized for drawing on the live preview.
+   - For display, [`cv2.projectPoints`](https://docs.opencv.org/master/d9/d0c/group__calib3d.html#ga1019495a2c8d1743ed5cc23fa0daff8c) is used. It takes the 3D coordinates of the world axes (defined at the checkerboard's origin), the calculated `rvec` and `tvec`, and the camera's high-resolution intrinsic matrix to project these axes onto the 2D image plane. These projected 2D points are then remapped from the still image to the live preview for drawing.
 
 ## Demo
 

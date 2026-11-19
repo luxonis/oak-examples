@@ -50,7 +50,7 @@ This is the repository reference for two-stage 3D bounding-box estimation with O
 ## Constraints
 
 - Despite the README’s broader Objectron framing, the current repo state is chair-only.
-- `PADDING = 0.2` is baked into both crop generation and annotation reprojection.
+- `PADDING = 0.2` controls crop generation; annotation reprojection reads each crop transformation.
 - Default FPS is intentionally low on RVC2 and lower than many detection examples because this is a two-stage geometry workflow.
 
 ## Related Examples

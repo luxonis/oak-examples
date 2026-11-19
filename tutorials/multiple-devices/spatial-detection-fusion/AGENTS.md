@@ -13,7 +13,7 @@ This is the repository reference for fusing spatial detections from multiple cal
 ## Do Not Use This Example When
 
 - You do not have extrinsic calibration files yet.
-- You need image stitching instead of world-frame fusion.
+- You need image stitching instead of world-frame fusion; use the DepthAI `Stitching` node as in [multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn).
 - You need a standalone packaged deployment.
 
 ## Quick Facts
@@ -59,10 +59,11 @@ This is the repository reference for fusing spatial detections from multiple cal
 
 - [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration): run this first to create the required extrinsic files
 - [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you only need one independent pipeline per device
+- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when you need a 2D panorama from the DepthAI `Stitching` node instead of world-frame fusion
 - [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the single-device spatial-detection baseline
 
 ## Validation
 
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows per-device detection streams plus the BEV topics, and only calibrated devices participate
-- `Common failure meaning:` extrinsic files are missing or stale, the devices are not stereo-capable, or the user expects a standalone or stitching-based solution instead of world-frame fusion
+- `Common failure meaning:` extrinsic files are missing or stale, the devices are not stereo-capable, or the user expects a standalone solution or a `Stitching` node panorama instead of world-frame fusion

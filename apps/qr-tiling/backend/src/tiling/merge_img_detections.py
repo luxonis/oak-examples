@@ -24,14 +24,24 @@ class MergeImgDetections(BaseHostNode):
                 )
             detections.extend(item.detections)
 
-        merged.detections = detections
         merged.setSequenceNum(msg.getSequenceNum())
         merged.setTimestamp(msg.getTimestamp())
         merged.setTimestampDevice(msg.getTimestampDevice())
 
-        if hasattr(msg, "getTransformation"):
-            transformation = msg.getTransformation()
-            if transformation is not None:
-                merged.setTransformation(transformation)
+        if msg.items:
+            transformation = msg.items[0].getTransformation()
+            width, height = transformation.getSize()
+            # Update axis-aligned bounds while preserving the rotated rectangle.
+            for detection in detections:
+                rect = detection.getBoundingBox().denormalize(width, height)
+                xmin, ymin, xmax, ymax = rect.getOuterRect()
+                detection.xmin, detection.ymin, detection.xmax, detection.ymax = (
+                    xmin / width,
+                    ymin / height,
+                    xmax / width,
+                    ymax / height,
+                )
+            merged.setTransformation(transformation)
 
+        merged.detections = detections
         self.out.send(merged)

@@ -18,25 +18,23 @@ class VisualizeLicensePlates(dai.node.HostNode):
             return
         frame = frame_message.getCvFrame()
         frame_h, frame_w = frame.shape[:2]
+        regions = results.reference_data.regions.transformTo(
+            frame_message.getTransformation()
+        )
         # Each item matches a selected region and its explicit (vehicle, plate) index.
-        for lp_detection, result in zip(
-            results.reference_data.detections, results.items
-        ):
+        for lp_detection, result in zip(regions.detections, results.items):
             text = "".join(result["ocr"].classes)
             license_plate = result["crop"].getCvFrame()
 
             if len(text) < 5:
                 continue
 
-            lp_x_min = int(lp_detection.xmin * frame_w)
-            lp_y_min = int(lp_detection.ymin * frame_h)
-            lp_x_max = int(lp_detection.xmax * frame_w)
-            lp_y_max = int(lp_detection.ymax * frame_h)
-
-            lp_x_min = np.clip(lp_x_min, 0, frame_w)
-            lp_y_min = np.clip(lp_y_min, 0, frame_h)
-            lp_x_max = np.clip(lp_x_max, 0, frame_w)
-            lp_y_max = np.clip(lp_y_max, 0, frame_h)
+            rect = lp_detection.getBoundingBox().denormalize(frame_w, frame_h)
+            lp_x_min, lp_y_min, lp_x_max, lp_y_max = rect.getOuterRect()
+            lp_x_min = int(np.clip(lp_x_min, 0, frame_w))
+            lp_y_min = int(np.clip(lp_y_min, 0, frame_h))
+            lp_x_max = int(np.clip(lp_x_max, 0, frame_w))
+            lp_y_max = int(np.clip(lp_y_max, 0, frame_h))
 
             if lp_x_max <= lp_x_min or lp_y_max <= lp_y_min:
                 continue
