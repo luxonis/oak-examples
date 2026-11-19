@@ -77,7 +77,6 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 - The backend exits on RVC2; this is intentionally RVC4-only.
 - The default FPS limit is forced to `13` if not provided.
-- Crop and tile inference must return one result per crop in order; grouping does not carry an explicit crop index.
 - [backend/src/arguments.py](backend/src/arguments.py) defines `--media_path` and `--api_key`, but the current backend does not use either argument.
 - [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) still references a `Custom Service` that the backend does not register.
 

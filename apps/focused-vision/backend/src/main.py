@@ -121,7 +121,6 @@ with dai.Pipeline(device) as pipeline:
         nnSource=FACE_DETECTION_MODEL,
     )
     face_det_nn.input.setBlocking(True)
-    face_det_nn.setNumInferenceThreads(1)
     frame_cropper.fromImgDetections(
         inputImgDetections=largest_people_detection_cropped.out,
         outputSize=face_det_nn._nn_archive.getInputSize(),
@@ -185,7 +184,6 @@ with dai.Pipeline(device) as pipeline:
         nnSource=nn_source,
     )
     face_detection_nn_tiling.input.setBlocking(True)
-    face_detection_nn_tiling.setNumInferenceThreads(1)
     face_detection_tiling_collector = pipeline.create(GatherCrops).build(
         inputData=face_detection_nn_tiling.out,
         inputReference=rgb_high_res_out,

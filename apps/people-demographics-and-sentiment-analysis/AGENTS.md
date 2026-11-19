@@ -85,7 +85,7 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 - The intended runtime is RVC4 standalone only.
 - The backend defaults to `15` FPS if no limit is provided.
-- All three model branches must return one result per face in the same order; the feature merger joins by position.
+- Face features are joined by position; all three model branches must preserve crop count and order.
 - The frontend updates the face strip and stats by polling `Get Faces` once per second.
 - Only three face tiles are displayed in the frontend even if more people are in view.
 

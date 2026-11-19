@@ -1,5 +1,4 @@
 from pathlib import Path
-from datetime import timedelta
 
 import depthai as dai
 from depthai_nodes.node import FrameCropper, ParsingNeuralNetwork
@@ -8,6 +7,7 @@ from utils.arguments import initialize_argparser
 from utils.visualizer_node import VisualizeLicensePlates
 from utils.crop_regions import PlateRegions, VehicleRegions
 from utils.gather_crops import GatherCrops
+from utils.ocr_crops import OcrCrops
 
 REQ_WIDTH, REQ_HEIGHT = (
     1920 * 2,
@@ -106,9 +106,8 @@ with dai.Pipeline(device) as pipeline:
     lp_det_nn = pipeline.create(ParsingNeuralNetwork).build(
         vehicle_crop_node.out, lp_det_model_nn_archive
     )
-    # Both crop inference stages must preserve result count and order for GatherData.
+    # Keep every vehicle crop for frame-level gathering.
     lp_det_nn.input.setBlocking(True)
-    lp_det_nn.setNumInferenceThreads(1)
     vehicle_plates = pipeline.create(GatherCrops).build(
         cameraFps=args.fps_limit,
         inputData=lp_det_nn.out,
@@ -127,11 +126,13 @@ with dai.Pipeline(device) as pipeline:
         .build(inputImage=input_node_out)
     )
 
+    ocr_crops = pipeline.create(OcrCrops)
+    lp_crop_node.out.link(ocr_crops.crops)
     ocr_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
-        lp_crop_node.out, ocr_model_nn_archive
+        ocr_crops.inference, ocr_model_nn_archive
     )
     ocr_nn.input.setBlocking(True)
-    ocr_nn.setNumInferenceThreads(1)
+    ocr_nn.out.link(ocr_crops.results)
     ocr_nn.getParser(0).setIgnoredIndexes(
         [
             0,
@@ -178,15 +179,6 @@ with dai.Pipeline(device) as pipeline:
     display_resize_node.setMaxOutputFrameSize(1280 * 720 * 3)
     input_node_out.link(display_resize_node.inputImage)
 
-    # Pair each OCR output with its own crop before gathering by source frame.
-    ocr_crops = pipeline.create(dai.node.Sync)
-    # A zero Sync threshold does not match even identical timestamps.
-    ocr_crops.setSyncThreshold(timedelta(microseconds=1))
-    ocr_crops.setSyncAttempts(-1)
-    ocr_crops.inputs["ocr"].setBlocking(True)
-    ocr_crops.inputs["crop"].setBlocking(True)
-    ocr_nn.out.link(ocr_crops.inputs["ocr"])
-    ocr_nn.passthrough.link(ocr_crops.inputs["crop"])
     recognized_plates = pipeline.create(GatherCrops).build(
         cameraFps=args.fps_limit,
         inputData=ocr_crops.out,

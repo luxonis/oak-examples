@@ -56,9 +56,8 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
         image_source.link(self._img_manip.inputImage)
 
         self._nn.build(self._img_manip.out, archive)
-        # Every crop must produce one ordered result for its reference face.
+        # Keep every face crop for reference matching.
         self._nn.input.setBlocking(True)
-        self._nn.setNumInferenceThreads(1)
 
         self._gather.build(
             cameraFps=camera_fps,

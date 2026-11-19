@@ -36,6 +36,7 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 - [README.md](README.md)
 - [main.py](main.py)
 - [utils/crop_regions.py](utils/crop_regions.py)
+- [utils/ocr_crops.py](utils/ocr_crops.py)
 - [utils/visualizer_node.py](utils/visualizer_node.py)
 
 ## Architecture
@@ -51,7 +52,7 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - `REQ_WIDTH` and `REQ_HEIGHT` are set to doubled `1920x1080`, which makes this much heavier than most examples; a separate `ImageManip` resizes the display to 1280×720 before it reaches the host visualizer.
 - The OCR parser ignores a long list of token indexes in code, so blindly swapping OCR models is risky.
-- Keep vehicle/plate indices aligned when filtering ROIs; OCR results follow crop order.
+- OCR crops and results use per-crop sequence numbers; their enclosing group carries the source-frame sequence.
 
 ## Related Examples
 
