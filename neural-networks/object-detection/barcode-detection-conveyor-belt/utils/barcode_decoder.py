@@ -34,7 +34,7 @@ class BarcodeDecoder(dai.node.HostNode):
     """
     Custom host node that receives ImgFrame messages,
     runs barcode decoding backends on the host and emits one MessageGroup per
-    crop, including an empty group when decoding fails.
+    processed crop, including an empty group when decoding fails.
     """
 
     _logged_backend_status = False
@@ -65,8 +65,8 @@ class BarcodeDecoder(dai.node.HostNode):
 
     def build(self, crops: dai.Node.Output) -> "BarcodeDecoder":
         self.link_args(crops)
-        # Dropping a crop would leave GatherData waiting for its decoder result.
-        self.inputs["crop"].setBlocking(True)
+        # Skip queued crops when decoding falls behind the live preview.
+        self.inputs["crop"].setBlocking(False)
         return self
 
     def process(self, crop: dai.ImgFrame) -> None:

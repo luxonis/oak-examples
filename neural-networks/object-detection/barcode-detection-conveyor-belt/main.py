@@ -6,7 +6,6 @@ from utils.arguments import initialize_argparser
 from utils.simple_barcode_overlay import SimpleBarcodeOverlay
 from utils.barcode_decoder import BarcodeDecoder
 from utils.barcode_regions import BarcodeRegions
-from utils.gather_crops import GatherCrops
 
 _, args = initialize_argparser()
 
@@ -78,14 +77,8 @@ with dai.Pipeline(device) as pipeline:
         .build(inputImage=input_node)
     )
     decoder = pipeline.create(BarcodeDecoder).build(crop_node.out)
-    decoded_barcodes = pipeline.create(GatherCrops).build(
-        cameraFps=args.fps_limit,
-        inputData=decoder.out,
-        inputReference=detection_nn.out,
-    )
-
     barcode_overlay = pipeline.create(SimpleBarcodeOverlay).build(
-        decoded_barcodes.out, resize_node.out
+        decoder.out, resize_node.out, detection_nn.out
     )
 
     visualizer.addTopic("Barcode Overlay", barcode_overlay.output)

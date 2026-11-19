@@ -44,13 +44,12 @@ This is the repository reference for barcode-region detection followed by host-s
 - A neural barcode detector runs on the resized full frame.
 - `FrameCropper` crops regions selected by [utils/barcode_regions.py](utils/barcode_regions.py) from the original input.
 - [utils/barcode_decoder.py](utils/barcode_decoder.py) performs host-side decoding on the cropped regions, trying `pyzbar` first and falling back to `zxing-cpp` when `pyzbar` is unavailable.
-- [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py) draws decode results back onto the displayed stream.
+- [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py) draws synchronized detection boxes and recent decode history.
 
 ## Constraints
 
 - The live camera path assumes a very large `2592x1944` source and manual exposure tuning in [main.py](main.py).
 - Decode quality depends on both the first-stage detector and the crop/resize path.
-- Emit one decoder result per crop in detection order, including empty results for failed decodes.
 - `pyzbar` may be unavailable on some hosts if its `zbar` runtime is missing or cannot be loaded; the example falls back to `zxing-cpp`, but decode behavior may differ slightly between backends.
 - This is not a generic barcode scanner; it is optimized around a conveyor-style workflow.
 
