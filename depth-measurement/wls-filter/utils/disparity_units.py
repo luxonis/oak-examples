@@ -8,12 +8,9 @@ def get_disparity_scale(config: dai.StereoDepthConfig, platform: dai.Platform) -
         return subpixel
     if config.costMatching.enableCompanding:
         raise ValueError("WLS metric conversion does not support companded disparity")
-    if hasattr(config, "getDisparityScale"):
-        return int(config.getDisparityScale())
 
-    # Compatibility for DepthAI releases without getDisparityScale() (incl. 3.12.1): RVC2 filters normalize disparity with an
-    # integer multiplier. Older getMaxDisparity() reports the 8192 ceiling,
-    # so calculate the actual encoding directly (e.g. 760 * 10 = 7600).
+    # RVC2 post-processing filters normalize disparity with an integer multiplier
+    # (e.g. 760 * 10 = 7600), so derive the actual encoding from the config.
     maximum = (
         63
         if config.costMatching.disparityWidth
