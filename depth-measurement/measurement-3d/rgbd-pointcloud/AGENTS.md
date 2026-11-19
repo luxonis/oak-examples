@@ -48,8 +48,7 @@ This is the minimal colored point-cloud reference in the repo. Use it when you n
 - The color source is either:
   - `CAM_A` in RGB mode
   - the right mono camera when `--mono` is set
-- RVC4 uses `ImageAlign` to align depth to the chosen color stream.
-- RVC2 uses `stereo.inputAlignTo` instead of a separate `ImageAlign` node.
+- `Depth.setAlignTo(cam_out)` owns platform-specific alignment to the chosen color stream.
 - The Visualizer receives both the color preview and the generated point cloud.
 
 ## Data Flow
