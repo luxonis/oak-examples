@@ -39,16 +39,18 @@ with dai.Pipeline(device) as p:
         enableUndistortion=True,
     )
 
-    rgbd = p.create(dai.node.RGBD).build()
-
     depth = p.create(dai.node.Depth)
     depth.build(
         dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=CAMERA_RESOLUTION
     )
     depth.setAlignTo(color_output)
-    depth.depth.link(rgbd.inDepth)
 
-    color_output.link(rgbd.inColor)
+    pcl = p.create(dai.node.PointCloud)
+    pcl.initialConfig.setOrganized(True)
+    pcl.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+    pcl.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
+    depth.depth.link(pcl.inputDepth)
+    color_output.link(pcl.inputColor)
 
     manip = p.create(dai.node.ImageManip)
     manip.initialConfig.setOutputSize(*nn_archive.getInputSize())
@@ -73,8 +75,9 @@ with dai.Pipeline(device) as p:
 
     sync = p.create(dai.node.Sync)
     sync.setRunOnHost(True)
-    sync.setSyncThreshold(timedelta(milliseconds=1))
-    rgbd.pcl.link(sync.inputs["pcl"])
+    # PointCloud keeps the depth timestamp, which can trail RGB by a few ms.
+    sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
+    pcl.outputPointCloud.link(sync.inputs["pcl"])
     color_output.link(sync.inputs["rgb"])
     nn.out.link(sync.inputs["detections"])
 
@@ -84,7 +87,7 @@ with dai.Pipeline(device) as p:
     visualizer.addTopic("Video Stream", color_output, "images")
     visualizer.addTopic("Box Detections", box_processing.outputANN, "images")
     visualizer.addTopic("Cuboid Fit", box_processing.outputANNCuboid, "images")
-    visualizer.addTopic("Pointcloud", rgbd.pcl, "point_clouds")
+    visualizer.addTopic("Pointcloud", pcl.outputPointCloud, "point_clouds")
 
     print("Pipeline created.")
     p.start()

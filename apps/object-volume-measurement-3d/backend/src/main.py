@@ -135,18 +135,19 @@ with dai.Pipeline(device) as pipeline:
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
 
-    # RGBD node for the segmented PCL
-    rgbd_seg = pipeline.create(dai.node.RGBD).build()
+    pcl_seg = pipeline.create(dai.node.PointCloud)
+    pcl_seg.initialConfig.setOrganized(True)
+    pcl_seg.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+    pcl_seg.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
     # Its internal Sync must accept the same pairs and clock as the upstream Sync.
-    rgbd_sync = rgbd_seg.inColor.getParent()
-    rgbd_sync.setSyncThreshold(sync.getSyncThreshold())
-    rgbd_sync.setTimestampSource(sync.getTimestampSource())
-    annotation_node.out_segm.link(rgbd_seg.inColor)
-    annotation_node.out_segm_depth.link(rgbd_seg.inDepth)
+    pcl_seg.sync.setSyncThreshold(sync.getSyncThreshold())
+    pcl_seg.sync.setTimestampSource(sync.getTimestampSource())
+    annotation_node.out_segm_depth.link(pcl_seg.inputDepth)
+    annotation_node.out_segm.link(pcl_seg.inputColor)
 
     # Measurement node
     measurement_node = pipeline.create(MeasurementNode).build(
-        rgbd_seg.pcl, annotation_node.out_selection, imu.out
+        pcl_seg.outputPointCloud, annotation_node.out_selection, imu.out
     )
     measurement_node.out_result.link(annotation_node.in_meas_result)
 
@@ -241,7 +242,7 @@ with dai.Pipeline(device) as pipeline:
 
     visualizer.addTopic("Video", cam_out, "images")
     visualizer.addTopic("Detections", annotation_node.out_ann, "images")
-    visualizer.addTopic("Pointclouds", rgbd_seg.pcl, "point_clouds")
+    visualizer.addTopic("Pointclouds", pcl_seg.outputPointCloud, "point_clouds")
     visualizer.addTopic("Measurement Overlay", measurement_node.out_ann, "images")
     visualizer.addTopic("Plane Status", measurement_node.out_plane_status, "images")
 

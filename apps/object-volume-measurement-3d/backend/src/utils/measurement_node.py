@@ -30,7 +30,7 @@ class MeasurementNode(dai.node.ThreadedHostNode):
     Node for point cloud volume and dimensions measurement
 
     Inputs:
-        - in_pcl            : PointCloudData (RGBD PCL)
+        - in_pcl            : PointCloudData (organized, colored, in centimeters, from the PointCloud node)
         - in_enable_measure : Buffer, holds measuring mode value (0 - disabled, 1 - enabled, 2 - plane capture)
         - in_imu            : IMU packets
 
