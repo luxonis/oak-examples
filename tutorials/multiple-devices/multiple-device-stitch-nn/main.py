@@ -1,11 +1,15 @@
 """Calibrated multi-device panorama with per-camera YOLO detections merged by ImgDetectionsFilter."""
 
+import logging
 from datetime import timedelta
 from pathlib import Path
 
 import depthai as dai
 
 from utils.arguments import initialize_argparser
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 MODELS_DIR = Path(__file__).parent / "depthai_models"
 VIEW_SIZE = (
@@ -59,8 +63,10 @@ def calibrate(device_ids, output, sample_count, known_distance):
                 sockets = STEREO_SOCKETS
             else:
                 sockets = (panorama_socket(device),)
-            print(
-                f"Calibrating {device.getDeviceId()} with {', '.join(s.name for s in sockets)}"
+            logger.info(
+                "Calibrating %s with %s",
+                device.getDeviceId(),
+                ", ".join(s.name for s in sockets),
             )
             for socket in sockets:
                 camera = pipeline.create(dai.node.Camera, device).build(
@@ -83,9 +89,10 @@ def calibrate(device_ids, output, sample_count, known_distance):
         control_queue = calibration.inputControl.createInputQueue()
         result_queue = calibration.calibrationOutput.createOutputQueue()
         pipeline.start()
-        print(
-            f"Collecting {sample_count} synchronized samples. "
-            "Point the cameras at a shared textured scene and keep them still."
+        logger.info(
+            "Collecting %d synchronized samples. "
+            "Point the cameras at a shared textured scene and keep them still.",
+            sample_count,
         )
         control_queue.send(dai.beta.MultiDeviceCalibrationControl.start())
         result = result_queue.get(timedelta(minutes=3))
@@ -96,16 +103,17 @@ def calibrate(device_ids, output, sample_count, known_distance):
         raise RuntimeError(f"Calibration failed: {result.info}")
     if not result.getHandler().toJsonFile(str(output)):
         raise RuntimeError(f"Failed to save calibration to {output}")
-    print(f"Calibration saved to {output}")
-    print(
-        f"Confidence: {result.dataConfidence:.3f}, Sampson error: {result.sampsonError:.4g}"
+    logger.info("Calibration saved to %s", output)
+    logger.info(
+        "Confidence: %.3f, Sampson error: %.4g",
+        result.dataConfidence,
+        result.sampsonError,
     )
 
 
 def make_filter_config(mode_index, iou_threshold):
     # Runtime configs replace every option, so always send a complete one.
     config = dai.ImgDetectionsFilterConfig()
-    config.setConfidenceRange(CONFIDENCE_THRESHOLD)
     config.overlapMode = OVERLAP_MODES[mode_index]
     config.overlapIouThreshold = iou_threshold
     return config
@@ -119,7 +127,9 @@ def main():
             args.devices, calibration_path, args.sample_count, args.known_distance
         )
     else:
-        print(f"Using calibration {calibration_path}; pass --calibrate to redo it")
+        logger.info(
+            "Using calibration %s; pass --calibrate to redo it", calibration_path
+        )
 
     sync_threshold = timedelta(milliseconds=args.sync_threshold_ms)
     mode_index = 2 if args.average else 1
@@ -140,7 +150,6 @@ def main():
         detection_sync.out.link(demux.input)
 
         merged = pipeline.create(dai.node.ImgDetectionsFilter)
-        merged.initialConfig.setConfidenceRange(CONFIDENCE_THRESHOLD)
         merged.initialConfig.overlapMode = OVERLAP_MODES[mode_index]
         merged.initialConfig.overlapIouThreshold = iou_threshold
         config_queue = merged.inputConfig.createInputQueue(maxSize=1, blocking=False)
@@ -150,7 +159,9 @@ def main():
             device = pipeline.addDevice(dai.DeviceInfo(identifier))
             platform = device.getPlatform()
             socket = panorama_socket(device)
-            print(f"Panorama source {index}: {device.getDeviceId()} {socket.name}")
+            logger.info(
+                "Panorama source %d: %s %s", index, device.getDeviceId(), socket.name
+            )
             camera = pipeline.create(dai.node.Camera, device).build(
                 socket, sensorFps=args.fps_limit
             )
@@ -164,6 +175,8 @@ def main():
             network = pipeline.create(dai.node.DetectionNetwork, device).build(
                 camera, description, network_input
             )
+            # Drop low-confidence boxes on the device so they are never sent or merged.
+            network.setConfidenceThreshold(CONFIDENCE_THRESHOLD)
             key = f"cam{index}"
             network.out.link(detection_sync.inputs[key])
             # MessageDemux outputs are untyped Buffers; declare the type for the filter inputs.
@@ -213,11 +226,10 @@ def main():
         visualizer.addTopic("PanoramaDetections", merged.out, group="Panorama")
 
         pipeline.start()
-        print("Pipeline started.")
+        logger.info("Pipeline started.")
         visualizer.registerPipeline(pipeline)
-        print(
-            "Open http://localhost:8082. Keys: 1 duplicates off, 2 NMS, 3 average, "
-            "W/S IoU +/-0.05, q quit."
+        logger.info(
+            "Keys: 1 duplicates off, 2 NMS, 3 average, W/S IoU +/-0.05, q quit."
         )
         try:
             while pipeline.isRunning():
@@ -233,8 +245,10 @@ def main():
                 else:
                     continue
                 config_queue.send(make_filter_config(mode_index, iou_threshold))
-                print(
-                    f"Duplicates: {OVERLAP_MODES[mode_index].name}, IoU threshold: {iou_threshold:.2f}"
+                logger.info(
+                    "Duplicates: %s, IoU threshold: %.2f",
+                    OVERLAP_MODES[mode_index].name,
+                    iou_threshold,
                 )
         except KeyboardInterrupt:
             pass

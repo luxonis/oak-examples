@@ -14,6 +14,103 @@ devices both work. There is no standalone deployment path.
 
 ![Calibrated panorama with merged detections](media/panorama.jpg)
 
+## Usage
+
+Running this example requires **two or more Luxonis devices** (RVC2, RVC4 or
+mixed) with overlapping fields of view, mounted on a rig that does not move
+after calibration. Refer to the
+[documentation](https://docs.luxonis.com/software-v3/) to set up your devices
+if you haven't done it already.
+
+You can run the example only using your computer as host
+([`PERIPHERAL` mode](#peripheral-mode)).
+
+Here is a list of all available parameters:
+
+```
+--devices ID [ID ...]      At least two device IDs or IPs
+--calibration PATH         Calibration JSON (default: calibration.json beside main.py)
+--calibrate                Redo the calibration even if the file exists
+--sample-count N           Image groups collected before solving (default: 10)
+--known-distance CM        Distance between the first cameras of the first two devices;
+                           required for scale only when no device has a stereo pair
+-fps N, --fps_limit N      Camera, detection and panorama rate (default: 10)
+--projection P             Cylindrical (default), Equirectangular or Perspective
+--average                  Average duplicate boxes instead of keeping one
+--blend, --no-blend        Seam estimation, exposure compensation and multiband blending
+                           (default); --no-blend copies the views directly (faster)
+--panorama-scale 1..4      Multiplier of the 640x400 views sent to the host (default: 2)
+--sync-threshold-ms MS     Timestamp spread tolerated when grouping (default: one frame period)
+--show-inputs              Also show every camera view with its detections
+```
+
+`Perspective` needs a combined field of view below 180 degrees; the other
+projections also handle wide rigs and full rings. The maximum panorama size is
+1600x800 times `--panorama-scale`; a calibration that needs a larger canvas is
+rejected rather than resized.
+
+While the example runs, the overlap handling can be changed from the Visualizer:
+
+| Key             | Action                                                        |
+| --------------- | ------------------------------------------------------------- |
+| `1` / `2` / `3` | Duplicates: off / keep one (NMS, default) / average the boxes |
+| `W` / `S`       | Raise / lower the IoU threshold by 0.05 (start 0.40)          |
+| `q`             | Quit                                                          |
+
+## Peripheral Mode
+
+Running in peripheral mode requires a host computer and there will be communication between the devices and the host which could affect the overall speed of the app.
+You can find more information about the supported devices and the set up instructions in our [Documentation](https://docs.luxonis.com/hardware).
+Moreover, you need to prepare a **Python >= 3.10** environment with the following packages installed:
+
+- [DepthAI](https://pypi.org/project/depthai/)
+
+You can simply install them by running:
+
+```bash
+pip install -r requirements.txt
+```
+
+The first run calibrates the rig: point all cameras at the same textured
+scene, keep the rig still and wait for `Calibration saved to ...`. The result
+is written to `calibration.json` next to the script and reused by later runs.
+Redo it with `--calibrate` whenever a camera has been moved.
+
+Running in peripheral mode opens the DepthAI Visualizer at
+[http://localhost:8082](http://localhost:8082). The `Panorama` group shows the
+`Stitched` image with `PanoramaDetections` drawn over it.
+
+#### Examples
+
+```bash
+python3 main.py --devices DEVICE_1 DEVICE_2
+```
+
+This will calibrate the devices on the first run (in any order) and then show
+the panorama with merged detections.
+
+```bash
+python3 main.py --devices DEVICE_1 DEVICE_2 --show-inputs
+```
+
+This will also publish every camera view with its own detections (`Input-N`,
+`Detections-N`).
+
+```bash
+python3 main.py --devices DEVICE_1 DEVICE_2 --calibrate --known-distance 30
+```
+
+This will redo the calibration and set the metric scale from a measured 30 cm
+between the first cameras of the two devices (needed only when no device has a
+factory-calibrated stereo pair).
+
+```bash
+python3 main.py --devices DEVICE_1 DEVICE_2 DEVICE_3 --panorama-scale 1 --no-blend
+```
+
+This will stitch three devices with smaller views and without blending, which
+suits 100 Mbit links and slower hosts.
+
 ## How it works
 
 ```mermaid
@@ -58,65 +155,6 @@ flowchart LR
    removes duplicates seen by more than one camera. The stitcher's source masks
    tell the filter which camera is visible at a seam, so the kept box is the one
    from the camera whose pixels are shown.
-
-The current overlap handling can be changed while the example runs:
-
-| Key             | Action                                                        |
-| --------------- | ------------------------------------------------------------- |
-| `1` / `2` / `3` | Duplicates: off / keep one (NMS, default) / average the boxes |
-| `W` / `S`       | Raise / lower the IoU threshold by 0.05 (start 0.40)          |
-| `q`             | Quit                                                          |
-
-## Run
-
-Requires Python >= 3.10 and the pinned dependency in `requirements.txt`
-(`depthai==3.12.1` from PyPI; it includes the beta calibration node).
-
-```bash
-# From the repository root:
-cd tutorials/multiple-devices/multiple-device-stitch-nn
-
-python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install -r requirements.txt
-
-# Two or more devices with overlapping views, in any order:
-python main.py --devices DEVICE_1 DEVICE_2
-```
-
-The first run calibrates: point all cameras at the same textured scene,
-keep the rig still and wait for `Calibration saved to ...`. The result is
-written to `calibration.json` next to the script and reused by later runs.
-Redo it with `--calibrate` whenever a camera has been moved.
-
-Then open **http://localhost:8082**. The `Panorama` group shows the
-`Stitched` image with `PanoramaDetections` drawn over it. Add `--show-inputs`
-to also publish every camera view with its own detections (`Input-N`,
-`Detections-N`).
-
-### Options
-
-```
---devices ID [ID ...]      At least two device IDs or IPs
---calibration PATH         Calibration JSON (default: calibration.json beside main.py)
---calibrate                Redo the calibration even if the file exists
---sample-count N           Image groups collected before solving (default: 10)
---known-distance CM        Distance between the first cameras of the first two devices;
-                           required for scale only when no device has a stereo pair
--fps N                     Camera, detection and panorama rate (default: 10)
---projection P             Cylindrical (default), Equirectangular or Perspective
---average                  Average duplicate boxes instead of keeping one
---no-blend                 Copy the views directly instead of seam estimation,
-                           exposure compensation and multiband blending (faster)
---panorama-scale 1..4      Multiplier of the 640x400 views sent to the host (default: 2)
---sync-threshold-ms MS     Timestamp spread tolerated when grouping (default: one frame period)
---show-inputs              Also show every camera view with its detections
-```
-
-`Perspective` needs a combined field of view below 180 degrees; the other
-projections also handle wide rigs and full rings. The maximum panorama size is
-1600x800 times `--panorama-scale`; a calibration that needs a larger canvas is
-rejected rather than resized.
 
 ## Troubleshooting
 
