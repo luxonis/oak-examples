@@ -2,16 +2,6 @@
 
 We can test every example in a way where we verify that it is running for a certain period on a specific platform, python, and depthai version.
 
-## Crop grouping tests
-
-After installing an affected example's requirements, run the crop grouping tests without a device:
-
-```bash
-DEPTHAI_TELEMETRY=0 python3 -m unittest discover -s tests -p test_crop_gathering.py -v
-```
-
-These message-level tests do not validate model inference, barcode decoding or standalone behavior.
-
 ## Installation
 
 To install the requirements you can do:
