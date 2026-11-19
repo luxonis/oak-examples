@@ -5,7 +5,7 @@ from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
-from utils.process import ProcessDetections
+
 
 _, args = initialize_argparser()
 
@@ -72,24 +72,18 @@ with dai.Pipeline(device) as pipeline:
         resize_node.out, det_nn_archive
     )
 
-    # detection processing
-    detections_processor = pipeline.create(ProcessDetections).build(
-        detections_input=detection_nn.out,
-        padding=PADDING,
-        target_size=(pose_nn_archive.getInputWidth(), pose_nn_archive.getInputHeight()),
-    )
-
-    # hand crop + pose estimation
+    # Match each palm to its frame and rotate the crop upright on device.
     crop_output_size = (
         pose_nn_archive.getInputWidth(),
         pose_nn_archive.getInputHeight(),
     )
     hand_crop_node = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(
-            inputManipConfigs=detections_processor.config_output,
-            maxOutputFrameSize=crop_output_size[0] * crop_output_size[1] * 3,
-            waitForConfig=True,
+        .fromImgDetections(
+            inputImgDetections=detection_nn.out,
+            outputSize=crop_output_size,
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+            padding=PADDING,
         )
         .build(detection_nn.passthrough)
     )
@@ -111,9 +105,9 @@ with dai.Pipeline(device) as pipeline:
         .model.heads[0]
         .metadata.extraParams["skeleton_edges"]
     )
+
     annotation_node = pipeline.create(AnnotationNode).build(
         gathered_data=gather_data.out,
-        video=input_node,
         padding_factor=PADDING,
         confidence_threshold=CONFIDENCE_THRESHOLD,
         connections_pairs=connection_pairs,
