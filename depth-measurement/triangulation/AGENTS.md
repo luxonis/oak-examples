@@ -110,4 +110,3 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows left, right, and combined views with face boxes, keypoints, disparity lines, and measurement text
 - `Common failure meaning:` the stereo camera topology is missing, the YuNet model bundle is unavailable, or left/right detections are not pairing well enough for triangulation
-- Run `python3 -m unittest discover -s tests -p test_rectified_geometry.py` from the repository root for known-depth/off-axis synthetic geometry and invalid correspondence regressions. Validate real scale with measured distances; an office scene alone does not establish accuracy.
