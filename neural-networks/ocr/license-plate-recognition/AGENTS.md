@@ -36,7 +36,6 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 - [README.md](README.md)
 - [main.py](main.py)
 - [utils/crop_regions.py](utils/crop_regions.py)
-- [utils/gather_crops.py](utils/gather_crops.py)
 - [utils/visualizer_node.py](utils/visualizer_node.py)
 
 ## Architecture
@@ -44,7 +43,7 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 - A first-stage vehicle detector runs on a very large source frame.
 - [utils/crop_regions.py](utils/crop_regions.py) selects vehicle and plate regions for `FrameCropper`.
 - A second detector finds plates inside each vehicle crop.
-- A third OCR stage reads the cropped plates; `GatherCrops`, a bounded `GatherData` subclass, associates the stage results with their source detections.
+- A third OCR stage reads the cropped plates.
 - [utils/visualizer_node.py](utils/visualizer_node.py) fuses the stages back into a 1280×720 source-frame overlay and keeps plate previews within the frame bounds.
 
 ## Constraints
@@ -52,8 +51,7 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - `REQ_WIDTH` and `REQ_HEIGHT` are set to doubled `1920x1080`, which makes this much heavier than most examples; a separate `ImageManip` resizes the display to 1280×720 before it reaches the host visualizer.
 - The OCR parser ignores a long list of token indexes in code, so blindly swapping OCR models is risky.
-- `GatherCrops` preserves frame order and drops an entire incomplete frame after two seconds or when more than 64 reference frames are pending. Late results are discarded; partial crop lists are never associated with different parent indices.
-- `GatherCrops` relies on depthai-nodes 0.8.0 internals; recheck ordering and expiry when updating that dependency. The timeout and pending-frame limit are class constants in [utils/gather_crops.py](utils/gather_crops.py).
+- Keep vehicle/plate indices aligned when filtering ROIs; OCR results follow crop order.
 
 ## Related Examples
 
@@ -64,6 +62,5 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Checked on 18 November 2026 with DepthAI 3.12.1:` a synthetic RVC4 peripheral pipeline passed both real crop stages and parent/crop/OCR association checks for 0/1/12 vehicles with host probes replacing the models. Full models, camera/replay and packaged standalone comparisons remain pending.
 - `Success looks like:` the Visualizer shows `License Plates` with detected vehicles, plates, and OCR text merged into one output
 - `Common failure meaning:` the device is not RVC4, the scene resolution is too poor for the crop cascade, or crop/result counts or reference metadata no longer match

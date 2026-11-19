@@ -40,7 +40,6 @@ This is the strongest standalone reference in the repo for multi-stage people an
 - [backend/src/faces/face_detection.py](backend/src/faces/face_detection.py): face detection stage
 - [backend/src/faces/cropping/face_crops_node.py](backend/src/faces/cropping/face_crops_node.py): crop generation for second-stage models
 - [backend/src/nn/second_stage_nn.py](backend/src/nn/second_stage_nn.py): age/gender, emotion, and re-id stage wrapper
-- [backend/src/gather_crops.py](backend/src/gather_crops.py): bounded, ordered grouping for crops and all three second stages
 - [backend/src/people/people_tracking.py](backend/src/people/people_tracking.py): people tracking stage
 - [backend/src/people/joiner/people_faces_join.py](backend/src/people/joiner/people_faces_join.py): join logic between tracked people and face features
 - [backend/src/visualization/monitor_node.py](backend/src/visualization/monitor_node.py): `Get Faces` service payload generation
@@ -57,7 +56,6 @@ This is the strongest standalone reference in the repo for multi-stage people an
 - Face detection finds candidate faces.
 - Cropping logic creates face crops for second-stage models.
 - Separate second-stage NNs estimate emotions, age/gender, and re-id embeddings.
-- `GatherCrops`, a `GatherData` subclass, groups crops and each model's results in source-frame order, retaining the original face indices.
 - A people tracker runs on the full frame.
 - Join logic associates face features with tracked people.
 - Visualization nodes render annotations and export the last-seen face cards plus aggregate stats through a service.
@@ -87,8 +85,7 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 - The intended runtime is RVC4 standalone only.
 - The backend defaults to `15` FPS if no limit is provided.
-- Second-stage inference uses blocking inputs and one inference thread to preserve result count and order. `GatherCrops` drops whole incomplete frames after two seconds or when more than 64 references are pending, and ignores late results.
-- `GatherCrops` uses depthai-nodes 0.8.0 internals. Recheck its ordering/expiry tests when upgrading the dependency; tune its class constants for slower workloads.
+- All three model branches must return one result per face in the same order; the feature merger joins by position.
 - The frontend updates the face strip and stats by polling `Get Faces` once per second.
 - Only three face tiles are displayed in the frontend even if more people are in view.
 
@@ -108,6 +105,5 @@ This is the strongest standalone reference in the repo for multi-stage people an
 ## Validation
 
 - `Run:` `oakctl app run .`
-- `Checked on 18 November 2026 with DepthAI 3.12.1:` synthetic RVC4 peripheral pipelines passed face-crop/three-face-limit and three-branch fan-out recovery checks with host probes replacing the models. Full models and packaged standalone comparisons remain pending.
 - `Success looks like:` the frontend shows the annotated stream, the face strip updates as people appear, and aggregate stats change over time
 - `Common failure meaning:` the app is not running on RVC4, one of the second-stage models is unavailable, or the `Get Faces` service payload no longer matches the frontend expectation
