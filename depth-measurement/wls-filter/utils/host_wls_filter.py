@@ -123,7 +123,7 @@ class WLSFilter(dai.node.HostNode):
         annots = AnnotationHelper()
 
         annots.draw_text(
-            "Press 'l'/'L' to increase/decrease lambda (min 0, max 25500)",
+            "Press 'l'/'L' to decrease/increase lambda (min 0, max 25500)",
             position=(0.02, 0.05),
             color=(0, 0, 0, 1),
             background_color=(1, 1, 1, 0.7),
@@ -132,15 +132,15 @@ class WLSFilter(dai.node.HostNode):
 
         annots.draw_text(
             f"Lambda: {self._filter_window._lambda}",
-            position=(0.02, 0.08),
+            position=(0.02, 0.12),
             color=(0, 0, 0, 1),
             background_color=(1, 1, 1, 0.7),
             size=8,
         )
 
         annots.draw_text(
-            "Press 's'/'S' to increase/decrease sigma (min 0, max 10)",
-            position=(0.02, 0.11),
+            "Press 's'/'S' to decrease/increase sigma (min 0, max 10)",
+            position=(0.02, 0.19),
             color=(0, 0, 0, 1),
             background_color=(1, 1, 1, 0.7),
             size=8,
@@ -148,7 +148,7 @@ class WLSFilter(dai.node.HostNode):
 
         annots.draw_text(
             f"Sigma: {self._filter_window._sigma}",
-            position=(0.02, 0.13),
+            position=(0.02, 0.26),
             color=(0, 0, 0, 1),
             background_color=(1, 1, 1, 0.7),
             size=8,
