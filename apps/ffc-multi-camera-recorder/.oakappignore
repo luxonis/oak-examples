@@ -1,0 +1,21 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Host-side tools, tests and local data
+retrieve.py
+tests/
+recordings/
+downloads/
+__pycache__/
+.cache/
+
+# Media and documentation
+media/
+README.md
+AGENTS.md
+
+# VCS
+.git/
+.github/
+.gitlab/

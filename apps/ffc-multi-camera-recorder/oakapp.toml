@@ -1,0 +1,25 @@
+identifier = "com.example.apps.ffc-multi-camera-recorder"
+app_version = "1.0.8"
+# Run only the recorder under runit, without the base image's cloud and WebRTC
+# services, so recording on boot does not depend on network access.
+entrypoint = ["/usr/bin/runsvdir", "-P", "/etc/recorder-service"]
+
+prepare_container = [
+    { type = "COPY", source = "./requirements.txt", target = "./requirements.txt" },
+    { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages" },
+]
+
+build_steps = [
+    "mkdir -p /etc/recorder-service/backend",
+    "cp /app/backend-run.sh /etc/recorder-service/backend/run",
+    "chmod +x /etc/recorder-service/backend/run",
+]
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.2.5"
