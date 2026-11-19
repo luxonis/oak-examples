@@ -59,6 +59,27 @@ You can also pass other custom options to the pytest command. Here is a list of 
 
 For Linux standalone tests, both test workflows accept an optional `oakctl_version` input. Leave it empty to install the latest release, or set a specific version. Direct Docker builds support the same override with `--build-arg OAKCTL_VERSION=<version>`.
 
+Both Linux test Dockerfiles default to `10.12.139.254:5000/python` for their
+Python base image. The farm registry stores Linux amd64 images tagged `3.8`,
+`3.10`, `3.12`, and `3.14`. This build-time setting is separate from `--local-static-registry`,
+which controls app base images during standalone tests.
+
+For a direct build, choose the Python version with `--build-arg PYTHON_VERSION=3.12`.
+To use another registry, set `--build-arg PYTHON_IMAGE=registry.example:5000/python`.
+To use Docker Hub, set `--build-arg PYTHON_IMAGE=docker.io/library/python`.
+Docker and any separate BuildKit builder must allow HTTP access
+to the farm registry; the devices-farm builders already have this configured.
+
+To refresh the mirrored images on devices-farm:
+
+```bash
+for version in 3.8 3.10 3.12 3.14; do
+  skopeo --override-os linux --override-arch amd64 copy --dest-tls-verify=false \
+    "docker://docker.io/library/python:$version" \
+    "docker://10.12.139.254:5000/python:$version" || break
+done
+```
+
 **Note:** If you want to run only peripheral or only standalone tests then set full path to those tests in pytest command. Eg. to only test peripheral:
 
 ```bash
