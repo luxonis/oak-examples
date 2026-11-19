@@ -1,6 +1,7 @@
 import cv2
 import depthai as dai
 from utils.host_wls_filter import WLSFilter
+from utils.disparity_units import get_disparity_scale
 from depthai_nodes.node import ApplyDepthColormap
 from utils.arguments import initialize_argparser
 
@@ -31,12 +32,21 @@ with dai.Pipeline(device) as pipeline:
     stereo.setDepthAlign(dai.CameraBoardSocket.CAM_C)
 
     calib = device.readCalibration()
-    baseline = calib.getBaselineDistance()
+    stereo.setDisparityToDepthUseSpecTranslation(False)
+    baseline = calib.getBaselineDistance(
+        dai.CameraBoardSocket.CAM_B,
+        dai.CameraBoardSocket.CAM_C,
+        useSpecTranslation=False,
+        unit=dai.LengthUnit.MILLIMETER,
+    )
+    config = stereo.initialConfig
+    disparity_scale = get_disparity_scale(config, device.getPlatform())
     wls_filter = pipeline.create(WLSFilter).build(
         disparity=stereo.disparity,
         rectified_right=stereo.rectifiedRight,
         max_disparity=stereo.initialConfig.getMaxDisparity(),
-        baseline=baseline,
+        baseline_mm=baseline,
+        disparity_scale=disparity_scale,
     )
 
     disp_colored = pipeline.create(ApplyDepthColormap).build(stereo.disparity)
@@ -47,12 +57,13 @@ with dai.Pipeline(device) as pipeline:
     )
     filtered_disp_colored.setColormap(cv2.COLORMAP_JET)
 
-    visualizer.addTopic("Rectified Right", stereo.rectifiedRight)
-    visualizer.addTopic("Disparity", disp_colored.out)
-    visualizer.addTopic("WLS Raw Depth", wls_filter.depth_frame)
-    visualizer.addTopic("WLS Filtered Disparity", wls_filter.filtered_disp)
-    visualizer.addTopic("WLS Colored Disparity", filtered_disp_colored.out)
-    visualizer.addTopic("WLS Annotations", wls_filter.annotations)
+    # Each group opens as its own panel: inputs on the left, WLS output on the right.
+    visualizer.addTopic("Rectified Right", stereo.rectifiedRight, "input")
+    visualizer.addTopic("Disparity", disp_colored.out, "input")
+    visualizer.addTopic("WLS Colored Disparity", filtered_disp_colored.out, "wls")
+    visualizer.addTopic("WLS Annotations", wls_filter.annotations, "wls")
+    visualizer.addTopic("WLS Raw Depth", wls_filter.depth_frame, "wls")
+    visualizer.addTopic("WLS Filtered Disparity", wls_filter.filtered_disp, "wls")
 
     print("Pipeline created.")
     pipeline.start()

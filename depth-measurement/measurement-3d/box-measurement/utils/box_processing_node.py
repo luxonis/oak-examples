@@ -19,7 +19,8 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
         self.outputANNCuboid = self.createOutput()
 
         self.fitter = CuboidFitter()
-        self.intrinsics = tuple()
+        self.cloud_transformation = None
+        self.image_transformation = None
         self.fit = False
         self.helper_det = None
         self.helper_cuboid = None
@@ -60,22 +61,18 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
     def _draw_cuboid_outline(self, corners: np.ndarray):
         """Draws the cuboid outline in 3D space based on the corners."""
-        if self.intrinsics is None or len(self.intrinsics) != 4:
-            print(
-                "ERROR: AnnotationNode.intrinsics not properly set or invalid length!"
-            )
-            return
-        fx, fy, cx_i, cy_i = self.intrinsics
-
-        # project & normalize
+        # Cloud points are in centimeters in the CAM_A optical coordinate system.
+        # Native projection includes rectification, extrinsics and the NN resize.
+        width, height = self.image_transformation.getSize()
         pts2d_norm = []
         for x, y, z in corners:
             if z <= 0:
                 pts2d_norm.append(None)
             else:
-                u = (fx * x / z + cx_i) / self.frame_size[0]
-                v = (fy * y / z + cy_i) / self.frame_size[1]
-                pts2d_norm.append((u, v))
+                pixel = self.cloud_transformation.project3DPointTo(
+                    self.image_transformation, dai.Point3f(x, y, z)
+                )
+                pts2d_norm.append((pixel.x / width, pixel.y / height))
 
         # draw edges
         edges = [
@@ -218,6 +215,8 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
 
                 width, height = inRGB.getWidth(), inRGB.getHeight()
                 self.frame_size = (width, height)
+                self.cloud_transformation = inPointCloud.getTransformation()
+                self.image_transformation = inRGB.getTransformation()
                 mask = parser_output.getCvSegmentationMask()
                 if mask is None:
                     continue
@@ -231,13 +230,6 @@ class BoxProcessingNode(dai.node.ThreadedHostNode):
                     raise ValueError(
                         "An organized RGB-aligned cloud and mask are required"
                     )
-                intrinsics = inRGB.getTransformation().getIntrinsicMatrix()
-                self.intrinsics = (
-                    intrinsics[0][0],
-                    intrinsics[1][1],
-                    intrinsics[0][2],
-                    intrinsics[1][2],
-                )
                 rgba_img = colors.reshape(height, width, 4)
                 bgr_img = cv2.cvtColor(rgba_img, cv2.COLOR_BGRA2BGR)
                 detections = parser_output.detections

@@ -11,6 +11,7 @@ from depthai_nodes import PRIMARY_COLOR, SECONDARY_COLOR
 class KalmanFilterNode(dai.node.HostNode):
     def __init__(self):
         self._kalman_filters = {}
+        self._focal_length = None
         super().__init__()
 
     def build(
@@ -18,12 +19,15 @@ class KalmanFilterNode(dai.node.HostNode):
         rgb: dai.Node.Output,
         tracker_out: dai.Node.Output,
         baseline: float,
-        focal_length: float,
+        rectified_right: dai.Node.Output,
         label_map: List[str],
     ) -> "KalmanFilterNode":
         self.link_args(rgb, tracker_out)
+        # Geometry updates do not need RGB exposure timestamps to match stereo.
+        self.input_right = self.createInput()
+        self.input_right.setBlocking(False)
+        rectified_right.link(self.input_right)
         self._baseline = baseline
-        self._focal_length = focal_length
         self._label_map = label_map
         return self
 
@@ -32,10 +36,22 @@ class KalmanFilterNode(dai.node.HostNode):
         assert isinstance(tracklets, dai.Tracklets)
         frame: np.ndarray = img_frame.getCvFrame()
         current_time = tracklets.getTimestamp()
+        # Focal length in the actual rectified disparity pixel grid.
+        frames = self.input_right.tryGetAll()
+        if frames:
+            self._focal_length = (
+                frames[-1].getTransformation().getIntrinsicMatrix()[0][0]
+            )
+        if self._focal_length is None:
+            return
+        focal_length = self._focal_length
 
         annotation_helper = AnnotationHelper()
 
         for t in tracklets.tracklets:
+            if t.status.name == "REMOVED":
+                self._kalman_filters.pop(t.id, None)
+                continue
             roi = t.roi.denormalize(frame.shape[1], frame.shape[0])
             x1 = int(roi.topLeft().x)
             y1 = int(roi.topLeft().y)
@@ -50,9 +66,10 @@ class KalmanFilterNode(dai.node.HostNode):
                 [[(x1 + x2) / 2], [(y1 + y2) / 2], [x2 - x1], [y2 - y1]]
             )
             meas_vec_space = np.array([[x_space], [y_space], [z_space]])
-            meas_std_space = z_space**2 / (self._baseline * self._focal_length)
+            meas_std_space = max(z_space**2 / (self._baseline * focal_length), 1e-3)
 
-            if t.status.name == "NEW":
+            # A host may first receive an already TRACKED ID (especially RVC2).
+            if t.id not in self._kalman_filters or t.status.name == "NEW":
                 # Adjust these parameters
                 acc_std_space = 10
                 acc_std_bbox = 0.1
@@ -60,10 +77,16 @@ class KalmanFilterNode(dai.node.HostNode):
 
                 self._kalman_filters[t.id] = {
                     "bbox": KalmanFilter(
-                        meas_std_bbox, acc_std_bbox, meas_vec_bbox, current_time
+                        acc_std=acc_std_bbox,
+                        meas_std=meas_std_bbox,
+                        z=meas_vec_bbox,
+                        time=current_time,
                     ),
                     "space": KalmanFilter(
-                        meas_std_space, acc_std_space, meas_vec_space, current_time
+                        acc_std=acc_std_space,
+                        meas_std=meas_std_space,
+                        z=meas_vec_space,
+                        time=current_time,
                     ),
                 }
 
