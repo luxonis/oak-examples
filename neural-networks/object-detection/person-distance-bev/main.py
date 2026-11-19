@@ -3,7 +3,7 @@ from depthai_nodes.node import ParsingNeuralNetwork, DepthMerger
 
 from utils.host_bird_eye_view import BirdsEyeView
 from utils.measure_object_distance import MeasureObjectDistance
-from utils.host_social_distancing import SocialDistancing
+from utils.host_distance_annotations import DistanceAnnotations
 from utils.arguments import initialize_argparser
 
 _, args = initialize_argparser()
@@ -23,16 +23,10 @@ if args.fps_limit is None:
         f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
     )
 
-available_cameras = device.getConnectedCameras()
-if len(available_cameras) < 3:
-    raise ValueError(
-        "Device must have 3 cameras (color, left and right) in order to run this example."
-    )
-
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    # person detection model
+    # Detect people before adding depth and measuring their distances.
     det_model_description = dai.NNModelDescription.fromYamlFile(
         f"scrfd_person_detection_25g.{platform}.yaml"
     )
@@ -46,32 +40,13 @@ with dai.Pipeline(device) as pipeline:
         size=det_model_nn_archive.getInputSize(),
         type=frame_type,
         fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
-    left = pipeline.create(dai.node.Camera).build(
-        boardSocket=dai.CameraBoardSocket.CAM_B
+    depth = pipeline.create(dai.node.Depth).build(
+        dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit
     )
-    right = pipeline.create(dai.node.Camera).build(
-        boardSocket=dai.CameraBoardSocket.CAM_C
-    )
-
-    stereo = pipeline.create(dai.node.StereoDepth).build(
-        left=left.requestOutput(
-            det_model_nn_archive.getInputSize(), fps=args.fps_limit
-        ),
-        right=right.requestOutput(
-            det_model_nn_archive.getInputSize(), fps=args.fps_limit
-        ),
-    )
-    stereo.initialConfig.setConfidenceThreshold(255)
-    stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
-    stereo.setDefaultProfilePreset(dai.node.StereoDepth.PresetMode.DEFAULT)
-    stereo.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
-    stereo.setLeftRightCheck(True)
-    stereo.setExtendedDisparity(True)
-    stereo.setSubpixel(False)
-    if platform == "RVC2":
-        stereo.setOutputSize(*det_model_nn_archive.getInputSize())
+    depth.setAlignTo(rgb)
 
     nn_parser: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         input=rgb,
@@ -81,24 +56,24 @@ with dai.Pipeline(device) as pipeline:
     # produce spatial detections
     depth_merger = pipeline.create(DepthMerger).build(
         output2d=nn_parser.out,
-        outputDepth=stereo.depth,
+        outputDepth=depth.depth,
         calibData=device.readCalibration2(),
         depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
         shrinkingFactor=0.1,
     )
 
-    # annotation
-    bird_eye_view = pipeline.create(BirdsEyeView).build(depth_merger.output)
+    # Measure all detected person pairs once, then show the distances in both views.
     measure_obj_dist = pipeline.create(MeasureObjectDistance).build(depth_merger.output)
-    social_distancing = pipeline.create(SocialDistancing).build(
-        distances=measure_obj_dist.output
+    bird_eye_view = pipeline.create(BirdsEyeView).build(measure_obj_dist.output)
+    distance_annotations = pipeline.create(DistanceAnnotations).build(
+        measure_obj_dist.output
     )
 
     # visualization
     visualizer.addTopic("Video", rgb, "images")
     visualizer.addTopic("Detections", nn_parser.out, "images")
-    visualizer.addTopic("Distances", social_distancing.output, "images")
-    visualizer.addTopic("Bird-eye view", bird_eye_view.output, "bird-eye")
+    visualizer.addTopic("Pairwise distances", distance_annotations.output, "images")
+    visualizer.addTopic("Bird's-eye view", bird_eye_view.output, "bird-eye")
 
     print("Pipeline created.")
     pipeline.start()
