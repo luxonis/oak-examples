@@ -14,7 +14,7 @@ This is the repository reference for the simplest host-side multi-device orchest
 
 - You need shared-world calibration or 3D fusion.
 - You need a packaged standalone app.
-- You need stitched imagery across devices rather than one pipeline per device.
+- You need stitched imagery across devices rather than one pipeline per device; use the DepthAI `Stitching` node as in [multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn).
 
 ## Quick Facts
 
@@ -58,7 +58,7 @@ This is the repository reference for the simplest host-side multi-device orchest
 
 - [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration): use this when the next step is world-frame calibration
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when multiple devices should collaborate in 3D space
-- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when multiple devices should be stitched into one panorama-like view
+- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when multiple devices should be stitched into one panorama with the DepthAI `Stitching` node
 
 ## Validation
 

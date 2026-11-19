@@ -133,7 +133,12 @@ class ROIControl(dai.node.HostNode):
         elif key_str == "f":
             self._decrease_roi_size()
 
-            self.output_roi.send(self._roi)
+        if key_str in "wasdrf":
+            self.output_roi.send(
+                RegionOfInterest(
+                    self._roi.xmin, self._roi.ymin, self._roi.xmax, self._roi.ymax
+                )
+            )
 
     def _increase_roi_size(self):
         if (self._roi.xmax - self._roi.xmin) < 100:
