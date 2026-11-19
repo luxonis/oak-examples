@@ -36,16 +36,15 @@ This is the repository reference for barcode-region detection followed by host-s
 - [README.md](README.md)
 - [main.py](main.py)
 - [utils/barcode_decoder.py](utils/barcode_decoder.py)
-- [utils/host_crop_config_creator.py](utils/host_crop_config_creator.py)
+- [utils/barcode_regions.py](utils/barcode_regions.py)
 - [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py)
 
 ## Architecture
 
 - A neural barcode detector runs on the resized full frame.
-- [utils/host_crop_config_creator.py](utils/host_crop_config_creator.py) turns detections into crop configs for candidate barcode regions.
-- A second `ImageManip` path crops those regions from the original input.
+- `FrameCropper` crops regions selected by [utils/barcode_regions.py](utils/barcode_regions.py) from the original input.
 - [utils/barcode_decoder.py](utils/barcode_decoder.py) performs host-side decoding on the cropped regions, trying `pyzbar` first and falling back to `zxing-cpp` when `pyzbar` is unavailable.
-- [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py) draws decode results back onto the displayed stream.
+- [utils/simple_barcode_overlay.py](utils/simple_barcode_overlay.py) draws synchronized detection boxes and recent decode history.
 
 ## Constraints
 

@@ -1,6 +1,6 @@
 import depthai as dai
 
-from depthai_nodes.node.utils import generate_script_content
+from depthai_nodes.node import FrameCropper
 
 
 def create_manip(
@@ -67,41 +67,20 @@ def build_roi_cropper(
     preview_stream: dai.Node.Output,
     det_stream: dai.Node.Output,
     out_size: tuple[int, int],
-    frame_type: dai.ImgFrame.Type,
     padding: float = 0.05,
-    pool_size: int = 7,
-    cfg_queue_size: int = 7,
 ) -> dai.Node.Output:
-    """
-    Build: Script(det_in+preview) -> ImageManip(crop+resize to out_size, frame_type) -> out
-    Returns cropper.out (frames of size out_size)
-    """
-    resize_w, resize_h = out_size
-    script = pipeline.create(dai.node.Script)
-    script.setScript(
-        generate_script_content(
-            resize_width=resize_w,
-            resize_height=resize_h,
-            resize_mode="LETTERBOX",
+    """Crop synchronized detection regions with the shared FrameCropper."""
+    return (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=det_stream,
+            outputSize=out_size,
+            resizeMode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
             padding=padding,
         )
+        .build(inputImage=preview_stream)
+        .out
     )
-    det_stream.link(script.inputs["det_in"])
-    preview_stream.link(script.inputs["preview"])
-
-    manip = pipeline.create(dai.node.ImageManip)
-    manip.setMaxOutputFrameSize(resize_w * resize_h * 3)
-    manip.initialConfig.setOutputSize(resize_w, resize_h)
-    manip.initialConfig.setFrameType(frame_type)
-    manip.inputConfig.setMaxSize(cfg_queue_size)
-    manip.inputImage.setMaxSize(cfg_queue_size)
-    manip.setNumFramesPool(pool_size)
-    manip.inputConfig.setWaitForMessage(True)
-
-    script.outputs["manip_cfg"].link(manip.inputConfig)
-    script.outputs["manip_img"].link(manip.inputImage)
-
-    return manip.out
 
 
 def build_rgb(

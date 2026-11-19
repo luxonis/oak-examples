@@ -1,4 +1,5 @@
 import depthai as dai
+from depthai_nodes.message.utils import copy_message
 
 
 class Switch(dai.node.HostNode):
@@ -19,6 +20,14 @@ class Switch(dai.node.HostNode):
         assert isinstance(detections, dai.ImgDetections)
         detections: dai.ImgDetections
         if detections.detections:
+            # Match the original display cropper's axis-aligned regions.
+            detections = copy_message(detections)
+            regions = detections.detections
+            for region in regions:
+                xmin, ymin, xmax, ymax = region.getOuterBoundingBox()
+                rect = dai.Rect(xmin, ymin, xmax - xmin, ymax - ymin, True)
+                region.setBoundingBox(dai.RotatedRect(rect))
+            detections.detections = regions
             self.has_detections.send(detections)
             self.rgb.send(rgb)
         else:
