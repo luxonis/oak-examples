@@ -4,10 +4,19 @@ from pathlib import Path
 import logging
 from contextlib import contextmanager
 import os
-import re
 import platform
+import tomlkit
 
-BASE_IMAGE_HEADER_RE = re.compile(r"^\s*\[base_image\]\s*$", re.MULTILINE)
+LOCAL_OAKAPP_BASE_TAGS = {
+    "1.2.5",
+    "1.2.7",
+    "1.2.8",
+    "1.2.9",
+    "1.2.10",
+    "1.2.11",
+    "1.3.0",
+    "1.5.2",
+}
 logger = logging.getLogger()
 
 OS_MAPPING = {"Windows": "win", "Linux": "linux", "Darwin": "mac"}
@@ -175,28 +184,48 @@ def adjust_requirements(
 
 
 def local_base_image(oakapp_toml_path: Path, local_static_registry: str) -> bool:
-    content = oakapp_toml_path.read_text(encoding="utf-8")
-
-    # already has [base_image]? do nothing
-    if BASE_IMAGE_HEADER_RE.search(content):
-        logger.info("✓ [base_image] already present in %s; skipping", oakapp_toml_path)
+    """Redirect mirrored base images to the local registry without changing tags."""
+    api_url = local_static_registry.strip().rstrip("/")
+    if not api_url:
         return False
+    if not api_url.startswith(("http://", "https://")):
+        api_url = f"http://{api_url}"
 
-    # fallback to env overrides or hardcoded defaults
-    api_url = local_static_registry
-    image_name = "debian"
-    image_tag = "bookworm-slim"
-    snippet = (
-        "\n[base_image]\n"
-        f'api_url    = "http://{api_url}"\n'
-        f'image_name = "{image_name}"\n'
-        f'image_tag  = "{image_tag}"\n'
-    )
-    # append the snippet
-    with oakapp_toml_path.open("a", encoding="utf-8") as f:
-        f.write(snippet)
+    content = oakapp_toml_path.read_text(encoding="utf-8")
+    config = tomlkit.parse(content)
+    base_image = config.get("base_image")
 
-    logger.info("✓ inserted [base_image] into %s", oakapp_toml_path)
+    if base_image is None:
+        base_image = tomlkit.table()
+        base_image["image_name"] = "debian"
+        base_image["image_tag"] = "bookworm-slim"
+        config["base_image"] = base_image
+    else:
+        image_name = base_image.get("image_name")
+        image_tag = base_image.get("image_tag")
+        mirrored = (
+            image_name == "luxonis/oakapp-base" and image_tag in LOCAL_OAKAPP_BASE_TAGS
+        ) or (image_name == "debian" and image_tag == "bookworm-slim")
+        if not mirrored:
+            logger.info(
+                "Base image %s:%s is not in the local mirror; leaving %s unchanged",
+                image_name,
+                image_tag,
+                oakapp_toml_path,
+            )
+            return False
+
+    base_image["api_url"] = api_url
+    # The local static registry does not use Docker Hub's token service.
+    for key in ("service", "oauth_url", "auth_type", "auth_name"):
+        base_image.pop(key, None)
+
+    updated_content = tomlkit.dumps(config)
+    if updated_content == content:
+        return False
+    oakapp_toml_path.write_text(updated_content, encoding="utf-8")
+
+    logger.info("✓ configured local [base_image] in %s", oakapp_toml_path)
     return True
 
 

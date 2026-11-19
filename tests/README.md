@@ -22,6 +22,14 @@ This will run all the examples (i.e. folders that have `main.py` and `requiremen
 
 All example tests disable DepthAI telemetry with `DEPTHAI_TELEMETRY=0`. The peripheral runner sets it in each example subprocess after applying `--environment-variables`, so a conflicting value cannot enable telemetry. The standalone runner passes `--env DEPTHAI_TELEMETRY=0` to `oakctl app run` to set it inside the app container on the device. These settings apply to direct pytest runs, Docker/HIL jobs, and the Linux/macOS and Windows test scripts.
 
+Standalone tests accept `--local-static-registry=host:port` (or a full HTTP/HTTPS URL).
+When set, apps without `[base_image]` use the mirror's `debian:bookworm-slim`.
+Existing `debian:bookworm-slim` entries and `luxonis/oakapp-base` entries with tags
+`1.2.5`, `1.2.7`, `1.2.8`, `1.2.9`, `1.2.10`, `1.2.11`, `1.3.0`, or `1.5.2`
+are redirected to the mirror with their exact image name and tag preserved and
+Docker Hub authentication fields removed. Other images and tags keep their
+original registry configuration. Omitting this option leaves base images unchanged.
+
 **Note:** Because `root-dir` can also accept list of arguments always specify it last, don't use `=` after it and when list is complete use `--` to mark the end (as see in the examples).
 
 You can also pass other custom options to the pytest command. Here is a list of all the custom ones:
