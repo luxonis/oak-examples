@@ -126,7 +126,7 @@ with dai.Pipeline(device) as pipeline:
         .build(inputImage=input_node_out)
     )
 
-    ocr_crops = pipeline.create(OcrCrops)
+    ocr_crops = pipeline.create(OcrCrops, camera_fps=args.fps_limit)
     lp_crop_node.out.link(ocr_crops.crops)
     ocr_nn: ParsingNeuralNetwork = pipeline.create(ParsingNeuralNetwork).build(
         ocr_crops.inference, ocr_model_nn_archive

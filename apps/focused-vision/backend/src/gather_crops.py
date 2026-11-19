@@ -9,10 +9,14 @@ from depthai_nodes.node import GatherData
 class GatherCrops(GatherData):
     """Gather in source order, dropping incomplete frames after a bounded wait."""
 
-    TIMEOUT_SECONDS = 2.0
+    TIMEOUT_FRAMES = 5
     MAX_PENDING_FRAMES = 64
 
     def run(self) -> None:
+        if self._camera_fps is None or self._camera_fps <= 0:
+            raise ValueError(
+                "Camera FPS must be positive. Call build() before starting the pipeline."
+            )
         self._arrived_at = {}
         self._finished_timestamp = float("-inf")
         self._unmatched_data = deque(maxlen=self.MAX_PENDING_FRAMES)
@@ -33,7 +37,8 @@ class GatherCrops(GatherData):
                         self._add_reference(message)
                     else:
                         self._add_data(message)
-            except dai.MessageQueue.QueueException:
+            except dai.MessageQueue.QueueException as error:
+                self._logger.error("GatherCrops queue failed: %s", error)
                 break
             # Poll even with idle inputs so the final incomplete frame can expire.
             self._send_ready_data()
@@ -49,7 +54,8 @@ class GatherCrops(GatherData):
             ready = self._timestamp_ready(timestamp)
             if (
                 not ready
-                and now - self._arrived_at[timestamp] < self.TIMEOUT_SECONDS
+                and now - self._arrived_at[timestamp]
+                < self.TIMEOUT_FRAMES / self._camera_fps
                 and len(self._reference_data) <= self.MAX_PENDING_FRAMES
             ):
                 break

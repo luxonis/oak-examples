@@ -9,11 +9,13 @@ LOGGER = logging.getLogger(__name__)
 class OcrCrops(dai.node.ThreadedHostNode):
     """Identify OCR inputs and carry their crops through result matching."""
 
-    TIMEOUT_SECONDS = 2.0
     MAX_PENDING_CROPS = 64
 
-    def __init__(self):
+    def __init__(self, camera_fps: int):
         super().__init__()
+        if camera_fps <= 0:
+            raise ValueError("Camera FPS must be positive")
+        self._timeout_seconds = 5 / camera_fps
         self.crops = self.createInput(blocking=True)
         self.results = self.createInput(blocking=True)
         self.inference = self.createOutput()
@@ -51,7 +53,7 @@ class OcrCrops(dai.node.ThreadedHostNode):
                     result = completed.get(oldest_id)
                     if (
                         result is None
-                        and now - arrived_at < self.TIMEOUT_SECONDS
+                        and now - arrived_at < self._timeout_seconds
                         and len(pending) <= self.MAX_PENDING_CROPS
                     ):
                         break
@@ -71,6 +73,7 @@ class OcrCrops(dai.node.ThreadedHostNode):
                     group.setTimestampDevice(crop.getTimestampDevice())
                     group.setSequenceNum(source_sequence)
                     self.out.send(group)
-            except dai.MessageQueue.QueueException:
+            except dai.MessageQueue.QueueException as error:
+                LOGGER.error("OCR crop queue failed: %s", error)
                 break
             sleep(0.001)
