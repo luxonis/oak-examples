@@ -20,10 +20,9 @@ with dai.Pipeline(device) as pipeline:
     depth_color_transform.setColormap(cv2.COLORMAP_JET)
 
     measure_distance = pipeline.create(MeasureDistance).build(
-        depth.depth, device.readCalibration(), ROIControl.INITIAL_ROI
+        depth.depth, ROIControl.INITIAL_ROI
     )
 
-    calibdata = device.readCalibration()
     spatials = pipeline.create(ROIControl).build(
         depth_frames=depth_color_transform.out,
         measured_depth=measure_distance.output,

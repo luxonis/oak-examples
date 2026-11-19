@@ -7,7 +7,7 @@ import depthai as dai
 
 from depthai_nodes.node import ParsingNeuralNetwork
 
-from utils.helper_functions import extract_text_embeddings, read_intrinsics
+from utils.helper_functions import extract_text_embeddings
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -151,8 +151,6 @@ with dai.Pipeline(device) as pipeline:
     )
     measurement_node.out_result.link(annotation_node.in_meas_result)
 
-    fx, fy, cx, cy = read_intrinsics(device, 640, 400)
-    measurement_node.setIntrinsics(fx, fy, cx, cy, imgW=640, imgH=400)
     measurement_node.an_node = annotation_node
 
     # Service functions for all functionalities of the frontend
