@@ -1,11 +1,13 @@
 import logging
 import signal
+from datetime import timedelta
+from threading import Lock
 
 import depthai as dai
 
-from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
+from depthai_nodes.node import ParsingNeuralNetwork
 
-from utils.helper_functions import extract_text_embeddings, read_intrinsics
+from utils.helper_functions import extract_text_embeddings
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
@@ -41,8 +43,11 @@ platform = device.getPlatformAsString()
 if platform != "RVC4":
     raise ValueError("This example is supported only on RVC4 platform")
 
-device.setIrLaserDotProjectorIntensity(1.0)
-device.setIrFloodLightIntensity(1)
+if device.getIrDrivers():
+    if not device.setIrLaserDotProjectorIntensity(1.0):
+        logger.warning("Failed to enable IR laser dot projector.")
+    if not device.setIrFloodLightIntensity(1):
+        logger.warning("Failed to enable IR flood light.")
 
 frame_type = dai.ImgFrame.Type.BGR888i
 text_features = extract_text_embeddings(
@@ -108,45 +113,50 @@ with dai.Pipeline(device) as pipeline:
     textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
 
-    det_process_filter = (
-        pipeline.create(ImgDetectionsFilter)
-        .keepLabels(
-            labels=[i for i in range(len(CLASS_NAMES))],
-        )
-        .minConfidence(
-            threshold=CONFIDENCE_THRESHOLD,
-        )
-        .build(
-            input=nn_with_parser.out,
-        )
-    )
+    det_process_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+    filter_config = det_process_filter.initialConfig
+    filter_config.labelsToKeep = list(range(len(CLASS_NAMES)))
+    filter_config.setConfidenceRange(CONFIDENCE_THRESHOLD, float("inf"))
+    nn_with_parser.out.link(det_process_filter.inputs["detections"])
+    filter_config_queue = det_process_filter.inputConfig.createInputQueue()
+    filter_config_lock = Lock()
+
+    sync = pipeline.create(dai.node.Sync)
+    sync.setRunOnHost(True)
+    sync.setTimestampSource(dai.node.Sync.TimestampSource.DEVICE)
+    sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
+    det_process_filter.out.link(sync.inputs["detections"])
+    cam_out.link(sync.inputs["rgb"])
+    depth.depth.link(sync.inputs["depth"])
 
     # Annotation node
     annotation_node = pipeline.create(AnnotationNode).build(
-        det_process_filter.out,
-        cam_out,
-        depth.depth,
+        sync.out,
         label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
     )
 
-    # RGBD node for the segmented PCL
-    rgbd_seg = pipeline.create(dai.node.RGBD).build()
-    annotation_node.out_segm.link(rgbd_seg.inColor)
-    annotation_node.out_segm_depth.link(rgbd_seg.inDepth)
+    pcl_seg = pipeline.create(dai.node.PointCloud)
+    pcl_seg.initialConfig.setOrganized(True)
+    pcl_seg.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+    pcl_seg.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
+    # Its internal Sync must accept the same pairs and clock as the upstream Sync.
+    pcl_seg.sync.setSyncThreshold(sync.getSyncThreshold())
+    pcl_seg.sync.setTimestampSource(sync.getTimestampSource())
+    annotation_node.out_segm_depth.link(pcl_seg.inputDepth)
+    annotation_node.out_segm.link(pcl_seg.inputColor)
 
     # Measurement node
     measurement_node = pipeline.create(MeasurementNode).build(
-        rgbd_seg.pcl, annotation_node.out_selection, imu.out
+        pcl_seg.outputPointCloud, annotation_node.out_selection, imu.out
     )
     measurement_node.out_result.link(annotation_node.in_meas_result)
 
-    fx, fy, cx, cy = read_intrinsics(device, 640, 400)
-    measurement_node.setIntrinsics(fx, fy, cx, cy, imgW=640, imgH=400)
     measurement_node.an_node = annotation_node
 
     # Service functions for all functionalities of the frontend
     def class_update_service(new_classes: list[str]):
         """Changes classes to detect based on the user input"""
+        global filter_config
         if len(new_classes) == 0:
             print("List of new classes empty, skipping.")
             return
@@ -167,14 +177,26 @@ with dai.Pipeline(device) as pipeline:
         )
         textInputQueue.send(inputNNData)
 
-        det_process_filter.keepLabels(labels=[i for i in range(len(CLASS_NAMES))])
+        with filter_config_lock:
+            config = dai.ImgDetectionsFilterConfig()
+            config.labelsToKeep = list(range(len(CLASS_NAMES)))
+            config.setConfidenceRange(filter_config.minConfidence, float("inf"))
+            filter_config_queue.send(config)
+            filter_config = config
         annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
         print(f"Classes set to: {CLASS_NAMES}")
 
     def conf_threshold_update_service(new_conf_threshold: float):
         """Changes confidence threshold based on the user input"""
+        global filter_config
         CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
-        det_process_filter.minConfidence(CONFIDENCE_THRESHOLD)
+        with filter_config_lock:
+            config = dai.ImgDetectionsFilterConfig()
+            config.labelsToKeep = filter_config.labelsToKeep
+            # The native range must have min < max, including at threshold 1.0.
+            config.setConfidenceRange(CONFIDENCE_THRESHOLD, float("inf"))
+            filter_config_queue.send(config)
+            filter_config = config
         print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
 
     def selection_service(clicks: dict):
@@ -218,7 +240,7 @@ with dai.Pipeline(device) as pipeline:
 
     visualizer.addTopic("Video", cam_out, "images")
     visualizer.addTopic("Detections", annotation_node.out_ann, "images")
-    visualizer.addTopic("Pointclouds", rgbd_seg.pcl, "point_clouds")
+    visualizer.addTopic("Pointclouds", pcl_seg.outputPointCloud, "point_clouds")
     visualizer.addTopic("Measurement Overlay", measurement_node.out_ann, "images")
     visualizer.addTopic("Plane Status", measurement_node.out_plane_status, "images")
 

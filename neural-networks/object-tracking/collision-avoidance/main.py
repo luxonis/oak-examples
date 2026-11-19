@@ -1,7 +1,5 @@
 import depthai as dai
 
-from depthai_nodes.node import ImgDetectionsFilter
-
 from utils.collision_avoidance_node import CollisionAvoidanceNode
 from utils.host_bird_eye_view import BirdsEyeView
 from utils.arguments import initialize_argparser
@@ -53,9 +51,6 @@ with dai.Pipeline(device) as pipeline:
             nn_archive, numShaves=6
         )  # TODO: change to numShaves=4 if running on OAK-D Lite
 
-    img_detections_filter = pipeline.create(ImgDetectionsFilter).build(nn.out)
-    img_detections_filter.keepLabels([person_label])  # keep only person detections
-
     # tracking
     tracker = pipeline.create(dai.node.ObjectTracker)
     tracker.setDetectionLabelsToTrack([person_label])  # track only person
@@ -65,7 +60,7 @@ with dai.Pipeline(device) as pipeline:
         tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
     tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
 
-    img_detections_filter.out.link(tracker.inputDetections)
+    nn.out.link(tracker.inputDetections)
     nn.passthrough.link(tracker.inputTrackerFrame)
     nn.passthrough.link(tracker.inputDetectionFrame)
 

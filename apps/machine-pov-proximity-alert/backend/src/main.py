@@ -1,0 +1,89 @@
+"""Run machine-mounted proximity alerts with live controls."""
+
+import logging
+import signal
+import threading
+
+import depthai as dai
+
+from api.request_handler import EmptyBody, add_request_handler
+from depthai_pipeline.init_pipeline import init_pipeline
+from settings.settings import Settings
+
+log = logging.getLogger(__name__)
+
+
+class App:
+    """Own the live pipeline and settings service."""
+
+    def __init__(self) -> None:
+        self._settings = Settings()
+        self._settings_lock = threading.Lock()
+        self._changed = threading.Event()
+        self._stop = threading.Event()
+        self._visualizer = dai.RemoteConnection(httpPort=8082)
+        self._pipeline: dai.Pipeline | None = None
+        self._topics: tuple[str, ...] = ()
+        add_request_handler(self._visualizer, "getSettings", self._get_settings)
+        add_request_handler(self._visualizer, "updateSettings", self._update_settings)
+
+    def _get_settings(self, request: EmptyBody) -> Settings:
+        with self._settings_lock:
+            return self._settings.model_copy(deep=True)
+
+    def _update_settings(self, request: Settings) -> EmptyBody:
+        """Restart the pipeline with new runtime settings."""
+        with self._settings_lock:
+            self._settings = request.model_copy(deep=True)
+            self._changed.set()
+        return EmptyBody()
+
+    def _request_stop(self, signum: int, frame: object) -> None:
+        log.info("Application received a stop signal. Stopping the app...")
+        self._stop.set()
+
+    def _stop_pipeline(self) -> None:
+        """Stop processing and unregister topics from the previous pipeline."""
+        if self._pipeline is not None and self._pipeline.isRunning():
+            self._pipeline.stop()
+            self._pipeline.wait()
+        for topic in self._topics:
+            self._visualizer.removeTopic(topic)
+        self._pipeline = None
+        self._topics = ()
+
+    def _start_pipeline(self) -> None:
+        settings = self._get_settings(EmptyBody())
+        log.info("Proximity alert settings: %s", settings.model_dump(mode="json"))
+        pipeline = dai.Pipeline()
+        topics = init_pipeline(pipeline, settings, self._visualizer)
+        pipeline.start()
+        self._visualizer.registerPipeline(pipeline)
+        self._pipeline = pipeline
+        self._topics = topics
+        log.info("Pipeline started.")
+
+    def run(self) -> None:
+        """Process pipeline tasks until exit or a stop signal."""
+        signal.signal(signal.SIGINT, self._request_stop)
+        signal.signal(signal.SIGTERM, self._request_stop)
+        try:
+            self._start_pipeline()
+            while self._pipeline is not None and self._pipeline.isRunning():
+                self._pipeline.processTasks()
+                if self._stop.is_set():
+                    break
+                if self._changed.is_set():
+                    self._changed.clear()
+                    self._stop_pipeline()
+                    self._start_pipeline()
+                    continue
+                if self._visualizer.waitKey(1) == ord("q"):
+                    break
+        finally:
+            self._stop_pipeline()
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    App().run()

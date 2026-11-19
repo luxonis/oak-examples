@@ -1,10 +1,7 @@
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import (
-    ParsingNeuralNetwork,
-    ImgDetectionsFilter,
-)
+from depthai_nodes.node import ParsingNeuralNetwork
 
 from utils.helper_functions import extract_text_embeddings
 from utils.arguments import initialize_argparser
@@ -81,8 +78,9 @@ with dai.Pipeline(device) as pipeline:
     nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
 
     # filter and rename detection labels
-    det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.keepLabels([i for i in range(len(args.class_names))])
+    det_process_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+    det_process_filter.initialConfig.labelsToKeep = list(range(len(args.class_names)))
+    nn_with_parser.out.link(det_process_filter.inputs["detections"])
 
     label_mapper = pipeline.create(DetectionsLabelMapper).build(
         det_process_filter.out,

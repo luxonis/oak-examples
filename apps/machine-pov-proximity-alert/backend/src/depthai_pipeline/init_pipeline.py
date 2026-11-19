@@ -1,0 +1,209 @@
+"""Build the machine-mounted proximity detection and alert pipeline."""
+
+import logging
+from pathlib import Path
+
+import depthai as dai
+import numpy as np
+from depthai_nodes.node import ParsingNeuralNetwork, PlaneCalibrationConfig
+
+from depthai_pipeline.common.node.danger_classifier import DangerClassifier
+from depthai_pipeline.common.node.danger_visualizer import DangerVisualizer
+from depthai_pipeline.nn_person_detection.node.segmentation_danger_evaluator import (
+    SegmentationDangerEvaluator,
+)
+from depthai_pipeline.nn_person_detection.node.tracklet_segmentation_matcher import (
+    TrackletSegmentationMatcher,
+)
+from depthai_pipeline.pointcloud_object_detection.node.point_cloud_object_detection import (
+    PointCloudObjectDetectionNode,
+)
+from depthai_pipeline.pointcloud_object_detection.node.pointcloud_danger_evaluator import (
+    PointCloudDangerEvaluator,
+)
+from settings.settings import Settings
+
+MODEL_YAML = (
+    Path(__file__).resolve().parent.parent
+    / "depthai_models"
+    / "yolov8_instance_segmentation_nano.RVC4.yaml"
+)
+COLOR_SIZE = (1920, 1080)
+# Size of the streamed preview and of the optional point cloud.
+PREVIEW_SIZE = (640, 360)
+MONO_SIZE = (640, 480)
+# Capped attempts make a failed search report passed=False, so a lost support
+# plane turns the status invalid instead of being held while the search runs on.
+SUPPORT_PLANE_CALIBRATION = PlaneCalibrationConfig(max_calibration_attempts=10)
+# Points farther than this from the support plane are obstacles.
+SUPPORT_PLANE_DIST_THR_MM = 45.0
+log = logging.getLogger(__name__)
+
+
+def init_pipeline(
+    pipeline: dai.Pipeline,
+    settings: Settings,
+    visualizer: dai.RemoteConnection,
+) -> tuple[str, ...]:
+    """Attach cameras, assessments, alert state, and Visualizer topics.
+
+    Args:
+        pipeline: DepthAI pipeline to populate.
+        settings: Current runtime settings.
+        visualizer: Remote connection used to publish topics.
+
+    Returns:
+        Names of registered topics to remove when the pipeline stops.
+
+    Raises:
+        RuntimeError: If the pipeline's default device is not RVC4.
+    """
+    device = pipeline.getDefaultDevice()
+    platform = device.getPlatform()
+    if platform != dai.Platform.RVC4:
+        raise RuntimeError(
+            f"Machine-Mounted Person Proximity Alert requires an RVC4 device; connected device is {platform.name}"
+        )
+    color_cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
+    color_out = color_cam.requestOutput(
+        COLOR_SIZE, fps=settings.fps, enableUndistortion=True
+    )
+
+    preview = color_cam.requestOutput(
+        PREVIEW_SIZE,
+        type=dai.ImgFrame.Type.NV12,
+        fps=settings.fps,
+        enableUndistortion=True,
+    )
+    preview_encoder = pipeline.create(dai.node.VideoEncoder)
+    preview_encoder.setDefaultProfilePreset(
+        fps=settings.fps,
+        profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+    )
+    preview.link(preview_encoder.input)
+
+    depth = pipeline.create(dai.node.Depth).build(
+        dai.node.Depth.Algorithm.AUTO, fps=settings.fps, size=MONO_SIZE
+    )
+    depth_output = depth.depth
+    log.info(
+        "Depth backend: %s (config: %s)",
+        depth.getResolvedAlgorithm(),
+        depth.getResolvedConfig(),
+    )
+
+    imu = pipeline.create(dai.node.IMU)
+    imu.enableIMUSensor(dai.IMUSensor.ACCELEROMETER_RAW, 50)
+    imu.setBatchReportThreshold(1)
+    imu.setMaxBatchReports(10)
+
+    # Person masks are paired with tracker IDs, aligned depth, and gravity.
+    archive = dai.NNArchive(
+        dai.getModelFromZoo(dai.NNModelDescription.fromYamlFile(str(MODEL_YAML)))
+    )
+    input_size = archive.getInputSize()
+    if input_size is None:
+        raise ValueError("segmentation model has no input size")
+    resize = pipeline.create(dai.node.ImageManip)
+    resize.initialConfig.setOutputSize(
+        *input_size, dai.ImageManipConfig.ResizeMode.STRETCH
+    )
+    resize.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888i)
+    color_out.link(resize.inputImage)
+
+    depth_at_nn = pipeline.create(dai.node.ImageAlign)
+    depth_output.link(depth_at_nn.input)
+    resize.out.link(depth_at_nn.inputAlignTo)
+    nn = pipeline.create(ParsingNeuralNetwork).build(resize.out, archive)
+    people = pipeline.create(dai.node.ImgDetectionsFilter)
+    people.initialConfig.labelsToKeep = [0]
+    nn.out.link(people.inputs["people"])
+    tracker = pipeline.create(dai.node.ObjectTracker)
+    tracker.setTrackerType(dai.TrackerType.SHORT_TERM_IMAGELESS)
+    people.out.link(tracker.inputDetections)
+    color_out.link(tracker.inputTrackerFrame)
+    tracked_masks = pipeline.create(TrackletSegmentationMatcher).build(
+        tracker.out, people.out
+    )
+    person_assessment = pipeline.create(SegmentationDangerEvaluator).build(
+        tracked_masks.out,
+        depth_at_nn.outputAligned,
+        imu.out,
+        danger_roi=settings.danger_roi,
+        warning_roi=settings.warning_roi,
+        thresh_low=200,
+        thresh_high=30000,
+        depth_socket=dai.CameraBoardSocket.CAM_A,
+        distance_inside=7,
+    )
+
+    # The generic obstacle path is opt-in because point-cloud processing is costly.
+    obstacle_assessment = None
+    obstacles = None
+    if settings.generic_object_detection_enabled:
+        pointcloud_size = PREVIEW_SIZE
+        # RGBD needs interleaved RGB; the NV12 preview feeds only the encoder.
+        # This is CAM_A's third output, the RVC4 maximum.
+        color_for_pcl = color_cam.requestOutput(
+            pointcloud_size,
+            type=dai.ImgFrame.Type.RGB888i,
+            fps=settings.fps,
+            enableUndistortion=True,
+        )
+        depth_for_pcl = pipeline.create(dai.node.ImageAlign)
+        color_for_pcl.link(depth_for_pcl.inputAlignTo)
+        depth_output.link(depth_for_pcl.input)
+        calibration = device.readCalibration2()
+        intrinsics = np.asarray(
+            calibration.getCameraIntrinsics(
+                dai.CameraBoardSocket.CAM_A, *pointcloud_size
+            )
+        )
+        fx, fy = intrinsics[0, 0], intrinsics[1, 1]
+        cx, cy = intrinsics[0, 2], intrinsics[1, 2]
+        rgbd = pipeline.create(dai.node.RGBD).build()
+        color_for_pcl.link(rgbd.inColor)
+        depth_for_pcl.outputAligned.link(rgbd.inDepth)
+        obstacles = pipeline.create(
+            PointCloudObjectDetectionNode,
+            hfov_deg=calibration.getFov(dai.CameraBoardSocket.CAM_A, useSpec=True),
+            danger_zone=settings.danger_roi,
+            warning_zone=settings.warning_roi,
+        ).build(
+            pcl=rgbd.pcl,
+            imu=imu.out,
+            pointcloud_size=pointcloud_size,
+            intrinsics=(fx, fy, cx, cy),
+            frame_size=pointcloud_size,
+            calibration=SUPPORT_PLANE_CALIBRATION,
+            support_plane_dist_thr_mm=SUPPORT_PLANE_DIST_THR_MM,
+        )
+        obstacle_assessment = (
+            pipeline.create(
+                PointCloudDangerEvaluator,
+                danger_zone=settings.danger_roi,
+                warning_zone=settings.warning_roi,
+            )
+            .build(
+                obstacles=obstacles.out_obstacles,
+                support_plane_status=obstacles.out_support_plane_status,
+            )
+            .out
+        )
+
+    alert = pipeline.create(DangerClassifier).build(
+        segmentation_assessment=person_assessment.out,
+        pointcloud_assessment=obstacle_assessment,
+        deescalation_frames=settings.deescalation_sec * settings.fps,
+        awareness_escalation_frames=settings.awareness_escalation_sec * settings.fps,
+    )
+    annotations = pipeline.create(DangerVisualizer).build(alert.out)
+    topics = ["Video", "Annotations"]
+    visualizer.addTopic("Video", preview_encoder.out)
+    visualizer.addTopic("Annotations", annotations.out)
+    if obstacles is not None:
+        visualizer.addTopic("Occupancy Grid", obstacles.out_grid)
+        visualizer.addTopic("Support Plane Status", obstacles.out_grid_annotations)
+        visualizer.addTopic("Point Cloud", obstacles.out_pcl)
+        topics.extend(("Occupancy Grid", "Support Plane Status", "Point Cloud"))
+    return tuple(topics)

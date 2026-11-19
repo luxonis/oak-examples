@@ -9,7 +9,11 @@ import {
 	useRef,
 	useState,
 } from 'react';
-import { postToDataCollectionService } from './services.ts';
+import {
+	QNN_PREPARATION_EVENT,
+	clearQnnPreparation,
+	postToDataCollectionService,
+} from './services.ts';
 import { ClassSelector } from './utils/classes/ClassSelector.tsx';
 import { ConfidenceSlider } from './utils/classes/ConfidenceSlider.tsx';
 import { ImageUploader } from './utils/classes/ImageUploader.tsx';
@@ -127,6 +131,7 @@ function App() {
 		null,
 	);
 	const [configLoaded, setConfigLoaded] = useState(false);
+	const [qnnPreparing, setQnnPreparing] = useState(false);
 	const [streamViewMoved, setStreamViewMoved] = useState(false);
 	const { toast } = useToast();
 	const topicGroups = useMemo(() => ({ images: VIDEO_TOPIC }), []);
@@ -431,9 +436,18 @@ function App() {
 	}, [connection.connected, connection.daiConnection, configLoaded, toast]);
 
 	useEffect(() => {
+		const onPreparation = (event: Event) => {
+			setQnnPreparing((event as CustomEvent<boolean>).detail);
+		};
+		window.addEventListener(QNN_PREPARATION_EVENT, onPreparation);
+		return () => window.removeEventListener(QNN_PREPARATION_EVENT, onPreparation);
+	}, []);
+
+	useEffect(() => {
 		if (!connection.connected) {
 			setConfigLoaded(false);
 			setBackendConfig(null);
+			clearQnnPreparation();
 		}
 	}, [connection.connected]);
 
@@ -506,6 +520,16 @@ function App() {
 					switches back to text mode; uploading an image or drawing a box
 					switches to image mode.
 				</p>
+				{qnnPreparing && (
+					<output className="rounded-md border border-border bg-muted p-3 text-sm" aria-live="polite">
+						Preparing the prompt model for QNN. First use of a prompt size may take a few minutes while its graph is optimized.
+					</output>
+				)}
+				{!connection.connected && (
+					<p className="text-sm text-muted-foreground">
+						Connecting to the device. Initial QNN model preparation may take a few minutes.
+					</p>
+				)}
 
 				<SectionTitle>Labels by Text</SectionTitle>
 				<p className="text-xs text-muted-foreground">
