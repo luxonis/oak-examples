@@ -47,12 +47,12 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - `CAM_A` provides the RGB stream used for display and inference.
 - `Depth` owns depth-source selection and aligns its depth output to RGB before `PointCloud`.
 - `PointCloud` is configured with `setOrganized(True)` so the cloud keeps one point per pixel in frame order (invalid pixels have `z = 0`), and with `setLengthUnit(CENTIMETER)` so the cuboid fitter works and reports in centimeters without any host-side unit conversion.
-- The point cloud explicitly targets `CAM_A` coordinates, matching the intrinsics used to project cuboid corners.
+- The point cloud explicitly targets `CAM_A` coordinates; cuboid corners are projected with the cloud's own frame transformation.
 - A platform-specific box instance-segmentation archive is loaded from [depthai_models/](depthai_models/).
 - `ImageManip` resizes RGB frames to the model input size before `ParsingNeuralNetwork`.
 - A host-side `Sync` groups the following inputs within half a camera frame interval before passing them to [utils/box_processing_node.py](utils/box_processing_node.py):
   - organized, colored point clouds from `PointCloud.outputPointCloud`
-  - the original, undistorted `640x400` RGB frame
+  - the original undistorted RGB frame
   - parsed detections and segmentation masks
 - That host node projects the fitted cuboid back into image space and publishes two separate annotation layers, then forwards the matching RGB frame for display. All three outputs use the RGB frame's timestamp and sequence number.
 - Failed measurements show `measurement unavailable` and a reason beside the box, including the number of perpendicular faces fitted. Dimensions are shown only for the current successful fit; they are not cached across detections.
@@ -67,14 +67,14 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 
 - `Safe to change:` topic names, FPS limit default, parser thresholds, projector usage, label text
 - `Requires care:` camera sockets, RGB/depth alignment path, model input dimensions, calibration usage, point-cloud color assumptions, the point-cloud length unit (the `CuboidFitter` thresholds and labels assume centimeters)
-- `Likely to break if changed blindly:` the organized cloud/mask pixel relationship, synchronized inputs, and transformation-derived intrinsics
+- `Likely to break if changed blindly:` the organized cloud/mask pixel relationship, synchronized inputs, and frame transformation metadata
 
 ## Common Adaptations
 
 - `To swap the model:` replace the YAML/model pair in [depthai_models/](depthai_models/) and keep the same parser contract
 - `To reuse only the measurement host logic:` keep [utils/box_processing_node.py](utils/box_processing_node.py) and feed it your own point cloud plus detections
 - `To remove the cuboid overlay:` keep `outputANN` and drop the `outputANNCuboid` topic
-- `To test alignment changes:` start from the `Depth.setAlignTo` and `PointCloud` branch in [main.py](main.py) and mask remapping in [utils/box_processing_node.py](utils/box_processing_node.py)
+- `To test alignment changes:` check the `Depth.setAlignTo` and `PointCloud` wiring in [main.py](main.py) and mask remapping in [utils/box_processing_node.py](utils/box_processing_node.py)
 
 ## Constraints
 
@@ -82,13 +82,13 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
 - The fitter still requires three perpendicular planes. It removes rejected plane candidates from its search cloud so a parallel residual cannot consume every attempt, but this does not guarantee a valid fit on noisy or incomplete depth.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
-- Masks and organized point clouds must share the undistorted RGB pixel grid.
+- Masks and organized point clouds must share the undistorted RGB pixel grid. Cuboid overlays use `ImgTransformation.project3DPointTo` from cloud to image coordinates.
 
 ## Non-Obvious Repo Conventions
 
 - [oakapp.toml](oakapp.toml) adds a standalone packaging path but does not mean the example is RVC4-only.
 - `Box Detections` and `Cuboid Fit` are separate annotation topics layered over the same preview stream.
-- Intrinsics are read from the current undistorted RGB transformation, because masks, detections, and cuboid overlays share that frame.
+- Cuboid corners are projected from the cloud's transformation into the RGB frame's transformation (`project3DPointTo`), which includes extrinsics and the NN resize, so masks, detections, and cuboid overlays share one frame.
 - The point cloud comes from `pcl.outputPointCloud`, not from a custom host reconstruction step. [utils/box_processing_node.py](utils/box_processing_node.py) reshapes it to the RGB frame size, which only works because the node runs in organized mode.
 - The `Pointcloud` Visualizer topic therefore carries centimeters, while the Visualizer's distance controls assume millimeters.
 
@@ -101,6 +101,7 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 
 ## Validation
 
+- `Hardware check:` Check cuboid overlays and known box dimensions at the center and edges, then repeat with another output aspect ratio.
 - `Run:` `python3 main.py`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Video Stream`, `Box Detections`, `Cuboid Fit`, and `Pointcloud`, and detected boxes receive dimension labels when the fit succeeds

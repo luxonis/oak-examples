@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import depthai as dai
 
 from utils.kalman_filter_node import KalmanFilterNode
@@ -26,7 +28,11 @@ with dai.Pipeline(device) as pipeline:
 
     # detection model
     model_description = dai.NNModelDescription.fromYamlFile(
-        f"yolov6_nano_r2_coco.{platform}.yaml"
+        str(
+            Path(__file__).parent
+            / "depthai_models"
+            / f"yolov6_nano_r2_coco.{platform}.yaml"
+        )
     )
     nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
     labels = nn_archive.getConfig().model.heads[0].metadata.classes
@@ -34,9 +40,15 @@ with dai.Pipeline(device) as pipeline:
 
     # camera input
     cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
-    depth = pipeline.create(dai.node.Depth)
-    depth.build(dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=(640, 400))
-    # SpatialDetectionNetwork handles depth alignment; no depth.setAlignTo(...) call is needed.
+    # This example models one-pixel disparity noise, so use classical stereo.
+    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
+    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
+    depth = pipeline.create(dai.node.StereoDepth).build(
+        left.requestOutput((640, 400), fps=args.fps_limit),
+        right.requestOutput((640, 400), fps=args.fps_limit),
+    )
+    depth.initialConfig.setDepthUnit(dai.LengthUnit.MILLIMETER)
+    depth.setDisparityToDepthUseSpecTranslation(False)
 
     nn = pipeline.create(dai.node.SpatialDetectionNetwork).build(
         input=cam, stereo=depth, nnArchive=nn_archive, fps=args.fps_limit
@@ -63,17 +75,19 @@ with dai.Pipeline(device) as pipeline:
     nn.out.link(object_tracker.inputDetections)
 
     calibration_handler = device.readCalibration()
-    baseline = calibration_handler.getBaselineDistance() * 10
-    focal_length = calibration_handler.getCameraIntrinsics(
-        dai.CameraBoardSocket.CAM_C, 640, 400
-    )[0][0]
+    baseline = calibration_handler.getBaselineDistance(
+        dai.CameraBoardSocket.CAM_B,
+        dai.CameraBoardSocket.CAM_C,
+        useSpecTranslation=False,
+        unit=dai.LengthUnit.MILLIMETER,
+    )
 
     # kalman filter
     kalman_filter_node = pipeline.create(KalmanFilterNode).build(
         rgb=nn.passthrough,
         tracker_out=object_tracker.out,
         baseline=baseline,
-        focal_length=focal_length,
+        rectified_right=depth.rectifiedRight,
         label_map=labels,
     )
 

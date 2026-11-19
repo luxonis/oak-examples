@@ -45,9 +45,6 @@ with dai.Pipeline(device) as p:
     )
     depth.setAlignTo(color_output)
 
-    # PointCloud node: organized (one point per pixel, same layout as the frames),
-    # colored point cloud directly in centimeters, the unit the cuboid fitter
-    # reports in, so no host-side unit conversion is needed.
     pcl = p.create(dai.node.PointCloud)
     pcl.initialConfig.setOrganized(True)
     pcl.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
@@ -81,6 +78,7 @@ with dai.Pipeline(device) as p:
     # Pair the cloud and detections with their original, undistorted RGB frame.
     sync = p.create(dai.node.Sync)
     sync.setRunOnHost(True)
+    # PointCloud keeps the depth timestamp, which can trail RGB by a few ms.
     sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
     sync.setSyncAttempts(-1)
     pcl.outputPointCloud.link(sync.inputs["pcl"])
