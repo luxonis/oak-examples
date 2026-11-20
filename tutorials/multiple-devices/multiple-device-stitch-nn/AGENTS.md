@@ -67,7 +67,7 @@ Calibrate OAK devices with the `MultiDeviceCalibration` node, run YOLO on each d
 
 - [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you need per-device outputs without stitching
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when you need world-frame fused detections instead of a panorama image
-- [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration): use this when you need the marker-based world-frame calibration files for spatial fusion
+- [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): use this when you only need the multi-device calibration file, for example for spatial fusion
 
 ## Validation
 
