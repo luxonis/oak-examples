@@ -43,19 +43,20 @@ REM ============================================================================
 REM oakctl self-update (best-effort)
 REM ==============================================================================
 
-echo Updating oakctl if available...
-where oakctl >nul 2>&1
-if %errorlevel%==0 (
-    for /f "delims=" %%v in ('oakctl version') do set "OAK_VER=%%v"
-    if defined OAK_VER (
-        oakctl self-update -v %OAK_VER%
+if not "%EXTERNALLY_MANAGED_OAK_ARTIFACTS%"=="true" (
+    echo Updating oakctl if available...
+    where oakctl >nul 2>&1
+    if not errorlevel 1 (
+        for /f "delims=" %%v in ('oakctl version') do set "OAK_VER=%%v"
+        if defined OAK_VER (
+            call oakctl self-update -v %%OAK_VER%%
+        ) else (
+            echo Could not determine oakctl version, skipping self-update.
+        )
     ) else (
-        echo Could not determine oakctl version, skipping self-update.
+        echo oakctl not found, skipping self-update.
     )
-) else (
-    echo oakctl not found, skipping self-update.
 )
-
 echo Creating virtual environment...
 python -m venv .venv
 

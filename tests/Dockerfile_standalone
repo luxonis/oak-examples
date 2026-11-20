@@ -2,6 +2,7 @@ ARG PYTHON_VERSION=3.10
 FROM python:${PYTHON_VERSION}
 
 ARG OAKCTL_VERSION=""
+ARG EXTERNALLY_MANAGED_OAK_ARTIFACTS=false
 
 ENV PLATFORM=""
 ENV DAI_VERSION=""
@@ -23,9 +24,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh -o /tmp/oakctl-installer.sh \
+RUN if [ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" != "true" ]; then curl -fsSL https://oakctl-releases.luxonis.com/oakctl-installer.sh -o /tmp/oakctl-installer.sh \
     && VERSION="${OAKCTL_VERSION}" bash /tmp/oakctl-installer.sh --no-modify-path --skip-usbd --skip-udev \
-    && rm /tmp/oakctl-installer.sh
+    && rm /tmp/oakctl-installer.sh; fi
 
 # Copy your project files into the container
 # If running inside GH Actions/HIL syncs, files are mounted; otherwise copy.
