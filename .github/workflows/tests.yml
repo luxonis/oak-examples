@@ -1,58 +1,6 @@
 name: Runnability tests for DAIv3 oak-examples
 
 on:
-  workflow_call:
-    inputs:
-      examples_ref:
-        description: "oak-examples ref to check out; match the ref in uses"
-        type: string
-        default: main
-      oakctl_version:
-        type: string
-        default: ""
-      distinct_id:
-        type: string
-        default: ""
-      dai_versions:
-        type: string
-        default: ""
-      python_version:
-        type: string
-        default: all
-      log_level:
-        type: string
-        default: INFO
-      reservation_name:
-        type: string
-        default: ""
-      caller_artifacts:
-        description: "Artifact names and pinned caller installation-helper commit (JSON)"
-        type: string
-        default: ""
-      platform:
-        type: string
-        default: all
-      root_dir:
-        type: string
-        default: "."
-      strict_mode:
-        type: string
-        default: "no"
-      additional_options:
-        type: string
-        default: ""
-      subtests:
-        type: string
-        default: "os=all,subtests=all"
-    secrets:
-      HIL_FRAMEWORK_TOKEN:
-        required: true
-      INFLUXDB_TOKEN:
-        required: false
-      DEVICE_PASSWORD:
-        required: false
-      LOCAL_STATIC_REGISTRY:
-        required: false
   workflow_dispatch:
     inputs:
       oakctl_version:
@@ -82,6 +30,11 @@ on:
         description: "Reservation name - usually usually unique identifier of root CI run"
         required: false
         type: string
+      externally_managed_oak_artifacts:
+        description: "Use the oakctl and oak-agent already installed on the reserved testbed."
+        required: false
+        type: boolean
+        default: false
       platform:
         description: "Platform to use for testing. By default both RVC2 and RVC4 are used but you can use only one by passing only `rvc2` or `rvc4`(use lowercase)."
         default: "all"
@@ -108,8 +61,7 @@ on:
         default: "os=all,subtests=all"
 
 env:
-  CALLER_ARTIFACTS: ${{ inputs.caller_artifacts }}
-  EXTERNALLY_MANAGED_OAKCTL_OAKAGENT: ${{ inputs.caller_artifacts != '' }}
+  EXTERNALLY_MANAGED_OAK_ARTIFACTS: ${{ inputs.externally_managed_oak_artifacts }}
   EXTERNAL_RESERVATION_NAME: ${{ inputs.reservation_name }}
 
 jobs:
@@ -136,7 +88,6 @@ jobs:
           INPUT_PYTHON: ${{ inputs.python_version }}
           INPUT_DAI_VERSIONS: ${{ inputs.dai_versions }}
           INPUT_SUBTESTS: ${{ inputs.subtests }}
-          EXAMPLES_REF: ${{ inputs.examples_ref }}
         run: |
           # Matrix platform
           if [ "$INPUT_PLATFORM" = "all" ] || [ -z "$INPUT_PLATFORM" ]; then
@@ -179,23 +130,13 @@ jobs:
               SUBTESTS_KIND="$(printf '%s' "$S2" | sed -n 's/.*subtests=\([^,]*\).*/\1/p')"
             fi
           fi
-          if [[ -n "$CALLER_ARTIFACTS" ]]; then
-            jq -e '
-              (keys | sort) ==
-                ["helpers_ref", "oak_agent", "oakctl", "release_server"] and
-              all(.[]; type == "string" and length > 0
-                and (test("[\\r\\n]") | not)) and
-              (.helpers_ref | test("^[0-9a-fA-F]{40}$"))
-            ' <<< "$CALLER_ARTIFACTS" >/dev/null
-            [[ "$EXAMPLES_REF" =~ ^[0-9a-fA-F]{40}$ ]] || {
-              echo "caller_artifacts requires a pinned examples_ref commit"; exit 1;
-            }
-            [[ -z "$EXTERNAL_RESERVATION_NAME" && "$INPUT_PLATFORM" == rvc4 ]] || {
-              echo "Caller artifacts require RVC4 and a job-owned reservation"; exit 1;
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
+            [[ -n "$EXTERNAL_RESERVATION_NAME" && "$INPUT_PLATFORM" == rvc4 ]] || {
+              echo "Externally managed OAK artifacts require RVC4 and a reservation name"; exit 1;
             }
             [[ "$OS_VAL" =~ ^(linux|windows|mac)$ &&
               "$SUBTESTS_KIND" =~ ^(standalone|peripheral)$ ]] || {
-              echo "Select one host OS and test mode for caller artifacts"; exit 1;
+              echo "Select one host OS and test mode for externally managed OAK artifacts"; exit 1;
             }
             if [[ "$OS_VAL" == linux && "$SUBTESTS_KIND" == peripheral ]]; then
               [[ "$INPUT_PYTHON" =~ ^(3\.8|3\.10|3\.12)$ ]] || {
@@ -209,7 +150,6 @@ jobs:
   test_peripheral:
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
-    timeout-minutes: ${{ inputs.caller_artifacts != '' && 720 || 360 }}
     defaults:
       run:
         working-directory: oak-examples
@@ -228,7 +168,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luxonis/oak-examples
-          ref: ${{ inputs.examples_ref || github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: false
           path: oak-examples
 
@@ -249,15 +189,6 @@ jobs:
           elif [ "${{ matrix.platform }}" = "rvc4" ]; then
             echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
           fi
-
-      - name: Prepare caller artifacts
-        if: ${{ inputs.caller_artifacts != '' }}
-        uses: ./oak-examples/.github/actions/prepare-caller-artifacts
-        with:
-          host: linux
-          suite: peripheral
-          platform: ${{ matrix.platform }}
-          python: "${{ matrix.python-version }}"
 
       - name: Run Test
         run: |
@@ -282,8 +213,9 @@ jobs:
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
 
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
             ADDITIONAL_OPTIONS="--no-update --skip-sanity-check"
+            HOLD_RESERVATION="--hold-reservation"
           fi
           if [[ -n "${{ inputs.additional_options }}" ]]; then
 
@@ -296,14 +228,9 @@ jobs:
               --docker-build-args "--build-arg PYTHON_VERSION=${{ matrix.python-version }}" \
               --docker-run-args "$ENV_VARS"
 
-      - name: Release caller testbed and remove private staging
-        if: ${{ always() && inputs.caller_artifacts != '' }}
-        run: bash tests/ci/manage-caller-testbed.sh cleanup
-
   test_peripheral_windows:
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
-    timeout-minutes: ${{ inputs.caller_artifacts != '' && 720 || 360 }}
     defaults:
       run:
         working-directory: oak-examples
@@ -322,7 +249,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luxonis/oak-examples
-          ref: ${{ inputs.examples_ref || github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: false
           path: oak-examples
 
@@ -344,15 +271,6 @@ jobs:
             echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
           fi
 
-      - name: Prepare caller artifacts
-        if: ${{ inputs.caller_artifacts != '' }}
-        uses: ./oak-examples/.github/actions/prepare-caller-artifacts
-        with:
-          host: windows
-          suite: peripheral
-          platform: ${{ matrix.platform }}
-          python: "${{ matrix.python-version }}"
-
       - name: Run Test
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-windows"
@@ -367,8 +285,9 @@ jobs:
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
 
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
             ADDITIONAL_OPTIONS="--no-update --skip-sanity-check"
+            HOLD_RESERVATION="--hold-reservation"
           fi
           if [[ -n "${{ inputs.additional_options }}" ]]; then
 
@@ -379,14 +298,9 @@ jobs:
               --local-path . --remote-path AppData/Local/Temp/oak-examples \
               --commands "cd %TEMP%\oak-examples && tests\run_tests_peripheral.cmd ${{ matrix.python-version }} ${{ matrix.platform }} ${{ inputs.strict_mode }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
-      - name: Release caller testbed and remove private staging
-        if: ${{ always() && inputs.caller_artifacts != '' }}
-        run: bash tests/ci/manage-caller-testbed.sh cleanup
-
   test_peripheral_mac:
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
-    timeout-minutes: ${{ inputs.caller_artifacts != '' && 720 || 360 }}
     defaults:
       run:
         working-directory: oak-examples
@@ -405,7 +319,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luxonis/oak-examples
-          ref: ${{ inputs.examples_ref || github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: false
           path: oak-examples
 
@@ -427,15 +341,6 @@ jobs:
             echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
           fi
 
-      - name: Prepare caller artifacts
-        if: ${{ inputs.caller_artifacts != '' }}
-        uses: ./oak-examples/.github/actions/prepare-caller-artifacts
-        with:
-          host: mac
-          suite: peripheral
-          platform: ${{ matrix.platform }}
-          python: "${{ matrix.python-version }}"
-
       - name: Run Test
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#${{ matrix.python-version}}-${{ matrix.platform }}-mac"
@@ -450,8 +355,9 @@ jobs:
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
 
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
             ADDITIONAL_OPTIONS="--no-update --skip-sanity-check"
+            HOLD_RESERVATION="--hold-reservation"
           fi
           if [[ -n "${{ inputs.additional_options }}" ]]; then
 
@@ -462,17 +368,12 @@ jobs:
               --local-path . --remote-path /tmp/oak-examples \
               --commands "cd /tmp/oak-examples && tests/run_tests_peripheral.sh ${{ matrix.python-version }} ${{ matrix.platform }} ${{ inputs.strict_mode }} ${{ inputs.root_dir }} ${{ inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
 
-      - name: Release caller testbed and remove private staging
-        if: ${{ always() && inputs.caller_artifacts != '' }}
-        run: bash tests/ci/manage-caller-testbed.sh cleanup
-
   test_standalone:
     if: >
       (needs.setup.outputs.os == 'all' || needs.setup.outputs.os == 'linux') &&
       (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'standalone')
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
-    timeout-minutes: ${{ inputs.caller_artifacts != '' && 720 || 360 }}
     defaults:
       run:
         working-directory: oak-examples
@@ -481,7 +382,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luxonis/oak-examples
-          ref: ${{ inputs.examples_ref || github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: false
           path: oak-examples
 
@@ -494,15 +395,6 @@ jobs:
       - name: Install HIL
         run: |
           pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.HIL_FRAMEWORK_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
-
-      - name: Prepare caller artifacts
-        if: ${{ inputs.caller_artifacts != '' }}
-        uses: ./oak-examples/.github/actions/prepare-caller-artifacts
-        with:
-          host: linux
-          suite: standalone
-          platform: rvc4
-          python: "3.12"
 
       - name: Run Test
         env:
@@ -523,10 +415,9 @@ jobs:
             --env LOCAL_STATIC_REGISTRY=${{ secrets.LOCAL_STATIC_REGISTRY }}"
 
           OAKCTL_OPTION="--oakctl"
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
             OAKCTL_OPTION=""
             ENV_VARS="$ENV_VARS \
-              --env EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=true \
               -v \$HOME/.local/bin/oakctl:/root/.local/bin/oakctl:ro \
               -v \$HOME/.local/share/oakctl/data:/opt/oakctl/data:ro"
           fi
@@ -539,8 +430,9 @@ jobs:
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
             ADDITIONAL_OPTIONS="--no-update --skip-sanity-check"
+            HOLD_RESERVATION="--hold-reservation"
           fi
           if [[ -n "${{ inputs.additional_options }}" ]]; then
 
@@ -550,12 +442,8 @@ jobs:
           exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS $OAKCTL_OPTION --sync-workspace \
               --local-path . --remote-path /tmp/oak-examples \
               --dockerfile ./tests/Dockerfile_standalone \
-              --docker-build-args "--build-arg PYTHON_VERSION=3.12 --build-arg OAKCTL_VERSION=$OAKCTL_VERSION --build-arg EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" \
+              --docker-build-args "--build-arg PYTHON_VERSION=3.12 --build-arg OAKCTL_VERSION=$OAKCTL_VERSION --build-arg EXTERNALLY_MANAGED_OAK_ARTIFACTS=$EXTERNALLY_MANAGED_OAK_ARTIFACTS" \
               --docker-run-args "$ENV_VARS"
-
-      - name: Release caller testbed and remove private staging
-        if: ${{ always() && inputs.caller_artifacts != '' }}
-        run: bash tests/ci/manage-caller-testbed.sh cleanup
 
   test_standalone_windows:
     if: >
@@ -563,7 +451,6 @@ jobs:
       (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'standalone')
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
-    timeout-minutes: ${{ inputs.caller_artifacts != '' && 720 || 360 }}
     defaults:
       run:
         working-directory: oak-examples
@@ -572,7 +459,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luxonis/oak-examples
-          ref: ${{ inputs.examples_ref || github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: false
           path: oak-examples
 
@@ -585,15 +472,6 @@ jobs:
       - name: Install HIL
         run: |
           pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.HIL_FRAMEWORK_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
-
-      - name: Prepare caller artifacts
-        if: ${{ inputs.caller_artifacts != '' }}
-        uses: ./oak-examples/.github/actions/prepare-caller-artifacts
-        with:
-          host: windows
-          suite: standalone
-          platform: rvc4
-          python: "3.12"
 
       - name: Run Test
         run: |
@@ -608,8 +486,9 @@ jobs:
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
             ADDITIONAL_OPTIONS="--no-update --skip-sanity-check"
+            HOLD_RESERVATION="--hold-reservation"
           fi
           if [[ -n "${{ inputs.additional_options }}" ]]; then
 
@@ -617,15 +496,11 @@ jobs:
           fi
 
           OAKCTL_OPTION="--oakctl"
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then OAKCTL_OPTION=""; fi
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then OAKCTL_OPTION=""; fi
 
           exec hil_runner --no-shell --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity $OAKCTL_OPTION \
               --local-path . --remote-path AppData/Local/Temp/oak-examples \
-              --commands "set EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT&& cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 \"${{ secrets.DEVICE_PASSWORD }}\" \"${{ secrets.LOCAL_STATIC_REGISTRY }}\" \"${{ inputs.root_dir }}\" \"${{ inputs.log_level }}\" \"${{ needs.setup.outputs.dai_version }}\" \"${{ needs.setup.outputs.dai_nodes_version }}\""
-
-      - name: Release caller testbed and remove private staging
-        if: ${{ always() && inputs.caller_artifacts != '' }}
-        run: bash tests/ci/manage-caller-testbed.sh cleanup
+              --commands "set EXTERNALLY_MANAGED_OAK_ARTIFACTS=$EXTERNALLY_MANAGED_OAK_ARTIFACTS&& cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 \"${{ secrets.DEVICE_PASSWORD }}\" \"${{ secrets.LOCAL_STATIC_REGISTRY }}\" \"${{ inputs.root_dir }}\" \"${{ inputs.log_level }}\" \"${{ needs.setup.outputs.dai_version }}\" \"${{ needs.setup.outputs.dai_nodes_version }}\""
 
   test_standalone_mac:
     if: >
@@ -633,7 +508,6 @@ jobs:
       (needs.setup.outputs.subtests == 'all' || needs.setup.outputs.subtests == 'standalone')
     needs: [setup]
     runs-on: ["self-hosted", "testbed-runner"]
-    timeout-minutes: ${{ inputs.caller_artifacts != '' && 720 || 360 }}
     defaults:
       run:
         working-directory: oak-examples
@@ -642,7 +516,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: luxonis/oak-examples
-          ref: ${{ inputs.examples_ref || github.ref }}
+          ref: ${{ github.ref }}
           persist-credentials: false
           path: oak-examples
 
@@ -655,15 +529,6 @@ jobs:
       - name: Install HIL
         run: |
           pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.HIL_FRAMEWORK_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
-
-      - name: Prepare caller artifacts
-        if: ${{ inputs.caller_artifacts != '' }}
-        uses: ./oak-examples/.github/actions/prepare-caller-artifacts
-        with:
-          host: mac
-          suite: standalone
-          platform: rvc4
-          python: "3.12"
 
       - name: Run Test
         run: |
@@ -678,8 +543,9 @@ jobs:
             else
                 RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
           fi
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then
             ADDITIONAL_OPTIONS="--no-update --skip-sanity-check"
+            HOLD_RESERVATION="--hold-reservation"
           fi
           if [[ -n "${{ inputs.additional_options }}" ]]; then
 
@@ -687,12 +553,8 @@ jobs:
           fi
 
           OAKCTL_OPTION="--oakctl"
-          if [[ "$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT" == true ]]; then OAKCTL_OPTION=""; fi
+          if [[ "$EXTERNALLY_MANAGED_OAK_ARTIFACTS" == true ]]; then OAKCTL_OPTION=""; fi
 
           exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity $OAKCTL_OPTION \
               --local-path . --remote-path /tmp/oak-examples \
-              --commands "export EXTERNALLY_MANAGED_OAKCTL_OAKAGENT=$EXTERNALLY_MANAGED_OAKCTL_OAKAGENT; cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 \\\"${{ secrets.DEVICE_PASSWORD }}\\\" \\\"${{ secrets.LOCAL_STATIC_REGISTRY }}\\\" \\\"${{ inputs.root_dir }}\\\" \\\"${{ inputs.log_level }}\\\" \\\"${{ needs.setup.outputs.dai_version }}\\\" \\\"${{ needs.setup.outputs.dai_nodes_version }}\\\""
-
-      - name: Release caller testbed and remove private staging
-        if: ${{ always() && inputs.caller_artifacts != '' }}
-        run: bash tests/ci/manage-caller-testbed.sh cleanup
+              --commands "export EXTERNALLY_MANAGED_OAK_ARTIFACTS=$EXTERNALLY_MANAGED_OAK_ARTIFACTS; cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 \\\"${{ secrets.DEVICE_PASSWORD }}\\\" \\\"${{ secrets.LOCAL_STATIC_REGISTRY }}\\\" \\\"${{ inputs.root_dir }}\\\" \\\"${{ inputs.log_level }}\\\" \\\"${{ needs.setup.outputs.dai_version }}\\\" \\\"${{ needs.setup.outputs.dai_nodes_version }}\\\""

@@ -43,14 +43,7 @@ REM ============================================================================
 REM oakctl self-update (best-effort)
 REM ==============================================================================
 
-if "%EXTERNALLY_MANAGED_OAKCTL_OAKAGENT%"=="true" (
-    where oakctl
-    if errorlevel 1 exit /b 1
-    for /f "delims=" %%i in ('where oakctl') do certutil -hashfile "%%i" SHA256
-    oakctl version
-    if errorlevel 1 exit /b 1
-    adb shell "oak-agent --version"
-) else (
+if not "%EXTERNALLY_MANAGED_OAK_ARTIFACTS%"=="true" (
     echo Updating oakctl if available...
     where oakctl >nul 2>&1
     if not errorlevel 1 (

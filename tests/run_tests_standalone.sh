@@ -31,12 +31,7 @@ echo "=========================================="
 # ==============================================================================
 # oakctl self-update (best-effort)
 # ==============================================================================
-if [[ "${EXTERNALLY_MANAGED_OAKCTL_OAKAGENT:-false}" == true ]]; then
-  command -v oakctl
-  shasum -a 256 "$(command -v oakctl)"
-  oakctl version
-  adb shell "oak-agent --version"
-else
+if [[ "${EXTERNALLY_MANAGED_OAK_ARTIFACTS:-false}" != true ]]; then
   echo "Updating oakctl if available..."
   if command -v oakctl >/dev/null 2>&1; then
     OAK_VER="$(oakctl version 2>/dev/null || true)"
