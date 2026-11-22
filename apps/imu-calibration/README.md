@@ -1,6 +1,6 @@
 # IMU Calibration
 
-Guided six-pose IMU calibration for OAK devices, modeled after the [Intel RealSense D435i IMU calibration](https://www.realsenseai.com/wp-content/uploads/2019/07/Intel_RealSense_Depth_D435i_IMU_Calibration.pdf) procedure. The app walks you through six static poses, computes the IMU calibration, shows the result, and flashes it to the device EEPROM only after you confirm.
+Guided six-pose IMU calibration for OAK devices, modeled after the [Intel RealSense D435i IMU calibration](https://www.realsenseai.com/wp-content/uploads/2019/07/Intel_RealSense_Depth_D435i_IMU_Calibration.pdf) procedure. The app walks you through six static poses, computes the IMU calibration, previews it on live data next to the calibration stored on the device, and flashes it to the device EEPROM only after you confirm.
 
 It computes and flashes:
 
@@ -11,15 +11,27 @@ It computes and flashes:
 
 DepthAI applies the stored values as `calibrated = Q @ (R @ raw) + b`.
 
+## User Interface
+
+The app has its own web frontend with three columns:
+
+- **Left: guide and results.**
+  - **Guide:** the photo and instructions for the current pose, live status ("Device is still", orientation check), and **Capture** / **Back** buttons.
+  - **Results:** after six poses, this shows the rotation (and whether it matches the depthai-boards design), `[Q|b]`, gyroscope bias, sanity checks, and **Flash to device** / **Redo**.
+  - **Live check:** a table over the last second of data with `|gravity|` (target 9.81 m/s²) and the gyroscope mean per axis (target 0). It shows the calibration stored on the device next to the new one.
+- **Middle: live data.**
+  - The camera stream, so you can see the app is not lagging.
+  - Live charts of the accelerometer, gyroscope, and magnetometer (x/y/z).
+  - After the results, the accelerometer and gyroscope charts show the **stored** calibration (dashed) and the **new** calibration (solid) on the same samples. Checkboxes toggle each one.
+- **Right: device information.** Device name and ID, platform, product, board, detected IMU and its firmware, magnetometer presence, and whether the IMU extrinsics, accelerometer calibration, and gyroscope calibration are missing, default, or calibrated in EEPROM.
+
 ## Flow
 
-1. For each of the six poses, place the device as shown in the photo and press `SPACE`. The device must stay still for the capture (4 s by default).
-   - The app shows live whether the device is still and, from pose 2 on, whether the orientation is consistent with the poses captured so far.
-   - A capture is rejected when the device moved or the orientation is wrong. Press `B` to go back and redo the previous pose.
-2. The results screen shows the rotation (and whether it matches the depthai-boards design), `[Q|b]`, gyroscope bias, translation, and the worst per-pose error. Flashing is disabled when a sanity check fails.
-3. Press `F` to flash. The previous EEPROM calibration is backed up to a JSON file first. Press `R` to redo the capture, `Q` to quit.
+1. For each of the six poses, place the device as shown in the photo and press **Capture**. The device must stay still for the capture (4 s by default). A capture is rejected when the device moved or the orientation does not match the poses captured so far. **Back** redoes the previous pose.
+2. Check the results and the live preview. Flashing is disabled when a sanity check fails.
+3. Press **Flash to device**. The previous EEPROM calibration is backed up to a JSON file first. Flashing only replaces the user calibration; the factory calibration stays on the device. After flashing, the stored and new curves coincide.
 
-Every finished capture is saved as `imu_calibration_<timestamp>.json` in the output directory (pose means and computed matrices). Flashing only replaces the user calibration; the factory calibration stays on the device.
+Every finished capture is saved as `imu_calibration_<timestamp>.json` in the output directory (pose means and computed matrices).
 
 ## Usage
 
@@ -40,22 +52,24 @@ Here is a list of all available parameters:
                       Directory for calibration reports and EEPROM backups. (default: imu_calibration_output, or $OAKAGENT_STORAGE_APP/imu_calibration_output in standalone mode)
 ```
 
-The board config is looked up by the product and board name stored in the device EEPROM. If the lookup fails (no network, unknown board), the app keeps the translation already in EEPROM and says so on the results screen. Pass `--board-config` to use a local depthai-boards checkout instead.
+The board config is looked up by the product and board name stored in the device EEPROM. If the lookup fails (no network, unknown board), the app keeps the translation already in EEPROM and shows the source in the device panel. Pass `--board-config` to use a local depthai-boards checkout instead.
 
 ## Peripheral Mode
 
 ### Installation
 
-You need to first prepare a **Python >= 3.10** environment with the following packages installed:
-
-- [DepthAI](https://pypi.org/project/depthai/),
-- [NumPy](https://pypi.org/project/numpy/),
-- [OpenCV](https://pypi.org/project/opencv-python-headless/).
-
-You can simply install them by running:
+You need a **Python >= 3.10** environment with the backend dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+and [Node.js](https://nodejs.org/en/download/) to build the frontend once:
+
+```bash
+cd frontend
+npm install
+npm run build
 ```
 
 ### Examples
@@ -64,13 +78,13 @@ pip install -r requirements.txt
 python3 main.py
 ```
 
-Then open the Visualizer link printed in the terminal (by default http://localhost:8082) and follow the instructions there. Key presses are read from the Visualizer.
+Then open http://localhost:8082 in your browser.
 
 ```bash
-python3 main.py --board-config ~/depthai-boards/boards/OAK-D-PRO.json
+python3 main.py -d <DEVICE_ID_OR_IP> --board-config ~/depthai-boards/boards/OAK-D-PRO.json
 ```
 
-This uses a local board config instead of downloading depthai-boards.
+This connects to a specific device and uses a local board config instead of downloading depthai-boards.
 
 ## Standalone Mode (RVC4 only)
 
@@ -84,6 +98,6 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
+The frontend is built inside the app container. This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
 
-In standalone mode the reports and EEPROM backups go to the app's persistent storage (`$OAKAGENT_STORAGE_APP/imu_calibration_output`), which survives app restarts and updates. The full path is printed after flashing; open a shell in the app with `oakctl app exec <app-id> -i /bin/bash` to read them.
+In standalone mode the reports and EEPROM backups go to the app's persistent storage (`$OAKAGENT_STORAGE_APP/imu_calibration_output`), which survives app restarts and updates. The full path is shown after flashing; open a shell in the app with `oakctl app exec <app-id> -i /bin/bash` to read them.
