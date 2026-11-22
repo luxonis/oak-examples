@@ -70,6 +70,10 @@ class DepthDrivenFocus(dai.node.HostNode):
         annotation.texts.append(text_lens_annot)
         img_annotations.annotations.append(annotation)
         img_annotations.setTimestamp(face_detection.getTimestamp())
+        img_annotations.setSequenceNum(face_detection.getSequenceNum())
+        transformation = face_detection.getTransformation()
+        if transformation is not None:
+            img_annotations.setTransformation(transformation)
 
         self.output.send(img_annotations)
 

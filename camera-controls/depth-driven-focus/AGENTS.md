@@ -44,30 +44,31 @@ This is the best reference in the repo for autofocus driven by metric face dista
 
 ## Architecture
 
-- `CAM_A` provides RGB frames for face detection.
+- `CAM_A` provides one undistorted frame at the YuNet input size. That frame is the preview, the detector input, and the depth alignment target.
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
 - A `ParsingNeuralNetwork` runs YuNet face detection.
-- `DepthMerger` from `depthai_nodes` enriches face detections with depth.
+- `SpatialLocationCalculator` samples aligned depth inside each face box and writes `SpatialImgDetections`. It runs on device. The box is not shrunk (`shrinking factor` 0, scale 1). Depth is averaged over every pixel in `(200, 30000)` mm.
 - The custom [utils/depth_driven_focus.py](utils/depth_driven_focus.py) host node finds the closest detected face, converts the 3D distance to a lens position, and sends manual-focus commands back into the camera control queue.
 - The host node also publishes annotation text showing the current face distance and current lens position.
 
 ## Data Flow
 
-- `CAM_A -> YuNet face detector -> Visualizations`
-- `Depth -> depth`
-- `face detections + depth -> DepthMerger -> spatial face detections`
+- `CAM_A undistorted output -> YuNet face detector -> Visualizations`
+- `same undistorted output -> Video`
+- `Depth aligned to that output -> depth`
+- `face detections + aligned depth -> SpatialLocationCalculator -> spatial face detections`
 - `spatial face detections -> DepthDrivenFocus host node -> camera inputControl queue + Focus distance`
 
 ## Modification Guide
 
 - `Safe to change:` default FPS, annotation text, lens-position curve, topic names, depth visualization settings
 - `Requires care:` fixed camera sockets, depth alignment, focus-capable hardware assumptions, the polynomial mapping in `get_lens_position(...)`
-- `Likely to break if changed blindly:` the focus-distance calculation, the calibration-dependent depth merge, or camera-control updates on devices without autofocus support
+- `Likely to break if changed blindly:` the focus-distance calculation, the spatial calculator thresholds and scale, or camera-control updates on devices without autofocus support
 
 ## Common Adaptations
 
 - `To tune the focus curve:` edit `get_lens_position(...)` in [utils/depth_driven_focus.py](utils/depth_driven_focus.py)
-- `To change the detector:` swap the YuNet YAML under [depthai_models/](depthai_models/) and keep the same depth-merging shape
+- `To change the detector:` swap the YuNet YAML under [depthai_models/](depthai_models/) and keep the detections linked to `SpatialLocationCalculator.inputDetections`
 - `To reuse only the focus-control host node:` keep [utils/depth_driven_focus.py](utils/depth_driven_focus.py) and feed it another `SpatialImgDetections` stream
 - `To compare against manual control:` see [camera-controls/manual-camera-control](https://github.com/luxonis/oak-examples/tree/main/camera-controls/manual-camera-control)
 
@@ -75,7 +76,8 @@ This is the best reference in the repo for autofocus driven by metric face dista
 
 - The example needs a stereo pair and an autofocus RGB camera.
 - Camera sockets are fixed to `CAM_A`, `CAM_B`, and `CAM_C`.
-- `Depth` uses `AUTO` backend selection; keep `Depth.setAlignTo(...)` aligned with the face-detection stream when changing the camera path.
+- `Depth` uses `AUTO` backend selection. The detector input, the preview, and `Depth.setAlignTo` must be the same undistorted camera output. On RVC2 the calculator stops if the detection frame is still distorted: aligned depth clears distortion coefficients, and remapping is allowed only when both streams share that source calibration and the aligned camera socket.
+- `SpatialLocationCalculator` input queues are blocking. `inputDetections` holds 2 messages and `inputDepth` holds 1, so a depth frame is not dropped while a detection is in flight. Do not switch `inputDepth` back to the default non-blocking queue.
 - `DepthDrivenFocus` ignores lens position `255`, so that edge case is intentionally not sent to the camera.
 
 ## Non-Obvious Repo Conventions
@@ -83,7 +85,6 @@ This is the best reference in the repo for autofocus driven by metric face dista
 - The focus host node computes Euclidean distance from `x`, `y`, and `z`, not just the forward `z` coordinate.
 - The focus-control topic is an annotation output, not a direct numeric stream.
 - RVC2 uses a special `setNNArchive(..., numShaves=7)` path, so the detector setup is platform-sensitive.
-- `DepthMerger` comes from `depthai_nodes`, not from a local utility file in this example directory.
 
 ## Related Examples
 

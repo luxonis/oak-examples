@@ -84,6 +84,7 @@ class MeasureObjectDistance(dai.node.HostNode):
         obj_distances.distances = distances
         obj_distances.setTimestamp(detections.getTimestamp())
         obj_distances.setSequenceNum(detections.getSequenceNum())
+        obj_distances.frame_transformation = detections.getTransformation()
         self.output.send(obj_distances)
 
     def _calc_distance(self, p1: dai.Point3f, p2: dai.Point3f) -> float:

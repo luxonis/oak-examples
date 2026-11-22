@@ -1,10 +1,10 @@
 # Social Distancing
 
-This example demonstrates how we can use DepthAI to monitor social distancing. It uses our depth-enabled OAK camera and on-device AI processing. For detecting people we use [SCRFD Person detection model](https://models.luxonis.com/luxonis/scrfd-person-detection/c3830468-3178-4de6-bc09-0543bbe28b1c) from HubAI. We merge the detections with depth information to get the 3D position of each person. We then calculate the distance between each pair of people and if the distance is less than a threshold, we display a warning.
+This example demonstrates how we can use DepthAI to monitor social distancing. It uses our depth-enabled OAK camera and on-device AI processing. For detecting people we use [SCRFD Person detection model](https://models.luxonis.com/luxonis/scrfd-person-detection/c3830468-3178-4de6-bc09-0543bbe28b1c) from HubAI. `SpatialLocationCalculator` reads aligned stereo depth inside each person box to produce a 3D position. We then calculate the distance between each pair of people and if the distance is less than a threshold, we display a warning.
 
 Below you can see 3 people in a scene. If they get closer than the threshold of 2 meters, the application will display `Too Close` and the distance between them.
 
-> **Note:** This example requires a device with at least 3 cameras (color, left and right) for the default stereo-backed `Depth` path.
+> **Note:** This example requires a device with at least 3 cameras (color, left and right). Depth comes from `StereoDepth` aligned to the undistorted color frame used by the person detector.
 
 ## Demo
 

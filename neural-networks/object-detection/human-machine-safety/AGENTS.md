@@ -43,9 +43,9 @@ This is the repository reference for distance-based safety checks between detect
 ## Architecture
 
 - The color stream on `CAM_A` feeds both object detection and palm detection.
-- Stereo on `CAM_B/C` produces aligned depth.
-- Two `DepthMerger` nodes attach depth to the object and palm detections separately.
-- [utils/detection_merger.py](utils/detection_merger.py) combines those streams into one detection message with label offsets.
+- `Depth` on `CAM_B/C` produces metric depth aligned to the color stream.
+- Two `SpatialLocationCalculator` nodes sample that depth for the object boxes and the palm boxes. Both use scale `0.8` (the old `shrinkingFactor=0.1`), average aggregation, step size 1, and depth thresholds `(200, 30000)` mm. They run on device.
+- [utils/detection_merger.py](utils/detection_merger.py) combines those spatial streams into one message. Palm labels are shifted by the object class count. Object labels are not shifted.
 - Host nodes measure distances, render per-object distance output, and emit an alert stream.
 
 ## Constraints
@@ -53,6 +53,7 @@ This is the repository reference for distance-based safety checks between detect
 - The current code hardcodes `DANGEROUS_OBJECTS = ["bottle", "cup"]`.
 - The example requires three cameras and aligned depth.
 - Palm and object labels are merged into one namespace, so label offsets matter if you modify the model set.
+- Object boxes live in the 512x288 stretched network frame and palm boxes live in the 192x192 stretched frame. Depth is aligned to the 800x600 color output. The calculator remaps those frames. Do not sample depth with raw normalized box coordinates.
 
 ## Related Examples
 

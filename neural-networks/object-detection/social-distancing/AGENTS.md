@@ -41,16 +41,18 @@ This is the repository reference for person detection plus distance monitoring. 
 
 ## Architecture
 
-- A color camera on `CAM_A` feeds the person detector.
-- `Depth` owns depth-source selection and aligns depth back to the RGB stream.
-- `DepthMerger` attaches depth to the 2D person detections.
-- Host nodes derive pairwise distances and a bird’s-eye view from those spatial detections.
+- A color camera on `CAM_A` feeds the person detector with one undistorted output at the model size. That output is also the preview.
+- `StereoDepth` on `CAM_B/C` produces metric depth aligned to that undistorted frame. RVC2 links it to `inputAlignTo`. RVC4 uses `ImageAlign` because `StereoDepth` rejects `inputAlignTo` there. This example does not use `dai.node.Depth`.
+- `SpatialLocationCalculator` samples that depth inside each person box. The box scale is `0.8` (the old `shrinkingFactor=0.1`), aggregation is the average of every pixel, and depth thresholds are `(200, 30000)` mm. The node runs on device.
+- Host nodes derive pairwise distances and a bird’s-eye view from those spatial detections. Those host nodes are unchanged.
 
 ## Constraints
 
-- The example requires three cameras and aligned depth.
+- The example requires three cameras and aligned stereo depth.
+- The detector frame must stay undistorted. Aligned depth clears distortion coefficients, and on RVC2 the calculator stops unless both streams share that source calibration and the aligned socket.
 - It is person-specific; it is not a general spatial-object monitor.
 - Distance logic quality depends on reliable depth for each detected person.
+- `SpatialLocationCalculator` input queues are blocking and size 1. The calculator and the stereo node are separate streams, so this only pairs them while both emit one message per camera frame.
 
 ## Related Examples
 

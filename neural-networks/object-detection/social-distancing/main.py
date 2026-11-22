@@ -1,12 +1,46 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, DepthMerger
+from depthai_nodes.node import ParsingNeuralNetwork
 
 from utils.host_bird_eye_view import BirdsEyeView
 from utils.measure_object_distance import MeasureObjectDistance
 from utils.host_social_distancing import SocialDistancing
 from utils.arguments import initialize_argparser
 
+# DepthMerger averaged every depth pixel in [200, 30000] mm and, for keypoints,
+# a 5 px square. Thresholds here are exclusive, so the accepted band is 1 mm
+# inside that range. A shrinking factor trims that fraction from each box edge,
+# which is the scale `1 - 2 * shrinking_factor` about the box center.
+_DEPTH_LOWER_THRESHOLD_MM = 200
+_DEPTH_UPPER_THRESHOLD_MM = 30000
+_KEYPOINT_RADIUS_PX = 5
+# Previous DepthMerger shrinkingFactor. Scale keeps the same center and size.
+_BOX_SHRINKING_FACTOR = 0.1
+
 _, args = initialize_argparser()
+
+
+def create_spatial_calculator(pipeline: dai.Pipeline, shrinking_factor: float):
+    calculator = pipeline.create(dai.node.SpatialLocationCalculator)
+    calculator.initialConfig.setDepthThresholds(
+        _DEPTH_LOWER_THRESHOLD_MM, _DEPTH_UPPER_THRESHOLD_MM
+    )
+    calculator.initialConfig.setCalculationAlgorithm(
+        dai.SpatialLocationCalculatorAlgorithm.AVERAGE
+    )
+    calculator.initialConfig.setStepSize(1)
+    calculator.initialConfig.setBoundingBoxScaleFactor(1.0 - 2.0 * shrinking_factor)
+    calculator.initialConfig.setCalculateSpatialKeypoints(True)
+    calculator.initialConfig.setKeypointRadius(_KEYPOINT_RADIUS_PX)
+    calculator.initialConfig.setUseSegmentation(False)
+    calculator.inputDetections.setBlocking(True)
+    calculator.inputDetections.setMaxSize(1)
+    calculator.inputDepth.setBlocking(True)
+    calculator.inputDepth.setMaxSize(1)
+    # RVC2 and RVC4 both implement this node on device. Running it on the host
+    # would pull the depth frame back to the computer.
+    calculator.setRunOnHost(False)
+    return calculator
+
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
@@ -42,10 +76,14 @@ with dai.Pipeline(device) as pipeline:
     cam = pipeline.create(dai.node.Camera).build(
         boardSocket=dai.CameraBoardSocket.CAM_A
     )
+    # Undistorted, same size as the detector. Aligned depth clears distortion,
+    # and the calculator remaps only when both streams still share that
+    # source calibration.
     rgb = cam.requestOutput(
         size=det_model_nn_archive.getInputSize(),
         type=frame_type,
         fps=args.fps_limit,
+        enableUndistortion=True,
     )
 
     left = pipeline.create(dai.node.Camera).build(
@@ -78,18 +116,28 @@ with dai.Pipeline(device) as pipeline:
         nnSource=det_model_nn_archive,
     )
 
+    # Align depth to the detector frame. RVC4 StereoDepth rejects inputAlignTo.
+    if platform == "RVC2":
+        nn_parser.passthrough.link(stereo.inputAlignTo)
+        aligned_depth = stereo.depth
+    else:
+        align = pipeline.create(dai.node.ImageAlign)
+        stereo.depth.link(align.input)
+        nn_parser.passthrough.link(align.inputAlignTo)
+        aligned_depth = align.outputAligned
+
     # produce spatial detections
-    depth_merger = pipeline.create(DepthMerger).build(
-        output2d=nn_parser.out,
-        outputDepth=stereo.depth,
-        calibData=device.readCalibration2(),
-        depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
-        shrinkingFactor=0.1,
-    )
+    spatial_calculator = create_spatial_calculator(pipeline, _BOX_SHRINKING_FACTOR)
+    nn_parser.out.link(spatial_calculator.inputDetections)
+    aligned_depth.link(spatial_calculator.inputDepth)
 
     # annotation
-    bird_eye_view = pipeline.create(BirdsEyeView).build(depth_merger.output)
-    measure_obj_dist = pipeline.create(MeasureObjectDistance).build(depth_merger.output)
+    bird_eye_view = pipeline.create(BirdsEyeView).build(
+        spatial_calculator.outputDetections
+    )
+    measure_obj_dist = pipeline.create(MeasureObjectDistance).build(
+        spatial_calculator.outputDetections
+    )
     social_distancing = pipeline.create(SocialDistancing).build(
         distances=measure_obj_dist.output
     )

@@ -1,5 +1,5 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, DepthMerger, ImgDetectionsFilter
+from depthai_nodes.node import ParsingNeuralNetwork, ImgDetectionsFilter
 from depthai.beta.node import MPPalmDetectionParser
 
 from utils.arguments import initialize_argparser
@@ -11,7 +11,44 @@ from utils.show_alert import ShowAlert
 
 DANGEROUS_OBJECTS = ["bottle", "cup"]
 
+# DepthMerger averaged every depth pixel in [200, 30000] mm and, for keypoints,
+# a 5 px square. Thresholds here are exclusive, so the accepted band is 1 mm
+# inside that range. A shrinking factor trims that fraction from each box edge,
+# which is the scale `1 - 2 * shrinking_factor` about the box center.
+_DEPTH_LOWER_THRESHOLD_MM = 200
+_DEPTH_UPPER_THRESHOLD_MM = 30000
+_KEYPOINT_RADIUS_PX = 5
+# Previous DepthMerger shrinkingFactor. Scale keeps the same center and size.
+_BOX_SHRINKING_FACTOR = 0.1
+
 _, args = initialize_argparser()
+
+
+def create_spatial_calculator(pipeline: dai.Pipeline, shrinking_factor: float):
+    calculator = pipeline.create(dai.node.SpatialLocationCalculator)
+    calculator.initialConfig.setDepthThresholds(
+        _DEPTH_LOWER_THRESHOLD_MM, _DEPTH_UPPER_THRESHOLD_MM
+    )
+    calculator.initialConfig.setCalculationAlgorithm(
+        dai.SpatialLocationCalculatorAlgorithm.AVERAGE
+    )
+    calculator.initialConfig.setStepSize(1)
+    calculator.initialConfig.setBoundingBoxScaleFactor(1.0 - 2.0 * shrinking_factor)
+    calculator.initialConfig.setCalculateSpatialKeypoints(True)
+    calculator.initialConfig.setKeypointRadius(_KEYPOINT_RADIUS_PX)
+    calculator.initialConfig.setUseSegmentation(False)
+    # One-slot blocking queues pair each detection with the depth frame from the
+    # same production step. The default depth queue is non-blocking and can drop
+    # that frame.
+    calculator.inputDetections.setBlocking(True)
+    calculator.inputDetections.setMaxSize(1)
+    calculator.inputDepth.setBlocking(True)
+    calculator.inputDepth.setMaxSize(1)
+    # RVC2 and RVC4 both implement this node on device. Running it on the host
+    # would pull the depth frame back to the computer.
+    calculator.setRunOnHost(False)
+    return calculator
+
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
@@ -103,24 +140,16 @@ with dai.Pipeline(device) as pipeline:
     parser: MPPalmDetectionParser = palm_det_nn.getParser(0)
     parser.setConfidenceThreshold(0.7)
 
-    detection_depth_merger = pipeline.create(DepthMerger).build(
-        output2d=obj_det_nn.out,
-        outputDepth=depth.depth,
-        calibData=device.readCalibration2(),
-        depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
-        shrinkingFactor=0.1,
-    )
-    palm_depth_merger = pipeline.create(DepthMerger).build(
-        output2d=palm_det_nn.out,
-        outputDepth=depth.depth,
-        calibData=device.readCalibration2(),
-        depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
-        shrinkingFactor=0.1,
-    )
+    object_spatial = create_spatial_calculator(pipeline, _BOX_SHRINKING_FACTOR)
+    obj_det_nn.out.link(object_spatial.inputDetections)
+    depth.depth.link(object_spatial.inputDepth)
+    palm_spatial = create_spatial_calculator(pipeline, _BOX_SHRINKING_FACTOR)
+    palm_det_nn.out.link(palm_spatial.inputDetections)
+    depth.depth.link(palm_spatial.inputDepth)
 
     # merge both detections into one message
     merge_detections = pipeline.create(DetectionMerger).build(
-        detection_depth_merger.output, palm_depth_merger.output
+        object_spatial.outputDetections, palm_spatial.outputDetections
     )
     merge_detections.set_detection_2_label_offset(len(classes))
 

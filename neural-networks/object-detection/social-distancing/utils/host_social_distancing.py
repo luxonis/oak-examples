@@ -51,6 +51,9 @@ class SocialDistancing(dai.node.HostNode):
         annotations = annotation_helper.build(
             timestamp=distances.getTimestamp(), sequence_num=distances.getSequenceNum()
         )
+        transformation = getattr(distances, "frame_transformation", None)
+        if transformation is not None:
+            annotations.setTransformation(transformation)
 
         return annotations
 
