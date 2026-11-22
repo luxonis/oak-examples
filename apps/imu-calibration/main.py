@@ -23,7 +23,12 @@ if "OAKAPP_STATIC_FRONTEND_PATH" not in os.environ:
         handler = functools.partial(
             SimpleHTTPRequestHandler, directory=str(FRONTEND_DIST)
         )
-        server = ThreadingHTTPServer(("0.0.0.0", FRONTEND_PORT), handler)
+        try:
+            server = ThreadingHTTPServer(("0.0.0.0", FRONTEND_PORT), handler)
+        except OSError as e:
+            raise SystemExit(
+                f"Port {FRONTEND_PORT} is in use ({e.strerror}); stop the other app instance first."
+            )
         threading.Thread(target=server.serve_forever, daemon=True).start()
         print(f"Open http://localhost:{FRONTEND_PORT} in your browser")
     else:
