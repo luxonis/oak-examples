@@ -1,4 +1,5 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
+import { Switch } from '@luxonis/ui-components';
 import { useEffect, useRef, useState } from 'react';
 import { Chart, type Series } from './Chart.tsx';
 import {
@@ -13,11 +14,11 @@ import {
 	meanVec,
 } from './api.ts';
 import {
-	DevicePanel,
-	GuidePanel,
+	DeviceSidebar,
 	type LiveCheck,
-	LiveCheckTable,
-	ResultsPanel,
+	LiveCheckSection,
+	PoseSection,
+	ResultsSection,
 } from './panels.tsx';
 
 const WINDOW = 250; // graph samples (10 s at 25 Hz), matches the backend buffer
@@ -48,8 +49,6 @@ function App() {
 	const { connected, daiConnection } = useDaiConnection();
 	const [state, setState] = useState<ImuState | null>(null);
 	const [rows, setRows] = useState<Sample[]>([]);
-	const [showStored, setShowStored] = useState(true);
-	const [showNew, setShowNew] = useState(true);
 	const since = useRef(0);
 	const session = useRef<number | null>(null);
 
@@ -82,97 +81,142 @@ function App() {
 	const act = (action: Action) =>
 		callService(daiConnection, 'IMU Action', { action });
 
-	if (!state) {
-		return (
-			<main className="flex h-screen items-center justify-center text-gray-500">
-				{connected ? 'Waiting for the device...' : 'Connecting...'}
-			</main>
-		);
-	}
+	return state ? (
+		<Dashboard state={state} rows={rows} act={act} connected={connected} />
+	) : (
+		<main className="flex h-screen w-screen items-center justify-center text-sm text-muted-foreground">
+			{connected ? 'Waiting for the device...' : 'Connecting...'}
+		</main>
+	);
+}
 
+function Dashboard({
+	state,
+	rows,
+	act,
+	connected,
+}: {
+	state: ImuState;
+	rows: Sample[];
+	act: (action: Action) => void;
+	connected: boolean;
+}) {
+	const [showStored, setShowStored] = useState(true);
+	const [showNew, setShowNew] = useState(true);
 	const stored = calibrated(rows, state.device.calibration);
 	const preview = state.result ? calibrated(rows, state.result) : null;
-	const series = (key: 'accel' | 'gyro'): Series[] => [
-		...(showStored || !preview
-			? [{ values: stored[key], dashed: preview !== null }]
-			: []),
-		...(preview && showNew ? [{ values: preview[key] }] : []),
-	];
-	const magnetometer = rows.map((r) => r.mag);
+
+	const series = (key: 'accel' | 'gyro'): Series[] => {
+		const out: Series[] = [];
+		if (showStored || !preview) {
+			out.push({ values: stored[key], dashed: preview !== null });
+		}
+		if (preview && showNew) out.push({ values: preview[key] });
+		return out;
+	};
 
 	return (
-		<main className="grid h-screen grid-cols-[340px_1fr_300px] gap-3 bg-gray-50 p-3 text-gray-900">
-			<aside className="flex flex-col gap-3 overflow-y-auto rounded-md bg-white p-3">
-				{state.phase === 'results' ? (
-					<ResultsPanel state={state} act={act} />
-				) : (
-					<GuidePanel state={state} act={act} />
+		<main className="flex h-screen w-screen flex-row gap-6 p-6">
+			<aside className="flex max-h-full w-[280px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
+				<DeviceSidebar device={state.device} />
+			</aside>
+
+			<div className="w-0.5 shrink-0 bg-border" />
+
+			<div className="flex min-w-0 flex-1 flex-col gap-4">
+				<div className="relative min-h-0 flex-[3] overflow-hidden">
+					<Streams defaultTopics={['Camera']} allowedTopics={['Camera']} />
+				</div>
+				{preview && (
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+						<span className="flex items-center gap-2 whitespace-nowrap">
+							Stored calibration (dashed)
+							<Switch
+								value={showStored}
+								onChange={setShowStored}
+								showActiveLabelOnly
+							/>
+						</span>
+						<span className="flex items-center gap-2 whitespace-nowrap">
+							New calibration (solid)
+							<Switch
+								value={showNew}
+								onChange={setShowNew}
+								showActiveLabelOnly
+							/>
+						</span>
+					</div>
 				)}
-				<LiveCheckTable
+				<div className="grid min-h-0 flex-[2] auto-rows-[minmax(150px,1fr)] grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4 overflow-y-auto">
+					<Chart
+						title="Accelerometer"
+						unit="m/s²"
+						series={series('accel')}
+						window={WINDOW}
+						minSpan={1}
+					/>
+					<Chart
+						title="Gyroscope"
+						unit="rad/s"
+						series={series('gyro')}
+						window={WINDOW}
+						minSpan={0.05}
+					/>
+					<Chart
+						title="Magnetometer"
+						unit="µT"
+						series={[{ values: rows.map((r) => r.mag) }]}
+						window={WINDOW}
+						minSpan={5}
+						placeholder={
+							state.device.magnetometer
+								? undefined
+								: 'No magnetometer on this IMU'
+						}
+					/>
+				</div>
+			</div>
+
+			<div className="w-0.5 shrink-0 bg-border" />
+
+			<aside className="flex max-h-full w-[380px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left">
+				<h1 className="text-2xl font-bold">IMU Calibration</h1>
+				<p className="text-sm text-muted-foreground">
+					Place the device in six poses to compute the IMU rotation,
+					accelerometer scale and bias, and gyroscope bias. Nothing is written
+					to the device until you press Flash.
+				</p>
+
+				{state.result ? (
+					<ResultsSection
+						result={state.result}
+						device={state.device}
+						message={state.message}
+						messageOk={state.messageOk}
+						act={act}
+					/>
+				) : (
+					<PoseSection state={state} act={act} />
+				)}
+
+				<LiveCheckSection
 					stored={liveCheck(stored)}
 					preview={preview && liveCheck(preview)}
 					flashed={state.result?.flashed ?? false}
 				/>
-			</aside>
 
-			<section className="flex min-h-0 flex-col gap-3">
-				<div className="h-[38%] min-h-0 overflow-hidden rounded-md bg-black">
-					<Streams
-						defaultTopics={['Camera']}
-						allowedTopics={['Camera']}
-						hideToolbar
+				<div
+					className={`mt-auto flex items-center gap-2 border-t border-border pt-4 text-sm ${
+						connected ? 'text-success' : 'text-destructive'
+					}`}
+				>
+					<div
+						className={`h-3 w-3 rounded-full ${
+							connected ? 'bg-success' : 'bg-destructive'
+						}`}
 					/>
+					<span>{connected ? 'Connected to device' : 'Disconnected'}</span>
 				</div>
-				{preview && (
-					<div className="flex gap-4 text-sm">
-						<label className="flex items-center gap-1">
-							<input
-								type="checkbox"
-								checked={showStored}
-								onChange={(e) => setShowStored(e.target.checked)}
-							/>
-							Stored calibration (dashed)
-						</label>
-						<label className="flex items-center gap-1">
-							<input
-								type="checkbox"
-								checked={showNew}
-								onChange={(e) => setShowNew(e.target.checked)}
-							/>
-							New calibration (solid)
-						</label>
-					</div>
-				)}
-				<Chart
-					title="Accelerometer"
-					unit="m/s²"
-					series={series('accel')}
-					window={WINDOW}
-					minSpan={1}
-				/>
-				<Chart
-					title="Gyroscope"
-					unit="rad/s"
-					series={series('gyro')}
-					window={WINDOW}
-					minSpan={0.05}
-				/>
-				<Chart
-					title="Magnetometer (raw)"
-					unit="µT"
-					series={[{ values: magnetometer }]}
-					window={WINDOW}
-					minSpan={5}
-					placeholder={
-						state.device.magnetometer
-							? undefined
-							: 'No magnetometer on this IMU'
-					}
-				/>
-			</section>
-
-			<aside className="flex flex-col gap-3 overflow-y-auto rounded-md bg-white p-3">
-				<DevicePanel device={state.device} />
 			</aside>
 		</main>
 	);

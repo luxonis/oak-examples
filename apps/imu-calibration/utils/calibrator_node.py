@@ -198,9 +198,17 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
         self._accel_means.append(accel_mean)
         self._gyro_means.append(samples[:, 3:].mean(axis=0))
         if len(self._accel_means) == len(POSES):
-            self._result = calibrate(
-                np.asarray(self._accel_means), np.asarray(self._gyro_means)
-            )
+            try:
+                self._result = calibrate(
+                    np.asarray(self._accel_means), np.asarray(self._gyro_means)
+                )
+            except np.linalg.LinAlgError:
+                self._accel_means.pop()
+                self._gyro_means.pop()
+                self._message = (
+                    "The fit failed on these poses. Capture the last pose again."
+                )
+                return
             self._save_report()
 
     def _save_report(self) -> None:
@@ -249,7 +257,8 @@ def _calibration_dict(result: ImuCalibration) -> dict:
         "rotation": result.rotation.tolist(),
         "accelerometer": result.accelerometer.tolist(),
         "gyroscope": result.gyroscope.tolist(),
-        "poseErrors": result.pose_errors.tolist(),
+        "poseTilts": result.pose_tilts.tolist(),
+        "fitError": result.fit_error,
         "problems": result.problems,
     }
 

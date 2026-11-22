@@ -34,7 +34,8 @@ export interface CalibrationResult {
 	rotation: Matrix;
 	accelerometer: Matrix;
 	gyroscope: Matrix;
-	poseErrors: number[];
+	/** Per-pose angle (deg) between the measured gravity and the guide. */
+	poseTilts: number[];
 	problems: string[];
 	specMatch: boolean | null;
 	flashed: boolean;
@@ -67,14 +68,9 @@ export interface Sample {
 
 export type Action = 'capture' | 'back' | 'redo' | 'flash';
 
-const SERVICES = ['IMU State', 'IMU Action'] as const;
-type Service = (typeof SERVICES)[number];
-// Custom services are not part of the DAIService enum.
-export const ACTIVE_SERVICES = SERVICES as unknown as DAIService[];
-
 export function callService<T>(
 	connection: DAIConnection | null,
-	service: Service,
+	service: 'IMU State' | 'IMU Action',
 	body: Record<string, unknown>,
 	onResponse: (response: T) => void = () => {},
 ) {

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Vec3 } from './api.ts';
 
-export const AXIS_COLORS = ['#ef4444', '#22c55e', '#3b82f6'];
+const AXIS_COLORS = ['#ef4444', '#22c55e', '#3b82f6'];
 
 export interface Series {
 	values: Vec3[];
@@ -18,6 +18,7 @@ interface ChartProps {
 	placeholder?: string;
 }
 
+/** Live x/y/z plot, framed like a Streams panel. */
 export function Chart({
 	title,
 	unit,
@@ -49,9 +50,10 @@ export function Chart({
 		const y = (v: number) => height - ((v - lo) / (hi - lo)) * height;
 		const step = width / (window - 1);
 
+		ctx.lineWidth = 1.5;
 		for (const s of series) {
 			ctx.setLineDash(s.dashed ? [5, 4] : []);
-			ctx.globalAlpha = s.dashed ? 0.55 : 1;
+			ctx.globalAlpha = s.dashed ? 0.5 : 1;
 			for (let axis = 0; axis < 3; axis++) {
 				ctx.strokeStyle = AXIS_COLORS[axis];
 				ctx.beginPath();
@@ -78,26 +80,33 @@ export function Chart({
 	}, [series, window, minSpan]);
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col rounded-md border border-gray-200 bg-white p-2">
-			<div className="flex items-center justify-between text-sm">
-				<span className="font-semibold">
-					{title} <span className="font-normal text-gray-500">[{unit}]</span>
+		<section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-md border border-border bg-background">
+			<header className="flex flex-wrap items-center justify-between gap-x-3 border-b border-border px-3 py-2">
+				<span className="text-sm font-semibold">
+					{title}{' '}
+					<span className="font-normal text-muted-foreground">({unit})</span>
 				</span>
-				<span className="flex gap-3 text-xs">
+				<span className="flex gap-2 text-xs text-muted-foreground">
 					{['x', 'y', 'z'].map((axis, i) => (
-						<span key={axis} style={{ color: AXIS_COLORS[i] }}>
-							● {axis}
+						<span key={axis} className="flex items-center gap-1">
+							<span
+								className="h-0.5 w-3"
+								style={{ backgroundColor: AXIS_COLORS[i] }}
+							/>
+							{axis}
 						</span>
 					))}
 				</span>
-			</div>
+			</header>
 			{placeholder ? (
-				<div className="flex flex-1 items-center justify-center text-sm text-gray-500">
+				<div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
 					{placeholder}
 				</div>
 			) : (
-				<canvas ref={canvasRef} className="min-h-0 w-full flex-1" />
+				<div className="min-h-0 flex-1 p-2">
+					<canvas ref={canvasRef} className="h-full w-full" />
+				</div>
 			)}
-		</div>
+		</section>
 	);
 }

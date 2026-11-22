@@ -7,7 +7,6 @@ import '@luxonis/depthai-pipeline-lib/styles';
 import { DepthAIContext } from '@luxonis/depthai-viewer-common';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import App from './App.tsx';
-import { ACTIVE_SERVICES } from './api.ts';
 
 function getBasePath(): string {
 	return window.location.pathname.match(/^\/\d+\.\d+\.\d+\/$/)?.[0] ?? '';
@@ -22,7 +21,7 @@ if (!rootElement) {
 createRoot(rootElement).render(
 	<StrictMode>
 		<BrowserRouter basename={getBasePath()}>
-			<DepthAIContext activeServices={ACTIVE_SERVICES}>
+			<DepthAIContext activeServices={[]}>
 				<Routes>
 					<Route path="/" element={<App />} />
 				</Routes>

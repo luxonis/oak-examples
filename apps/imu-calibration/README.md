@@ -1,11 +1,11 @@
 # IMU Calibration
 
-Guided six-pose IMU calibration for OAK devices, modeled after the [Intel RealSense D435i IMU calibration](https://www.realsenseai.com/wp-content/uploads/2019/07/Intel_RealSense_Depth_D435i_IMU_Calibration.pdf) procedure. The app walks you through six static poses, computes the IMU calibration, previews it on live data next to the calibration stored on the device, and flashes it to the device EEPROM only after you confirm.
+Guided six-pose IMU calibration for OAK devices, with the same poses as the [Intel RealSense D435i IMU calibration](https://www.realsenseai.com/wp-content/uploads/2019/07/Intel_RealSense_Depth_D435i_IMU_Calibration.pdf). The app walks you through six static poses, computes the IMU calibration, previews it on live data next to the calibration stored on the device, and flashes it to the device EEPROM only after you confirm.
 
 It computes and flashes:
 
 - **IMU -> camera rotation** (`imuExtrinsics.rotationMatrix`), found from the measured gravity directions.
-- **Accelerometer `[Q|b]`**: scale/misalignment correction and bias, applied after the rotation.
+- **Accelerometer `[Q|b]`**: per-axis scale and bias, applied after the rotation. They are fitted so that gravity has the same magnitude (9.81 m/s²) in every pose. The poses do not have to be exactly axis-aligned, so holding the device a few degrees off does not bias the result.
 - **Gyroscope `[I|b]`**: static bias, applied after the rotation.
 - **IMU -> camera translation** (`translation` and `specTranslation`), taken from the board design in [depthai-boards](https://github.com/luxonis/depthai-boards). A static procedure cannot measure the translation.
 
@@ -13,17 +13,17 @@ DepthAI applies the stored values as `calibrated = Q @ (R @ raw) + b`.
 
 ## User Interface
 
-The app has its own web frontend with three columns:
+The app has its own web frontend:
 
-- **Left: guide and results.**
-  - **Guide:** the photo and instructions for the current pose, live status ("Device is still", orientation check), and **Capture** / **Back** buttons.
-  - **Results:** after six poses, this shows the rotation (and whether it matches the depthai-boards design), `[Q|b]`, gyroscope bias, sanity checks, and **Flash to device** / **Redo**.
-  - **Live check:** a table over the last second of data with `|gravity|` (target 9.81 m/s²) and the gyroscope mean per axis (target 0). It shows the calibration stored on the device next to the new one.
-- **Middle: live data.**
+- **Center: live data.**
   - The camera stream, so you can see the app is not lagging.
   - Live charts of the accelerometer, gyroscope, and magnetometer (x/y/z).
-  - After the results, the accelerometer and gyroscope charts show the **stored** calibration (dashed) and the **new** calibration (solid) on the same samples. Checkboxes toggle each one.
-- **Right: device information.** Device name and ID, platform, product, board, detected IMU and its firmware, magnetometer presence, and whether the IMU extrinsics, accelerometer calibration, and gyroscope calibration are missing, default, or calibrated in EEPROM.
+  - After the results, the accelerometer and gyroscope charts show the **stored** calibration (dashed) and the **new** calibration (solid) on the same samples. Switches toggle each one.
+- **Right sidebar: calibration.**
+  - **Pose:** the photo and instructions for the current pose, live status ("Device is still", orientation check), and **Capture** / **Back** buttons.
+  - **Results:** after six poses, this shows the sanity checks, the rotation (and whether it matches the depthai-boards design), `[Q|b]`, gyroscope bias, per-pose tilt, and **Flash to device** / **Redo**.
+  - **Live check:** the mean of the last second of `|g|` (target 9.81 m/s²) and of the gyroscope per axis (target 0). It shows the calibration stored on the device next to the new one. After calibrating, tilt the device to any angle: the new `|g|` should stay at 9.81 m/s².
+- **Left sidebar: device.** Device name and ID, platform, product, board, detected IMU and its firmware, magnetometer presence, and whether the IMU extrinsics, accelerometer calibration, and gyroscope calibration are missing, default, or calibrated in EEPROM.
 
 ## Flow
 
