@@ -9,7 +9,11 @@ import {
 	useRef,
 	useState,
 } from 'react';
-import { postToDataCollectionService } from './services.ts';
+import {
+	QNN_PREPARATION_EVENT,
+	clearQnnPreparation,
+	postToDataCollectionService,
+} from './services.ts';
 import { ClassSelector } from './utils/classes/ClassSelector.tsx';
 import { ConfidenceSlider } from './utils/classes/ConfidenceSlider.tsx';
 import { ImageUploader } from './utils/classes/ImageUploader.tsx';
@@ -40,6 +44,10 @@ type StreamMedia = {
 	offsetX: number;
 	offsetY: number;
 };
+
+const VIDEO_TOPIC = 'Video';
+const RESET_IMAGE_VIEW_EVENT = 'visualizer:image-reset-zoom';
+const IMAGE_VIEW_STATE_EVENT = 'visualizer:image-zoom-state';
 
 function decodePayload(response: unknown): unknown {
 	let payload = response;
@@ -123,9 +131,11 @@ function App() {
 		null,
 	);
 	const [configLoaded, setConfigLoaded] = useState(false);
+	const [qnnPreparing, setQnnPreparing] = useState(false);
+	const [streamViewMoved, setStreamViewMoved] = useState(false);
 	const { toast } = useToast();
-	const topicGroups = useMemo(() => ({ images: 'Video' }), []);
-	const allowedTopics = useMemo(() => ['Video'], []);
+	const topicGroups = useMemo(() => ({ images: VIDEO_TOPIC }), []);
+	const allowedTopics = useMemo(() => [VIDEO_TOPIC], []);
 
 	const getUnderlyingMediaAndSize = useCallback((): StreamMedia | null => {
 		const container = streamContainerRef.current;
@@ -313,6 +323,43 @@ function App() {
 		setDragStart(null);
 	}, []);
 
+	const handleResetStreamView = useCallback(() => {
+		window.dispatchEvent(
+			new CustomEvent<{ topic: string }>(RESET_IMAGE_VIEW_EVENT, {
+				detail: { topic: VIDEO_TOPIC },
+			}),
+		);
+		setStreamViewMoved(false);
+		toast({
+			description: 'Stream view reset',
+			colorVariant: 'success',
+		});
+	}, [toast]);
+
+	useEffect(() => {
+		const handleImageViewState = (event: Event) => {
+			const { topic, isZoomed } =
+				(event as CustomEvent<{ topic?: string; isZoomed?: boolean }>).detail ??
+				{};
+
+			if (topic === VIDEO_TOPIC) {
+				setStreamViewMoved(Boolean(isZoomed));
+			}
+		};
+
+		window.addEventListener(
+			IMAGE_VIEW_STATE_EVENT,
+			handleImageViewState as EventListener,
+		);
+
+		return () => {
+			window.removeEventListener(
+				IMAGE_VIEW_STATE_EVENT,
+				handleImageViewState as EventListener,
+			);
+		};
+	}, []);
+
 	useEffect(() => {
 		if (!isDrawing) return;
 		const container = streamContainerRef.current;
@@ -389,9 +436,18 @@ function App() {
 	}, [connection.connected, connection.daiConnection, configLoaded, toast]);
 
 	useEffect(() => {
+		const onPreparation = (event: Event) => {
+			setQnnPreparing((event as CustomEvent<boolean>).detail);
+		};
+		window.addEventListener(QNN_PREPARATION_EVENT, onPreparation);
+		return () => window.removeEventListener(QNN_PREPARATION_EVENT, onPreparation);
+	}, []);
+
+	useEffect(() => {
 		if (!connection.connected) {
 			setConfigLoaded(false);
 			setBackendConfig(null);
+			clearQnnPreparation();
 		}
 	}, [connection.connected]);
 
@@ -460,8 +516,20 @@ function App() {
 			<aside className="flex max-h-full w-[420px] min-w-[340px] max-w-[520px] shrink-0 flex-col gap-4 overflow-y-auto pr-2 text-left">
 				<h1 className="text-2xl font-bold">Data Collection</h1>
 				<p className="mb-2 text-sm leading-6 text-muted-foreground">
-					Detect by name or example and auto-capture snaps based on conditions.
+					Detect by text labels or a visual example. Updating text labels
+					switches back to text mode; uploading an image or drawing a box
+					switches to image mode.
 				</p>
+				{qnnPreparing && (
+					<output className="rounded-md border border-border bg-muted p-3 text-sm" aria-live="polite">
+						Preparing the prompt model for QNN. First use of a prompt size may take a few minutes while its graph is optimized.
+					</output>
+				)}
+				{!connection.connected && (
+					<p className="text-sm text-muted-foreground">
+						Connecting to the device. Initial QNN model preparation may take a few minutes.
+					</p>
+				)}
 
 				<SectionTitle>Labels by Text</SectionTitle>
 				<p className="text-xs text-muted-foreground">
@@ -471,16 +539,21 @@ function App() {
 
 				<SectionTitle>Labels by Image</SectionTitle>
 				<p className="text-xs text-muted-foreground">
-					Upload a photo or draw a box on the stream.
+					Upload an image or draw a box to switch to image mode.
 				</p>
-				<ImageUploader onDrawBBox={handleBeginBBoxDraw} />
+				<ImageUploader
+					onDrawBBox={handleBeginBBoxDraw}
+					onResetView={handleResetStreamView}
+					resetViewDisabled={!streamViewMoved}
+					drawBBoxDisabled={streamViewMoved}
+				/>
 
 				<SectionTitle>Confidence Filter</SectionTitle>
 				<p className="text-xs text-muted-foreground">
 					Detections below this confidence are dropped.
 				</p>
 				<ConfidenceSlider
-					initialValue={backendConfig?.confidence_threshold ?? 0.4}
+					initialValue={backendConfig?.confidence_threshold ?? 0.1}
 				/>
 
 				<section className="flex flex-col gap-3 rounded-md border border-border bg-background p-4 shadow-sm">

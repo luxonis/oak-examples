@@ -27,6 +27,50 @@ def sha256(path):
     return digest.hexdigest()
 
 
+def download(url, temporary, update=logger.info, attempts=5):
+    """Download url into temporary, resuming with HTTP Range after a broken transfer.
+
+    Args:
+        url: Source URL.
+        temporary: Destination path; an existing partial file is continued.
+        update: Callback receiving progress messages.
+        attempts: Total number of attempts before giving up.
+
+    Raises:
+        requests.RequestException: The last attempt failed or timed out.
+    """
+    failed_attempts = 0
+    while failed_attempts < attempts:
+        offset = temporary.stat().st_size if temporary.exists() else 0
+        headers = {"Range": f"bytes={offset}-"} if offset else {}
+        try:
+            with requests.get(
+                url, stream=True, timeout=(20, 120), headers=headers
+            ) as response:
+                if offset and response.status_code == 416:
+                    # The partial file is at or beyond the remote file's end.
+                    # Discard it and try a full download without spending a retry.
+                    temporary.unlink()
+                    update("Partial download is not resumable; restarting from zero")
+                    continue
+                if offset and response.status_code != 206:
+                    # Server ignored the range request: start over.
+                    offset = 0
+                response.raise_for_status()
+                with temporary.open("ab" if offset else "wb") as output:
+                    for chunk in response.iter_content(1024 * 1024):
+                        output.write(chunk)
+            return
+        except requests.RequestException as error:
+            failed_attempts += 1
+            if failed_attempts == attempts:
+                raise
+            update(
+                f"Download interrupted ({error}); retrying "
+                f"{failed_attempts}/{attempts - 1}"
+            )
+
+
 def download_models(directory, update=logger.info):
     """Install the pinned model files during the app container build.
 
@@ -52,15 +96,17 @@ def download_models(directory, update=logger.info):
         if destination.exists() and sha256(destination) == checksum:
             continue
 
-        update(f"Downloading {name} (app build)")
         temporary = destination.with_suffix(".part")
         try:
+            # A previous run may have finished the transfer but stopped before
+            # publishing the verified file.
+            if temporary.exists() and sha256(temporary) == checksum:
+                temporary.replace(destination)
+                continue
+
+            update(f"Downloading {name} (app build)")
             url = f"https://huggingface.co/{REPOSITORY}/resolve/{REVISION}/{name}"
-            with requests.get(url, stream=True, timeout=(20, 120)) as response:
-                response.raise_for_status()
-                with temporary.open("wb") as output:
-                    for chunk in response.iter_content(1024 * 1024):
-                        output.write(chunk)
+            download(url, temporary, update)
 
             # Publish the finished file only after checksum verification.
             if sha256(temporary) != checksum:

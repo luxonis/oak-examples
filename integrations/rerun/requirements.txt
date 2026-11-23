@@ -1,5 +1,6 @@
-depthai==3.8.0
-depthai-nodes==0.6.0
+depthai==3.12.1
+depthai-nodes==0.8.0
 opencv-python-headless~=4.10.0
-numpy>=1.22
+numpy>=1.23,<2
+pyarrow==17.0.0
 rerun-sdk==0.15.1

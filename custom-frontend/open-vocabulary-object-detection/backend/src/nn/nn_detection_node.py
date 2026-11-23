@@ -5,8 +5,8 @@ import numpy as np
 
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
-    ImgDetectionsFilter,
 )
+from depthai.beta.node import ImgDetectionsFilter
 from config import NeuralNetworkConfig
 from .nn_detection_controller import NNDetectionController
 from .label_mapper_node import DetectionsLabelMapper
@@ -38,6 +38,7 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._img_manip: dai.node.ImageManip = self.createSubnode(dai.node.ImageManip)
         self._nn: ParsingNeuralNetwork = self.createSubnode(ParsingNeuralNetwork)
         self._det_filter: ImgDetectionsFilter = self.createSubnode(ImgDetectionsFilter)
+        self._det_filter.setRunOnHost(True)
         self._det_label_mapper: DetectionsLabelMapper = self.createSubnode(
             DetectionsLabelMapper
         )
@@ -78,11 +79,11 @@ class NNDetectionNode(dai.node.ThreadedHostNode):
         self._img_manip.out.link(self._nn.inputs["images"])
 
         # Detection filter
-        self._det_filter.build(self._nn.out)
+        self._nn.out.link(self._det_filter.input)
 
         # Add label for visualization
         self._det_label_mapper.build(
-            input_detections=self._det_filter.out, input_frame=input_frame
+            input_detections=self._det_filter.output, input_frame=input_frame
         )
         self.detections = self._det_label_mapper.out
 

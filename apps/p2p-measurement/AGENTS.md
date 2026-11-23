@@ -50,7 +50,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
 - `Depth.setAlignTo(...)` aligns depth to RGB.
 - A colorized depth stream is published for viewing.
-- The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using calibration intrinsics, and emits overlay annotations.
+- The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using the current aligned depth frame’s native inverse intrinsic matrix, and emits overlay annotations.
 - The frontend interacts with backend services for point selection, clearing, distance polling, and tracking-mode toggling.
 
 ## Data Flow
@@ -96,6 +96,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Validation
 
+- `Hardware check:` Measure a known distance at the image center and corners, then repeat with another output aspect ratio.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target
 - `Common failure meaning:` stereo alignment or calibration is missing, invalid depth prevents measurement, or frontend topic/service assumptions drifted from the backend

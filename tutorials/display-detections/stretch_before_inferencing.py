@@ -10,27 +10,6 @@ device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device(
 visualizer = dai.RemoteConnection(httpPort=8082)
 
 
-class FilterDets(dai.node.HostNode):
-    def __init__(self):
-        super().__init__()
-        self.output = self.createOutput()
-
-    def build(self, detections: dai.Node.Output):
-        self.link_args(detections)
-        return self
-
-    def process(self, detections: dai.ImgDetections):
-        new_dets = dai.ImgDetections()
-        new_dets_list = []
-        for detection in detections.detections:
-            if detection.label != 57:
-                new_dets_list.append(detection)
-        new_dets.detections = new_dets_list
-        new_dets.setTimestamp(detections.getTimestamp())
-        new_dets.setSequenceNum(detections.getSequenceNum())
-        self.output.send(new_dets)
-
-
 with dai.Pipeline(device) as pipeline:
     platform = device.getPlatform()
 
@@ -57,15 +36,18 @@ with dai.Pipeline(device) as pipeline:
         stretch_manip.out, model_description
     )
 
-    filter_dets = pipeline.create(FilterDets).build(nn.out)
+    filter_dets = pipeline.create(dai.node.ImgDetectionsFilter)
+    filter_dets.initialConfig.labelsToReject = [57]
+    nn.out.link(filter_dets.inputs["detections"])
 
     visualizer.addTopic("Full cam FOV (4:3)", cam_out)
     visualizer.addTopic("Stretched (16:9)", stretch_manip.out)
-    visualizer.addTopic("Detections", filter_dets.output)
+    visualizer.addTopic("Detections", filter_dets.out)
 
     print("Pipeline created.")
 
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

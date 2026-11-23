@@ -47,6 +47,7 @@ This is the repository reference for combining segmentation with unified depth a
 
 ## Constraints
 
+- Depth and masks must use the undistorted preview's pixel grid.
 - The example requires three cameras and aligned depth.
 - Output streams are encoded views, not raw tensors.
 - This is semantic segmentation plus depth masking, not object-instance-aware 3D measurement.

@@ -2,7 +2,7 @@ from typing import Tuple
 import cv2
 import math
 import numpy as np
-from depthai_nodes.message import Keypoints
+from depthai.beta import Keypoints
 
 
 def determine_fatigue(

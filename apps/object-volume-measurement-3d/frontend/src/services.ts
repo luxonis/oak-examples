@@ -12,8 +12,6 @@ export const OBJECT_VOLUME_SERVICES = [
 ] as const;
 
 export type ObjectVolumeService = (typeof OBJECT_VOLUME_SERVICES)[number];
-export const OBJECT_VOLUME_ACTIVE_SERVICES =
-	OBJECT_VOLUME_SERVICES as unknown as DAIService[];
 
 type ServiceBody = Record<string, unknown> | string | number;
 

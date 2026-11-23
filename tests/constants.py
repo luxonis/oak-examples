@@ -34,6 +34,15 @@ KNOWN_FAILING = {
             ],
         },
     },
+    "apps/machine-pov-proximity-alert": {
+        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
+        "rules": {
+            "or": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
     "apps/dino-tracking": {
         "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {
@@ -60,6 +69,19 @@ KNOWN_FAILING = {
                 {"platform": ["rvc2"]},
             ],
         },
+    },
+    "apps/visual-decision-model": {
+        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
+        "rules": {
+            "or": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
+    "apps/onnxruntime-track-anything": {
+        "reason": "Not supported for peripheral; RVC4 only app",
+        "rules": {"and": [{"platform": ["rvc2"]}]},
     },
     "apps/ros/ros-driver-basic": {
         "reason": "Needs ros base image",
@@ -113,6 +135,15 @@ KNOWN_FAILING = {
         "reason": "Not supported for peripheral; RVC4 only app",
         "rules": {
             "and": [
+                {"mode": ["peripheral"]},
+                {"platform": ["rvc2"]},
+            ],
+        },
+    },
+    "apps/box-measurement": {
+        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
+        "rules": {
+            "or": [
                 {"mode": ["peripheral"]},
                 {"platform": ["rvc2"]},
             ],

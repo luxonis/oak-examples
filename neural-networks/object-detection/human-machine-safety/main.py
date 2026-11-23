@@ -1,10 +1,6 @@
 import depthai as dai
-from depthai_nodes.node import (
-    ParsingNeuralNetwork,
-    MPPalmDetectionParser,
-    DepthMerger,
-    ImgDetectionsFilter,
-)
+from depthai_nodes.node import ParsingNeuralNetwork, DepthMerger, ImgDetectionsFilter
+from depthai.beta.node import MPPalmDetectionParser
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode

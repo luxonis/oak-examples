@@ -1,7 +1,6 @@
 import cv2
-import numpy as np
 import depthai as dai
-from typing import Tuple
+import numpy as np
 from depthai_nodes.utils import AnnotationHelper
 
 from .stereo_inference import StereoInference
@@ -56,23 +55,40 @@ class Triangulation(dai.node.HostNode):
         face_nn_left: dai.Node.Output,
         face_nn_right: dai.Node.Output,
         device: dai.Device,
-        resolution_number: Tuple[int, int],
     ) -> "Triangulation":
         self.link_args(face_left, face_right, face_nn_left, face_nn_right)
-        self._stereoInference = StereoInference(device, resolution_number)
+        self._stereoInference = StereoInference(
+            device.readCalibration().getBaselineDistance(
+                dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C, False
+            )
+            * 10
+        )
 
         return self
 
     def process(
         self,
-        face_left: dai.ImgFrame,
-        face_right: dai.ImgFrame,
+        face_left: dai.Buffer,
+        face_right: dai.Buffer,
         nn_face_left: dai.Buffer,
         nn_face_right: dai.Buffer,
     ) -> None:
+        assert isinstance(face_left, dai.ImgFrame)
+        assert isinstance(face_right, dai.ImgFrame)
         assert isinstance(nn_face_left, dai.ImgDetections)
         assert isinstance(nn_face_right, dai.ImgDetections)
 
+        # Inference passthroughs identify exactly which capture produced detections.
+        if (
+            face_left.getSequenceNum() != nn_face_left.getSequenceNum()
+            or face_right.getSequenceNum() != nn_face_right.getSequenceNum()
+            or abs(
+                (face_left.getTimestamp() - face_right.getTimestamp()).total_seconds()
+            )
+            > 0.005
+        ):
+            return
+        intrinsics = face_left.getTransformation().getIntrinsicMatrix()
         left_frame = face_left.getCvFrame()
         right_frame = face_right.getCvFrame()
 
@@ -131,8 +147,7 @@ class Triangulation(dai.node.HostNode):
         text_helper = AnnotationHelper()
         keypoints_left_helper = AnnotationHelper()
         keypoint_rights_helper = AnnotationHelper()
-        if nn_face_left.detections and nn_face_right.detections:
-            spatials = []
+        if len(nn_face_left.detections) == 1 and len(nn_face_right.detections) == 1:
             keypoints = zip(
                 nn_face_left.detections[0].getKeypoints2f(),
                 nn_face_right.detections[0].getKeypoints2f(),
@@ -140,12 +155,12 @@ class Triangulation(dai.node.HostNode):
 
             for i, (keypoint_left, keypoint_right) in enumerate(keypoints):
                 coords_left = (
-                    int(keypoint_left.x * x_dimension),
-                    int(keypoint_left.y * y_dimension),
+                    keypoint_left.x * x_dimension,
+                    keypoint_left.y * y_dimension,
                 )
                 coords_right = (
-                    int(keypoint_right.x * x_dimension),
-                    int(keypoint_right.y * y_dimension),
+                    keypoint_right.x * x_dimension,
+                    keypoint_right.y * y_dimension,
                 )
 
                 rel_coords_left = (
@@ -179,19 +194,19 @@ class Triangulation(dai.node.HostNode):
                 )
 
                 # Calculate spatial data
-                disparity = self._stereoInference.calculate_distance(
-                    coords_left, coords_right
+                disparity = coords_left[0] - coords_right[0]
+                spatial = self._stereoInference.triangulate(
+                    coords_left, coords_right, intrinsics
                 )
-                depth = self._stereoInference.calculate_depth(disparity)
-                spatial = self._stereoInference.calc_spatials(coords_right, depth)
-                spatials.append(spatial)
+                if spatial is None:
+                    continue
 
                 if i == 0:
                     strings = [
-                        "Disparity: {:.0f} pixels".format(disparity),
-                        "X: {:.2f} m".format(spatial[0] / 1000),
-                        "Y: {:.2f} m".format(spatial[1] / 1000),
-                        "Z: {:.2f} m".format(spatial[2] / 1000),
+                        f"Disparity: {disparity:.0f} pixels",
+                        f"X: {spatial[0] / 1000:.2f} m",
+                        f"Y: {spatial[1] / 1000:.2f} m",
+                        f"Z: {spatial[2] / 1000:.2f} m",
                     ]
                     y = 0.05
                     y_delta = 0.02
@@ -230,6 +245,9 @@ class Triangulation(dai.node.HostNode):
         self, msg: dai.ImgFrame, frame: np.ndarray
     ) -> dai.ImgFrame:
         output_frame = dai.ImgFrame()
-        output_frame.setCvFrame(frame, dai.ImgFrame.Type.NV12)
+        output_frame.setCvFrame(frame, dai.ImgFrame.Type.BGR888i)
         output_frame.setTimestamp(msg.getTimestamp())
+        output_frame.setSequenceNum(msg.getSequenceNum())
+        output_frame.setTimestampDevice(msg.getTimestampDevice())
+        output_frame.setTransformation(msg.getTransformation())
         return output_frame

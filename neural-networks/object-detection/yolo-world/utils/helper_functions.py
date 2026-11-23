@@ -53,9 +53,17 @@ def extract_text_embeddings(class_names, max_num_classes=80):
 
 def _make_textual_session(model_path, batch_size, seq_len):
     """Create a QNN session using the standalone app's NPU runtime."""
-    return onnx_qnn_session(
+    print(
+        "Preparing text encoder for QNN; the first run may take a few minutes while the model graph is optimized.",
+        flush=True,
+    )
+    session = onnx_qnn_session(
         _fix_input_shapes(model_path, batch_size, seq_len), fp16=True
     )
+    print(
+        f"Text encoder session ready; providers={session.get_providers()}.", flush=True
+    )
+    return session
 
 
 def _fix_input_shapes(model_path, batch_size, seq_len):
@@ -115,9 +123,13 @@ def download_file(download_link: str, local_filename: str):
             total=total_size, unit="iB", unit_scale=True, desc=local_filename
         )
 
-        with open(local_filename, "wb") as f:
+        # Write to a temporary file first, so an interrupted download does not leave a
+        # truncated model behind that is then reused as "cached" on every later run.
+        partial_filename = local_filename + ".part"
+        with open(partial_filename, "wb") as f:
             for chunk in r.iter_content(chunk_size=block_size):
                 if chunk:
                     f.write(chunk)
                     progress_bar.update(len(chunk))
         progress_bar.close()
+        os.replace(partial_filename, local_filename)

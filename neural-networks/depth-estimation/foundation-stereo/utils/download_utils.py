@@ -62,9 +62,13 @@ def download_file(download_link: str, local_filename: str):
             total=total_size, unit="iB", unit_scale=True, desc=local_filename
         )
 
-        with open(local_filename, "wb") as f:
+        # Write to a temporary file first, so an interrupted download does not leave a
+        # truncated model behind that is then reused as "cached" on every later run.
+        partial_filename = local_filename + ".part"
+        with open(partial_filename, "wb") as f:
             for chunk in r.iter_content(chunk_size=block_size):
                 if chunk:
                     f.write(chunk)
                     progress_bar.update(len(chunk))
         progress_bar.close()
+        os.replace(partial_filename, local_filename)

@@ -7,7 +7,6 @@ import '@luxonis/depthai-viewer-common/styles';
 import '@luxonis/ui-components/styles.css';
 import '@luxonis/depthai-pipeline-lib/styles';
 import App from './App.tsx';
-import { OBJECT_VOLUME_ACTIVE_SERVICES } from './services.ts';
 
 function getBasePath(): string {
 	return window.location.pathname.match(/^\/\d+\.\d+\.\d+\/$/)?.[0] ?? '';
@@ -22,7 +21,7 @@ if (!rootElement) {
 createRoot(rootElement).render(
 	<StrictMode>
 		<BrowserRouter basename={getBasePath()}>
-			<DepthAIContext activeServices={OBJECT_VOLUME_ACTIVE_SERVICES}>
+			<DepthAIContext>
 				<Routes>
 					<Route path="/" element={<App />} />
 				</Routes>

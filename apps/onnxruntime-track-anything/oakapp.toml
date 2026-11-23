@@ -1,0 +1,40 @@
+identifier = "com.example.apps.onnxruntime-track-anything"
+app_version = "1.0.0"
+entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/backend/src/main.py"]
+
+prepare_container = [
+    { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
+    { type = "RUN", command = "python3 -m pip install --no-cache-dir -r /app/backend/requirements.txt --break-system-packages" },
+    { type = "COPY", source = "./backend/src/model_assets/__init__.py", target = "./backend/src/model_assets/__init__.py" },
+    { type = "COPY", source = "./backend/src/model_assets/prepare.py", target = "./backend/src/model_assets/prepare.py" },
+    { type = "COPY", source = "./backend/src/model_assets/memory_graph.py", target = "./backend/src/model_assets/memory_graph.py" },
+    { type = "COPY", source = "./backend/src/model_assets/manifest.json", target = "./backend/src/model_assets/manifest.json" },
+    { type = "RUN", command = "cd /app/backend/src && python3 -u -m model_assets.prepare" },
+]
+prepare_build_container = [
+    { type = "RUN", command = "bash -c 'curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 22'" },
+]
+optional_devices = ["/dev/fastrpc-cdsp", "/dev/adsprpc-smd", "/dev/dma_heap/qcom,system", "/dev/dma_heap/system"]
+required_mounts = ["/opt/luxonis/npu-runtime:/opt/luxonis/npu-runtime:ro,rbind"]
+allowed_devices = [{ allow = true, access = "rw" }]
+
+[static_frontend]
+dist_path = "./frontend/dist"
+
+[static_frontend.build]
+source_path = "./frontend"
+steps = ["bash -c 'cd /app/frontend && . $HOME/.nvm/nvm.sh && npm ci --no-audit --no-fund && npm run build'"]
+
+[env]
+DEPTHAI_PIPELINE_DEBUGGING = "1"
+# Container's writable filesystem for caching models
+OAK4ORT_CACHE_DIR = "/opt/track-anything-cache"
+
+[base_image]
+api_url = "https://registry-1.docker.io"
+service = "registry.docker.io"
+oauth_url = "https://auth.docker.io/token"
+auth_type = "repository"
+auth_name = "luxonis/oakapp-base"
+image_name = "luxonis/oakapp-base"
+image_tag = "1.5.0-onnxruntime"

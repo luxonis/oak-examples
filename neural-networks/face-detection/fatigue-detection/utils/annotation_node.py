@@ -1,7 +1,7 @@
 from typing import List
 from collections import deque
 import depthai as dai
-from depthai_nodes.message import Keypoints
+from depthai.beta import Keypoints
 from depthai_nodes.utils import AnnotationHelper
 
 from utils.face_landmarks import determine_fatigue

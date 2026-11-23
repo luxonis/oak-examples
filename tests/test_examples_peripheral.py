@@ -1,4 +1,5 @@
 import os
+import signal
 import subprocess
 import shutil
 import sys
@@ -153,6 +154,9 @@ def setup_virtual_env(
                     "--timeout=300",
                 ],
                 check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
 
         # Step 3: Conditionally override with specific depthai version
@@ -176,13 +180,19 @@ def setup_virtual_env(
                     "--timeout=300",
                 ],
                 check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
 
         logger.debug(f"Installed packages:\n{get_installed_packages(env_exe)}")
 
     except subprocess.CalledProcessError as e:
         shutil.rmtree(venv_dir)
-        pytest.fail(f"Failed to install dependencies for {venv_dir.parent}: {e.stderr}")
+        pytest.fail(
+            f"Failed to install dependencies for {venv_dir.parent} "
+            f"(command: {' '.join(str(c) for c in e.cmd[-2:])}): {e.stderr or e.stdout}"
+        )
 
 
 def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int = 3):
@@ -211,21 +221,44 @@ def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int =
 
     for attempt in range(1, max_retries + 1):
         try:
-            # Start subprocess using Popen
+            # Start subprocess using Popen (in its own process group, so that
+            # helpers it spawns, e.g. a viewer, can be killed together with it)
             process = subprocess.Popen(
                 [env_exe, str(main_script)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
                 env=env,
+                start_new_session=os.name != "nt",
             )
 
             # Use timer to wait for timeout
             try:
                 stdout, stderr = process.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
-                process.kill()
-                stdout, stderr = process.communicate()
+                # communicate() also waits for descendants that inherited the
+                # pipes. The example may already have exited before the timeout.
+                early_exit_code = process.poll()
+                stop_process_tree(process)
+                try:
+                    stdout, stderr = process.communicate(timeout=30)
+                except subprocess.TimeoutExpired:
+                    logger.warning(
+                        f"{example_dir}: output pipes still open after kill, output discarded."
+                    )
+                    stdout, stderr = "", ""
+
+                if early_exit_code is not None:
+                    logger.error(
+                        f"{example_dir} exited before {timeout} seconds "
+                        f"(exit code {early_exit_code}); a child kept its output pipes open."
+                    )
+                    for line in deque(
+                        stdout.splitlines() + stderr.splitlines(), maxlen=10
+                    ):
+                        logger.error(f"  {line}")
+                    return False
+
                 logger.info(f"{example_dir} ran for {timeout} seconds before timeout.")
 
                 if args["strict_mode"]:
@@ -282,6 +315,17 @@ def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int =
             return False
 
     return False
+
+
+def stop_process_tree(process: subprocess.Popen):
+    """Kills the example and everything it spawned (they share its process group on POSIX)."""
+    if os.name == "nt":
+        process.kill()
+        return
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
 
 
 def filter_warnings(output: List[str], ignored_warnings: List[str]):

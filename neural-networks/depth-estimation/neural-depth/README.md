@@ -1,6 +1,6 @@
 # Neural Depth
 
-This example showcases [Luxonis NeuralDepth](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/neural_depth/) model running on RVC4 device.
+This example runs [Luxonis NeuralDepth](https://docs.luxonis.com/software-v3/depthai/depthai-components/nodes/neural_depth/) or [Lite Any Stereo V2 (LAS2)](https://models.luxonis.com/luxonis/lite-any-stereo-v2/aim_Pqtikr7KUqASr1DqzAW5Ho) on an RVC4 device with a calibrated stereo pair on CAM_B/C.
 
 If you are interested in evaluating the model on existing dataset (e.g. Middlebury Stereo dataset) please refer to the [`host_eval`](host_eval/README.md) code.
 
@@ -16,16 +16,21 @@ Running this example requires a **RVC4 Luxonis device** connected to your comput
 
 You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
-Here is a list of all available parameters:
+Here is a list of the main parameters:
 
 ```
--m {NANO,SMALL,MEDIUM,LARGE}, --model {NANO,SMALL,MEDIUM,LARGE}
-                    Model variant to use. One of `['NANO', 'SMALL', 'MEDIUM', 'LARGE']`. Defaults to 'LARGE'. (default: LARGE)
+--backend {native,las2}
+                    Depth backend. Defaults to native NeuralDepth.
+-m MODEL, --model MODEL
+                    Model variant for the selected backend. Defaults to LARGE (native)
+                    or l-fp16-1280x800 (LAS2). Run --help for available variants.
 -d DEVICE, --device DEVICE
                     Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
-                    FPS limit for the model runtime. (default: None)
+                    FPS limit for the model runtime. (default: 10)
 ```
+
+Both backends show depth and disparity in the Visualizer. Native NeuralDepth also shows confidence, edge, and runtime controls. LAS2 models download from the Model Zoo on first use.
 
 ## Peripheral Mode
 
@@ -50,7 +55,13 @@ Running in peripheral mode requires a host computer and there will be communicat
 python3 main.py
 ```
 
-This will run the example with default arguments.
+This runs native NeuralDepth with the `LARGE` model. To run LAS2 instead:
+
+```bash
+python3 main.py --backend las2
+```
+
+This runs Lite Any Stereo V2 with the default `l-fp16-1280x800` model.
 
 ## Standalone Mode (RVC4 only)
 

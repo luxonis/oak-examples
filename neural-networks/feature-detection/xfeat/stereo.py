@@ -1,5 +1,6 @@
 import depthai as dai
-from depthai_nodes.node import ParserGenerator, XFeatStereoParser
+from depthai_nodes.node import ParserGenerator
+from depthai.beta.node import XFeatStereoParser
 from utils.custom_visualizer import StereoVersionVisualizer
 
 
@@ -59,8 +60,8 @@ def stereo_mode(
             0
         ]
         parser.setMaxKeypoints(512)
-        left_network.out.link(parser.reference_input)
-        right_network.out.link(parser.target_input)
+        left_network.out.link(parser.referenceInput)
+        right_network.out.link(parser.targetInput)
 
         custom_visualizer = pipeline.create(StereoVersionVisualizer).build(
             left_frame_input=left_network.passthrough,
