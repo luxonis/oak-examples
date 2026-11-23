@@ -54,8 +54,11 @@ with dai.Pipeline(device) as pipeline:
 
     else:
         cam = pipeline.create(dai.node.Thermal).build()
-        yuv2bgr = pipeline.create(YUV2BGR)  # Thermal output is YUV, model needs BGR
-        cam.color.link(yuv2bgr.input)
+        # Thermal.color is YUV422i at 256x192.
+        # Host node converts it to BGR and keeps the source metadata.
+        yuv2bgr = pipeline.create(YUV2BGR).build(
+            cam.color, frame_type, det_model_w, det_model_h
+        )
         input_node = yuv2bgr.out
 
     nn_with_parser = pipeline.create(ParsingNeuralNetwork).build(

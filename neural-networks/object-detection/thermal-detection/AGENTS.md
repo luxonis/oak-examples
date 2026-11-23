@@ -8,7 +8,7 @@ This is the repository reference for person detection on thermal imagery. Use it
 
 - You need thermal person detection.
 - You want the repo’s special-sensor detection reference.
-- You need to handle thermal-camera YUV output before inference.
+- You need to handle thermal-camera YUV422i output before inference.
 
 ## Do Not Use This Example When
 
@@ -40,16 +40,19 @@ This is the repository reference for person detection on thermal imagery. Use it
 
 ## Architecture
 
-- Live mode uses `dai.node.Thermal`.
-- [utils/yuv2bgr.py](utils/yuv2bgr.py) converts the thermal camera’s YUV output into BGR for the detector.
-- Replay mode uses `ReplayVideo` plus `ImageManip` to resize and convert into the detector input shape.
+- Live mode uses `dai.node.Thermal`. `color` is YUV422i, 256x192. `temperature` is FP16 degrees Celsius and is not linked.
+- [utils/yuv2bgr.py](utils/yuv2bgr.py) converts `color` with OpenCV's YUYV decoder into the detector frame type and size. It copies timestamps, sequence number, instance, category, `sourceFb`, `cam`, `event`, and the image transformation. If the model size is not 256x192, the frame is stretched and that scale is stored with `addScale`.
+- `ImageManip` is not used on the live path. Its host implementation rejects YUV422i, and the RVC2 preprocessor color-converts NV12 and YUV420p only.
+- Replay mode uses `ReplayVideo` plus `ImageManip` to resize and convert NV12 into the detector input shape.
 - `ParsingNeuralNetwork` runs the thermal person detector and publishes passthrough plus parsed detections.
 
 ## Constraints
 
 - The category overview marks this as a thermal/RVC2-only example in practice.
 - There is no `oakapp.toml`; this is not the standalone packaging reference.
-- Live mode assumes thermal hardware and a compatible output path from `dai.node.Thermal`.
+- Live mode assumes thermal hardware. `Thermal.color` is YUV422i. Do not replace it with `ImageManip` until that type is supported.
+- Do not feed `Thermal.temperature` into this detector. That stream is calibrated temperature, and this model expects the colorized image.
+- The host conversion still downloads the thermal frame and uploads BGR to the network. It does not remove that transfer.
 
 ## Related Examples
 

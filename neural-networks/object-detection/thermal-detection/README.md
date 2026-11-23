@@ -4,6 +4,8 @@ This example demonstrates person detection with a thermal camera. We trained a c
 
 > **Note:** Running this example requires a **Luxonis Thermal device** connected to your computer. You can find more information about it [here](https://docs.luxonis.com/hardware/products/OAK%20Thermal).
 
+Live frames come from `Thermal.color`, which is a 256x192 YUV422i image. `ImageManip` does not accept YUV422i, so [utils/yuv2bgr.py](utils/yuv2bgr.py) converts that image to the model's BGR layout on the host and copies the thermal frame's timestamps, sequence number, camera identity, and transformation. The FP16 `temperature` output is not used. Detections are people in the colorized image, not temperature samples. Replay from `--media_path` is still `ReplayVideo` plus `ImageManip`, because that input is NV12.
+
 ## Demo
 
 ![Exampe](media/thermal_person.gif)
