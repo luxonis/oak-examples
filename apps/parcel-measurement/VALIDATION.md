@@ -43,6 +43,16 @@ git diff --check
 
 ## Scope and earlier checks
 
-Physical dimension accuracy was not compared against a reference, as requested. Standalone container execution and holistic replay remain untested. Host services bind to localhost by default.
+Physical dimension accuracy was not compared against a reference, as requested. Holistic replay and standalone LAN frontend access remain untested. Host services bind to localhost by default.
 
 The original November 20 implementation was tested with a different 640 × 400 capture profile and the previous public API. Those historical artifacts remain under `evidence/live/` and `evidence/final/`; they do not validate the current source profile or API.
+
+## Standalone runtime repair, 2026-11-23
+
+The reported `oakctl app run .` failure was reproduced with the original configuration. It selected bare Debian and failed with `/bin/sh: 1: python3: not found`.
+
+The corrected configuration selects `luxonis/oakapp-base:1.3.0`, installs and starts with Python 3.12, and includes the `libgfortran5` and `libegl1` libraries required by the ARM64 Open3D wheel. The application starts directly, without the vendor reverse proxy or WebRTC services.
+
+The container build completed on the OAK4. The app logged `Pipeline started.` and its frontend WebSocket returned a live 2000 × 1500 RGB frame. Container imports reported Python 3.12.11, DepthAI 3.12.2, and Open3D 0.20.0. The structured source profile matched the requested camera grids and 10 FPS setting. The saved frame was opened and checked.
+
+Verification used a temporary copy with `--host 127.0.0.1` so frontend and inspection services stayed on the device's loopback interface. That was the only runtime configuration difference. Live output was read using `oakctl app exec` inside the container. LAN exposure was not tested. The test app was stopped afterward. Artifacts remain under ignored `evidence/standalone-runtime-fix/`.

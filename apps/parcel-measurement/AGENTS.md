@@ -53,6 +53,8 @@ Common-reference points project through the inverse RGB pose, delivered intrinsi
 ## Constraints
 
 - Import only names exported by `depthai_nodes.node` and `depthai_nodes.message`. Do not import frozen algorithms or node implementation internals.
+- Standalone packaging uses `luxonis/oakapp-base:1.3.0`. Install dependencies and launch directly with `python3.12`; the default bare Debian image has no Python runtime. The custom frontend does not need the vendor reverse proxy or WebRTC entrypoint.
+- Keep `libgfortran5` and `libegl1` in the container dependencies; the ARM64 Open3D wheel requires their shared libraries even without a GUI.
 - Parcel messages stay in one host process. They have no XLink or RemoteConnection serialization.
 - Keep PointCloud DEFAULT coordinates, millimeters, calibrated translation, identity custom transform, and organized output. Do not set a different target coordinate system.
 - The calibration cloud stays organized to 768 × 480. Detector input contains only finite, nonzero XYZ and retains the original cloud metadata.

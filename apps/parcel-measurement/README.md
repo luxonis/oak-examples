@@ -34,6 +34,10 @@ From this directory, run the packaged app on an OAK4.
 oakctl app run .
 ```
 
+The container uses `luxonis/oakapp-base:1.3.0`, which supplies Python 3.12. Dependencies install with the same Python interpreter used to launch the app. The custom frontend runs directly without the vendor reverse proxy or WebRTC services.
+
+Open the OAK4's IP address on HTTP port 8082 to access the standalone frontend.
+
 The packaged app explicitly binds the frontend and inspection server to all device interfaces. The host script defaults to localhost. The frontend listens on port 8082 and needs no Node.js build. Standalone performance depends on the device CPU and scene.
 
 ## Inspect and save evidence
