@@ -3,9 +3,10 @@ entrypoint = ["python3.12", "-u", "/app/main.py", "--host", "0.0.0.0"]
 app_version = "0.1.0"
 
 prepare_container = [
-    { type = "RUN", command = "apt-get update && apt-get install -y git libgomp1 libgfortran5 libegl1" },
+    { type = "RUN", command = "apt-get update && apt-get install -y git g++ libgomp1 libgfortran5 libegl1" },
     { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
     { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages" },
+    { type = "RUN", command = "python3.12 -m depthai_nodes.algorithms.parcel.fast_baseline_algorithm_2f65a6f6296d48e981f5fe3f77bfde89.build_native" },
 ]
 
 [env]
