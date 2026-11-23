@@ -10,7 +10,7 @@ import depthai as dai
 import numpy as np
 
 from utils.board_config import ImuMounting
-from utils.calibration import POSES, ImuCalibration, calibrate, orientation_error
+from utils.imu_calibration import POSES, ImuCalibration, calibrate, orientation_error
 from utils.device_info import read_device_info
 
 IMU_RATE_HZ = 100

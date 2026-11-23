@@ -1,4 +1,4 @@
-identifier = "com.example.apps.imu-calibration"
+identifier = "com.example.apps.device-calibration"
 entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/main.py"]
 app_version = "1.0.0"
 

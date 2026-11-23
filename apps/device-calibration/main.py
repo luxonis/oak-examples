@@ -9,7 +9,7 @@ import depthai as dai
 
 from utils.arguments import initialize_argparser
 from utils.board_config import resolve_mounting
-from utils.calibrator_node import IMU_RATE_HZ, ImuCalibrator
+from utils.imu_node import IMU_RATE_HZ, ImuCalibrator
 from utils.device_info import has_magnetometer
 
 FRONTEND_PORT = 8082

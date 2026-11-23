@@ -168,7 +168,7 @@ def calibrate(accel_means: np.ndarray, gyro_means: np.ndarray) -> ImuCalibration
 
 
 if __name__ == "__main__":
-    # Self-check: python3 -m utils.calibration
+    # Self-check: python3 -m utils.imu_calibration
     rng = np.random.default_rng(0)
     up = np.asarray([pose.up for pose in POSES], dtype=float) * GRAVITY
     rotation = np.array([[1.0, 0, 0], [0, -1, 0], [0, 0, -1]])

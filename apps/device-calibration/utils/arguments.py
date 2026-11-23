@@ -37,7 +37,7 @@ def initialize_argparser():
         help="Directory for calibration reports and EEPROM backups.",
         # OAKAGENT_STORAGE_APP is the persistent app storage when running standalone on RVC4.
         default=Path(os.environ.get("OAKAGENT_STORAGE_APP", "."))
-        / "imu_calibration_output",
+        / "device_calibration_output",
         type=Path,
     )
     args = parser.parse_args()
