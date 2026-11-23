@@ -1,4 +1,5 @@
-depthai==3.11.0
+depthai==3.12.0
 depthai-nodes==0.7.0
+# PyAV muxes h265 and any container other than .mp4. h264 and mjpeg .mp4 files use RecordVideo.
 av==12.3.0
 numpy>=1.22
