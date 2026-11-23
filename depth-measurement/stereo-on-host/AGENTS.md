@@ -66,6 +66,7 @@ Host-side stereo benchmark example. It compares device `StereoDepth` disparity a
 
 - Requires readable device calibration.
 - Requires stereo mono cameras on `CAM_B` and `CAM_C`.
+- Holistic replay is `DEPTHAI_RECORD` / `DEPTHAI_REPLAY` of those two cameras. Host `StereoSGBM` stays. See the README.
 - Not an RGBD example; it does not align depth to RGB.
 - SSIM is host-side and intentionally slower than the main stereo path. Both disparities are converted to horizontal pixel units before comparison: device subpixel scale from configuration, OpenCV scale 16. Invalid host values become zero. SSIM includes invalid/occluded areas and is a qualitative similarity score, not metric depth accuracy.
 
@@ -79,6 +80,7 @@ Host-side stereo benchmark example. It compares device `StereoDepth` disparity a
 ## Validation
 
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after `DEPTHAI_RECORD`. A failed setup warns `Replay disabled`. `Replay enabled` is an info line.
 - `Success looks like:` Visualizer shows `Left Cam`, `Right Cam`, `Rectified Left`, `Rectified Right`, `Depth generated`, `Depth SGBM`, and `SSIM score`
 - `Common failure meaning:` missing stereo cameras, missing calibration, or missing host dependencies such as OpenCV/scikit-image
 - Check that rectified image features lie on the same rows, and confirm all seven topics update on RVC2 and RVC4. Compare with a measured-distance scene before claiming metric accuracy.

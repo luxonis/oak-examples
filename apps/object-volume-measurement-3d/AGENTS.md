@@ -81,7 +81,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 ## Constraints
 
 - Selection masks and aligned depth must share the undistorted RGB pixel grid.
-- This example is intentionally RVC4 standalone only.
+- This example is intentionally RVC4 standalone only. A host run of [backend/src/main.py](backend/src/main.py) can set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY`. The archive must contain `CAM_A`, the stereo cameras `Depth` opens, and `IMU`. `oakctl app run` does not see those host variables. See the README.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
 - Projection uses each native PointCloud cloud’s `ImgTransformation.project3DPoint` and image dimensions, including alignment and undistortion. Cloud coordinates are centimeters in the `CAM_A` optical frame (+X right, +Y down, +Z forward); dimensions/volume are reported in cm/cm³.
@@ -105,5 +105,6 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - `Hardware check:` Check fitted dimensions against an object of known size at the image center and edges.
 - `Run:` `oakctl app run .`
+- `Replay:` on a host attached to the RVC4, `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 backend/src/main.py` after recording that backend with `DEPTHAI_RECORD`. A failed setup warns `Replay disabled`. `Replay enabled` is an info line. The archive must include `IMU`.
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose

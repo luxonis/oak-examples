@@ -56,6 +56,18 @@ Here are the available parameters:
 - Press `F` to generate and display Foundation Stereo Disparity using the ONNX model.
 - Press `Q` to exit the application.
 
+## Holistic replay
+
+Replay is optional. The host Foundation Stereo model stays. Record and replay with the same `--resolution`. The archive must contain `CAM_B` and `CAM_C`. The script checks `getConnectedCameras()` before start. With `DEPTHAI_REPLAY` set, that list comes from the recording's `camera_info.json`, so record on a device that already has color, left, and right. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level. Press `f` during replay to run the host model on the recorded pair.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 main.py
+```
+
+Stop the recording with `q`. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. `camera_info.json` replaces the device calibration for that run. On RVC2 the recording is replayed on the host. On RVC4 each camera is replayed on the device.
+
 ### Peripheral Mode
 
 Below are examples for running the experiment:

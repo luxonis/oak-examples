@@ -19,7 +19,7 @@ Here is a list of all available parameters:
 -d DEVICE, --device DEVICE
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -media MEDIA_PATH, --media_path MEDIA_PATH
-                      Path to the directory containing the media files used by the application: `left.mp4`, `right.mp4`, `calib.json`. 
+                      Holistic recording from record.py (recording_<time>.tar.gz, or the extracted directory).
                       (default: live camera input).
 -a AXIS, --axis AXIS
                       Axis for cumulative counting (either x or y). (default: x)
@@ -39,27 +39,23 @@ These values depend on factors such as:
 
 ### Creating Your Own Recordings
 
-You can generate custom recordings using the `record.py` script (refer to [Holistic Record](https://docs.luxonis.com/software-v3/depthai/examples/record_replay/holistic_record/) for more information).
-
-Run the following command to make the recording, specifying the output directory (default: `recordings/`) and the device IP address (default: first connected device):
+`record.py` uses [holistic record](https://docs.luxonis.com/software-v3/depthai/examples/record_replay/holistic_record/). It records `CAM_B` and `CAM_C` and packs calibration into the archive. Replay passes that archive straight through. Do not extract it and rename the videos.
 
 ```bash
-python record.py --output <OUTPUT_PATH> --device <DEVICE_IP>
+python3 record.py --output recordings --device <DEVICE_IP> --duration 10
+python3 record.py --output recordings --fps 10
+python3 main.py --media_path recordings/recording_<time>.tar.gz
 ```
 
-Running the script will generate:
+Press `q` in the visualizer to stop the recording. `--duration <seconds>` stops it without a key press. The script prints the archive path when it finishes. The archive is `recording_<time>.tar.gz`. It contains `CameraCAM_B` and `CameraCAM_C` (H.264 plus metadata) and `camera_info.json`.
 
-- `calib.json` – Stores the camera calibration data.
-- `recording.tar` – Contains the recorded video streams from the device.
+`main.py` reads that archive with `pipeline.enableHolisticReplay`. The same `CAM_B` and `CAM_C` camera nodes are used for live and replay. Calibration, camera identity, and frame timestamps come from the recording. `StereoDepth` still runs on the connected device.
 
-To use the recording with the example:
+`recordings/demo` is the old `left.mp4` / `right.mp4` / `calib.json` folder. That layout is not accepted.
 
-- Extract the `.tar` file.
-- Rename the following files:
-  - `CameraCAM_B.mp4` → `left.mp4`
-  - `CameraCAM_C.mp4` → `right.mp4`
-- Place `calib.json`, `left.mp4`, and `right.mp4` in the same directory.
-- Provide the path to this directory as the `--media_path` argument when running the example.
+`DEPTHAI_REPLAY` points at the same archive when `--media_path` is omitted. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together, and do not point them at two different recordings. `oakctl app run` does not see these host environment variables. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level.
+
+The recording is H.264, so replayed disparity can differ slightly from the live run. On the first replay pass, sequence numbers and device timestamps are the recorded ones. FFV1 AVI is not a replay path: `ReplayVideo` rejects that codec.
 
 ## Peripheral Mode
 
@@ -81,10 +77,10 @@ Running in peripheral mode requires a host computer and there will be communicat
 ### Examples
 
 ```bash
-python3 main.py --media_path recordings/demo
+python3 main.py --media_path recordings/recording_<time>.tar.gz
 ```
 
-This will run the example with default arguments on the provided demo recording it's tuned for.
+This replays a holistic recording from `record.py`. The connected device still runs `StereoDepth`.
 
 ```bash
 python3 main.py -d <DEVICE_IP> -a y -pos 0.75

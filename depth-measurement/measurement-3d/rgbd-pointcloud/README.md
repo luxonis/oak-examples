@@ -23,6 +23,18 @@ Here is a list of all available parameters:
     -m, --mono            use mono frame for pointcloud coloring instead of color frame
 ```
 
+## Holistic replay
+
+Replay is optional. The live path is unchanged. Record and replay with the same `--mono` choice. RGB mode opens `CAM_A` plus the stereo cameras `Depth` opens (`CAM_B` and `CAM_C` on an OAK-D). `--mono` colors the cloud from `CAM_C` and still needs that stereo pair. An RGB recording can be replayed with `--mono`, because the extra `CAM_A` stream is ignored. A `--mono` recording has no `CAM_A` and will not replay as RGB. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 main.py
+```
+
+Stop the recording with `q`. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. A device that can run this pipeline is still required. `camera_info.json` replaces the device calibration for that run. On RVC2 the recording is replayed on the host. On RVC4 each camera is replayed on the device. `oakctl app run` does not see these host environment variables.
+
 ## Peripheral Mode
 
 ### Installation

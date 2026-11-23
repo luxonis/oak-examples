@@ -26,7 +26,7 @@ This is the repository reference for host-run Foundation Stereo inference compar
 - `Frontend:` none
 - `Runs on:` host mode only; requires a device with color, left, and right cameras
 - `Requires:` strong host compute and a stereo mono pair; an IR dot projector is optional
-- `Input:` live stereo mono cameras only
+- `Input:` stereo mono cameras, live or from a holistic recording
 - `Output:` `FS Result`, `Disparity`, `Rectified right`, and `Rectified left`
 - `Models:` Foundation Stereo is downloaded/managed through [utils/fs_inferer.py](utils/fs_inferer.py) rather than packaged YAML files in this example directory
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
@@ -49,6 +49,7 @@ This is the repository reference for host-run Foundation Stereo inference compar
 ## Constraints
 
 - This example is intentionally host-only and compute-heavy.
+- Holistic replay is `DEPTHAI_RECORD` / `DEPTHAI_REPLAY` with the same `--resolution`. The archive must contain `CAM_B` and `CAM_C`. Record on a three-camera device, because `getConnectedCameras()` is checked before start and the replayed camera list comes from `camera_info.json`. The host model stays. See the README.
 - It expects a device with three cameras and enables the IR dot projector when an IR driver is detected.
 - The model is not packaged through `oakapp.toml`; this is not the right baseline for standalone deployment.
 
@@ -61,6 +62,7 @@ This is the repository reference for host-run Foundation Stereo inference compar
 ## Validation
 
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after `DEPTHAI_RECORD` at the same resolution. A failed setup warns `Replay disabled`. `Replay enabled` is an info line. Press `f` to run the host model.
 - `Interaction:` press `f` to trigger Foundation Stereo inference
 - `Success looks like:` the Visualizer shows rectified frames, device disparity, and `FS Result`
 - `Common failure meaning:` host compute is insufficient, the device lacks the required camera topology, or the operator expected continuous inference instead of the current on-demand flow

@@ -89,6 +89,7 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 - [utils/stereo_inference.py](utils/stereo_inference.py) uses signed horizontal disparity, calibrated baseline in mm and rectified-left intrinsics. It rejects disparity `<= 0.5` px, non-finite points and vertical errors > 3 px. XYZ is in mm in the rectified-left camera frame: X right, Y down, Z forward.
 - It assumes a horizontal stereo pair and corresponding YuNet keypoint indices. Rectification cannot fix incorrect detection association.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
+- Holistic replay is `DEPTHAI_RECORD` / `DEPTHAI_REPLAY` of those two cameras. The host triangulation stays. A face has to be in the recording for a measurement. See the README.
 
 ## Non-Obvious Repo Conventions
 
@@ -107,6 +108,7 @@ This is the repo reference for stereo neural inference followed by host-side 3D 
 ## Validation
 
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after `DEPTHAI_RECORD`. A failed setup warns `Replay disabled`. `Replay enabled` is an info line.
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows left, right, and combined views with face boxes, keypoints, disparity lines, and measurement text
 - `Common failure meaning:` the stereo camera topology is missing, the YuNet model bundle is unavailable, or left/right detections are not pairing well enough for triangulation

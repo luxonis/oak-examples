@@ -82,6 +82,7 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - Active stereo quality matters a lot here, and the README notes that power quality can also affect stability.
 - The fitter still requires three perpendicular planes. It removes rejected plane candidates from its search cloud so a parallel residual cannot consume every attempt, but this does not guarantee a valid fit on noisy or incomplete depth.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
+- Holistic replay is `DEPTHAI_RECORD` while this example runs, then `DEPTHAI_REPLAY` set to that `recording_*.tar.gz` with the same arguments. The archive must contain `CAM_A` and the stereo cameras `Depth` opens. See the README. There is no media flag.
 - Masks and organized point clouds must share the undistorted RGB pixel grid. Cuboid overlays use `ImgTransformation.project3DPointTo` from cloud to image coordinates.
 
 ## Non-Obvious Repo Conventions
@@ -103,6 +104,7 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 
 - `Hardware check:` Check cuboid overlays and known box dimensions at the center and edges, then repeat with another output aspect ratio.
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after recording with `DEPTHAI_RECORD`. A failed setup warns `Replay disabled`. `Replay enabled` is an info line.
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Video Stream`, `Box Detections`, `Cuboid Fit`, and `Pointcloud`, and detected boxes receive dimension labels when the fit succeeds
 - `Failure feedback:` a detected box shows `measurement unavailable` and the specific depth, plane-fit, or dimension failure in the `Box Detections` overlay on `Video Stream`

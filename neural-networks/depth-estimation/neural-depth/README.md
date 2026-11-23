@@ -63,6 +63,23 @@ python3 main.py --backend las2
 
 This runs Lite Any Stereo V2 with the default `l-fp16-1280x800` model.
 
+## Holistic replay
+
+Replay is optional and does not replace [`host_eval`](host_eval/README.md). `host_eval` remains the Middlebury dataset evaluator. This path repeats a device recording through the live native or LAS2 pipeline.
+
+Both backends open `CAM_B` and `CAM_C` at full resolution, so one archive can be replayed through either backend. The archive is large. Extra streams are ignored. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 main.py --backend las2
+```
+
+Stop the recording with `q`. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. An RVC4 device is still required. `camera_info.json` replaces the device calibration for that run. Camera replay on RVC4 runs on the device. `oakctl app run` does not see these host environment variables.
+
+The default recording is H.264, so replayed depth can differ slightly from the live run. Sequence numbers and device timestamps on the first pass are the recorded ones.
+
 ## Standalone Mode (RVC4 only)
 
 Running the example in the standalone mode, app runs entirely on the device.

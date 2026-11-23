@@ -1,9 +1,11 @@
-import depthai as dai
 import os
+import tarfile
+from pathlib import Path
+
+import depthai as dai
 from depthai_nodes.node import ApplyDepthColormap
 
 from utils.arguments import initialize_argparser
-from utils.frame_editor import FrameEditor
 from utils.disparity_to_dets import DisparityToDetections
 from utils.annotation_node import AnnotationNode
 
@@ -12,6 +14,53 @@ _, args = initialize_argparser()
 
 
 SIZE = (640, 400)
+# Stream names written by enableHolisticRecord for these sockets.
+REQUIRED_STREAMS = ("CameraCAM_B", "CameraCAM_C")
+def _recording_names(path: Path) -> list[str]:
+    if path.is_dir():
+        return [item.relative_to(path).as_posix() for item in path.rglob("*") if item.is_file()]
+    if not tarfile.is_tarfile(path):
+        raise SystemExit(
+            f"{path} is not a holistic recording. record.py writes recording_<time>.tar.gz."
+        )
+    with tarfile.open(path, "r:*") as archive:
+        return [member.name for member in archive.getmembers() if member.isfile()]
+
+
+def _has_stream(names: list[str], stream: str) -> bool:
+    for name in names:
+        item = Path(name)
+        if item.name.startswith(stream + ".") or item.parent.name == stream:
+            return True
+    return False
+def require_holistic_recording(path: str) -> None:
+    recording = Path(path)
+    if not recording.exists():
+        raise SystemExit(f"Replay path does not exist: {path}")
+    names = _recording_names(recording)
+    basenames = {Path(name).name for name in names}
+    if "camera_info.json" not in basenames:
+        raise SystemExit(
+            "Holistic replay needs camera_info.json from record.py. "
+            "That file carries the calibration and the camera list."
+        )
+    missing = [stream for stream in REQUIRED_STREAMS if not _has_stream(names, stream)]
+    if missing:
+        raise SystemExit(
+            "Recording is missing "
+            + ", ".join(missing)
+            + ". record.py must be run on a device with CAM_B and CAM_C."
+        )
+replay_env = os.environ.get("DEPTHAI_REPLAY")
+if args.media_path and replay_env:
+    if Path(args.media_path).resolve() != Path(replay_env).resolve():
+        raise SystemExit("Pass either --media_path or DEPTHAI_REPLAY, not two different recordings.")
+if args.media_path and os.environ.get("DEPTHAI_RECORD"):
+    print("DEPTHAI_RECORD is ignored because --media_path enables replay.")
+    
+replay_path = args.media_path or replay_env
+if replay_path:
+    require_holistic_recording(replay_path)
 
 visualizer = dai.RemoteConnection(httpPort=8082)
 device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
@@ -21,36 +70,16 @@ print(f"Platform: {platform}")
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
 
-    # media/camera disparity input
+    # Live and replay use the same cameras. enableHolisticReplay feeds the
+    # recorded frames, calibration, and timestamps into these nodes.
     if args.media_path:
-        pipeline.setCalibrationData(
-            dai.CalibrationHandler(os.path.join(args.media_path, "calib.json"))
-        )
+        pipeline.enableHolisticReplay(args.media_path)
 
-        left = pipeline.create(dai.node.ReplayVideo)
-        left.setReplayVideoFile(os.path.join(args.media_path, "left.mp4"))
-        left.setOutFrameType(dai.ImgFrame.Type.RAW8)
-        left.setSize(SIZE)
+    left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
+    left_out = left.requestOutput(size=SIZE, type=dai.ImgFrame.Type.GRAY8)
 
-        right = pipeline.create(dai.node.ReplayVideo)
-        right.setReplayVideoFile(os.path.join(args.media_path, "right.mp4"))
-        right.setOutFrameType(dai.ImgFrame.Type.RAW8)
-        right.setSize(SIZE)
-
-        left_frame_editor = pipeline.create(FrameEditor, dai.CameraBoardSocket.CAM_B)
-        right_frame_editor = pipeline.create(FrameEditor, dai.CameraBoardSocket.CAM_C)
-
-        left.out.link(left_frame_editor.input)
-        right.out.link(right_frame_editor.input)
-
-        left_out = left_frame_editor.output
-        right_out = right_frame_editor.output
-    else:
-        left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
-        left_out = left.requestOutput(size=SIZE, type=dai.ImgFrame.Type.GRAY8)
-
-        right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
-        right_out = right.requestOutput(size=SIZE, type=dai.ImgFrame.Type.GRAY8)
+    right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
+    right_out = right.requestOutput(size=SIZE, type=dai.ImgFrame.Type.GRAY8)
 
     stereo = pipeline.create(dai.node.StereoDepth).build(left=left_out, right=right_out)
     stereo.initialConfig.setMedianFilter(dai.StereoDepthConfig.MedianFilter.KERNEL_7x7)
