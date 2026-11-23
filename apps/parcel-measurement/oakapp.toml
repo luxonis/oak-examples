@@ -1,5 +1,5 @@
 identifier = "com.example.apps.parcel-measurement"
-entrypoint = ["python3.12", "-u", "/app/main.py", "--host", "0.0.0.0"]
+entrypoint = ["/entrypoint.sh", "python3.12", "-u", "/app/main.py", "--host", "0.0.0.0"]
 app_version = "0.1.0"
 
 prepare_container = [
@@ -8,6 +8,17 @@ prepare_container = [
     { type = "RUN", command = "python3.12 -m pip install -r /app/requirements.txt --break-system-packages" },
     { type = "RUN", command = "python3.12 -m depthai_nodes.algorithms.parcel.fast_baseline_algorithm_2f65a6f6296d48e981f5fe3f77bfde89.build_native" },
 ]
+
+prepare_build_container = [
+    { type = "RUN", command = "bash -c 'curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'" },
+]
+
+[static_frontend]
+dist_path = "./frontend/dist"
+
+[static_frontend.build]
+source_path = "./frontend"
+steps = ["bash -c 'cd /app/frontend && . $HOME/.nvm/nvm.sh && npm ci --no-audit --no-fund && npm run build'"]
 
 [env]
 PYTHONUNBUFFERED = "1"

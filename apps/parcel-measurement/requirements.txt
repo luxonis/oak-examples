@@ -1,3 +1,2 @@
 depthai==3.12.2
 depthai-nodes[parcel,box-measurement] @ git+https://github.com/luxonis/depthai-nodes.git@f000977fbcf9238b1441277d2d0202e30d758ab0
-aiohttp>=3.12,<4

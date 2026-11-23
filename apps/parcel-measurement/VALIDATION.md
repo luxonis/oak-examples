@@ -1,5 +1,21 @@
 # Parcel measurement validation
 
+## Standard frontend and host-node update, 2026-11-23
+
+The current app uses the repository's React/Vite frontend, Luxonis `DepthAIContext` and `Streams`, static frontend packaging, and the base image's `/entrypoint.sh`. It has no bespoke Python frontend server or JPEG video WebSocket. The user's `g++` dependency and bundled parcel native-kernel build step remain in the container configuration.
+
+The main loop only handles pipeline lifetime and remote keys. `ParcelController` handles native scene, IMU, calibration, parcel-result, and service-command events through blocking `MessageQueue.getAny`. `BenchmarkLogger` handles the actual output and native benchmark report streams, with a timed blocking wait for ten-second logging. All nodes are created upfront in one device-backed pipeline.
+
+The package built successfully on the OAK4, including the Node.js 24 frontend build. The running app printed its actual frontend address, `https://<OAK4-IP>:9000`; oakctl supplied port 9000 through `OAKAPP_STATIC_FRONTEND_PORT`. The base image defaults to 8000 when that variable is absent. The LAN test was explicitly authorized, and the operator handled the device certificate warning in Chrome.
+
+Live browser checks confirmed 2000 × 1500 H.264 RGB, support-plane calibration, candidate previews, explicit candidate confirmation, native parcel boxes with tracking IDs and dimensions, and recalibration without restarting capture. Both selections returned successful measurement batches. The second measurement plane matched the selected plane after sign normalization, and the run logged one pipeline start. Idle and active ten-second reports from both benchmark stages were checked. These are functional checks, not a measurement accuracy or algorithm speed comparison.
+
+RemoteConnection inspection advertised exactly `Color stream` as an `EncodedFrame` and `Parcel annotations` as `ImageAnnotations`. The depth topic was removed; depth remains internal. `oakctl inspect frames` identified `AVC/H264` but cannot decode that encoding, so browser screenshots provide the visual evidence. Native messages were dumped and checked for normalized boxes, tracking and dimension labels, and 2000 × 1500 metadata. Paired video and annotation messages had identical sequence counters, timestamps, and transformations. The inspector limitation was reported to Luxonis.
+
+All 17 backend tests pass. They include native annotation identity and empty-overlay behavior, service commands handled by a running pipeline node, stale selections, and invalid identifiers. TypeScript checking, the Vite production build, Biome, Python checks, agent-document validation, and the generated index check pass. Review also caught a missing frontend frame-status field; it was restored so failed-frame and no-eligible-parcel messages remain visible.
+
+Local screenshots, native messages, and benchmark records are under ignored `evidence/native-frontend/`. The test copy only adds evidence saving to the entrypoint. Physical dimension accuracy and holistic replay remain unvalidated. Earlier sections describe the previous frontend and transport.
+
 ## Single-pipeline API update, 2026-11-23
 
 The example now pins depthai-nodes PR 348 revision `f000977fbcf9238b1441277d2d0202e30d758ab0`. One device-backed pipeline creates all camera, calibration, detector, and dimensioner nodes and their queues before starting. The detector builds without an initial plane. The first selected plane and later selections arrive through `ParcelDetectorConfig` on `inputConfig`, immediately before the next admitted scene.
