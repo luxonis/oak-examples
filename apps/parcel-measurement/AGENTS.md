@@ -22,7 +22,7 @@ OAK4 parcel measurement with public depthai-nodes parcel detection, dimensioning
 - `Geometry:` [geometry.py](geometry.py)
 - `Domain state:` [domain.py](domain.py)
 - `Frontend:` [frontend/index.html](frontend/index.html), [frontend/app.js](frontend/app.js)
-- `Server:` [web.py](web.py), HTTP port 8082 and WebSocket `/ws`
+- `Server:` [web.py](web.py), HTTP port 8082 and WebSocket `/ws`; wildcard startup lists device LAN IPv4 URLs using `hostname -I`
 - `Mode:` host plus OAK4 standalone packaging in [oakapp.toml](oakapp.toml)
 - `Requires:` OAK4 RGB, stereo, processed accelerometer reports, and Python 3.12 host environment
 - `Capture:` 10 FPS by default; unrectified RGB 2000 × 1500 NV12 and left/right 1280 × 800 GRAY8

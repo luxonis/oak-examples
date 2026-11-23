@@ -27,7 +27,7 @@ from depthai_nodes.node import (
 
 from domain import CalibrationPhase, CalibrationSession, ParcelTracker
 from geometry import CameraProjection, reference_key, transformed_imu
-from web import BrowserServer
+from web import BrowserServer, frontend_urls
 
 
 RGB_SIZE = (2000, 1500)
@@ -327,7 +327,15 @@ def main():
         args.evidence.mkdir(parents=True, exist_ok=True)
     server.publish(state())
     server.start()
-    print(f"Parcel frontend at http://localhost:{args.port}", flush=True)
+    urls = frontend_urls(args.host, args.port)
+    for url in urls:
+        print(f"Parcel frontend at {url}", flush=True)
+    if not urls:
+        print(
+            f"Parcel frontend listening on port {args.port}. "
+            "Could not determine a LAN address; use the OAK4's IP address.",
+            flush=True,
+        )
     remote = dai.RemoteConnection(
         address=args.host, serveFrontend=False, webSocketPort=args.inspect_port
     )
