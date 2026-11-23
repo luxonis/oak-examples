@@ -1,0 +1,71 @@
+{
+	"session": 1,
+	"phase": "setup",
+	"message": "",
+	"messageOk": true,
+	"device": {
+		"name": "OAK-4-D-FF",
+		"id": "2833000096",
+		"platform": "RVC4",
+		"productName": "OAK-4-D-FF",
+		"boardName": "NG9564",
+		"boardRev": "R1M0E1",
+		"imu": "BNO086",
+		"imuFirmware": "3.2.13",
+		"magnetometer": true,
+		"extrinsics": "flashed",
+		"accelerometer": "default",
+		"gyroscope": "default",
+		"socket": "CAM_A",
+		"translationCm": [-1.3, -0.5, 0.2],
+		"mountingSource": "depthai-boards",
+		"calibration": {
+			"rotation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+			"accelerometer": null,
+			"gyroscope": null
+		}
+	},
+	"boardNames": [
+		"OAK-4-D",
+		"OAK-4-D-PRO",
+		"OAK-D-PRO",
+		"OAK-D-W",
+		"From device"
+	],
+	"boardSource": "none",
+	"board": {
+		"name": "",
+		"cameras": {}
+	},
+	"boardProblems": [],
+	"dictionaries": [
+		"DICT_4X4_50",
+		"DICT_4X4_100",
+		"DICT_4X4_250",
+		"DICT_4X4_1000",
+		"DICT_5X5_50",
+		"DICT_5X5_100",
+		"DICT_5X5_250",
+		"DICT_5X5_1000",
+		"DICT_6X6_250",
+		"DICT_ARUCO_ORIGINAL"
+	],
+	"lastCharuco": {
+		"squaresX": 12,
+		"squaresY": 9,
+		"squareCm": 6,
+		"markerCm": 4.7,
+		"dictionary": "DICT_4X4_1000"
+	},
+	"charuco": null,
+	"boardFixed": false,
+	"capture": null,
+	"processing": null,
+	"cameraResult": null,
+	"imu": null,
+	"imuMounting": null,
+	"problems": [],
+	"dryRun": true,
+	"flashed": false,
+	"backupPath": null
+}

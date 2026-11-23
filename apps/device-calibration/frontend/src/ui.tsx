@@ -45,6 +45,7 @@ export function Field({
 	children,
 }: { label: string; children: ReactNode }) {
 	return (
+		// biome-ignore lint/a11y/noLabelWithoutControl: the input is passed as children
 		<label className="flex flex-col gap-1 text-sm">
 			<span className="text-muted-foreground">{label}</span>
 			{children}

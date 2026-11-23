@@ -9,8 +9,8 @@ def initialize_argparser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.description = (
-        "Guided six-pose IMU calibration. Computes the IMU -> camera rotation and the accelerometer and "
-        "gyroscope [Q|b] calibration, then flashes them together with the depthai-boards IMU translation."
+        "Guided camera and IMU calibration: ChArUco capture for intrinsics and extrinsics, a six-pose IMU "
+        "capture, then one flash with an EEPROM backup."
     )
     parser.add_argument(
         "-d",
@@ -22,9 +22,33 @@ def initialize_argparser():
     )
     parser.add_argument(
         "--board-config",
-        help="Local depthai-boards board JSON (e.g. boards/OAK-D-PRO.json). By default it is looked up on GitHub.",
+        help="Local depthai-boards board JSON (e.g. boards/OAK-D-PRO.json) to use instead of the one detected from the device.",
         default=None,
         type=Path,
+    )
+    parser.add_argument(
+        "--boards-dir",
+        help="Local depthai-boards checkout. By default the boards are fetched from GitHub (cached).",
+        default=None,
+        type=Path,
+    )
+    parser.add_argument(
+        "--capture-fps",
+        help="Frame rate of the live detection stream and of the full-resolution capture. "
+        "The OV9282 mono sensors output black frames below 6.",
+        default=6,
+        type=int,
+    )
+    parser.add_argument(
+        "--replay-dataset",
+        help="Drive the capture step from a recorded dataset (folders named like the cameras) instead of the cameras.",
+        default=None,
+        type=Path,
+    )
+    parser.add_argument(
+        "--dry-run",
+        help="Do everything on Flash except writing to the device.",
+        action="store_true",
     )
     parser.add_argument(
         "--capture-seconds",
@@ -43,4 +67,6 @@ def initialize_argparser():
     args = parser.parse_args()
     if args.capture_seconds < 1.0:
         parser.error("--capture-seconds must be at least 1")
+    if args.capture_fps <= 0:
+        parser.error("--capture-fps must be positive")
     return parser, args

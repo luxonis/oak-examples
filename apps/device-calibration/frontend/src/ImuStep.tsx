@@ -5,6 +5,7 @@ import { Chart, type Series } from './Chart.tsx';
 import {
 	type Act,
 	type DeviceInfo,
+	type ImuMounting,
 	type ImuResult,
 	type ImuState,
 	type Sample,
@@ -127,14 +128,27 @@ export function Side({ state, rows, act }: StepProps) {
 	return (
 		<>
 			{imu.result ? (
-				<ResultsSection
-					result={imu.result}
-					device={state.device}
-					imu={imu}
-					act={act}
-				/>
+				<>
+					<ResultsSection result={imu.result} device={state.device} />
+					<Button onClick={() => act('accept')}>Continue to review</Button>
+					<Button variant="outline" onClick={() => act('imu_redo')}>
+						Redo
+					</Button>
+				</>
 			) : (
-				<PoseSection imu={imu} act={act} />
+				<>
+					<PoseSection imu={imu} act={act} />
+					<Button variant="outline" onClick={() => act('skip_imu')}>
+						Skip IMU
+					</Button>
+				</>
+			)}
+			{imu.message && (
+				<p
+					className={`break-all text-sm ${imu.messageOk ? 'text-success' : 'text-destructive'}`}
+				>
+					{imu.message}
+				</p>
 			)}
 			<LiveCheckSection
 				stored={liveCheck(stored)}
@@ -145,8 +159,114 @@ export function Side({ state, rows, act }: StepProps) {
 	);
 }
 
-/** Final review before flashing (WP8 replaces this with the full summary). */
-export const ReviewSide = Side;
+/** Camera and IMU summary, what will be written, and the single Flash button. */
+export function ReviewSide({ state, rows, act }: StepProps) {
+	const { cameraResult: cams, imu, imuMounting } = state;
+	const worst = cams?.cameras.reduce((a, c) => (c.rmsNew > a.rmsNew ? c : a));
+	const stored = calibrated(rows, state.device.calibration);
+	const preview = imu?.result ? calibrated(rows, imu.result) : null;
+	const written = [
+		cams && 'Camera intrinsics and extrinsics',
+		imu?.result && 'IMU accelerometer, gyroscope and mounting rotation',
+	].filter(Boolean);
+	return (
+		<>
+			<Section title="Cameras">
+				{worst ? (
+					<p className="text-sm">
+						Worst camera: {worst.name}, {worst.rmsNew.toFixed(2)} px (stored{' '}
+						{worst.rmsOld?.toFixed(2) ?? 'n/a'} px).
+					</p>
+				) : (
+					<p className="text-sm text-muted-foreground">
+						Skipped: the stored camera calibration stays.
+					</p>
+				)}
+			</Section>
+			{imu?.result ? (
+				imuMounting && <MountingSection mounting={imuMounting} />
+			) : (
+				<Section title="IMU">
+					<p className="text-sm text-muted-foreground">
+						Skipped: the stored IMU calibration stays.
+					</p>
+				</Section>
+			)}
+			<Section title="Will be written">
+				{written.map((w) => (
+					<p key={String(w)} className="text-sm">
+						{w}
+					</p>
+				))}
+				{state.dryRun && (
+					<p className="text-sm text-muted-foreground">
+						Dry run: nothing is written to the device.
+					</p>
+				)}
+			</Section>
+			{state.problems.map((p) => (
+				<p key={p} className="text-sm text-destructive">
+					{p}
+				</p>
+			))}
+			{state.flashed ? (
+				<>
+					<p className="break-all text-sm text-success">
+						{state.dryRun ? 'Dry run done, nothing flashed' : 'Flashed'}.
+						Backup: {state.backupPath}
+					</p>
+					<Button onClick={() => act('restart')}>Start over</Button>
+				</>
+			) : (
+				<Button
+					onClick={() => act('flash')}
+					disabled={state.problems.length > 0 || !written.length}
+				>
+					Flash to device
+				</Button>
+			)}
+			{state.message && (
+				<p
+					className={`break-all text-sm ${state.messageOk ? 'text-success' : 'text-destructive'}`}
+				>
+					{state.message}
+				</p>
+			)}
+			{imu?.result && (
+				<ResultsSection result={imu.result} device={state.device} />
+			)}
+			{preview && (
+				<LiveCheckSection
+					stored={liveCheck(stored)}
+					preview={liveCheck(preview)}
+					flashed={state.flashed}
+				/>
+			)}
+		</>
+	);
+}
+
+/** Where the IMU -> camera rotation came from and how far it is from the depthai-boards spec. */
+export function MountingSection({ mounting }: { mounting: ImuMounting }) {
+	const rpy = mounting.specErrorRpyDeg;
+	return (
+		<Section title="IMU mounting">
+			<p className="text-sm">
+				{mounting.source === 'board'
+					? `Rotation refined from ${mounting.sets} board views, residual ${mounting.residualDeg?.toFixed(2)} deg.`
+					: `Six-pose mapping used: ${mounting.reason}`}
+			</p>
+			{rpy && mounting.specErrorDeg !== null && (
+				<Status ok={mounting.specErrorDeg <= 5}>
+					Mounting vs spec: roll {rpy[0].toFixed(1)}, pitch {rpy[1].toFixed(1)},
+					yaw {rpy[2].toFixed(1)} deg.
+					{mounting.specErrorDeg > 5 &&
+						` Differs from the depthai-boards spec by ${mounting.specErrorDeg.toFixed(1)} deg.`}
+				</Status>
+			)}
+		</Section>
+	);
+}
 
 export function PoseSection({ imu, act }: { imu: ImuState; act: Act }) {
 	const { pose, phase } = imu;
@@ -218,9 +338,7 @@ export function PoseSection({ imu, act }: { imu: ImuState; act: Act }) {
 export function ResultsSection({
 	result,
 	device,
-	imu,
-	act,
-}: { result: ImuResult; device: DeviceInfo; imu: ImuState; act: Act }) {
+}: { result: ImuResult; device: DeviceInfo }) {
 	return (
 		<Section title="IMU results">
 			{result.problems.length ? (
@@ -257,25 +375,6 @@ export function ResultsSection({
 				Pose tilt vs guide:{' '}
 				{result.poseTilts.map((t) => `${t.toFixed(1)}°`).join(', ')}
 			</span>
-			<div className="flex gap-2">
-				<Button className="flex-1" onClick={() => act('accept')}>
-					Continue to review
-				</Button>
-				<Button
-					className="flex-1"
-					variant="outline"
-					onClick={() => act('imu_redo')}
-				>
-					Redo
-				</Button>
-			</div>
-			{imu.message && (
-				<p
-					className={`break-all text-sm ${imu.messageOk ? 'text-success' : 'text-destructive'}`}
-				>
-					{imu.message}
-				</p>
-			)}
 		</Section>
 	);
 }

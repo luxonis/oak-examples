@@ -1,17 +1,12 @@
-import json
 import threading
-import time
 from collections import deque
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import timedelta
 from typing import List, Optional, Tuple
 
 import depthai as dai
 import numpy as np
 
-from utils.board_config import ImuMounting
 from utils.imu_calibration import POSES, ImuCalibration, calibrate, orientation_error
-from utils.device_info import read_device_info
 
 IMU_RATE_HZ = 100
 GRAPH_DECIMATION = 4  # every 4th packet -> 25 Hz to the frontend graph
@@ -24,7 +19,7 @@ MIN_SAMPLES = 50
 
 
 class ImuCalibrator(dai.node.ThreadedHostNode):
-    """Six-pose capture state machine; the frontend drives it through `state()` and `action()`.
+    """Six-pose capture state machine; `Session` drives it through `state()` and `action()`.
 
     Services call in from the RemoteConnection thread, so all state is guarded by one lock.
     """
@@ -36,25 +31,11 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
         self._recent: deque = deque(maxlen=IMU_RATE_HZ // 2)
         self._graph: deque = deque(maxlen=GRAPH_WINDOW)
         self._packets = 0
-        self._session = int(
-            time.time()
-        )  # lets the frontend tell a backend restart from a stale reply
         self._reset()
 
-    def build(
-        self,
-        imu_out: dai.Node.Output,
-        device: dai.Device,
-        mounting: ImuMounting,
-        output_dir: Path,
-        capture_seconds: float,
-    ) -> "ImuCalibrator":
+    def build(self, imu_out: dai.Node.Output, capture_seconds: float) -> "ImuCalibrator":
         imu_out.link(self.imu_input)
-        self._device = device
-        self._mounting = mounting
-        self._output_dir = output_dir
         self._capture_duration = timedelta(seconds=capture_seconds)
-        self._device_info = read_device_info(device, mounting)
         return self
 
     def _reset(self) -> None:
@@ -66,7 +47,6 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
         )
         self._message = ""
         self._result: Optional[ImuCalibration] = None
-        self._flashed = False
 
     def run(self) -> None:
         while self.isRunning():
@@ -104,6 +84,19 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
         # The IMU can take a few seconds to start streaming after pipeline start (seen on RVC4).
         return len(self._recent) == self._recent.maxlen
 
+    @property
+    def result(self) -> Optional[ImuCalibration]:
+        with self._lock:
+            return self._result
+
+    def recent_accel_mean(self) -> Optional[List[float]]:
+        """RAW accelerometer mean of the last 0.5 s, or None unless the device was still."""
+        with self._lock:
+            recent = np.asarray(self._recent)
+        if len(recent) < self._recent.maxlen or not _is_still(recent):
+            return None
+        return recent.mean(axis=0).tolist()
+
     def state(self, since: int) -> dict:
         with self._lock:
             idx = min(len(self._accel_means), len(POSES) - 1)
@@ -113,7 +106,6 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
             if recent is not None and self._accel_means and phase != "results":
                 orientation = orientation_error(recent.mean(axis=0), self._accel_means)
             return {
-                "session": self._session,
                 "seq": self._packets,
                 "phase": phase,
                 "pose": {
@@ -126,10 +118,8 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
                 "still": recent is not None and _is_still(recent),
                 "orientationError": orientation,
                 "message": self._message,
-                "messageOk": self._flashed,
+                "messageOk": False,  # only errors are reported here
                 "samples": [s for s in self._graph if s["seq"] > since],
-                "device": self._device_info,
-                "result": self._result_json(),
             }
 
     def _phase(self) -> str:
@@ -150,13 +140,6 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
                 self._message = ""
             elif name == "redo":
                 self._reset()
-            elif (
-                name == "flash"
-                and phase == "results"
-                and not self._result.problems
-                and not self._flashed
-            ):
-                self._flash()
             else:
                 return {"ok": False}
             return {"ok": True}
@@ -166,19 +149,6 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
             return 0.0
         elapsed = max(timedelta(0), dai.Clock.now() - self._capture_start)
         return min(1.0, elapsed / self._capture_duration)
-
-    def _result_json(self) -> Optional[dict]:
-        result = self._result
-        if result is None:
-            return None
-        spec = self._mounting.spec_rotation
-        return {
-            **_calibration_dict(result),
-            "specMatch": None
-            if spec is None
-            else bool(np.allclose(result.rotation, spec)),
-            "flashed": self._flashed,
-        }
 
     def _finish_capture(self) -> None:
         self._capture_start = None
@@ -209,58 +179,6 @@ class ImuCalibrator(dai.node.ThreadedHostNode):
                     "The fit failed on these poses. Capture the last pose again."
                 )
                 return
-            self._save_report()
-
-    def _save_report(self) -> None:
-        self._output_dir.mkdir(parents=True, exist_ok=True)
-        path = self._output_dir / f"imu_calibration_{datetime.now():%Y%m%d_%H%M%S}.json"
-        report = {
-            "mountingSource": self._mounting.source,
-            "poseAccelerometerMeans": np.asarray(self._accel_means).tolist(),
-            "poseGyroscopeMeans": np.asarray(self._gyro_means).tolist(),
-            **_calibration_dict(self._result),
-        }
-        path.write_text(json.dumps(report, indent=2))
-        print(f"Saved calibration report to {path}")
-
-    def _flash(self) -> None:
-        result, mounting = self._result, self._mounting
-        try:
-            calibration = self._device.readCalibration2()
-            self._output_dir.mkdir(parents=True, exist_ok=True)
-            backup = (
-                self._output_dir
-                / f"calibration_backup_{datetime.now():%Y%m%d_%H%M%S}.json"
-            ).resolve()
-            calibration.eepromToJsonFile(str(backup))
-            calibration.setAccelerometerCalibration(result.accelerometer.tolist())
-            calibration.setGyroscopeCalibration(result.gyroscope.tolist())
-            calibration.setImuExtrinsics(
-                mounting.socket,
-                result.rotation.tolist(),
-                mounting.translation_cm,
-                mounting.spec_translation_cm,
-            )
-            self._device.flashCalibration(calibration)
-        except RuntimeError as e:
-            self._message = f"Flash failed: {e}"
-            return
-        self._flashed = True
-        self._message = f"Flashed. Previous calibration saved to {backup}"
-        # The flashed values become the "old" calibration the frontend compares against.
-        self._device_info = read_device_info(self._device, mounting)
-        print(self._message)
-
-
-def _calibration_dict(result: ImuCalibration) -> dict:
-    return {
-        "rotation": result.rotation.tolist(),
-        "accelerometer": result.accelerometer.tolist(),
-        "gyroscope": result.gyroscope.tolist(),
-        "poseTilts": result.pose_tilts.tolist(),
-        "fitError": result.fit_error,
-        "problems": result.problems,
-    }
 
 
 def _vec(v) -> List[float]:
