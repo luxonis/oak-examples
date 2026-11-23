@@ -1,0 +1,12 @@
+identifier = "com.example.apps.parcel-measurement"
+entrypoint = ["python3", "-u", "/app/main.py", "--host", "0.0.0.0"]
+app_version = "0.1.0"
+
+prepare_container = [
+    { type = "RUN", command = "apt-get update && apt-get install -y git libgomp1" },
+    { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
+    { type = "RUN", command = "python3 -m pip install -r /app/requirements.txt --break-system-packages" },
+]
+
+[env]
+PYTHONUNBUFFERED = "1"

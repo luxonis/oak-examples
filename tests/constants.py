@@ -1,4 +1,8 @@
 KNOWN_FAILING = {
+    "apps/parcel-measurement": {
+        "reason": "Requires an OAK4 with RGB, stereo depth, and an accelerometer",
+        "rules": {"and": [{"platform": ["rvc2"]}]},
+    },
     "apps/focused-vision": {
         "reason": "RVC4 only app",
         "rules": {"and": [{"platform": ["rvc2"]}]},

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Parcel measurement</title>
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <header><a class="brand" href="./">OAK <span>/ Parcel measurement</span></a><span id="connection" class="badge">Connecting</span></header>
+  <main>
+    <section class="view">
+      <div class="view-heading"><div><p class="eyebrow">RGB CAMERA</p><h1>Measure parcels</h1></div><span id="frame-number" class="subtle">Waiting for camera</span></div>
+      <div class="camera"><canvas id="preview" width="2000" height="1500" aria-label="Live RGB stream with tracked parcel dimensions"></canvas><div id="empty">Connecting to your OAK camera…</div></div>
+      <div class="legend"><span class="dot"></span>Tracked parcels<span class="units">L × W × H · millimeters</span></div>
+      <p id="stream-profile" class="notice"></p>
+      <p id="frame-status" class="notice">Waiting for the first frame.</p>
+      <div id="parcels" class="parcel-list"></div>
+    </section>
+    <aside>
+      <div class="section-heading"><p class="eyebrow">SUPPORT SURFACE</p><span id="calibration-phase" class="badge">Not calibrated</span></div>
+      <h2>Calibrate the support plane</h2>
+      <p class="description">Keep the camera fixed. Show the empty table or floor where parcels will rest, then choose the matching surface.</p>
+      <button id="calibrate" class="primary">Find support planes</button>
+      <p id="calibration-message" role="status" class="notice"></p>
+      <div id="candidates"></div>
+      <div id="selected-plane" class="selected" hidden></div>
+      <div class="help"><h3>For consistent measurements</h3><p>Leave space around each parcel and keep its top and sides in view. Recalibrate after moving the camera or changing the support surface.</p><p>Tracking IDs are temporary and can change after occlusion. Unknown heights appear as “?” instead of a dimension.</p></div>
+    </aside>
+  </main>
+  <script type="module" src="static/app.js"></script>
+</body>
+</html>
