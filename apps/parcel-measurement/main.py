@@ -25,6 +25,7 @@ from depthai_nodes.node import (
     SupportPlaneCalibrator,
 )
 
+from benchmarks import BenchmarkWindow
 from domain import CalibrationPhase, CalibrationSession, ParcelTracker
 from geometry import CameraProjection, reference_key, transformed_imu
 from web import BrowserServer, frontend_urls
@@ -274,7 +275,6 @@ def main():
     last_frame = None
     error = None
     stopped = False
-    detector = None
     config_dirty = False
     capture_samples, measurement_samples = deque(maxlen=60), deque(maxlen=30)
     rates = {"source_fps": None, "measurement_fps": None}
@@ -346,10 +346,10 @@ def main():
         if device.getPlatform() != dai.Platform.RVC4:
             device.close()
             raise RuntimeError("This capture profile requires an OAK4.")
-        with device, dai.Pipeline(device) as capture, dai.Pipeline(False) as processing:
-            streams, groups, imus = create_capture(capture, args.fps)
-            calibration_source = capture.create(SceneSource)
-            calibrator = capture.create(SupportPlaneCalibrator).build(
+        with device, dai.Pipeline(device) as pipeline:
+            streams, groups, imus = create_capture(pipeline, args.fps)
+            calibration_source = pipeline.create(SceneSource)
+            calibrator = pipeline.create(SupportPlaneCalibrator).build(
                 streams["pointCloud"],
                 calibration_source.outputs["imu"],
                 DEPTH_SIZE,
@@ -359,23 +359,57 @@ def main():
             calibration_results = calibrator.out.createOutputQueue(
                 maxSize=4, blocking=False
             )
-            source = processing.create(SceneSource)
+            source = pipeline.create(SceneSource)
             outputs = source.outputs
+            detector = pipeline.create(ParcelDetector).build(
+                outputs["cloud"],
+                outputs["color"],
+                outputs["left"],
+                outputs["right"],
+            )
+            configs = detector.inputConfig.createInputQueue()
+            dimensioner = pipeline.create(ParcelDimensioner).build(detector.out)
+            detections = detector.out.createOutputQueue(maxSize=4, blocking=False)
+            measurements = dimensioner.out.createOutputQueue(maxSize=4, blocking=False)
+            benchmark_queues = {}
+            for name, output in (
+                ("ParcelDetector", detector.out),
+                ("ParcelDimensioner", dimensioner.out),
+            ):
+                benchmark = pipeline.create(dai.node.BenchmarkIn)
+                benchmark.setRunOnHost(True)
+                benchmark.sendReportEveryNMessages(1)
+                benchmark.logReportsAsWarnings(False)
+                output.link(benchmark.input)
+                benchmark_queues[name] = benchmark.report.createOutputQueue(
+                    maxSize=256, blocking=False
+                )
             remote.addTopic("RGB", streams["color"])
             remote.addTopic("Depth", streams["depth"])
             remote.addTopic("Parcel overlay", outputs["overlay"])
-            capture.start()
-            remote.registerPipeline(capture)
+            pipeline.start()
+            remote.registerPipeline(pipeline)
             print("Pipeline started.", flush=True)
             print(json.dumps({"capture_profile": profile}), flush=True)
             first = True
             started = time.monotonic()
+            benchmark_windows = {
+                name: BenchmarkWindow(started) for name in benchmark_queues
+            }
             latest_scene = None
-            while (
-                not stopped
-                and capture.isRunning()
-                and (detector is None or processing.isRunning())
-            ):
+            while not stopped and pipeline.isRunning():
+                for name, reports in benchmark_queues.items():
+                    report = reports.tryGet()
+                    while report is not None:
+                        benchmark_windows[name].add_report(
+                            int(report.numMessagesReceived), report.averageLatency
+                        )
+                        report = reports.tryGet()
+                    stats = benchmark_windows[name].report(time.monotonic())
+                    if stats is not None:
+                        print(
+                            json.dumps({"parcel_benchmark": name, **stats}), flush=True
+                        )
                 while not server.commands.empty():
                     action, data = server.commands.get_nowait()
                     try:
@@ -387,27 +421,7 @@ def main():
                             controls.send(SupportPlaneCalibrationControl.start())
                         elif action == "select":
                             session.select(data["generation"], data["index"])
-                            if detector is None:
-                                detector = processing.create(ParcelDetector).build(
-                                    outputs["cloud"],
-                                    outputs["color"],
-                                    outputs["left"],
-                                    outputs["right"],
-                                    session.plane,
-                                )
-                                configs = detector.inputConfig.createInputQueue()
-                                dimensioner = processing.create(
-                                    ParcelDimensioner
-                                ).build(detector.out)
-                                detections = detector.out.createOutputQueue(
-                                    maxSize=4, blocking=False
-                                )
-                                measurements = dimensioner.out.createOutputQueue(
-                                    maxSize=4, blocking=False
-                                )
-                                processing.start()
-                            else:
-                                config_dirty = True
+                            config_dirty = True
                             if args.evidence:
                                 session.plane.toJsonFile(
                                     args.evidence / "support-plane.json"
@@ -460,112 +474,112 @@ def main():
                         flush=True,
                     )
 
-                if detector is not None:
+                batch = detections.tryGet()
+                while batch is not None:
+                    benchmark_windows["ParcelDetector"].record_message(
+                        failed=batch.outcome.value == "failed"
+                    )
+                    pending_detections[batch.getSequenceNum()] = batch
                     batch = detections.tryGet()
-                    while batch is not None:
-                        pending_detections[batch.getSequenceNum()] = batch
-                        batch = detections.tryGet()
-                    if waiting_measurement is None:
-                        waiting_measurement = measurements.tryGet()
-                    if (
-                        waiting_measurement is not None
-                        and waiting_measurement.getSequenceNum() in pending_detections
-                    ):
-                        measured, waiting_measurement = waiting_measurement, None
-                        seq = measured.getSequenceNum()
-                        reference = (
-                            inflight[2]
-                            if inflight is not None and inflight[0] == seq
-                            else frames.get(seq)
+                if waiting_measurement is None:
+                    waiting_measurement = measurements.tryGet()
+                    if waiting_measurement is not None:
+                        benchmark_windows["ParcelDimensioner"].record_message(
+                            failed=waiting_measurement.outcome.value == "failed"
                         )
-                        inflight = None
-                        batch = pending_detections.pop(seq)
-                        measurement_samples.append(time.monotonic())
-                        if len(measurement_samples) > 1:
-                            rates["measurement_fps"] = (
-                                len(measurement_samples) - 1
-                            ) / (measurement_samples[-1] - measurement_samples[0])
-                        if (
-                            reference is not None
-                            and reference.generation == session.generation
-                            and session.phase is CalibrationPhase.READY
-                        ):
-                            parcels = parcel_boxes(batch, reference.projection)
-                            by_candidate = {
-                                item.candidate_id: item for item in measured.items
+                if (
+                    waiting_measurement is not None
+                    and waiting_measurement.getSequenceNum() in pending_detections
+                ):
+                    measured, waiting_measurement = waiting_measurement, None
+                    seq = measured.getSequenceNum()
+                    reference = (
+                        inflight[2]
+                        if inflight is not None and inflight[0] == seq
+                        else frames.get(seq)
+                    )
+                    inflight = None
+                    batch = pending_detections.pop(seq)
+                    measurement_samples.append(time.monotonic())
+                    if len(measurement_samples) > 1:
+                        rates["measurement_fps"] = (len(measurement_samples) - 1) / (
+                            measurement_samples[-1] - measurement_samples[0]
+                        )
+                    if (
+                        reference is not None
+                        and reference.generation == session.generation
+                        and session.phase is CalibrationPhase.READY
+                    ):
+                        parcels = parcel_boxes(batch, reference.projection)
+                        by_candidate = {
+                            item.candidate_id: item for item in measured.items
+                        }
+                        for parcel in parcels:
+                            item = by_candidate.get(parcel["candidate_id"])
+                            parcel["status"] = (
+                                item.status.value
+                                if item is not None
+                                else "measurement_failed"
+                            )
+                            parcel["dimensions_mm"] = (
+                                [
+                                    item.cuboid.length_mm,
+                                    item.cuboid.width_mm,
+                                    item.cuboid.height_mm,
+                                ]
+                                if item is not None and item.cuboid
+                                else None
+                            )
+                        parcels = tracker.update(parcels, time.monotonic())
+                        if measured.outcome is ParcelMeasurements.Outcome.FAILED:
+                            message = f"Frame failed: {measured.failure_code}. No measurement is available."
+                        elif parcels:
+                            complete = sum(p["status"] == "measured" for p in parcels)
+                            message = f"{len(parcels)} parcel{'s' if len(parcels) != 1 else ''} detected · {complete} with complete dimensions."
+                        else:
+                            message = "No eligible parcels in view. Keep each parcel fully visible and separated."
+                        publish_frame(reference, parcels, message)
+                        overlay = annotated_image(reference.image, parcels)
+                        overlay_message = dai.ImgFrame()
+                        overlay_message.setCvFrame(overlay, dai.ImgFrame.Type.BGR888i)
+                        overlay_message.setTransformation(
+                            reference.color.getTransformation()
+                        )
+                        source.submit(
+                            [("overlay", stamp(overlay_message, reference.cloud))]
+                        )
+                        if args.evidence:
+                            cv2.imwrite(str(args.evidence / "rgb.png"), reference.image)
+                            cv2.imwrite(str(args.evidence / "overlay.png"), overlay)
+                            saved_state = state()
+                            saved_state["calibration"] = {
+                                **saved_state["calibration"],
+                                "candidates": [
+                                    {k: v for k, v in c.items() if k != "preview"}
+                                    for c in candidates_ui
+                                ],
                             }
-                            for parcel in parcels:
-                                item = by_candidate.get(parcel["candidate_id"])
-                                parcel["status"] = (
-                                    item.status.value
-                                    if item is not None
-                                    else "measurement_failed"
-                                )
-                                parcel["dimensions_mm"] = (
-                                    [
-                                        item.cuboid.length_mm,
-                                        item.cuboid.width_mm,
-                                        item.cuboid.height_mm,
-                                    ]
-                                    if item is not None and item.cuboid
-                                    else None
-                                )
-                            parcels = tracker.update(parcels, time.monotonic())
-                            if measured.outcome is ParcelMeasurements.Outcome.FAILED:
-                                message = f"Frame failed: {measured.failure_code}. No measurement is available."
-                            elif parcels:
-                                complete = sum(
-                                    p["status"] == "measured" for p in parcels
-                                )
-                                message = f"{len(parcels)} parcel{'s' if len(parcels) != 1 else ''} detected · {complete} with complete dimensions."
-                            else:
-                                message = "No eligible parcels in view. Keep each parcel fully visible and separated."
-                            publish_frame(reference, parcels, message)
-                            overlay = annotated_image(reference.image, parcels)
-                            overlay_message = dai.ImgFrame()
-                            overlay_message.setCvFrame(
-                                overlay, dai.ImgFrame.Type.BGR888i
-                            )
-                            overlay_message.setTransformation(
-                                reference.color.getTransformation()
-                            )
-                            source.submit(
-                                [("overlay", stamp(overlay_message, reference.cloud))]
-                            )
-                            if args.evidence:
-                                cv2.imwrite(
-                                    str(args.evidence / "rgb.png"), reference.image
-                                )
-                                cv2.imwrite(str(args.evidence / "overlay.png"), overlay)
-                                saved_state = state()
-                                saved_state["calibration"] = {
-                                    **saved_state["calibration"],
-                                    "candidates": [
-                                        {k: v for k, v in c.items() if k != "preview"}
-                                        for c in candidates_ui
-                                    ],
-                                }
-                                (args.evidence / "latest.json").write_text(
-                                    json.dumps(
-                                        {
-                                            "state": saved_state,
-                                            "frame": {
-                                                k: v
-                                                for k, v in last_frame.items()
-                                                if k != "jpeg"
-                                            },
-                                            "outcome": measured.outcome.value,
-                                            "failure_code": measured.failure_code,
-                                            "measurement_plane": (
-                                                measured.plane.toJson()
-                                                if measured.plane is not None
-                                                else None
-                                            ),
-                                            "algorithm_id": measured.algorithm_id,
+                            (args.evidence / "latest.json").write_text(
+                                json.dumps(
+                                    {
+                                        "state": saved_state,
+                                        "frame": {
+                                            k: v
+                                            for k, v in last_frame.items()
+                                            if k != "jpeg"
                                         },
-                                        indent=2,
-                                    )
+                                        "outcome": measured.outcome.value,
+                                        "failure_code": measured.failure_code,
+                                        "measurement_plane": (
+                                            measured.plane.toJson()
+                                            if measured.plane is not None
+                                            else None
+                                        ),
+                                        "algorithm_id": measured.algorithm_id,
+                                    },
+                                    indent=2,
                                 )
+                            )
 
                 group = groups.tryGet()
                 if group is not None:
@@ -644,9 +658,7 @@ def main():
                         "Parcel processing did not return a result within 30 seconds."
                     )
                 time.sleep(0.002)
-            if detector is not None:
-                processing.stop()
-            capture.stop()
+            pipeline.stop()
     finally:
         server.stop()
 

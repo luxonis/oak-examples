@@ -26,6 +26,8 @@ Recalibrate after moving the camera or changing the support surface. Unknown hei
 
 The frontend distinguishes the configured capture FPS, the observed source FPS, and measurement throughput. Capture runs at 10 FPS by default. Parcel detection and measurement run on the host CPU, and their rate depends on the host and scene. The app keeps one scene in flight and joins each overlay to its matching RGB frame.
 
+The logs print a `parcel_benchmark` JSON report for `ParcelDetector` and `ParcelDimensioner` every ten seconds. A host `BenchmarkIn` node receives each stage's outputs. FPS counts actual output batches, including failures; `failed_messages` counts the failed batches. `latency_samples` counts the messages sampled by the native benchmark reports. `source_to_output_latency_ms` averages those samples from the source frame timestamp, including capture, queues, and upstream processing. It is not the isolated execution time of that node. Idle windows report zero FPS and no latency.
+
 ## Run as an OAK App
 
 From this directory, run the packaged app on an OAK4.
@@ -58,7 +60,7 @@ NeuralDepth receives the raw mono outputs and performs its internal stereo proce
 
 Raw RGB, mono images, and depth/cloud data synchronize on the shared device clock. Image sequence counters stay independent. The detector reads intrinsics, distortion, and poses directly from native metadata and handles scene synchronization. RGB boxes and plane previews use the full delivered camera model, including lens distortion and the inverse RGB pose.
 
-The calibrator receives an organized cloud. Processed accelerometer specific force is rotated into that cloud's reference using the RGB pose rotation. After selection, the parcel pipeline builds with the actual `SupportPlane`. Later selections use `ParcelDetectorConfig` updates on `inputConfig`; unchanged scenes retain the selected plane.
+All nodes are built before starting one device-backed pipeline. The calibrator receives an organized cloud. Processed accelerometer specific force is rotated into that cloud's reference using the RGB pose rotation. The detector builds without an initial plane and produces no output until configured. The first selection and later selections send `ParcelDetectorConfig(supportPlane=...)` through `inputConfig` before the next admitted parcel scene. The detector retains the selected plane without restarting the pipeline.
 
 Tracking belongs to this app. The node's candidate IDs are frame-local. The app associates centers and box overlap, expires tracks after two seconds, and clears associations after recalibration. IDs can change after occlusion or fast motion.
 

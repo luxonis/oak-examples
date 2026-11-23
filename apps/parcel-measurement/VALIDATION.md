@@ -1,8 +1,28 @@
 # Parcel measurement validation
 
-## Current API update, 2026-11-23
+## Single-pipeline API update, 2026-11-23
 
-The example is pinned to depthai-nodes PR 348 revision `6f6cad59a5e1169f56d2c2b74da7aed5ca6f1b60`. Its parcel API and algorithm code are identical to revision `168701d7a4472dfb880adcf6d06b52f7c3a5c6bd`, used for the live checks. The later revision adds an algorithm visualization HTML file.
+The example now pins depthai-nodes PR 348 revision `f000977fbcf9238b1441277d2d0202e30d758ab0`. One device-backed pipeline creates all camera, calibration, detector, and dimensioner nodes and their queues before starting. The detector builds without an initial plane. The first selected plane and later selections arrive through `ParcelDetectorConfig` on `inputConfig`, immediately before the next admitted scene.
+
+A native synthetic check using the app's `SceneSource` fed a scene before calibration and observed no detection or measurement output. Sending the first plane activated measurements. A later config changed the measurement plane in the same running graph. Independent image counters and native timestamps were retained.
+
+The packaged app built and ran on the connected OAK4. Before selection, its frontend returned live 2000 × 1500 RGB, an idle calibration state, and no parcel results. Two calibration attempts produced floor candidates whose previews were opened and checked. Selecting each floor candidate returned successful measured parcel batches with tracking IDs and dimensions. Each measurement plane matched the corresponding selected plane after sign normalization. The run logged one pipeline start; calibration and selection did not recreate nodes or restart capture. The generated RGB overlay was opened and checked.
+
+All thirteen behavior, geometry, and benchmark-window tests, Python compilation, agent-document validation, the index check, and diff checks pass. An independent review found no actionable defects in config ordering or frame/generation association.
+
+The hardware test used a temporary copy bound to loopback with evidence saving enabled. Its Python sources matched the example. Test output and images are under ignored `evidence/single-pipeline/`, including `native-config-check.json` and `live-config-check.json`. The test app was stopped afterward. Physical dimension accuracy, holistic replay, and standalone LAN frontend access were not validated by this run.
+
+## Ten-second benchmark logs, 2026-11-23
+
+Two host `BenchmarkIn` nodes receive the detector and dimensioner outputs in the same pipeline. The app collects native latency reports and prints a separate `parcel_benchmark` JSON summary for each stage every ten seconds. Output batch counts, failed batches, output FPS, latency sample counts, and mean source-to-output latency are logged. The latency includes capture, queues, and upstream processing; it does not isolate the execution time of either node.
+
+DepthAI 3.12.2 emits a benchmark report on the input after the configured sample count. A native check with `sendReportEveryNMessages(1)` observed one report after two outputs, reporting one latency sample. Throughput therefore counts actual stage outputs rather than summing native report counts. Native reports supply only the sampled latency. The SDK behavior was reported to Luxonis.
+
+The benchmark-enabled packaged app was tested on the OAK4 with loopback access. Before calibration, both stage logs reported zero output FPS and no latency. After selecting the floor, both stages returned successful parcel results and emitted active ten-second summaries with nonzero output and latency sample counts. These checks establish instrumentation behavior in one live run, not a comparison of algorithm speed or a measurement accuracy claim. Four deterministic tests cover timed reporting, weighted latency, independent output counts, failure counts, idle windows, and reset behavior.
+
+## Earlier API update, 2026-11-23
+
+The previous example pinned depthai-nodes PR 348 revision `6f6cad59a5e1169f56d2c2b74da7aed5ca6f1b60`. Its parcel API and algorithm code are identical to revision `168701d7a4472dfb880adcf6d06b52f7c3a5c6bd`, used for these earlier live checks. The later revision adds an algorithm visualization HTML file.
 
 The connected OAK4-D R9 was tested with DepthAI 3.12.2, Python 3.12, Open3D 0.20.0, and the parcel extra's pinned numerical dependencies.
 

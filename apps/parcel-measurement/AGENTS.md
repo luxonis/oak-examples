@@ -23,6 +23,7 @@ OAK4 parcel measurement with public depthai-nodes parcel detection, dimensioning
 - `Domain state:` [domain.py](domain.py)
 - `Frontend:` [frontend/index.html](frontend/index.html), [frontend/app.js](frontend/app.js)
 - `Server:` [web.py](web.py), HTTP port 8082 and WebSocket `/ws`; wildcard startup lists device LAN IPv4 URLs using `hostname -I`
+- `Performance:` [benchmarks.py](benchmarks.py), ten-second log windows for host `BenchmarkIn` sinks after the detector and dimensioner
 - `Mode:` host plus OAK4 standalone packaging in [oakapp.toml](oakapp.toml)
 - `Requires:` OAK4 RGB, stereo, processed accelerometer reports, and Python 3.12 host environment
 - `Capture:` 10 FPS by default; unrectified RGB 2000 × 1500 NV12 and left/right 1280 × 800 GRAY8
@@ -42,9 +43,9 @@ OAK4 parcel measurement with public depthai-nodes parcel detection, dimensioning
 
 Camera outputs use the evaluated unrectified image grids. Their native metadata includes delivered intrinsics, lens distortion, and poses in a shared reference frame. NeuralDepth performs its internal stereo processing and emits 768 × 480 depth. A native DEFAULT PointCloud node produces organized XYZ in the common calibration reference frame. Do not apply the cloud's source optical pose to those points again.
 
-The device-backed capture pipeline contains `SupportPlaneCalibrator`. Its organized cloud is the native PointCloud output. Processed accelerometer specific force is rotated from RGB optical axes into the common reference using the RGB metadata pose. The calibrator receives upward specific force without negation.
+One device-backed pipeline contains all capture, calibration, and parcel nodes. Every node and queue is built before the pipeline starts. `SupportPlaneCalibrator` receives the capture streams. Its organized cloud is the native PointCloud output. Processed accelerometer specific force is rotated from RGB optical axes into the common reference using the RGB metadata pose. The calibrator receives upward specific force without negation.
 
-The host-only parcel pipeline starts after the operator selects an actual support plane. `ParcelDetector.build(pointCloud, color, left, right, supportPlane)` initializes it. Later selections send `ParcelDetectorConfig(supportPlane=...)` through `inputConfig` immediately before the next admitted scene. The node retains that configuration, so no per-frame plane message is needed. Config updates are queued only when a scene is admitted, preventing unconsumed obsolete selections.
+The detector is built upfront with `ParcelDetector.build(pointCloud, color, left, right)` and no initial support plane. Without a plane it consumes scenes without processing or output. The app admits parcel scenes only after selection. The first selection and later selections send `ParcelDetectorConfig(supportPlane=...)` through `inputConfig` immediately before the next admitted scene. The node retains that configuration, so no per-frame plane message is needed. Config updates are queued only when a scene is admitted, preventing unconsumed obsolete selections. Calibration and re-selection never rebuild nodes or restart the pipeline.
 
 Parcel scenes preserve native image sequence counters and device timestamps. The detector's native host Sync handles independent counters. A finite cloud copy keeps the native cloud metadata and sequence. One in-flight scene retains its RGB and joins detection and measurement results by cloud sequence. Tracking adds temporary IDs to frame-local parcel candidates.
 
@@ -60,6 +61,7 @@ Common-reference points project through the inverse RGB pose, delivered intrinsi
 - The calibration cloud stays organized to 768 × 480. Detector input contains only finite, nonzero XYZ and retains the original cloud metadata.
 - Keep raw RGB and mono inputs unrectified. Do not substitute NeuralDepth's rectified views or resize detector images.
 - Capture defaults to 10 FPS. Processing throughput depends on the host and scene. `/api/state` and the frontend distinguish configured capture rate, observed source rate, and measurement throughput.
+- Keep both `BenchmarkIn` sinks on the host because parcel outputs have no device serialization. Their reports supply sampled latency for ten-second wall-clock summaries. Count messages and failures from actual stage outputs, independently of native report cadence; expose `latency_samples` separately. `source_to_output_latency_ms` is cumulative timestamp age, not isolated per-node execution time.
 - Keep the camera fixed after plane selection. Recalibrate whenever the camera or support surface moves.
 - Calibration attempts cannot overlap. Candidate selection carries a generation to reject stale clicks.
 - Candidate IDs are frame-local. Never display them directly as temporal tracking IDs.
