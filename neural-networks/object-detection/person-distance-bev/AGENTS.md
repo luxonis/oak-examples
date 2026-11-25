@@ -50,6 +50,7 @@ Visualize camera-relative person positions in a bird's-eye view and measure pair
 ## Constraints
 
 - The example requires a color camera, a supported depth backend, and calibration for spatial coordinates.
+- On RVC2, the SCRFD archive is compiled for 7 SHAVEs so it fits alongside depth and image processing.
 - The example does not implement a distance threshold or alert.
 - The X/Z view is not floor-aligned; camera tilt changes its meaning. The displayed labels are 3D X/Y/Z distances, not distances measured on the 2D plot.
 - The view displays X within ±7.5 m and Z within 0–15 m. Invalid spatial coordinates are excluded from both views.

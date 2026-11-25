@@ -52,6 +52,8 @@ with dai.Pipeline(device) as pipeline:
         input=rgb,
         nnSource=det_model_nn_archive,
     )
+    if platform == "RVC2":
+        nn_parser.setNNArchive(det_model_nn_archive, numShaves=7)
 
     # produce spatial detections
     depth_merger = pipeline.create(DepthMerger).build(
