@@ -35,16 +35,15 @@ This is the repository reference for hand pose plus gesture recognition. Use it 
 
 - [README.md](README.md)
 - [main.py](main.py)
-- [utils/process.py](utils/process.py)
 - [utils/gesture_recognition.py](utils/gesture_recognition.py)
 - [utils/annotation_node.py](utils/annotation_node.py)
 
 ## Architecture
 
 - Palm detection runs first on the full frame.
-- [utils/process.py](utils/process.py) turns detections into crop configs for the hand landmark model.
-- `FrameCropper` extracts hand crops, and a second `ParsingNeuralNetwork` predicts landmarks.
-- `GatherData` and [utils/annotation_node.py](utils/annotation_node.py) merge landmarks back to the source stream, while the gesture logic derives labels from the keypoints.
+- `FrameCropper.fromImgDetections` builds on-device `Sync`, `Script`, and `ImageManip` subnodes to match each palm to its frame and extract a padded, rotation-aligned crop.
+- A second `ParsingNeuralNetwork` predicts landmarks from each upright hand crop.
+- Host-side `GatherData` collects the landmark results for each palm. [utils/annotation_node.py](utils/annotation_node.py) maps crop keypoints into palm-detection coordinates using transformation metadata, then emits overlays with the source frame timestamp. Gesture recognition uses the upright crop coordinates.
 
 ## Constraints
 

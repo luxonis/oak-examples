@@ -5,7 +5,7 @@ from depthai_nodes.node import ParsingNeuralNetwork, GatherData, FrameCropper
 
 from utils.arguments import initialize_argparser
 from utils.annotation_node import AnnotationNode
-from utils.process import ProcessDetections
+
 
 _, args = initialize_argparser()
 
@@ -72,24 +72,18 @@ with dai.Pipeline(device) as pipeline:
         resize_node.out, det_nn_archive
     )
 
-    # detection processing
-    detections_processor = pipeline.create(ProcessDetections).build(
-        detections_input=detection_nn.out,
-        padding=PADDING,
-        target_size=(pose_nn_archive.getInputWidth(), pose_nn_archive.getInputHeight()),
-    )
-
-    # hand crop + pose estimation
+    # Match each palm to its frame and rotate the crop upright on device.
     crop_output_size = (
         pose_nn_archive.getInputWidth(),
         pose_nn_archive.getInputHeight(),
     )
     hand_crop_node = (
         pipeline.create(FrameCropper)
-        .fromManipConfigs(
-            inputManipConfigs=detections_processor.config_output,
-            maxOutputFrameSize=crop_output_size[0] * crop_output_size[1] * 3,
-            waitForConfig=True,
+        .fromImgDetections(
+            inputImgDetections=detection_nn.out,
+            outputSize=crop_output_size,
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+            padding=PADDING,
         )
         .build(detection_nn.passthrough)
     )
@@ -105,6 +99,20 @@ with dai.Pipeline(device) as pipeline:
         inputReference=detection_nn.out,
     )
 
+    # annotation
+    connection_pairs = (
+        pose_nn_archive.getConfig()
+        .model.heads[0]
+        .metadata.extraParams["skeleton_edges"]
+    )
+
+    annotation_node = pipeline.create(AnnotationNode).build(
+        gathered_data=gather_data.out,
+        padding_factor=PADDING,
+        confidence_threshold=CONFIDENCE_THRESHOLD,
+        connections_pairs=connection_pairs,
+    )
+
     # video encoding
     video_encode_manip = pipeline.create(dai.node.ImageManip)
     video_encode_manip.setMaxOutputFrameSize(768 * 768 * 3)
@@ -118,19 +126,6 @@ with dai.Pipeline(device) as pipeline:
         args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
     )
     video_encode_manip.out.link(video_encoder.input)
-
-    # annotation
-    connection_pairs = (
-        pose_nn_archive.getConfig()
-        .model.heads[0]
-        .metadata.extraParams["skeleton_edges"]
-    )
-    annotation_node = pipeline.create(AnnotationNode).build(
-        gathered_data=gather_data.out,
-        video=video_encode_manip.out,
-        confidence_threshold=CONFIDENCE_THRESHOLD,
-        connections_pairs=connection_pairs,
-    )
 
     # visualization
     visualizer.addTopic("Video", video_encoder.out, "images")
