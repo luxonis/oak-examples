@@ -1,9 +1,12 @@
 """Run YOLOv6 Nano on every device of a single multi-device pipeline."""
 
+import logging
 import depthai as dai
 
 from utils.arguments import initialize_argparser
 from utils.utility import run_multi_device_pipeline, select_devices
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 MODEL = "luxonis/yolov6-nano:r2-coco-512x288"
 

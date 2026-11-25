@@ -1,5 +1,6 @@
 """Fuse spatial detections from several calibrated OAK devices into one bird's-eye view."""
 
+import logging
 from datetime import timedelta
 
 import depthai as dai
@@ -9,12 +10,15 @@ from utils.arguments import initialize_argparser
 from utils.birds_eye_view import BirdsEyeView
 from utils.fusion import FusionManager
 
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
+
 
 def main():
     _, args = initialize_argparser()
 
     if not args.calibration.exists():
-        print(
+        logger.error(
             f"Calibration file {args.calibration} not found. "
             "Run the multi-device-calibration example first or pass --calibration."
         )
@@ -26,7 +30,7 @@ def main():
     calibrated_ids |= {edge.extrinsics.toDeviceId for edge in graph}
     identifiers = args.devices or sorted(calibrated_ids)
     if len(identifiers) < 2:
-        print("At least two calibrated devices are required.")
+        logger.error("At least two calibrated devices are required.")
         return
 
     # One pipeline spans all devices; every node is created on the device it runs on.
@@ -49,8 +53,10 @@ def main():
                 raise RuntimeError(
                     f"Device {device_id} is not part of the calibration {args.calibration}"
                 )
-            print(f"=== Connected to device: {device_id}")
-            print(f"    >>> Cameras: {[c.name for c in device.getConnectedCameras()]}")
+            logger.info(f"=== Connected to device: {device_id}")
+            logger.info(
+                f"    >>> Cameras: {[c.name for c in device.getConnectedCameras()]}"
+            )
 
             platform = device.getPlatformAsString()
             model_description = dai.NNModelDescription(
@@ -100,13 +106,13 @@ def main():
 
         pipeline.start()
         visualizer.registerPipeline(pipeline)
-        print(f"Pipeline started with {len(device_ids)} devices.")
+        logger.info(f"Pipeline started with {len(device_ids)} devices.")
 
         while pipeline.isRunning():
             pipeline.processTasks()
             key = visualizer.waitKey(1)
             if key == ord("q"):
-                print("Got 'q' key from the remote connection! Shutting down.")
+                logger.info("Got 'q' key from the remote connection! Shutting down.")
                 break
 
 

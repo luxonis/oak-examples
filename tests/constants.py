@@ -107,7 +107,7 @@ KNOWN_FAILING = {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },
-    "tutorials/multiple-devices/multiple-devices-preview": {
+    "tutorials/multiple-devices/multi-device-preview": {
         "reason": "Discovery skips IP-only devices by default; RVC4 needs --include-ip or --devices.",
         "rules": {"and": [{"platform": ["rvc4"]}]},
     },
@@ -115,7 +115,7 @@ KNOWN_FAILING = {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },
-    "tutorials/multiple-devices/multiple-device-stitch-nn": {
+    "tutorials/multiple-devices/multi-device-stitch-nn": {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },

@@ -1,8 +1,11 @@
+import logging
 from datetime import timedelta
 from pathlib import Path
 from typing import List, Optional
 
 import depthai as dai
+
+logger = logging.getLogger(__name__)
 
 STEREO_SOCKETS = (dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C)
 CALIBRATION_FPS = 5
@@ -27,7 +30,9 @@ def select_devices(
             info for info in infos if info.protocol != dai.XLinkProtocol.X_LINK_TCP_IP
         ]
     if max_devices is not None and len(infos) > max_devices:
-        print(f"Using the first {max_devices} of {len(infos)} discovered devices.")
+        logger.info(
+            f"Using the first {max_devices} of {len(infos)} discovered devices."
+        )
         infos = infos[:max_devices]
     return infos
 
@@ -61,7 +66,9 @@ def calibrate(
                 raise RuntimeError(
                     f"Device {device_id} needs CAM_A or CAM_B/CAM_C; connected: {connected}"
                 )
-            print(f"Calibrating {device_id} with {', '.join(s.name for s in sockets)}")
+            logger.info(
+                f"Calibrating {device_id} with {', '.join(s.name for s in sockets)}"
+            )
             for socket in sockets:
                 camera = pipeline.create(dai.node.Camera, device).build(
                     socket, sensorFps=CALIBRATION_FPS
@@ -90,7 +97,7 @@ def calibrate(
         control_queue = calibration.inputControl.createInputQueue()
         result_queue = calibration.calibrationOutput.createOutputQueue()
         pipeline.start()
-        print(
+        logger.info(
             f"Collecting {sample_count} synchronized samples. "
             "Point the cameras at a shared textured scene and keep them still."
         )
@@ -103,8 +110,8 @@ def calibrate(
         raise RuntimeError(f"Calibration failed: {result.info}")
     if not result.getHandler().toJsonFile(output):
         raise RuntimeError(f"Failed to save calibration to {output}")
-    print(f"Calibration saved to {output}")
-    print(
+    logger.info(f"Calibration saved to {output}")
+    logger.info(
         f"Confidence: {result.dataConfidence:.3f}, Sampson error: {result.sampsonError:.4g}"
     )
 
@@ -118,7 +125,9 @@ def load_or_calibrate(
             device_infos, args.calibration, args.sample_count, args.known_distance
         )
     else:
-        print(f"Using calibration {args.calibration}; pass --calibrate to redo it")
+        logger.info(
+            f"Using calibration {args.calibration}; pass --calibrate to redo it"
+        )
     return dai.beta.MultiDeviceCalibrationHandler(args.calibration)
 
 

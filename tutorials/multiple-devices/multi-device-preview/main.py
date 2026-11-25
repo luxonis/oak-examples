@@ -1,9 +1,12 @@
 """Preview the color camera of every device from a single multi-device pipeline."""
 
+import logging
 import depthai as dai
 
 from utils.arguments import initialize_argparser
 from utils.utility import run_multi_device_pipeline, select_devices
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 def setup_preview(

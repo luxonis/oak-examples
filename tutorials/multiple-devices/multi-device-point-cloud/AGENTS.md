@@ -56,7 +56,7 @@ This is the repository reference for merging the depth of multiple calibrated OA
 ## Related Examples
 
 - [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): use this when you only need the calibration file
-- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): calibrated panorama of all devices with merged detections
+- [tutorials/multiple-devices/multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn): calibrated panorama of all devices with merged detections
 - [tutorials/multiple-devices/multi-device-birds-eye-view](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-birds-eye-view): top-down ground view of all devices
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): fused 3D detections from calibrated devices
 

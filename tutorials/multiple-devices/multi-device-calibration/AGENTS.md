@@ -56,8 +56,8 @@ This is the repository reference for calibrating the relative poses of multiple 
 ## Related Examples
 
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this after calibration when you need fused 3D detections
-- [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you only need the multi-device pipeline without calibration
-- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when multiple devices should be stitched into one panorama
+- [tutorials/multiple-devices/multi-device-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-preview): use this when you only need the multi-device pipeline without calibration
+- [tutorials/multiple-devices/multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn): use this when multiple devices should be stitched into one panorama
 - [tutorials/multiple-devices/multi-device-point-cloud](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-point-cloud): merged 3D point cloud of calibrated devices
 - [tutorials/multiple-devices/multi-device-birds-eye-view](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-birds-eye-view): top-down ground view of calibrated devices
 

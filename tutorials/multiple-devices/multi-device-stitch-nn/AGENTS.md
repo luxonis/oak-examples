@@ -18,7 +18,7 @@ Calibrate OAK devices with the `MultiDeviceCalibration` node, run YOLO on each d
 
 ## Quick Facts
 
-- `Category:` `tutorials/multiple-devices/multiple-device-stitch-nn`
+- `Category:` `tutorials/multiple-devices/multi-device-stitch-nn`
 - `Shape:` `multi-device-host`
 - `Primary task:` calibrate devices, detect on each camera, stitch a calibrated panorama and merge the detections into it
 - `Entrypoint:` [main.py](main.py)
@@ -65,7 +65,7 @@ Calibrate OAK devices with the `MultiDeviceCalibration` node, run YOLO on each d
 
 ## Related Examples
 
-- [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you need per-device outputs without stitching
+- [tutorials/multiple-devices/multi-device-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-preview): use this when you need per-device outputs without stitching
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when you need world-frame fused detections instead of a panorama image
 - [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): use this when you only need the multi-device calibration file, for example for spatial fusion
 

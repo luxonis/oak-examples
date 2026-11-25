@@ -1,6 +1,7 @@
 """Calibrate several OAK devices, find the ground plane with the AutoSupportPlane node
 and project all cameras onto that plane with the Stitching node (bird's-eye view)."""
 
+import logging
 from datetime import timedelta
 
 import depthai as dai
@@ -13,6 +14,9 @@ from depthai_nodes.node import (
 
 from utils.arguments import initialize_argparser
 from utils.calibration import check_calibrated, load_or_calibrate, select_devices
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 HTTP_PORT = 8082
 DEPTH_SIZE = (640, 400)
@@ -74,7 +78,7 @@ def estimate_ground_plane(device_infos, origin_id, origin_socket, fps):
         )
         results = support_plane.out.createOutputQueue()
         pipeline.start()
-        print("Searching for the ground plane...")
+        logger.info("Searching for the ground plane...")
         result = results.get(timedelta(seconds=60))
 
     if result is None:
@@ -88,7 +92,7 @@ def estimate_ground_plane(device_infos, origin_id, origin_socket, fps):
     down = np.asarray(result.plane.normal)
     height = -result.plane.offset_mm / 1000
     up = -down
-    print(
+    logger.info(
         f"Ground plane: origin camera {height:.2f} m above it, "
         f"normal [{up[0]:.2f}, {up[1]:.2f}, {up[2]:.2f}]"
     )
@@ -100,7 +104,7 @@ def main():
     _, args = initialize_argparser()
     device_infos = select_devices(args.devices, args.include_ip, args.max_devices)
     if len(device_infos) < 2:
-        print("At least two devices are required for this example.")
+        logger.error("At least two devices are required for this example.")
         return
 
     calibration = load_or_calibrate(args, device_infos)
@@ -120,7 +124,7 @@ def main():
             device = pipeline.addDevice(info)
             device_id = device.getDeviceId()
             check_calibrated(calibration, device_id)
-            print(f"=== Connected to device: {device_id}")
+            logger.info(f"=== Connected to device: {device_id}")
 
             # The projection needs an undistorted frame at the sensor's native size:
             # on depthai 3.12 a resized output makes the node reject most of the image.
@@ -157,13 +161,13 @@ def main():
 
         pipeline.start()
         visualizer.registerPipeline(pipeline)
-        print(f"Pipeline started with {len(device_infos)} devices.")
+        logger.info(f"Pipeline started with {len(device_infos)} devices.")
 
         while pipeline.isRunning():
             pipeline.processTasks()
             key = visualizer.waitKey(1)
             if key == ord("q"):
-                print("Got 'q' key from the remote connection! Shutting down.")
+                logger.info("Got 'q' key from the remote connection! Shutting down.")
                 break
 
 

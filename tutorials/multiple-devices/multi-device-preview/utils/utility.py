@@ -1,6 +1,9 @@
+import logging
 from typing import Callable, List, Optional
 
 import depthai as dai
+
+logger = logging.getLogger(__name__)
 
 HTTP_PORT = 8082
 
@@ -24,7 +27,9 @@ def select_devices(
             info for info in infos if info.protocol != dai.XLinkProtocol.X_LINK_TCP_IP
         ]
     if max_devices is not None and len(infos) > max_devices:
-        print(f"Using the first {max_devices} of {len(infos)} discovered devices.")
+        logger.info(
+            f"Using the first {max_devices} of {len(infos)} discovered devices."
+        )
         infos = infos[:max_devices]
     return infos
 
@@ -38,9 +43,9 @@ def run_multi_device_pipeline(
     setup_device creates the nodes of a single device; it is called once per device.
     """
     if not device_infos:
-        print("No DepthAI devices found.")
+        logger.error("No DepthAI devices found.")
         return
-    print(f"Found {len(device_infos)} DepthAI devices to configure.")
+    logger.info(f"Found {len(device_infos)} DepthAI devices to configure.")
 
     # No implicit device: devices are added explicitly and nodes are created on them.
     with dai.Pipeline(createImplicitDevice=False) as pipeline:
@@ -48,18 +53,20 @@ def run_multi_device_pipeline(
 
         for info in device_infos:
             device = pipeline.addDevice(info)
-            print(f"=== Connected to device: {device.getDeviceId()}")
-            print(f"    >>> Cameras: {[c.name for c in device.getConnectedCameras()]}")
-            print(f"    >>> USB speed: {device.getUsbSpeed().name}")
+            logger.info(f"=== Connected to device: {device.getDeviceId()}")
+            logger.info(
+                f"    >>> Cameras: {[c.name for c in device.getConnectedCameras()]}"
+            )
+            logger.info(f"    >>> USB speed: {device.getUsbSpeed().name}")
             setup_device(pipeline, device, visualizer)
 
         pipeline.start()
         visualizer.registerPipeline(pipeline)
-        print(f"Pipeline started with {len(device_infos)} device(s).")
+        logger.info(f"Pipeline started with {len(device_infos)} device(s).")
 
         while pipeline.isRunning():
             pipeline.processTasks()
             key = visualizer.waitKey(1)
             if key == ord("q"):
-                print("Got 'q' key from the remote connection! Shutting down.")
+                logger.info("Got 'q' key from the remote connection! Shutting down.")
                 break

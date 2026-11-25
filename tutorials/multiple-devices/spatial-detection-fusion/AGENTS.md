@@ -13,7 +13,7 @@ This is the repository reference for fusing spatial detections from multiple cal
 ## Do Not Use This Example When
 
 - You do not have a multi-device calibration file yet.
-- You need image stitching instead of 3D fusion; use the DepthAI `Stitching` node as in [multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn).
+- You need image stitching instead of 3D fusion; use the DepthAI `Stitching` node as in [multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn).
 - You need a standalone packaged deployment.
 
 ## Quick Facts
@@ -58,8 +58,8 @@ This is the repository reference for fusing spatial detections from multiple cal
 ## Related Examples
 
 - [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): run this first to create the required calibration file
-- [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you only need independent streams per device
-- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when you need a 2D panorama from the DepthAI `Stitching` node instead of 3D fusion
+- [tutorials/multiple-devices/multi-device-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-preview): use this when you only need independent streams per device
+- [tutorials/multiple-devices/multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn): use this when you need a 2D panorama from the DepthAI `Stitching` node instead of 3D fusion
 - [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the single-device spatial-detection baseline
 - [tutorials/multiple-devices/multi-device-point-cloud](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-point-cloud): merged 3D point cloud of calibrated devices
 - [tutorials/multiple-devices/multi-device-birds-eye-view](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-birds-eye-view): top-down ground view of calibrated devices

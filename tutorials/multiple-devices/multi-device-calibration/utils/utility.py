@@ -1,6 +1,9 @@
+import logging
 from typing import List, Optional
 
 import depthai as dai
+
+logger = logging.getLogger(__name__)
 
 
 def select_devices(
@@ -22,6 +25,8 @@ def select_devices(
             info for info in infos if info.protocol != dai.XLinkProtocol.X_LINK_TCP_IP
         ]
     if max_devices is not None and len(infos) > max_devices:
-        print(f"Using the first {max_devices} of {len(infos)} discovered devices.")
+        logger.info(
+            f"Using the first {max_devices} of {len(infos)} discovered devices."
+        )
         infos = infos[:max_devices]
     return infos

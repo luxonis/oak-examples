@@ -14,11 +14,11 @@ This is the repository reference for the simplest multi-device pipeline patterns
 
 - You need cross-device calibration or 3D fusion.
 - You need a packaged standalone app.
-- You need stitched imagery across devices rather than independent streams per device; use the DepthAI `Stitching` node as in [multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn).
+- You need stitched imagery across devices rather than independent streams per device; use the DepthAI `Stitching` node as in [multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn).
 
 ## Quick Facts
 
-- `Category:` `tutorials/multiple-devices/multiple-devices-preview`
+- `Category:` `tutorials/multiple-devices/multi-device-preview`
 - `Shape:` `multi-entrypoint+multi-device-host`
 - `Primary task:` run one pipeline across multiple devices with a simple per-device branch
 - `Entrypoints:` [main.py](main.py), [multi-device-yolov6.py](multi-device-yolov6.py), and [multi-device-encoding.py](multi-device-encoding.py)
@@ -60,7 +60,7 @@ This is the repository reference for the simplest multi-device pipeline patterns
 
 - [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): use this when the next step is cross-device calibration
 - [tutorials/multiple-devices/spatial-detection-fusion](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/spatial-detection-fusion): use this when multiple devices should collaborate in 3D space
-- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when multiple devices should be stitched into one panorama with the DepthAI `Stitching` node
+- [tutorials/multiple-devices/multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn): use this when multiple devices should be stitched into one panorama with the DepthAI `Stitching` node
 - [tutorials/multiple-devices/multi-device-point-cloud](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-point-cloud): merged 3D point cloud of calibrated devices
 - [tutorials/multiple-devices/multi-device-birds-eye-view](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-birds-eye-view): top-down ground view of calibrated devices
 

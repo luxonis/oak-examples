@@ -1,11 +1,15 @@
 """Calibrate the relative poses of several OAK devices with the MultiDeviceCalibration node."""
 
+import logging
 from datetime import timedelta
 
 import depthai as dai
 
 from utils.arguments import initialize_argparser
 from utils.utility import select_devices
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 HTTP_PORT = 8082
 PREVIEW_SIZE = (640, 400)
@@ -15,17 +19,19 @@ STEREO_SOCKETS = (dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C)
 
 def report(result: dai.beta.MultiDeviceCalibrationResult, output) -> None:
     if not result.passed or result.graph is None:
-        print(f"Calibration failed: {result.info}")
-        print("Aim the cameras at a shared textured scene and press 'c' to retry.")
+        logger.warning(f"Calibration failed: {result.info}")
+        logger.info(
+            "Aim the cameras at a shared textured scene and press 'c' to retry."
+        )
         return
 
     handler = result.getHandler()
     if not handler.toJsonFile(output):
-        print(f"Failed to save the calibration to {output}")
+        logger.error(f"Failed to save the calibration to {output}")
         return
 
-    print(f"Calibration saved to {output}")
-    print(
+    logger.info(f"Calibration saved to {output}")
+    logger.info(
         f"Confidence: {result.dataConfidence:.3f}, Sampson error: {result.sampsonError:.4g}"
     )
     # Every device is expressed in the coordinate system of one automatically selected origin device.
@@ -35,11 +41,11 @@ def report(result: dai.beta.MultiDeviceCalibrationResult, output) -> None:
         socket = handler.getDeviceSocket(device_id)
         to_origin = handler.getExtrinsicsToOrigin(device_id, socket)
         x, y, z = (100 * value for value in _translation(to_origin))
-        print(
+        logger.info(
             f"  {device_id} {socket.name} -> origin {to_origin.toDeviceId}: "
             f"x={x:.1f} cm, y={y:.1f} cm, z={z:.1f} cm"
         )
-    print("Press 'c' to calibrate again or 'q' to quit.")
+    logger.info("Press 'c' to calibrate again or 'q' to quit.")
 
 
 def _translation(extrinsics: dai.Extrinsics):
@@ -51,7 +57,7 @@ def main():
     _, args = initialize_argparser()
     device_infos = select_devices(args.devices, args.include_ip, args.max_devices)
     if len(device_infos) < 2:
-        print("At least two devices are required for multi-device calibration.")
+        logger.error("At least two devices are required for multi-device calibration.")
         return
 
     # One pipeline spans all devices; every node is created on the device it runs on.
@@ -79,7 +85,7 @@ def main():
                 raise RuntimeError(
                     f"Device {device_id} needs CAM_A or CAM_B/CAM_C; connected: {connected}"
                 )
-            print(
+            logger.info(
                 f"=== Device {device_id}: calibrating with {', '.join(s.name for s in sockets)}"
             )
 
@@ -118,7 +124,7 @@ def main():
 
         pipeline.start()
         visualizer.registerPipeline(pipeline)
-        print(
+        logger.info(
             f"Open http://localhost:{HTTP_PORT}, aim all cameras at a shared textured scene "
             "and keep them still. Press 'c' to calibrate, 'q' to quit."
         )
@@ -131,10 +137,10 @@ def main():
 
             key = visualizer.waitKey(1)
             if key == ord("q"):
-                print("Got 'q' key from the remote connection! Shutting down.")
+                logger.info("Got 'q' key from the remote connection! Shutting down.")
                 break
             if key == ord("c"):
-                print(f"Collecting {args.sample_count} synchronized samples...")
+                logger.info(f"Collecting {args.sample_count} synchronized samples...")
                 control_queue.send(dai.beta.MultiDeviceCalibrationControl.start())
 
 
