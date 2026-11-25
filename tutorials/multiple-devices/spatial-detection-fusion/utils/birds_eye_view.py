@@ -1,15 +1,17 @@
-import depthai as dai
-from depthai_nodes.utils import AnnotationHelper
-import numpy as np
 import collections
-from typing import Dict, List, Any
+from typing import List
+
+import depthai as dai
+import numpy as np
+from depthai_nodes.utils import AnnotationHelper
 
 from . import config
-from .detection_object import WorldDetection
-from .fusion import DetectionGroupBuffer
+from .fusion import DetectionGroupBuffer, FusedDetection
 
 
 class BirdsEyeView(dai.node.HostNode):
+    """Top-down view of the reference camera's coordinate system: X to the right, Z (forward) up."""
+
     ANNOT_COLORS = {
         "white": (1.0, 1.0, 1.0, 1.0),
         "red": (1.0, 0.0, 0.0, 1.0),
@@ -19,7 +21,6 @@ class BirdsEyeView(dai.node.HostNode):
 
     def __init__(self):
         super().__init__()
-        self.all_cam_extrinsics = {}
         self.canvas = self.createOutput(
             possibleDatatypes=[
                 dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
@@ -41,19 +42,13 @@ class BirdsEyeView(dai.node.HostNode):
             ]
         )
 
-    def build(
-        self, all_cam_extrinsics: Dict[str, Dict[str, Any]], detections: dai.Node.Output
-    ) -> "BirdsEyeView":
-        self.all_cam_extrinsics = all_cam_extrinsics
+    def build(self, detections: dai.Node.Output) -> "BirdsEyeView":
         self.width, self.height, self.scale = (
             config.BEV_WIDTH,
             config.BEV_HEIGHT,
             config.BEV_SCALE,
         )
         self.history = collections.deque(maxlen=config.TRAIL_LENGTH)
-        self.world_to_bev_transform = np.array(
-            [[self.scale, 0, 0, self.width / 2], [0, self.scale, 0, self.height / 2]]
-        )
 
         self.camera_colors = [
             (1.0, 0.0, 1.0, 1.0),  # Magenta
@@ -67,16 +62,13 @@ class BirdsEyeView(dai.node.HostNode):
 
     def process(self, detections_buffer: dai.Buffer):
         assert isinstance(detections_buffer, DetectionGroupBuffer)
-        groups: List[List[WorldDetection]] = detections_buffer.groups
+        groups: List[List[FusedDetection]] = detections_buffer.groups
         if config.BEV_LABELS:
+            labels = [label.lower() for label in config.BEV_LABELS]
             filtered_groups = [
                 filtered_grp
                 for grp in groups
-                if (
-                    filtered_grp := [
-                        det for det in grp if det.label.lower() in config.BEV_LABELS
-                    ]
-                )
+                if (filtered_grp := [det for det in grp if det.label.lower() in labels])
             ]
         else:
             filtered_groups = groups
@@ -94,7 +86,9 @@ class BirdsEyeView(dai.node.HostNode):
 
         w_norm, h_norm = 1 / self.width, 1 / self.height
 
-        cam_helper = self._create_camera_annotations(w_norm, h_norm)
+        cam_helper = self._create_camera_annotations(
+            detections_buffer.camera_poses, w_norm, h_norm
+        )
         self.cameras_pos.send(cam_helper.build(timestamp, sequence_num))
 
         trail_helper = self._create_trail_annotations(w_norm, h_norm)
@@ -104,15 +98,15 @@ class BirdsEyeView(dai.node.HostNode):
         self.detections.send(det_helper.build(timestamp, sequence_num))
 
     def _create_camera_annotations(
-        self, w_norm: float, h_norm: float
+        self, camera_poses: List[np.ndarray], w_norm: float, h_norm: float
     ) -> AnnotationHelper:
-        """Draws static elements: camera positions, FOV cones, and world axes."""
+        """Draws static elements: camera positions, FOV cones, and reference axes."""
         helper = AnnotationHelper()
 
-        # World axes
-        origin = self._project_to_bev(np.array([0, 0, 0, 1]))
-        x_axis = self._project_to_bev(np.array([1, 0, 0, 1]))
-        y_axis = self._project_to_bev(np.array([0, 1, 0, 1]))
+        # Reference axes: X (red) to the right, Z (green) forward, one meter each
+        origin = self._project_to_bev(np.array([0, 0, 0]))
+        x_axis = self._project_to_bev(np.array([1, 0, 0]))
+        z_axis = self._project_to_bev(np.array([0, 0, 1]))
         helper.draw_line(
             (origin[0] * w_norm, origin[1] * h_norm),
             (x_axis[0] * w_norm, x_axis[1] * h_norm),
@@ -121,20 +115,17 @@ class BirdsEyeView(dai.node.HostNode):
         )
         helper.draw_line(
             (origin[0] * w_norm, origin[1] * h_norm),
-            (y_axis[0] * w_norm, y_axis[1] * h_norm),
+            (z_axis[0] * w_norm, z_axis[1] * h_norm),
             self.ANNOT_COLORS["green"],
             thickness=2,
         )
 
         # Cameras & FOV cones
-        for _, extr in self.all_cam_extrinsics.items():
-            fid = extr["friendly_id"]
-            cam_color = self.camera_colors[(fid - 1) % len(self.camera_colors)]
-            p0 = self._project_to_bev(extr["cam_to_world"] @ np.array([0, 0, 0, 1]))
-            p1 = self._project_to_bev(extr["cam_to_world"] @ np.array([0.2, 0, 0.1, 1]))
-            p2 = self._project_to_bev(
-                extr["cam_to_world"] @ np.array([-0.2, 0, 0.1, 1])
-            )
+        for camera_index, pose in enumerate(camera_poses):
+            cam_color = self.camera_colors[camera_index % len(self.camera_colors)]
+            p0 = self._project_to_bev((pose @ np.array([0, 0, 0, 1]))[:3])
+            p1 = self._project_to_bev((pose @ np.array([0.2, 0, 0.3, 1]))[:3])
+            p2 = self._project_to_bev((pose @ np.array([-0.2, 0, 0.3, 1]))[:3])
 
             # Draw camera position as an ellipse
             cam_points = self._get_ellipse_points((p0[0], p0[1]), 5, 5, w_norm, h_norm)
@@ -173,7 +164,7 @@ class BirdsEyeView(dai.node.HostNode):
             for group in frame_groups:
                 if not group:
                     continue
-                avg_pos = np.mean([d.pos_world_homogeneous for d in group], axis=0)
+                avg_pos = np.mean([d.position for d in group], axis=0)
                 u, v = self._project_to_bev(avg_pos)
                 trail_points = self._get_ellipse_points(
                     (u, v), radius_px, radius_px, w_norm, h_norm
@@ -188,7 +179,7 @@ class BirdsEyeView(dai.node.HostNode):
         return helper
 
     def _create_detection_annotations(
-        self, groups: List[List[WorldDetection]], w_norm: float, h_norm: float
+        self, groups: List[List[FusedDetection]], w_norm: float, h_norm: float
     ) -> AnnotationHelper:
         """Draws the current, live detections with colored dots and white rings."""
         helper = AnnotationHelper()
@@ -199,10 +190,8 @@ class BirdsEyeView(dai.node.HostNode):
                 continue
             # Draw individual detection dots
             for det in grp:
-                u, v = self._project_to_bev(det.pos_world_homogeneous)
-                cam_col = self.camera_colors[
-                    (det.camera_friendly_id - 1) % len(self.camera_colors)
-                ]
+                u, v = self._project_to_bev(det.position)
+                cam_col = self.camera_colors[det.camera_index % len(self.camera_colors)]
                 ellipse_points = self._get_ellipse_points(
                     (u, v),
                     detection_dot_radius_px,
@@ -219,18 +208,14 @@ class BirdsEyeView(dai.node.HostNode):
                 )
 
             # Calculate and draw the ring
-            avg_pos = np.mean([d.pos_world_homogeneous for d in grp], axis=0)
+            avg_pos = np.mean([d.position for d in grp], axis=0)
             u_avg, v_avg = self._project_to_bev(avg_pos)
             center_px = (u_avg, v_avg)
 
-            if len(grp) > 1:
-                distances_m = [
-                    np.linalg.norm(det.pos_world_homogeneous[:2] - avg_pos[:2])
-                    for det in grp
-                ]
-                dist_to_furthest_center_m = max(distances_m)
-            else:
-                dist_to_furthest_center_m = 0
+            # Ground-plane (X, Z) distance of the furthest detection from the group center
+            dist_to_furthest_center_m = max(
+                np.linalg.norm((det.position - avg_pos)[[0, 2]]) for det in grp
+            )
 
             dist_to_furthest_center_px = dist_to_furthest_center_m * self.scale
             margin_px = 12
@@ -253,9 +238,10 @@ class BirdsEyeView(dai.node.HostNode):
         return helper
 
     def _project_to_bev(self, pos: np.ndarray) -> tuple[int, int]:
-        """Projects a 3D world position to 2D BEV coordinates."""
-        uv = self.world_to_bev_transform @ pos.reshape(4, 1)
-        return int(uv[0]), int(uv[1])
+        """Projects a 3D position in the reference camera frame to 2D BEV pixels."""
+        u = self.width / 2 + self.scale * pos[0]
+        v = self.height * config.BEV_ORIGIN_Y - self.scale * pos[2]
+        return int(u), int(v)
 
     def _get_ellipse_points(
         self, center_px, radius_px_x, radius_px_y, w_norm, h_norm, segments=20

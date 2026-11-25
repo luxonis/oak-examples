@@ -2,18 +2,18 @@
 
 ## Summary
 
-This is the repository reference for fusing spatial detections from multiple calibrated OAK devices into a single bird’s-eye view. Use it when you need shared-world multi-camera perception rather than per-device outputs.
+This is the repository reference for fusing spatial detections from multiple calibrated OAK devices into a single bird’s-eye view. Use it when you need multi-device 3D perception in one coordinate system rather than per-device outputs.
 
 ## Use This Example When
 
 - You need multi-device 3D detection fusion.
-- You already have calibration outputs from [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration).
+- You already have a calibration file from [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration).
 - You want the repo’s most direct Bird’s Eye View fusion example.
 
 ## Do Not Use This Example When
 
-- You do not have extrinsic calibration files yet.
-- You need image stitching instead of world-frame fusion; use the DepthAI `Stitching` node as in [multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn).
+- You do not have a multi-device calibration file yet.
+- You need image stitching instead of 3D fusion; use the DepthAI `Stitching` node as in [multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn).
 - You need a standalone packaged deployment.
 
 ## Quick Facts
@@ -24,8 +24,8 @@ This is the repository reference for fusing spatial detections from multiple cal
 - `Entrypoint:` [main.py](main.py)
 - `Standalone path:` none
 - `Frontend:` none
-- `Runs on:` host mode only, with one or more calibrated stereo-capable devices
-- `Requires:` `calibration_data/extrinsics_<MXID>.npz` files, stereo-capable cameras, and host-side SciPy/OpenCV dependencies
+- `Runs on:` host mode only, with two or more calibrated stereo-capable devices in one pipeline
+- `Requires:` a `calibration.json` from the multi-device-calibration example, stereo-capable cameras, and host-side SciPy/NumPy dependencies
 - `Input:` live `CAM_A/B/C` per device
 - `Output:` per-device passthrough/detections plus `BEV Canvas`, `BEV Cameras`, `BEV History Trails`, and `BEV Detections`
 - `Models:` fixed model slug in [utils/config.py](utils/config.py)
@@ -38,32 +38,34 @@ This is the repository reference for fusing spatial detections from multiple cal
 - [utils/config.py](utils/config.py)
 - [utils/fusion.py](utils/fusion.py)
 - [utils/birds_eye_view.py](utils/birds_eye_view.py)
-- [utils/utility.py](utils/utility.py)
 - [utils/arguments.py](utils/arguments.py)
 
 ## Architecture
 
-- [main.py](main.py) loads extrinsic calibrations, chooses the first valid device as the main pipeline host, and creates a `FusionManager` there.
-- Each device runs a `SpatialDetectionNetwork` and forwards `SpatialImgDetections` into the fusion manager through a dedicated per-device input.
-- [utils/fusion.py](utils/fusion.py) converts camera coordinates into world coordinates, groups near-simultaneous detections, and prunes duplicates per camera.
+- [main.py](main.py) builds one `dai.Pipeline(createImplicitDevice=False)`, loads the calibration with `MultiDeviceCalibrationHandler` and applies it with `pipeline.setMultiDeviceCalibration`.
+- Each device runs a `SpatialDetectionNetwork` created with `pipeline.create(node, device)`; a host `Sync` node groups one `SpatialImgDetections` per device.
+- [utils/fusion.py](utils/fusion.py) moves every message into the first device's camera frame with `SpatialImgDetections.transformTo`, groups nearby detections of the same label, and prunes duplicates per camera.
 - [utils/birds_eye_view.py](utils/birds_eye_view.py) renders the fused results, camera poses, and history trails into BEV annotation topics.
 
 ## Constraints
 
-- Only devices with matching extrinsic files in `calibration_data/` are used.
-- This example depends on the multi-cam calibration workflow; moving cameras after calibration invalidates the fusion geometry.
-- The first configured device becomes the main host for `FusionManager` and `BirdsEyeView`.
+- Every selected device must be part of the calibration file; without `--devices` all calibrated devices are used.
+- This example depends on the multi-device calibration workflow; moving cameras after calibration invalidates the fusion geometry.
+- The first device's camera frame is the fusion and BEV coordinate system, so that device should be mounted roughly level.
 - `BEV_LABELS` in [utils/config.py](utils/config.py) is empty by default, which means all labels are shown.
+- The multi-device pipeline and calibration APIs require `depthai>=3.12`.
 
 ## Related Examples
 
-- [tutorials/multiple-devices/multi-cam-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-cam-calibration): run this first to create the required extrinsic files
-- [tutorials/multiple-devices/multiple-devices-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-devices-preview): use this when you only need one independent pipeline per device
-- [tutorials/multiple-devices/multiple-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multiple-device-stitch-nn): use this when you need a 2D panorama from the DepthAI `Stitching` node instead of world-frame fusion
+- [tutorials/multiple-devices/multi-device-calibration](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-calibration): run this first to create the required calibration file
+- [tutorials/multiple-devices/multi-device-preview](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-preview): use this when you only need independent streams per device
+- [tutorials/multiple-devices/multi-device-stitch-nn](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-stitch-nn): use this when you need a 2D panorama from the DepthAI `Stitching` node instead of 3D fusion
 - [neural-networks/object-detection/spatial-detections](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/spatial-detections): use this when you need the single-device spatial-detection baseline
+- [tutorials/multiple-devices/multi-device-point-cloud](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-point-cloud): merged 3D point cloud of calibrated devices
+- [tutorials/multiple-devices/multi-device-birds-eye-view](https://github.com/luxonis/oak-examples/tree/main/tutorials/multiple-devices/multi-device-birds-eye-view): top-down ground view of calibrated devices
 
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Success looks like:` the Visualizer shows per-device detection streams plus the BEV topics, and only calibrated devices participate
-- `Common failure meaning:` extrinsic files are missing or stale, the devices are not stereo-capable, or the user expects a standalone solution or a `Stitching` node panorama instead of world-frame fusion
+- `Success looks like:` the Visualizer shows per-device detection streams plus the BEV topics, and an object seen by several cameras appears as one group
+- `Common failure meaning:` the calibration file is missing or stale, a selected device is not in the calibration, the devices are not stereo-capable, or the user expects a standalone solution or a `Stitching` node panorama instead of 3D fusion
