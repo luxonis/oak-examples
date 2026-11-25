@@ -38,17 +38,21 @@ The logs print a `parcel_benchmark` JSON report for `ParcelDetector` and `Parcel
 
 ## Inspect saved measurements
 
-Open the **Measurements** tab and select a tracking ID. The detail modal shows the segmented object point cloud, fitted cuboid, source sequence, capture time, algorithm, and support-plane metadata. Drag to orbit, right-drag to pan, scroll to zoom, or click **Reset view**.
+Open the **Measurements** tab and select an object using its RGB thumbnail and tracking ID. The thumbnail comes from the same frame as its saved measurement. The detail modal shows the segmented object point cloud, fitted cuboid, source sequence, capture time, algorithm, and support-plane metadata. Drag to orbit, right-drag to pan, scroll to zoom, or click **Reset view**.
 
-The app saves one snapshot per measured tracking ID. **Update Measurement** requests a fresh snapshot and replaces the previous one if that ID remains in frame. Otherwise, the modal shows **Object not in frame**. The list retains the 20 most recently saved objects, including explicit updates.
+An object must appear in 10 consecutive processed frames before its box appears or its measurement is saved. A missing observation resets an unconfirmed track's count. Confirmed tracks retain confirmation during the tracking grace period, but appear live only while observed. Tracks that never reach 10 observations are never displayed or saved.
 
-A storage host node writes snapshots sequentially without blocking the measurement controller. Only one object from one sequence is submitted, and another save waits for its acknowledgement and a newer sequence. Unsaved visible tracks keep their waiting order. Point-cloud encoding and disk writes run in the storage node.
+The app saves one snapshot per confirmed, measured tracking ID. **Update Measurement** requests a fresh snapshot and replaces the previous cloud, cuboid, and RGB thumbnail if that ID remains in frame. Otherwise, the modal shows **Object not in frame**. The list retains the 20 most recently saved objects, including explicit updates. Records saved before thumbnail support show **No preview** until updated.
+
+A storage host node writes snapshots sequentially without blocking the measurement controller. Only one object from one sequence is submitted, and another save waits for its acknowledgement and a newer sequence. Unsaved visible tracks keep their waiting order. Point-cloud encoding, RGB crop decoding, JPEG encoding, and disk writes run in the storage node. Thumbnails are at most 160 × 120 pixels and fetched once per saved revision; history polls carry only thumbnail availability.
 
 History lives in `OAKAGENT_STORAGE_APP/parcel-measurement.sqlite3` on the OAK4. Host runs use `data/parcel-measurement.sqlite3` beside the script. Use `--storage <database-path>` to choose another location. Saved history survives app restarts. New live tracks start above the persisted ID high-water mark; the app does not identify the same physical parcel across restarts.
 
 ## Choose RGB overlays
 
-Enable **Colorized depth over RGB** to blend calibrated depth colors into the video. The scale spans 0.2 m to 3 m. After selecting a support plane, enable **Show selected support plane** to highlight its visible inliers in green. Both controls default off. A separate preview node caches the calibrated remap and blends textures without blocking measurements. Boxes and labels remain native annotations over the H.264 stream.
+Enable **Colorized depth over RGB** to blend the public `ApplyDepthColormap` node's colors into RGB at 50% opacity. Colors use the node's 2nd–98th depth percentiles, rather than a fixed metric scale. Invalid depth stays transparent. After selecting a support plane, enable **Show selected support plane** to highlight only its visible inliers in green; parcels and background keep their RGB colors. Enabling either overlay switches the other off. Both default off. A separate preview node caches the calibrated remap and blends textures without blocking measurements. Boxes and labels remain native annotations over the H.264 stream.
+
+The app asks `SupportPlaneCalibrator` to verify the selected plane every five seconds against the current cloud and gravity. If verification fails, measurements pause, the frontend opens **Calibration**, and a warning prompts recalibration. Keep the camera fixed, click **Recalibrate**, and select the supporting surface again.
 
 The app limits the Python OpenCV worker pool to one thread so preview conversions leave CPU capacity for detection and measurement. The normal RGB path decodes no BGR image. Optional previews use active NV12 planes and keep the original frame identity when producing encoded output.
 

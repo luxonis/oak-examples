@@ -53,6 +53,7 @@ class ParcelController(dai.node.ThreadedHostNode):
             for name, size in (
                 ("commands", 16),
                 ("calibration", 4),
+                ("verification", 2),
                 ("imu", 4),
                 ("detections", 4),
                 ("measurements", 4),
@@ -97,6 +98,9 @@ class ParcelController(dai.node.ThreadedHostNode):
         self.axial_correction = None
         self.error = None
         self.config_dirty = False
+        self.verification = None
+        self.pending_verification = None
+        self.next_verification_at = 0.0
         self.capture_samples = deque(maxlen=60)
         self.measurement_samples = deque(maxlen=30)
         self.rates = {"source_fps": None, "measurement_fps": None}
@@ -115,6 +119,8 @@ class ParcelController(dai.node.ThreadedHostNode):
                 "selected": self.session.selected,
                 "plane": self.session.plane.toJson() if self.session.plane else None,
                 "candidates": self.candidates,
+                "recalibration_required": self.session.recalibration_required,
+                "verification": self.verification,
             },
             "error": self.error,
             "frame_sequence": self.last_frame["sequence"] if self.last_frame else None,
@@ -200,6 +206,28 @@ class ParcelController(dai.node.ThreadedHostNode):
             return {"error": "Object not in frame."}
         return self._enqueue("update_measurement", {"track_id": track_id})
 
+    def get_measurement_preview(self, payload):
+        try:
+            track_id = self._track_id(payload)
+            revision = payload.get("revision")
+            if (
+                isinstance(revision, bool)
+                or not isinstance(revision, int)
+                or revision < 1
+            ):
+                raise ValueError("revision must be a positive integer.")
+            if self.store is None:
+                raise ValueError("Measurement storage is unavailable.")
+            return self.store.preview(track_id, revision)
+        except (
+            KeyError,
+            ValueError,
+            OSError,
+            RuntimeError,
+            sqlite3.Error,
+        ) as exception:
+            return {"error": str(exception)}
+
     def set_preview_options(self, payload):
         if (
             not isinstance(payload, dict)
@@ -253,6 +281,9 @@ class ParcelController(dai.node.ThreadedHostNode):
                 self.scheduler.reset_visibility(set())
                 self.candidates = []
                 self.previews = {}
+                self.verification = None
+                self.measurement_samples.clear()
+                self.rates["measurement_fps"] = None
                 self.control.send(SupportPlaneCalibrationControl.reset())
                 self.control.send(SupportPlaneCalibrationControl.start())
             elif message.action == "select":
@@ -260,10 +291,15 @@ class ParcelController(dai.node.ThreadedHostNode):
                     message.payload["generation"], message.payload["index"]
                 )
                 self.config_dirty = True
+                self.verification = None
+                self.next_verification_at = time.monotonic() + 5
                 if self.evidence:
                     self.session.plane.toJsonFile(self.evidence / "support-plane.json")
             elif message.action == "preview_options":
                 self.overlays = dict(message.payload)
+                if self.overlays["support_plane"]:
+                    self.overlays["depth"] = False
+                    self.overlays["support_plane"] = self.session.plane is not None
             elif message.action == "update_measurement":
                 track_id = message.payload["track_id"]
                 if track_id not in self._current_visible():
@@ -383,6 +419,62 @@ class ParcelController(dai.node.ThreadedHostNode):
         self.pending_detections[batch.getSequenceNum()] = batch
         self._complete(batch.getSequenceNum())
 
+    def _verify_due(self, now):
+        if (
+            self.session.phase is CalibrationPhase.READY
+            and self.latest_scene is not None
+            and self.pending_verification is None
+            and now >= self.next_verification_at
+        ):
+            self.pending_verification = (
+                self.session.generation,
+                self.session.plane,
+                self.latest_scene.sequence,
+            )
+            self.next_verification_at = now + 5
+            self.control.send(SupportPlaneCalibrationControl.verify(self.session.plane))
+
+    def _verification(self, result):
+        pending = self.pending_verification
+        if pending is None:
+            return
+        self.pending_verification = None
+        generation, plane, minimum_sequence = pending
+        if (
+            generation != self.session.generation
+            or self.session.phase is not CalibrationPhase.READY
+            or self.session.plane.toJson() != plane.toJson()
+            or result.plane.toJson() != plane.toJson()
+        ):
+            return
+        if result.getSequenceNum() < minimum_sequence:
+            self.next_verification_at = 0
+            return
+        self.verification = {
+            "accepted": result.accepted,
+            "gravity_angle_deg": result.gravity_angle_deg,
+            "on_plane_ratio": result.on_plane_ratio,
+            "sequence": result.getSequenceNum(),
+        }
+        print(json.dumps({"support_plane_verification": self.verification}), flush=True)
+        if result.accepted:
+            return
+        self.session.invalidate(
+            "The support plane no longer matches the scene or gravity. "
+            "Measurements are paused. Keep the camera fixed and recalibrate the support surface."
+        )
+        self.tracker.clear()
+        self.visible_tracks.clear()
+        self.last_measurement_at = None
+        self.measurement_samples.clear()
+        self.rates["measurement_fps"] = None
+        self.scheduler.reset_visibility(set())
+        self.candidates = []
+        self.previews = {}
+        self.last_frame = None
+        self.config_dirty = False
+        self.overlays["support_plane"] = False
+
     def _measurements(self, batch):
         self.pending_measurements[batch.getSequenceNum()] = batch
         self._complete(batch.getSequenceNum())
@@ -398,11 +490,6 @@ class ParcelController(dai.node.ThreadedHostNode):
         if sequence not in self.inflight:
             return
         _, reference = self.inflight.pop(sequence)
-        self.measurement_samples.append(time.monotonic())
-        if len(self.measurement_samples) > 1:
-            self.rates["measurement_fps"] = (len(self.measurement_samples) - 1) / (
-                self.measurement_samples[-1] - self.measurement_samples[0]
-            )
         if (
             reference.generation != self.session.generation
             or self.session.phase is not CalibrationPhase.READY
@@ -410,6 +497,11 @@ class ParcelController(dai.node.ThreadedHostNode):
         ):
             return
         self.last_result_sequence = sequence
+        self.measurement_samples.append(time.monotonic())
+        if len(self.measurement_samples) > 1:
+            self.rates["measurement_fps"] = (len(self.measurement_samples) - 1) / (
+                self.measurement_samples[-1] - self.measurement_samples[0]
+            )
         parcels = parcel_boxes(detected, reference.projection)
         by_candidate = {item.candidate_id: item for item in measured.items}
         for parcel in parcels:
@@ -422,7 +514,11 @@ class ParcelController(dai.node.ThreadedHostNode):
                 if item is not None and item.cuboid
                 else None
             )
-        parcels = self.tracker.update(parcels, time.monotonic())
+        parcels = [
+            parcel
+            for parcel in self.tracker.update(parcels, time.monotonic())
+            if self.tracker.is_confirmed(parcel["track_id"])
+        ]
         self.last_measurement_at = time.monotonic()
         self.visible_tracks = {parcel["track_id"] for parcel in parcels}
         self.scheduler.reset_visibility(self.visible_tracks)
@@ -508,6 +604,7 @@ class ParcelController(dai.node.ThreadedHostNode):
 
     def _watchdog(self):
         self.scheduler.reset_visibility(self._current_visible())
+        self._verify_due(time.monotonic())
         if self._started_at is None:
             return
         if self.latest_scene is None and time.monotonic() - self._started_at > 30:
@@ -528,6 +625,7 @@ class ParcelController(dai.node.ThreadedHostNode):
             "commands": self._command,
             "saved": self._saved,
             "calibration": self._calibration,
+            "verification": self._verification,
             "imu": self._imu,
             "detections": self._detections,
             "measurements": self._measurements,

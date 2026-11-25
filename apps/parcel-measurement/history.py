@@ -9,6 +9,8 @@ from pathlib import Path
 import sqlite3
 import threading
 
+import cv2
+import depthai as dai
 import numpy as np
 
 
@@ -20,6 +22,52 @@ class SaveRequest:
     points: np.ndarray
     metadata: dict
     next_track_id: int
+    color: dai.ImgFrame | None = None
+
+
+def object_preview(color, bounds):
+    """Decode only the object's active NV12 region, on the storage worker."""
+    if color.getType() != dai.ImgFrame.Type.NV12:
+        raise ValueError("Measurement previews require an NV12 RGB frame")
+    bounds = np.asarray(bounds, dtype=float)
+    if bounds.shape != (4,) or not np.isfinite(bounds).all():
+        raise ValueError("Measurement preview bounds must be finite XYXY values")
+    width, height = color.getWidth(), color.getHeight()
+    margin = np.maximum((bounds[2:] - bounds[:2]) * 0.04, 2)
+    first = np.maximum(np.floor((bounds[:2] - margin) / 2) * 2, 0).astype(int)
+    last = np.minimum(
+        np.ceil((bounds[2:] + margin + 1) / 2) * 2, (width, height)
+    ).astype(int)
+    x1, y1 = first
+    x2, y2 = last
+    if x2 <= x1 or y2 <= y1 or width % 2 or height % 2:
+        raise ValueError("Measurement preview does not intersect the RGB image")
+    data, stride = color.getData(), color.getStride()
+    luminance = np.ndarray((height, width), np.uint8, buffer=data, strides=(stride, 1))[
+        y1:y2, x1:x2
+    ]
+    chroma = np.ndarray(
+        (height // 2, width // 2, 2),
+        np.uint8,
+        buffer=data,
+        offset=color.getPlaneStride(),
+        strides=(stride, 2, 1),
+    )[y1 // 2 : y2 // 2, x1 // 2 : x2 // 2]
+    image = cv2.cvtColorTwoPlane(luminance, chroma, cv2.COLOR_YUV2BGR_NV12)
+    scale = min(160 / image.shape[1], 120 / image.shape[0], 1)
+    if scale < 1:
+        image = cv2.resize(
+            image,
+            (
+                max(1, round(image.shape[1] * scale)),
+                max(1, round(image.shape[0] * scale)),
+            ),
+            interpolation=cv2.INTER_AREA,
+        )
+    success, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    if not success:
+        raise RuntimeError("Could not encode the measurement preview")
+    return base64.b64encode(encoded).decode("ascii")
 
 
 @dataclass(frozen=True)
@@ -85,6 +133,7 @@ class MeasurementStore:
             "dimensions_mm": metadata["dimensions_mm"],
             "point_count": point_count,
             "revision": revision,
+            "has_preview": bool(metadata.get("preview_jpeg")),
         }
 
     def _read_summaries(self, connection):
@@ -108,6 +157,10 @@ class MeasurementStore:
             raise ValueError("Measurement points must be finite XYZ rows")
         metadata = dict(request.metadata)
         metadata.update(track_id=request.track_id, sequence=request.sequence)
+        if request.color is not None:
+            metadata["preview_jpeg"] = object_preview(
+                request.color, metadata["bbox_rgb"]
+            )
         saved_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
         self._summary(request.track_id, metadata, len(points), saved_at, 1)
         encoded_metadata = json.dumps(metadata, allow_nan=False, separators=(",", ":"))
@@ -182,6 +235,21 @@ class MeasurementStore:
                 "xyz": base64.b64encode(points).decode("ascii"),
             },
         }
+
+    def preview(self, track_id, revision):
+        with closing(
+            sqlite3.connect(f"{self.path.resolve().as_uri()}?mode=ro", uri=True)
+        ) as connection:
+            row = connection.execute(
+                "SELECT metadata, revision FROM measurements WHERE track_id=?",
+                (track_id,),
+            ).fetchone()
+        if row is None:
+            raise KeyError("This measurement is no longer in the last 20 objects.")
+        metadata, current_revision = row
+        if revision != current_revision:
+            raise KeyError("This measurement has been updated. Refresh its preview.")
+        return {"jpeg": json.loads(metadata).get("preview_jpeg")}
 
 
 class SaveScheduler:

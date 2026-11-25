@@ -93,6 +93,8 @@ class PreviewTests(unittest.TestCase):
                 result = preview.nv12_frame(image, expected)
                 self.assertEqual(result.getType(), dai.ImgFrame.Type.NV12)
                 self.assertEqual(result.getStride(), width)
+                self.assertEqual(result.fb.p2Offset, expected.fb.p2Offset)
+                self.assertEqual(result.fb.p3Offset, expected.fb.p3Offset)
                 self.assertEqual(result.getFrame().shape, (height * 3 // 2, width))
                 np.testing.assert_array_equal(result.getFrame(), expected.getFrame())
                 self.assertEqual(result.getSequenceNum(), expected.getSequenceNum())
@@ -103,6 +105,64 @@ class PreviewTests(unittest.TestCase):
                 np.testing.assert_array_equal(
                     result.getTransformation().getIntrinsicMatrix(),
                     expected.getTransformation().getIntrinsicMatrix(),
+                )
+
+    def test_nv12_encoder_layout_is_compact_with_padded_camera_reference(self):
+        height, width = 1500, 2000
+        image = np.random.default_rng(11).integers(
+            0, 256, (height, width, 3), dtype=np.uint8
+        )
+        expected = dai.ImgFrame()
+        expected.setCvFrame(image, dai.ImgFrame.Type.NV12)
+        expected.setTransformation(
+            transformation(
+                (width, height),
+                [[1000, 0, width / 2], [0, 1000, height / 2], [0, 0, 1]],
+            )
+        )
+        for stride in (width, 2048):
+            with self.subTest(camera_stride=stride):
+                reference = dai.ImgFrame()
+                reference.setType(dai.ImgFrame.Type.NV12)
+                reference.setSize(width, height)
+                reference.setStride(stride)
+                reference.fb.p2Offset = stride * 1504
+                reference.fb.p3Offset = stride * 1504
+                reference.setData(np.zeros(stride * 2256, dtype=np.uint8))
+                reference.setTransformation(expected.getTransformation())
+                result = preview.nv12_frame(image, reference)
+                for field in (
+                    "type",
+                    "width",
+                    "height",
+                    "stride",
+                    "bytesPP",
+                    "p1Offset",
+                    "p2Offset",
+                    "p3Offset",
+                ):
+                    self.assertEqual(
+                        getattr(result.fb, field), getattr(expected.fb, field), field
+                    )
+                np.testing.assert_array_equal(result.getData(), expected.getData())
+                data = result.getData()
+                luminance = np.ndarray(
+                    (height, width),
+                    np.uint8,
+                    buffer=data,
+                    offset=result.fb.p1Offset,
+                    strides=(result.fb.stride, 1),
+                )
+                chroma = np.ndarray(
+                    (height // 2, width // 2, 2),
+                    np.uint8,
+                    buffer=data,
+                    offset=result.fb.p2Offset,
+                    strides=(result.fb.stride, 2, 1),
+                )
+                np.testing.assert_array_equal(
+                    cv2.cvtColorTwoPlane(luminance, chroma, cv2.COLOR_YUV2BGR_NV12),
+                    expected.getCvFrame(),
                 )
 
     def test_disabled_preview_returns_original_frame_without_decoding(self):
@@ -175,10 +235,15 @@ class PreviewTests(unittest.TestCase):
         values[:, 10:22] = 1500
         values[:, 22:] = 65535
         frame.depth.setCvFrame(values, dai.ImgFrame.Type.RAW16)
-        result = PreviewRenderer().render(frame, depth=True).getCvFrame()
+        colored_depth = np.full((*values.shape, 3), (10, 50, 240), dtype=np.uint8)
+        result = (
+            PreviewRenderer()
+            .render(frame, depth=True, colored_depth=colored_depth)
+            .getCvFrame()
+        )
         np.testing.assert_allclose(result[24, 4], (100, 100, 100), atol=3)
         np.testing.assert_allclose(result[24, 60], (100, 100, 100), atol=3)
-        self.assertGreater(np.ptp(result[24, 32].astype(float)), 30)
+        np.testing.assert_allclose(result[24, 32], (55, 75, 170), atol=3)
 
     def test_plane_overlay_excludes_objects_background_and_invalid_depth(self):
         frame = scene()
@@ -189,14 +254,27 @@ class PreviewTests(unittest.TestCase):
         frame.depth.setCvFrame(values, dai.ImgFrame.Type.RAW16)
         frame.points[:, 2] = values.reshape(-1)
         plane = SupportPlane(normal=(0, 0, -1), offset_mm=1000)
-        result = PreviewRenderer().render(frame, plane=plane).getCvFrame()
-        for y, x in ((24, 4), (24, 60), (8, 32)):
-            np.testing.assert_allclose(result[y, x], (100, 100, 100), atol=3)
-        self.assertGreater(int(result[32, 32, 1]) - int(result[32, 32, 2]), 50)
+        colored_depth = np.full((*values.shape, 3), (10, 50, 240), dtype=np.uint8)
+        for depth in (False, True):
+            with self.subTest(depth=depth):
+                result = (
+                    PreviewRenderer()
+                    .render(
+                        frame, depth=depth, plane=plane, colored_depth=colored_depth
+                    )
+                    .getCvFrame()
+                )
+                for y, x in ((24, 4), (24, 60), (8, 32)):
+                    np.testing.assert_allclose(result[y, x], (100, 100, 100), atol=3)
+                self.assertGreater(int(result[32, 32, 1]) - int(result[32, 32, 2]), 50)
 
     def test_output_preserves_source_video_identity_and_calibration(self):
         frame = scene(sequence=47)
-        output = PreviewRenderer().render(frame, depth=True)
+        output = PreviewRenderer().render(
+            frame,
+            depth=True,
+            colored_depth=np.full((24, 32, 3), (10, 50, 240), dtype=np.uint8),
+        )
         self.assertEqual(output.getType(), dai.ImgFrame.Type.NV12)
         self.assertEqual(output.getSequenceNum(), frame.color.getSequenceNum())
         self.assertEqual(output.getTimestamp(), frame.color.getTimestamp())
@@ -232,7 +310,7 @@ class PreviewWorkerTests(unittest.TestCase):
     def test_preview_drops_old_pending_frames_and_keeps_annotations_paired(self):
         started, release = threading.Event(), threading.Event()
 
-        def render(_renderer, frame, *_):
+        def render(_renderer, frame, *_, **_kwargs):
             if frame.color.getSequenceNum() == 1:
                 started.set()
                 release.wait(3)
@@ -278,7 +356,7 @@ class PreviewWorkerTests(unittest.TestCase):
         started, release = threading.Event(), threading.Event()
         generation = [1]
 
-        def render(_renderer, frame, *_):
+        def render(_renderer, frame, *_, **_kwargs):
             if frame.generation == 1:
                 started.set()
                 release.wait(3)

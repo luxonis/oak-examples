@@ -1,5 +1,27 @@
 # Parcel measurement validation
 
+## RGB thumbnails, corrected overlays, and plane verification, 2026-11-25
+
+Saved measurements now include an RGB crop from the same source frame. Crop decoding and JPEG encoding run only in the storage worker; history polls carry availability rather than image bytes. Chrome loaded the thumbnails and updated the current object's cloud, cuboid, and crop together through **Update Measurement**. The stored revision advanced from 1 to 2, the source sequence advanced, and the JPEG changed. All 20 saved previews survived an app restart byte-for-byte. Earlier records without previews remain supported.
+
+The green/magenta video corruption came from missing NV12 chroma offsets. Host decoding silently inferred the offsets, so earlier byte/decode tests missed the invalid frame header. The fix matches the SDK's explicit Y/UV layout. Regression tests compare public frame headers, bytes, and literal-offset decoding with padded 2000 × 1500 camera layouts. Live H.264 video in Chrome now shows the public `ApplyDepthColormap` output blended at 50%, with invalid depth transparent. The mutually exclusive support-plane mode highlights only visible plane inliers; parcels and background retain their RGB colors. Earlier overlay checks below established throughput but missed this encoding defect.
+
+The public calibrator verifies the selected plane every five seconds. The normal final run logged 28 accepted checks without errors in the collected interval. A temporary local test build displaced the selected plane by 500 mm and passed it through the same public verification path. The calibrator rejected it, measurement admission stopped, and Chrome switched from Measurements to Calibration with the recalibration warning. The final deployed build contains no test service. Unit checks also cover stale verification replies, queued result rejection, and generation changes. Switching away from Measurements unmounts its detail modal so it cannot obscure the warning.
+
+Tentative tracking IDs require 10 consecutive observations before boxes, live visibility, or snapshot scheduling. Tests verify no display or snapshot construction for observations 1–9, confirmation and saving on observation 10, reset after a missing tentative observation, and confirmation retention during the existing tracking grace period. The current live parcel confirmed and saved; short-lived clutter tracks did not enter the new history.
+
+With the final packaged app, Chrome connected, and evidence capture disabled, three ten-second windows per mode followed two-second warmups. A live snapshot update occurred during this check. Actual received H.264 rates were:
+
+| Mode            | Median FPS |  Window range |
+| --------------- | ---------: | ------------: |
+| RGB             |      9.993 |   9.993–9.997 |
+| Colorized depth |     10.002 |  9.987–10.013 |
+| Support plane   |     10.018 | 10.001–10.042 |
+
+All 900 annotation frames contained the confirmed parcel and complete dimension labels. There were no stream errors or warnings; the collected detector/dimensioner benchmark windows reported approximately 10 FPS and zero failed batches. This scene had one confirmed object, so this update does not establish a new three-object performance result. The earlier three-object measurements below remain historical evidence. Physical dimension accuracy remains unvalidated.
+
+All 70 backend tests, frontend type checking/build, Biome, repository hooks, agent-document checks, and generated-index checks pass. Private screenshots and test metadata remain under ignored `evidence/history-2026-11-25/`. The final app was left running with overlays and evidence capture disabled.
+
 ## Measurement history, RGB depth correction, and performance, 2026-11-25
 
 The example adds persistent history for the latest 20 saved tracking IDs, an interactive segmented-cloud and cuboid viewer, explicit snapshot replacement, labeled L/W/H annotations, and optional depth and support-plane overlays. SQLite storage runs in one host node. Its scheduler submits one object per sequence and waits for acknowledgement before submitting another. It retains waiting order across frames and does not automatically resave objects whose records were evicted.

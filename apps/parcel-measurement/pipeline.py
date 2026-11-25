@@ -3,6 +3,7 @@ from datetime import timedelta
 import cv2
 import depthai as dai
 from depthai_nodes.node import (
+    ApplyDepthColormap,
     ImageAlignDepthCorrection,
     ParcelDetector,
     ParcelDimensioner,
@@ -106,6 +107,7 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
     )
     controller.control.link(calibrator.inputControl)
     calibrator.out.link(controller.events["calibration"])
+    calibrator.verificationOutput.link(controller.events["verification"])
     detector = pipeline.create(ParcelDetector).build(
         *(
             controller.detector_streams[name]
@@ -132,6 +134,8 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
         PreviewRendererNode, current_generation=lambda: controller.session.generation
     )
     controller.preview_jobs.link(preview.inputFrames)
+    colormap = pipeline.create(ApplyDepthColormap).build(preview.depthToColorize)
+    colormap.out.link(preview.inputColoredDepth)
     controller.annotations = preview.annotations
     encoder = pipeline.create(dai.node.VideoEncoder).build(
         input=preview.out,

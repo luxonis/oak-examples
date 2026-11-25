@@ -18,6 +18,7 @@ class CalibrationSession:
     candidates: tuple = ()
     plane: object | None = None
     selected: int | None = None
+    recalibration_required: bool = False
     message: str = "Calibrate the empty support surface before measuring parcels."
 
     def start(self):
@@ -28,6 +29,7 @@ class CalibrationSession:
         self.candidates = ()
         self.plane = None
         self.selected = None
+        self.recalibration_required = False
         self.message = "Finding horizontal support planes. Keep the camera still."
 
     def finish(self, candidates):
@@ -55,6 +57,17 @@ class CalibrationSession:
         self.phase = CalibrationPhase.READY
         self.message = "Support plane selected. Place parcels on that surface."
 
+    def invalidate(self, reason):
+        if self.phase is not CalibrationPhase.READY:
+            return
+        self.generation += 1
+        self.phase = CalibrationPhase.FAILED
+        self.candidates = ()
+        self.plane = None
+        self.selected = None
+        self.recalibration_required = True
+        self.message = reason
+
 
 def overlap(a, b):
     left, top = max(a[0], b[0]), max(a[1], b[1])
@@ -69,12 +82,15 @@ class Track:
     bbox: tuple
     center: tuple
     last_seen: float
+    consecutive_observations: int = 1
+    confirmed: bool = False
 
 
 @dataclass
 class ParcelTracker:
     max_age_seconds: float = 2.0
     max_distance_mm: float = 180.0
+    confirmation_frames: int = 10
     next_id: int = 1
     tracks: dict[int, Track] = field(default_factory=dict)
 
@@ -101,12 +117,29 @@ class ParcelTracker:
             if index not in assigned and key not in used:
                 assigned[index] = key
                 used.add(key)
+        for key, track in self.tracks.items():
+            if key not in used and not track.confirmed:
+                track.consecutive_observations = 0
         for index, parcel in enumerate(parcels):
             key = assigned.get(index)
             if key is None:
                 key, self.next_id = self.next_id, self.next_id + 1
+            previous = self.tracks.get(key)
+            observations = min(
+                self.confirmation_frames,
+                previous.consecutive_observations + 1 if previous else 1,
+            )
             self.tracks[key] = Track(
-                tuple(parcel["bbox"]), tuple(parcel["center_mm"]), now
+                tuple(parcel["bbox"]),
+                tuple(parcel["center_mm"]),
+                now,
+                observations,
+                (previous.confirmed if previous else False)
+                or observations >= self.confirmation_frames,
             )
             parcel["track_id"] = key
         return parcels
+
+    def is_confirmed(self, track_id):
+        track = self.tracks.get(track_id)
+        return track is not None and track.confirmed

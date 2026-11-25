@@ -8,6 +8,7 @@ import { useDaiQuery } from './backend/useDaiQuery';
 import {
 	type MeasurementSummary,
 	getMeasurement,
+	getMeasurementPreview,
 	getMeasurements,
 	requestMeasurementUpdate,
 } from './services';
@@ -22,6 +23,36 @@ function date(value: string) {
 
 function correctionMetadata(value: unknown) {
 	return typeof value === 'string' ? value : 'Not recorded';
+}
+
+function MeasurementPreview({ record }: { record: MeasurementSummary }) {
+	const preview = useDaiQuery({
+		service: getMeasurementPreview,
+		request: { track_id: record.track_id, revision: record.revision },
+		queryOptions: {
+			enabled: record.has_preview,
+			staleTime: Number.POSITIVE_INFINITY,
+			gcTime: 5 * 60 * 1000,
+			retry: 1,
+		},
+	});
+	return (
+		<span className="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-muted text-center text-xs text-muted-foreground">
+			{preview.data?.jpeg ? (
+				<img
+					src={`data:image/jpeg;base64,${preview.data.jpeg}`}
+					alt={`Saved RGB crop of tracking ID ${record.track_id}`}
+					className="h-full w-full object-contain"
+				/>
+			) : !record.has_preview ? (
+				'No preview'
+			) : preview.error ? (
+				'Preview unavailable'
+			) : (
+				'Loading preview…'
+			)}
+		</span>
+	);
 }
 
 function MeasurementModal({
@@ -246,26 +277,29 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 						<button
 							type="button"
 							onClick={() => setSelected(record)}
-							className="flex w-full flex-col gap-1 rounded-lg border border-border p-3 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+							className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
 						>
-							<span className="flex justify-between gap-2 text-sm font-medium">
-								<span>Tracking ID {record.track_id}</span>
-								<span
-									className={
-										connected && record.in_frame
-											? 'text-success'
-											: 'text-muted-foreground'
-									}
-								>
-									{connected && record.in_frame ? 'In frame' : 'Saved'}
+							<MeasurementPreview record={record} />
+							<span className="flex min-w-0 flex-1 flex-col gap-1">
+								<span className="flex justify-between gap-2 text-sm font-medium">
+									<span>Tracking ID {record.track_id}</span>
+									<span
+										className={
+											connected && record.in_frame
+												? 'text-success'
+												: 'text-muted-foreground'
+										}
+									>
+										{connected && record.in_frame ? 'In frame' : 'Saved'}
+									</span>
 								</span>
-							</span>
-							<span className="text-sm">
-								{dimensions(record.dimensions_mm)}
-							</span>
-							<span className="text-xs text-muted-foreground">
-								{date(record.captured_at)} ·{' '}
-								{record.point_count.toLocaleString()} points
+								<span className="text-sm">
+									{dimensions(record.dimensions_mm)}
+								</span>
+								<span className="text-xs text-muted-foreground">
+									{date(record.captured_at)} ·{' '}
+									{record.point_count.toLocaleString()} points
+								</span>
 							</span>
 						</button>
 					</li>

@@ -69,6 +69,7 @@ class SnapshotTests(unittest.TestCase):
             8,
         )
         self.assertIs(request.points, selected.xyz_mm)
+        self.assertIs(request.color, color)
         self.assertFalse(request.points.flags.writeable)
         details = request.metadata
         self.assertEqual(details["video_sequence"], 92)

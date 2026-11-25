@@ -3,7 +3,9 @@ from importlib import import_module
 from pathlib import Path
 import sys
 import time
+from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import Mock
 
 import depthai as dai
 from depthai_nodes.message import (
@@ -129,6 +131,39 @@ class ControllerServiceTests(unittest.TestCase):
             self.assertNotIn("error", history)
             self.assertEqual(history["storage_error"], "Object not in frame")
             self.assertIn("error", controller.update_measurement({"track_id": 7}))
+
+    def test_measurement_preview_validates_revision_and_keeps_image_out_of_state(self):
+        store = Mock(next_track_id=8)
+        store.list_summaries.return_value = []
+        store.preview.return_value = {"jpeg": "saved-jpeg"}
+        with dai.Pipeline(False) as pipeline:
+            controller = pipeline.create(ParcelController, profile={}, store=store)
+            self.assertEqual(
+                controller.get_measurement_preview({"track_id": 7, "revision": 2}),
+                {"jpeg": "saved-jpeg"},
+            )
+            store.preview.assert_called_once_with(7, 2)
+            for request in (
+                {"track_id": True, "revision": 2},
+                {"track_id": 7, "revision": False},
+                {"track_id": 7, "revision": 0},
+            ):
+                self.assertIn("error", controller.get_measurement_preview(request))
+            self.assertNotIn("saved-jpeg", str(controller.get_state({})))
+
+    def test_persisted_preview_service_uses_flat_json_response(self):
+        from test_history import MeasurementStore, request
+
+        with TemporaryDirectory() as folder, dai.Pipeline(False) as pipeline:
+            store = MeasurementStore(Path(folder) / "history.sqlite3")
+            snapshot = request(7)
+            snapshot.metadata["preview_jpeg"] = "saved-jpeg"
+            store.save(snapshot)
+            controller = pipeline.create(ParcelController, profile={}, store=store)
+            self.assertEqual(
+                controller.get_measurement_preview({"track_id": 7, "revision": 1}),
+                {"jpeg": "saved-jpeg"},
+            )
 
 
 if __name__ == "__main__":

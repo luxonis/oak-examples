@@ -19,6 +19,8 @@ def nv12_frame(image, reference):
     result.setWidth(width)
     result.setHeight(height)
     result.setStride(width)
+    result.fb.p2Offset = luma_size
+    result.fb.p3Offset = luma_size
     result.setData(data)
     result.setBufferMetadataFrom(reference)
     result.setTransformation(reference.getTransformation())
@@ -118,17 +120,16 @@ class PreviewRenderer:
         self._geometry_key = key
         return self._maps
 
-    def render(self, frame, depth=False, plane=None):
+    def render(self, frame, depth=False, plane=None, colored_depth=None):
         if not depth and plane is None:
             return frame.color
         maps = self._remap(frame)
         values = frame.depth.getFrame()
         valid = (values > 0) & (values < 65535)
-        if depth:
-            normalized = np.clip(
-                (values.astype(np.float32) - 200) * (255 / 2800), 0, 255
-            ).astype(np.uint8)
-            texture = cv2.applyColorMap(normalized, cv2.COLORMAP_TURBO)
+        if depth and plane is None:
+            if colored_depth is None:
+                raise ValueError("Depth preview needs the matching colormap frame.")
+            texture = colored_depth
             mask = valid.astype(np.uint8) * 255
         else:
             texture = self._plane_texture
@@ -145,9 +146,7 @@ class PreviewRenderer:
                 values.shape
             ) & valid
             plane_mask = on_plane.astype(np.uint8) * 255
-            if depth:
-                cv2.copyTo(self._plane_texture, plane_mask, texture)
-            mask = cv2.bitwise_or(mask, plane_mask)
+            mask = plane_mask
         layer = cv2.remap(
             texture,
             *maps,
@@ -158,7 +157,7 @@ class PreviewRenderer:
             mask, *maps, interpolation=cv2.INTER_NEAREST, borderMode=cv2.BORDER_CONSTANT
         )
         image = frame.image.copy()
-        blended = cv2.addWeighted(image, 0.45, layer, 0.55, 0)
+        blended = cv2.addWeighted(image, 0.5, layer, 0.5, 0)
         cv2.copyTo(blended, mask, image)
         return nv12_frame(image, frame.color)
 
@@ -168,6 +167,15 @@ class PreviewRendererNode(dai.node.ThreadedHostNode):
         super().__init__()
         self.current_generation = current_generation
         self.inputFrames = self.createInput("frames", blocking=False, queueSize=1)
+        self.depthToColorize = self.createOutput(
+            "depth_to_colorize",
+            possibleDatatypes=[
+                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
+            ],
+        )
+        self.inputColoredDepth = self.createInput(
+            "colored_depth", blocking=False, queueSize=1
+        )
         self.out = self.createOutput(
             "video",
             possibleDatatypes=[
@@ -193,7 +201,31 @@ class PreviewRendererNode(dai.node.ThreadedHostNode):
             request = self.inputFrames.get(timedelta(seconds=1))
             if request is None or not self._current(request):
                 continue
-            video = renderer.render(request.frame, request.depth, request.plane)
+            colored_depth = None
+            if request.depth and request.plane is None:
+                source = request.frame.depth
+                values = source.getFrame().copy()
+                values[values == 65535] = 0
+                sanitized = dai.ImgFrame()
+                sanitized.setCvFrame(values, dai.ImgFrame.Type.RAW16)
+                sanitized.setBufferMetadataFrom(source)
+                sanitized.setTransformation(source.getTransformation())
+                self.depthToColorize.send(sanitized)
+                while self.isRunning():
+                    colored = self.inputColoredDepth.get(timedelta(seconds=1))
+                    if colored is None:
+                        continue
+                    if (
+                        colored.getSequenceNum() == source.getSequenceNum()
+                        and colored.getTimestampDevice() == source.getTimestampDevice()
+                    ):
+                        colored_depth = colored.getCvFrame()
+                        break
+                if not self.isRunning() or not self._current(request):
+                    continue
+            video = renderer.render(
+                request.frame, request.depth, request.plane, colored_depth
+            )
             if not self.isRunning() or not self._current(request):
                 continue
             if request.annotations is not None:

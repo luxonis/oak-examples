@@ -46,6 +46,21 @@ class CalibrationTests(unittest.TestCase):
         session.start()
         self.assertEqual(session.phase, CalibrationPhase.CALIBRATING)
 
+    def test_invalidated_plane_expires_generation_and_requires_recalibration(self):
+        session = CalibrationSession()
+        session.start()
+        session.finish([Candidate("table")])
+        session.select(session.generation, 0)
+        generation = session.generation
+        session.invalidate("Recalibrate the surface.")
+        self.assertEqual(session.generation, generation + 1)
+        self.assertEqual(session.phase, CalibrationPhase.FAILED)
+        self.assertIsNone(session.plane)
+        self.assertTrue(session.recalibration_required)
+        self.assertEqual(session.candidates, ())
+        session.start()
+        self.assertFalse(session.recalibration_required)
+
 
 def parcel(candidate, x):
     return {
@@ -56,6 +71,35 @@ def parcel(candidate, x):
 
 
 class TrackingTests(unittest.TestCase):
+    def test_tenth_consecutive_observation_confirms_the_same_track(self):
+        tracker = ParcelTracker()
+        for observation in range(1, 11):
+            result = tracker.update([parcel(observation, 20)], observation * 0.1)
+            self.assertEqual(result[0]["track_id"], 1)
+            self.assertEqual(tracker.is_confirmed(1), observation == 10)
+
+    def test_missed_frame_restarts_tentative_confirmation(self):
+        tracker = ParcelTracker()
+        for observation in range(9):
+            tracker.update([parcel(0, 20)], observation * 0.1)
+        tracker.update([], 0.9)
+        for observation in range(1, 11):
+            result = tracker.update([parcel(0, 20)], 0.9 + observation * 0.1)
+            self.assertEqual(result[0]["track_id"], 1)
+            self.assertEqual(tracker.is_confirmed(1), observation == 10)
+
+    def test_confirmed_track_stays_confirmed_through_grace_but_expiry_restarts(self):
+        tracker = ParcelTracker()
+        for observation in range(10):
+            tracker.update([parcel(0, 20)], observation * 0.1)
+        tracker.update([], 1)
+        result = tracker.update([parcel(0, 20)], 1.2)
+        self.assertEqual(result[0]["track_id"], 1)
+        self.assertTrue(tracker.is_confirmed(1))
+        result = tracker.update([parcel(0, 20)], 4)
+        self.assertEqual(result[0]["track_id"], 2)
+        self.assertFalse(tracker.is_confirmed(2))
+
     def test_ids_survive_reordered_frame_local_candidate_ids(self):
         tracker = ParcelTracker()
         first = tracker.update([parcel(0, 20), parcel(1, 200)], 0)

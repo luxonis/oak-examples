@@ -65,6 +65,7 @@ def main():
                 ("getSupportPlanePreview", controller.preview),
                 ("getMeasurements", controller.get_measurements),
                 ("getMeasurement", controller.get_measurement),
+                ("getMeasurementPreview", controller.get_measurement_preview),
                 ("requestMeasurementUpdate", controller.update_measurement),
                 ("setPreviewOptions", controller.set_preview_options),
             ):

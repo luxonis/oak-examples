@@ -54,7 +54,7 @@ One device-backed pipeline creates every node before startup. Detector images re
 
 `ParcelController` is a `ThreadedHostNode`. Its blocking `MessageQueue.getAny` dispatches scene, IMU, calibration, detection, measurement, and command inputs. Service callbacks enqueue commands or read locked state snapshots. `main.py` only manages pipeline tasks, remote key input, and shutdown. It does not poll application data queues.
 
-`SupportPlaneCalibrator` receives the organized native cloud. The controller rotates processed accelerometer specific force from RGB optical axes into the common reference, without negation. Calibration candidates retain a generation so stale selections can be rejected.
+`SupportPlaneCalibrator` receives the organized native cloud. The controller rotates processed accelerometer specific force from RGB optical axes into the common reference, without negation. Calibration candidates retain a generation so stale selections can be rejected. Every five seconds, the controller sends public `SupportPlaneCalibrationControl.verify` and consumes `verificationOutput`. Only one verification is pending. Generation, plane, and source sequence guard stale replies. Rejection expires the selected plane, stops admission, invalidates pending previews/results, and prompts recalibration in the frontend.
 
 The detector builds without a support plane. The controller admits parcel scenes after selection and sends `ParcelDetectorConfig` immediately before the first scene. Later selections use the same config input. At most two scenes remain in flight to absorb timing jitter, retaining RGB until detection and measurement results join by cloud sequence. Recalibration keeps old jobs in those slots until they complete, then rejects their results. Sequence regression cannot rewind tracking or video. This measurement bound is separate from the single in-flight storage job.
 
@@ -68,7 +68,7 @@ The React frontend uses the same Luxonis viewer, service hooks, and static build
 
 `getMeasurements` returns cached summaries and current visibility. `getMeasurement` reads a single detail record on the service thread. `requestMeasurementUpdate` accepts `{track_id}` and schedules a later sequence only while the object remains visible. SQLite replaces the previous cloud and metadata atomically. New tracks after restart use fresh IDs rather than overwriting historical records.
 
-`setPreviewOptions` accepts `{depth, support_plane}` booleans. The preview worker caches the calibrated raw-RGB-to-undistorted-depth remap by full delivered geometry. It requires a shared RGB optical center, combines optional depth and plane textures on the depth grid, and uses OpenCV remapping and masked blending. Do not restore per-frame full-cloud reprojection or raw depth resizing. The Measurements modal uses Three.js to display the cloud and cuboid in the same transformed coordinate frame.
+`setPreviewOptions` accepts `{depth, support_plane}` booleans. The preview worker caches the calibrated raw-RGB-to-undistorted-depth remap by full delivered geometry. It requires a shared RGB optical center, selects either the public colormap output or the plane-only texture on the depth grid, and uses OpenCV remapping and masked blending. Do not restore per-frame full-cloud reprojection or raw depth resizing. The Measurements modal uses Three.js to display the cloud and cuboid in the same transformed coordinate frame.
 
 ## Constraints
 
@@ -87,6 +87,9 @@ The React frontend uses the same Luxonis viewer, service hooks, and static build
 - Keep the camera fixed after plane selection. Recalibrate whenever the camera or support surface moves.
 - Calibration attempts cannot overlap. Candidate selection carries a generation to reject stale clicks.
 - Candidate IDs are frame-local. Never display them as temporal tracking IDs without the app's association step.
+- Require 10 consecutive observations of a tentative tracking ID before display, live visibility, or storage scheduling. Keep tentative associations internally; never construct snapshot data for them. A missed observation resets tentative confirmation, while a confirmed track retains confirmation through its tracking grace period.
+- RGB thumbnails belong to the same snapshot sequence as cloud/cuboid. Crop decoding and JPEG encoding run only in the storage worker. Fetch thumbnails by tracking ID and saved revision, without point-cloud reads or images in recurring history summaries. Old records without thumbnails remain valid.
+- Preview overlays are mutually exclusive. Color depth through public `ApplyDepthColormap`, sanitize RAW16 sentinel values, and match its sequence/timestamp before blending at 50%. Support-plane preview colors only valid points within 10 mm of the selected plane. Keep explicit NV12 chroma offsets matching the SDK header before hardware encoding.
 - Failed frames, no-fit results, and unknown heights are distinct outcomes. Do not replace missing dimensions with zeros.
 - Keep local scene images under ignored `evidence/`.
 - Keep storage serialization and I/O off the controller thread. Retain the single in-flight job and later-sequence gates, atomic replacement, 20-record retention, and durable ID high-water. Do not derive visibility from the tracker's grace-period entries.

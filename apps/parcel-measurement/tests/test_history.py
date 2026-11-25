@@ -8,7 +8,10 @@ import sys
 from tempfile import TemporaryDirectory
 import threading
 import unittest
+from unittest.mock import patch
 
+import cv2
+import depthai as dai
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -41,6 +44,84 @@ class MeasurementStoreTests(unittest.TestCase):
         self.addCleanup(self.folder.cleanup)
         self.path = Path(self.folder.name) / "history.sqlite3"
         self.store = MeasurementStore(self.path)
+
+    def preview_request(self, track_id=7, sequence=42, right=False):
+        image = np.zeros((48, 64, 3), np.uint8)
+        image[:, :32] = (0, 0, 240)
+        image[:, 32:] = (240, 0, 0)
+        compact = dai.ImgFrame()
+        compact.setCvFrame(image, dai.ImgFrame.Type.NV12)
+        source = compact.getData()
+        stride, offset = 80, 4002
+        padded = np.full(offset + stride * 24, 80, np.uint8)
+        np.ndarray((48, 64), np.uint8, padded, strides=(stride, 1))[:] = source[
+            : 64 * 48
+        ].reshape(48, 64)
+        np.ndarray((24, 64), np.uint8, padded, offset=offset, strides=(stride, 1))[
+            :
+        ] = source[64 * 48 :].reshape(24, 64)
+        color = dai.ImgFrame()
+        color.setType(dai.ImgFrame.Type.NV12)
+        color.setSize(64, 48)
+        color.setStride(stride)
+        color.fb.p2Offset = offset
+        color.setData(padded)
+        original = request(track_id, sequence)
+        return replace(
+            original,
+            color=color,
+            metadata={
+                **original.metadata,
+                "bbox_rgb": [36, 2, 60, 42] if right else [2, 2, 28, 42],
+            },
+        )
+
+    def test_crop_uses_active_padded_rgb_region_and_survives_restart(self):
+        original = self.preview_request()
+        with patch.object(
+            history, "object_preview", wraps=history.object_preview
+        ) as crop:
+            self.assertEqual(crop.call_count, 0)
+            self.store.save(original)
+            crop.assert_called_once_with(original.color, original.metadata["bbox_rgb"])
+        reopened = MeasurementStore(self.path)
+        self.assertTrue(reopened.list_summaries()[0]["has_preview"])
+        self.assertNotIn("preview_jpeg", reopened.list_summaries()[0])
+        encoded = reopened.preview(7, 1)["jpeg"]
+        image = cv2.imdecode(np.frombuffer(base64.b64decode(encoded), np.uint8), 1)
+        self.assertLessEqual(image.shape[1], 160)
+        self.assertLessEqual(image.shape[0], 120)
+        self.assertGreater(image[:, :, 2].mean(), 200)
+        self.assertLess(image[:, :, 0].mean(), 20)
+        self.assertEqual(reopened.detail(7)["sequence"], 42)
+
+    def test_update_replaces_preview_with_matching_sequence_and_revision(self):
+        self.store.save(self.preview_request())
+        old = self.store.preview(7, 1)["jpeg"]
+        self.store.save(self.preview_request(sequence=55, right=True))
+        new = self.store.preview(7, 2)["jpeg"]
+        self.assertNotEqual(old, new)
+        image = cv2.imdecode(np.frombuffer(base64.b64decode(new), np.uint8), 1)
+        self.assertGreater(image[:, :, 0].mean(), 200)
+        self.assertEqual(self.store.detail(7)["sequence"], 55)
+        with self.assertRaisesRegex(KeyError, "has been updated"):
+            self.store.preview(7, 1)
+        self.assertEqual(len(self.store.list_summaries()), 1)
+
+    def test_legacy_records_have_no_preview_and_failed_crop_keeps_old_record(self):
+        self.store.save(request(7))
+        self.assertFalse(self.store.list_summaries()[0]["has_preview"])
+        self.assertIsNone(self.store.preview(7, 1)["jpeg"])
+        original = self.preview_request(sequence=55)
+        bad = replace(
+            original, metadata={**original.metadata, "bbox_rgb": [90, 90, 95, 95]}
+        )
+        with self.assertRaises(ValueError):
+            self.store.save(bad)
+        self.assertEqual(self.store.detail(7)["revision"], 1)
+        self.assertIsNone(self.store.preview(7, 1)["jpeg"])
+        with self.assertRaises(KeyError):
+            self.store.preview(999, 1)
 
     def test_restart_retains_full_cloud_metadata_and_tracking_highwater(self):
         original = request(7, sequence=42)

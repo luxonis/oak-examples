@@ -22,6 +22,15 @@ const stateSchema = z.object({
 		selected: z.number().int().nullable(),
 		plane: planeSchema.nullable(),
 		candidates: z.array(candidateSchema),
+		recalibration_required: z.boolean(),
+		verification: z
+			.object({
+				accepted: z.boolean(),
+				gravity_angle_deg: z.number(),
+				on_plane_ratio: z.number().nullable(),
+				sequence: z.number().int(),
+			})
+			.nullable(),
 	}),
 	error: z.string().nullable(),
 	frame_sequence: z.number().nullable(),
@@ -80,6 +89,7 @@ const summarySchema = z.object({
 	point_count: z.number().int().nonnegative(),
 	revision: z.number().int().positive(),
 	in_frame: z.boolean(),
+	has_preview: z.boolean().default(false),
 });
 
 const detailSchema = summarySchema.extend({
@@ -132,6 +142,17 @@ export const getMeasurement = {
 	serviceName: 'getMeasurement',
 	requestSchema: trackRequestSchema,
 	responseSchema: z.object({ measurement: detailSchema }),
+} as const;
+
+export const getMeasurementPreview = {
+	serviceName: 'getMeasurementPreview',
+	requestSchema: z
+		.object({
+			track_id: z.number().int().positive(),
+			revision: z.number().int().positive(),
+		})
+		.strict(),
+	responseSchema: z.object({ jpeg: z.string().nullable() }),
 } as const;
 
 export const requestMeasurementUpdate = {

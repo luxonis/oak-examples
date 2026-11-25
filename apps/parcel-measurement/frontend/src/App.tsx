@@ -7,7 +7,7 @@ import {
 	StyledText,
 } from '@luxonis/ui-components';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MeasurementHistory } from './MeasurementHistory';
 import { daiServiceQueryKey } from './backend/daiService';
 import { useDaiMutation } from './backend/useDaiMutation';
@@ -113,6 +113,17 @@ function App() {
 	});
 	const state = stateQuery.data;
 	const calibration = state?.calibration;
+	const promptedGeneration = useRef<number | null>(null);
+	useEffect(() => {
+		if (
+			calibration?.recalibration_required &&
+			promptedGeneration.current !== calibration.generation
+		) {
+			promptedGeneration.current = calibration.generation;
+			setTab('calibration');
+			setCandidateSelection(null);
+		}
+	}, [calibration?.recalibration_required, calibration?.generation]);
 	const choosing = calibration?.phase === 'choosing';
 	const calibrating = calibration?.phase === 'calibrating';
 	const selected =
@@ -146,7 +157,7 @@ function App() {
 				<h1>
 					<Header text="Parcel measurement" />
 				</h1>
-				<Label text="Measure parcels on a fixed, flat support surface. RGB boxes show tracking IDs and length × width × height in millimeters." />
+				<Label text="Measure parcels on a fixed, flat support surface. Objects appear after 10 consecutive observations. RGB boxes show tracking IDs and length × width × height in millimeters." />
 				<section
 					aria-label="RGB overlays"
 					className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm"
@@ -161,6 +172,9 @@ function App() {
 									previewOptions.mutate({
 										...state.overlays,
 										depth: event.target.checked,
+										support_plane: event.target.checked
+											? false
+											: state.overlays.support_plane,
 									});
 							}}
 						/>
@@ -168,7 +182,8 @@ function App() {
 					</label>
 					{state?.overlays.depth ? (
 						<span className="text-xs text-muted-foreground">
-							Depth: 0.2 m (blue) → 3 m (red). Overlays add processing work.
+							Depth colors are blended at 50% opacity. One overlay is shown at a
+							time.
 						</span>
 					) : null}
 					<label className="flex items-center gap-2">
@@ -185,6 +200,7 @@ function App() {
 									previewOptions.mutate({
 										...state.overlays,
 										support_plane: event.target.checked,
+										depth: event.target.checked ? false : state.overlays.depth,
 									});
 							}}
 						/>
@@ -240,6 +256,15 @@ function App() {
 						<NormalText weight="bold" text="Support plane" />
 					</h2>
 					<Label text={calibration?.message ?? 'Connecting to the camera…'} />
+					{calibration?.recalibration_required ? (
+						<div
+							role="alert"
+							className="rounded-lg border border-destructive p-3 text-sm text-destructive"
+						>
+							Support plane verification failed. Recalibrate before measuring
+							more parcels.
+						</div>
+					) : null}
 					<Button
 						type="button"
 						variant="outline"
@@ -298,7 +323,7 @@ function App() {
 						</>
 					) : null}
 					{calibration?.phase === 'ready' ? (
-						<Label text="Keep the camera fixed. Recalibrate after moving it or changing the support surface. Unknown heights appear as ?." />
+						<Label text="The support plane is checked every 5 seconds. Keep the camera fixed. Unknown heights appear as ?." />
 					) : null}
 				</section>
 				<section
@@ -308,7 +333,9 @@ function App() {
 					hidden={tab !== 'measurements'}
 					className={tab === 'measurements' ? 'block' : 'hidden'}
 				>
-					<MeasurementHistory connected={connected} />
+					{tab === 'measurements' ? (
+						<MeasurementHistory connected={connected} />
+					) : null}
 				</section>
 				{error ? (
 					<div role="alert">

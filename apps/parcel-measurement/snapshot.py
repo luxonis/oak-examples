@@ -64,4 +64,5 @@ def measurement_snapshot(parcel, detected, measured, frame, profile, next_track_
         points=points,
         metadata=metadata,
         next_track_id=next_track_id,
+        color=frame.color,
     )
