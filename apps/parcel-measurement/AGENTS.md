@@ -82,6 +82,7 @@ The React frontend uses the same Luxonis viewer, service hooks, and static build
 - The calibration cloud stays organized to 768 × 480. Detector input contains only finite, nonzero XYZ and retains its native metadata.
 - Keep raw RGB and mono inputs unrectified. Do not substitute NeuralDepth's rectified views or resize detector inputs.
 - Capture defaults to 10 FPS. Video follows matching measurement frames after plane selection. The frontend reports capture and measurement rates separately.
+- Enable the IR laser dot projector at normalized intensity `1.0` when `getIrDrivers()` reports hardware. Log unsuccessful enabling without stopping the app, and skip devices without IR drivers.
 - Keep native annotation metadata aligned to the displayed color frame, including its independent sequence counter. Use the delivered intrinsics, distortion, and pose for projection.
 - Keep both `BenchmarkIn` sinks on the host. Count outputs and failures independently of native report cadence. `latency_samples` describes sampled cumulative capture-to-output latency, not isolated node execution time.
 - Keep the camera fixed after plane selection. Recalibrate whenever the camera or support surface moves.

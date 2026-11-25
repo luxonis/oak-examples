@@ -6,6 +6,8 @@ The app uses public `ParcelDetector`, `ParcelDimensioner`, and `SupportPlaneCali
 
 NeuralDepth feeds `ImageAlign`, which targets a separate undistorted 768 × 480 RGB branch. Public `ImageAlignDepthCorrection` then converts aligned source-camera Z values into RGB-camera Z before PointCloud generation. The raw detector images retain their original grids.
 
+When the device reports an IR driver, the app enables the laser dot projector at full normalized intensity (`1.0`) on startup. Devices without IR drivers skip this step. Startup logs report whether enabling the projector succeeded.
+
 ## Run as an OAK App
 
 Use an OAK4 with RGB, stereo, and an IMU. From this directory, run the packaged app.

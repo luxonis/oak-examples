@@ -48,6 +48,18 @@ def main():
 
     with device, dai.Pipeline(device) as pipeline:
         try:
+            if device.getIrDrivers():
+                if device.setIrLaserDotProjectorIntensity(1.0):
+                    print(
+                        "IR laser dot projector enabled at full intensity (1.0).",
+                        flush=True,
+                    )
+                else:
+                    print(
+                        "Warning: Failed to enable IR laser dot projector.", flush=True
+                    )
+            else:
+                print("No IR driver detected; skipping the dot projector.", flush=True)
             store = MeasurementStore(args.storage)
             controller = init_pipeline(
                 pipeline, fps=args.fps, evidence=args.evidence, store=store
