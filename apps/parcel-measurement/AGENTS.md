@@ -41,7 +41,7 @@ OAK4 parcel measurement with public depthai-nodes detection, dimensioning, and s
 - [nodes.py](nodes.py) for event handling, service commands, scene admission, and result joins.
 - [rendering.py](rendering.py) and [geometry.py](geometry.py) for frame metadata, previews, and native annotations.
 - [frontend/src/services.ts](frontend/src/services.ts) for the shared frontend service contract.
-- [oakapp.toml](oakapp.toml) for the static frontend build, runtime dependencies, and parcel native build.
+- [oakapp.toml](oakapp.toml) for the static frontend build and runtime dependencies.
 - [README.md](README.md) for operation and scene requirements.
 
 ## Architecture
@@ -65,7 +65,7 @@ The React frontend uses the same Luxonis viewer, service hooks, and static build
 - Import only names exported by `depthai_nodes.node` and `depthai_nodes.message` at runtime. Do not import frozen algorithms or node implementation internals.
 - Standalone packaging uses `luxonis/oakapp-base:1.3.0` and Python 3.12. Keep `/entrypoint.sh` and the `static_frontend` build so the base image serves the frontend. Do not restore a bespoke Python HTTP server or JPEG video WebSocket path.
 - Keep `libgfortran5` and `libegl1` in the container dependencies; the ARM64 Open3D wheel requires them even without a GUI.
-- Keep `g++` in the image build dependencies and run the bundled parcel `build_native` module after pip installation. The portable package contains no native binary; omitting this build silently selects the slower fallback. The module in `oakapp.toml` is `depthai_nodes.algorithms.parcel.fast_baseline_algorithm_2f65a6f6296d48e981f5fe3f77bfde89.build_native`.
+- Keep the DepthAI 3.12.0 pin aligned with the pinned depthai-nodes revision. The OAK4 visibility implementation has no custom native kernels; do not restore the old `build_native` step or compiler dependency.
 - Parcel messages stay in one host process. They have no XLink or RemoteConnection serialization. Publish native encoded frames and annotations instead.
 - Keep PointCloud DEFAULT coordinates, millimeters, calibrated translation, identity custom transform, and organized output. XYZ already occupies the common reference. Do not apply its source optical pose again.
 - The calibration cloud stays organized to 768 × 480. Detector input contains only finite, nonzero XYZ and retains its native metadata.

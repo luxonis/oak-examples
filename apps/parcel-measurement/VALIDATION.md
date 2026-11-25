@@ -1,5 +1,13 @@
 # Parcel measurement validation
 
+## Dependency update, 2026-11-25
+
+The example now pins depthai-nodes PR 348 revision `61dd0b863e055aaf3fd0d9ac2b9e92247cfbf188`, using `algorithm-5e4abc3a09b54148950317cdeac60ba2`. The detector, dimensioner, calibration, plane, and config interfaces used by the app are unchanged. The replacement implementation removes the old custom native kernels, so the obsolete compiler dependency and kernel-build command were removed. The DepthAI pin is now 3.12.0 to satisfy the dependency's exact SDK requirement.
+
+All 17 app tests pass in a fresh environment with these pins, and the installed dependency check passes. The packaged app also built and ran on the connected OAK4. Runtime package metadata confirmed the exact dependency commit and SDK version, and successful measurements carried the new algorithm identity. Support-plane calibration, selection, and a second selection worked in one running pipeline. The returned measurement plane matched the selected plane after sign normalization. Native video and annotation topics and idle and active benchmark logs remained available. Local evidence is under ignored `evidence/dependency-2026-11-25/`.
+
+The upstream synthetic example constructs and runs both public parcel nodes and returns a measured parcel, but its dimension-tolerance assertion fails with the replacement baseline. Its length is 213.6 mm against an expected 220 mm with a 5 mm tolerance. It is not counted as a passing test. A sanitized reproduction was submitted through the authorized Luxonis feedback tool. No physical reference dimensions were compared; accuracy and replay remain unvalidated for this update. Earlier sections describe previous dependency revisions and algorithms.
+
 ## Standard frontend and host-node update, 2026-11-23
 
 The current app uses the repository's React/Vite frontend, Luxonis `DepthAIContext` and `Streams`, static frontend packaging, and the base image's `/entrypoint.sh`. It has no bespoke Python frontend server or JPEG video WebSocket. The user's `g++` dependency and bundled parcel native-kernel build step remain in the container configuration.

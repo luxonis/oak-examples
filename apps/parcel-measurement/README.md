@@ -16,7 +16,7 @@ Open the `Parcel frontend at https://<OAK4-IP>:<port>` address printed in the ap
 
 The container builds the React frontend and serves its static files through the base image's `/entrypoint.sh` and HTTPS proxy. `RemoteConnection` supplies the video topics and control services. The app does not start a separate Python frontend server.
 
-The container uses `luxonis/oakapp-base:1.3.0` and Python 3.12. It installs `g++` and compiles the bundled parcel native kernels after dependency installation.
+The container uses `luxonis/oakapp-base:1.3.0` and Python 3.12. The pinned depthai-nodes revision requires DepthAI 3.12.0 and uses the OAK4 visibility baseline. It has no custom native-kernel build step.
 
 ## Calibrate and measure parcels
 
