@@ -1,14 +1,17 @@
-# Social Distancing
+# Person Distances and Bird's-Eye View
 
-This example demonstrates how we can use DepthAI to monitor social distancing. It uses our depth-enabled OAK camera and on-device AI processing. For detecting people we use [SCRFD Person detection model](https://models.luxonis.com/luxonis/scrfd-person-detection/c3830468-3178-4de6-bc09-0543bbe28b1c) from HubAI. We merge the detections with depth information to get the 3D position of each person. We then calculate the distance between each pair of people and if the distance is less than a threshold, we display a warning.
+This example runs the [SCRFD person detector](https://models.luxonis.com/luxonis/scrfd-person-detection/c3830468-3178-4de6-bc09-0543bbe28b1c) with automatically selected depth, measures the 3D distance between every pair of people with valid depth, and displays their positions in the standard DepthAI Visualizer. It has no custom frontend or proximity alert.
 
-Below you can see 3 people in a scene. If they get closer than the threshold of 2 meters, the application will display `Too Close` and the distance between them.
+The Visualizer shows four topics:
 
-> **Note:** This example requires a device with at least 3 cameras (color, left and right) for the default stereo-backed `Depth` path.
+- `Video`: the camera image.
+- `Detections`: detected people and the SCRFD model's five keypoints on the camera image.
+- `Pairwise distances`: tracked boxes and IDs, plus lines and 3D distances between every pair of people with valid depth on the camera image.
+- `Bird's-eye view`: camera-relative X/Z person positions with the same track IDs on a 960 × 720 canvas. A single line highlights the closest visible pair, with both IDs and their distance in the header.
 
-## Demo
+The view plots X to the right and Z forward from the camera, up to 7.5 m on either side and 15 m ahead. This gives both axes the same scale. Distances use all three spatial coordinates (X/Y/Z), so their values may differ from distances estimated from the 2D plot. This is a camera-relative projection, not a floor-aligned map; a tilted camera changes what the plot represents. The tracker assigns IDs across frames; the `Pairwise distances` overlay shows an ID for each active track, while invalid depth and positions outside the displayed range are omitted from the bird's-eye view. A single detected person produces no pairwise distance line.
 
-[![COVID-19 Social Distancing with DepthAI](https://user-images.githubusercontent.com/5244214/90741333-73f89500-e2cf-11ea-919b-b1f47dc55c4a.gif)](https://www.youtube.com/watch?v=-Ut9TemGZ8I "DepthAI Social Distancing Proof of Concept")
+> **Note:** This example requires a color camera and a depth backend supported by `dai.node.Depth`. The depth output is aligned to the color stream; `Depth.Algorithm.AUTO` selects the backend for the device.
 
 ## Usage
 
