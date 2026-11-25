@@ -5,11 +5,11 @@ This example runs the [SCRFD person detector](https://models.luxonis.com/luxonis
 The Visualizer shows four topics:
 
 - `Video`: the camera image.
-- `Detections`: detected people on the camera image.
-- `Pairwise distances`: lines and 3D distances between every pair of people with valid depth on the camera image.
-- `Bird's-eye view`: camera-relative X/Z person positions on a 960 × 720 canvas. A single line highlights the closest visible pair, with its 3D distance in the header.
+- `Detections`: detected people and the SCRFD model's five keypoints on the camera image.
+- `Pairwise distances`: tracked boxes and IDs, plus lines and 3D distances between every pair of people with valid depth on the camera image.
+- `Bird's-eye view`: camera-relative X/Z person positions with the same track IDs on a 960 × 720 canvas. A single line highlights the closest visible pair, with both IDs and their distance in the header.
 
-The view plots X to the right and Z forward from the camera, up to 7.5 m on either side and 15 m ahead. This gives both axes the same scale. Distances use all three spatial coordinates (X/Y/Z), so their values may differ from distances estimated from the 2D plot. This is a camera-relative projection, not a floor-aligned map; a tilted camera changes what the plot represents. Detections with invalid depth are skipped, and positions outside the displayed range are omitted from the bird's-eye view. A single detected person produces no pairwise distance line.
+The view plots X to the right and Z forward from the camera, up to 7.5 m on either side and 15 m ahead. This gives both axes the same scale. Distances use all three spatial coordinates (X/Y/Z), so their values may differ from distances estimated from the 2D plot. This is a camera-relative projection, not a floor-aligned map; a tilted camera changes what the plot represents. The tracker assigns IDs across frames; the `Pairwise distances` overlay shows an ID for each active track, while invalid depth and positions outside the displayed range are omitted from the bird's-eye view. A single detected person produces no pairwise distance line.
 
 > **Note:** This example requires a color camera and a depth backend supported by `dai.node.Depth`. The depth output is aligned to the color stream; `Depth.Algorithm.AUTO` selects the backend for the device.
 

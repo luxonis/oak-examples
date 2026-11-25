@@ -101,37 +101,62 @@ def render_bird_frame(distances: ObjectDistances, background: np.ndarray) -> np.
     """Show person positions and the closest visible pair's 3D distance."""
     frame = background.copy()
     plotted = {}
-    for detection in distances.detections:
+    for tracklet in distances.spatial_tracklets:
         position = project_to_view(
-            detection.spatialCoordinates.x, detection.spatialCoordinates.z
+            tracklet.spatialCoordinates.x, tracklet.spatialCoordinates.z
         )
         if position is not None:
-            plotted[id(detection)] = position
+            plotted[tracklet.id] = position
 
     visible_pairs = (
         pair
         for pair in distances.distances
-        if id(pair.detection1) in plotted and id(pair.detection2) in plotted
+        if pair.detection1.id in plotted and pair.detection2.id in plotted
     )
     closest = min(visible_pairs, key=lambda pair: pair.distance, default=None)
     if closest is not None:
         cv2.line(
             frame,
-            plotted[id(closest.detection1)],
-            plotted[id(closest.detection2)],
+            plotted[closest.detection1.id],
+            plotted[closest.detection2.id],
             PAIR,
             2,
             cv2.LINE_AA,
         )
-        label = f"Closest pair: {closest.distance / 1000:.1f} m (3D)"
+        label = (
+            f"Closest pair: ID {closest.detection1.id} & ID {closest.detection2.id}"
+            f" - {closest.distance / 1000:.1f} m"
+        )
     else:
         label = "Closest pair: --"
 
     cv2.putText(
-        frame, label, (580, 48), cv2.FONT_HERSHEY_SIMPLEX, 0.62, TEXT, 1, cv2.LINE_AA
+        frame, label, (500, 48), cv2.FONT_HERSHEY_SIMPLEX, 0.62, TEXT, 1, cv2.LINE_AA
     )
-    for position in plotted.values():
+    for track_id, position in plotted.items():
         cv2.circle(frame, position, 10, PERSON, -1, cv2.LINE_AA)
+        label = f"ID {track_id}"
+        label_position = (position[0] + 14, position[1] - 18)
+        (label_width, label_height), baseline = cv2.getTextSize(
+            label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1
+        )
+        cv2.rectangle(
+            frame,
+            (label_position[0] - 2, label_position[1] - label_height - 2),
+            (label_position[0] + label_width + 2, label_position[1] + baseline + 2),
+            BACKGROUND,
+            -1,
+        )
+        cv2.putText(
+            frame,
+            label,
+            label_position,
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            TEXT,
+            1,
+            cv2.LINE_AA,
+        )
     return frame
 
 

@@ -43,9 +43,9 @@ Visualize camera-relative person positions in a bird's-eye view and measure pair
 
 - A color camera on `CAM_A` feeds the SCRFD person detector.
 - `Depth.Algorithm.AUTO` selects the device's depth backend; `setAlignTo(rgb)` aligns its output to the color stream.
-- `DepthMerger` attaches depth to the 2D person detections.
-- `MeasureObjectDistance` filters invalid coordinates and computes every pair's 3D Euclidean distance.
-- `DistanceAnnotations` displays all pair distances on the camera image. `BirdsEyeView` plots person positions on a 960 × 720 camera-relative X/Z view, with only the closest visible pair connected and its 3D distance in the header.
+- `DepthMerger` attaches depth to the 2D person detections. `ObjectTracker` assigns persistent IDs to the spatial detections.
+- `MeasureObjectDistance` keeps active tracks, filters invalid coordinates for distance measurement, and computes every valid pair's 3D Euclidean distance.
+- `DistanceAnnotations` displays active track IDs and all valid pair distances on the camera image. `BirdsEyeView` plots valid person positions and the same IDs on a 960 × 720 camera-relative X/Z view, with only the closest visible pair connected and both IDs and distance in the header.
 
 ## Constraints
 
@@ -53,7 +53,7 @@ Visualize camera-relative person positions in a bird's-eye view and measure pair
 - On RVC2, the SCRFD archive is compiled for 7 SHAVEs so it fits alongside depth and image processing.
 - The example does not implement a distance threshold or alert.
 - The X/Z view is not floor-aligned; camera tilt changes its meaning. The displayed labels are 3D X/Y/Z distances, not distances measured on the 2D plot.
-- The view displays X within ±7.5 m and Z within 0–15 m. Invalid spatial coordinates are excluded from both views.
+- The view displays X within ±7.5 m and Z within 0–15 m. Invalid spatial coordinates are excluded from the BEV and pair distances; active tracks can still show an ID on RGB.
 - The bird's-eye view draws only the closest visible pair connection; the camera-image annotations still show every pair.
 
 ## Related Examples
@@ -65,5 +65,5 @@ Visualize camera-relative person positions in a bird's-eye view and measure pair
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Success looks like:` the Visualizer shows person detections, pairwise distance annotations, and a camera-relative bird's-eye view with person markers and the closest visible pair highlighted
+- `Success looks like:` the Visualizer shows person detections, matching track IDs on RGB and BEV, pairwise distance annotations, and the closest visible pair highlighted
 - `Common failure meaning:` depth alignment or calibration is poor, the device lacks a compatible depth backend, or the scene does not produce stable person detections

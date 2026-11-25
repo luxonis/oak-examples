@@ -1,6 +1,5 @@
 import itertools
 import math
-from typing import List
 
 import depthai as dai
 
@@ -8,8 +7,8 @@ import depthai as dai
 class DetectionDistance:
     def __init__(
         self,
-        detection1: dai.SpatialImgDetection,
-        detection2: dai.SpatialImgDetection,
+        detection1: dai.Tracklet,
+        detection2: dai.Tracklet,
         distance: float,
     ) -> None:
         self.detection1 = detection1
@@ -20,12 +19,13 @@ class DetectionDistance:
 class ObjectDistances(dai.Buffer):
     def __init__(self) -> None:
         super().__init__(0)
-        self.detections: List[dai.SpatialImgDetection] = []
-        self.distances: List[DetectionDistance] = []
+        self.tracklets: list[dai.Tracklet] = []
+        self.spatial_tracklets: list[dai.Tracklet] = []
+        self.distances: list[DetectionDistance] = []
 
 
-def has_valid_coordinates(detection: dai.SpatialImgDetection) -> bool:
-    coordinates = detection.spatialCoordinates
+def has_valid_coordinates(tracklet: dai.Tracklet) -> bool:
+    coordinates = tracklet.spatialCoordinates
     return (
         all(
             math.isfinite(value)
@@ -33,6 +33,42 @@ def has_valid_coordinates(detection: dai.SpatialImgDetection) -> bool:
         )
         and coordinates.z > 0
     )
+
+
+def measure_tracklets(tracklets: dai.Tracklets) -> ObjectDistances:
+    active = [
+        tracklet
+        for tracklet in tracklets.tracklets
+        if tracklet.status
+        in (dai.Tracklet.TrackingStatus.NEW, dai.Tracklet.TrackingStatus.TRACKED)
+    ]
+    spatial = [tracklet for tracklet in active if has_valid_coordinates(tracklet)]
+
+    result = ObjectDistances()
+    result.tracklets = active
+    result.spatial_tracklets = spatial
+    result.distances = [
+        DetectionDistance(
+            first,
+            second,
+            math.dist(
+                (
+                    first.spatialCoordinates.x,
+                    first.spatialCoordinates.y,
+                    first.spatialCoordinates.z,
+                ),
+                (
+                    second.spatialCoordinates.x,
+                    second.spatialCoordinates.y,
+                    second.spatialCoordinates.z,
+                ),
+            ),
+        )
+        for first, second in itertools.combinations(spatial, 2)
+    ]
+    result.setTimestamp(tracklets.getTimestamp())
+    result.setSequenceNum(tracklets.getSequenceNum())
+    return result
 
 
 class MeasureObjectDistance(dai.node.HostNode):
@@ -48,34 +84,5 @@ class MeasureObjectDistance(dai.node.HostNode):
         self.link_args(detections)
         return self
 
-    def process(self, detections: dai.SpatialImgDetections) -> None:
-        valid_detections = [
-            detection
-            for detection in detections.detections
-            if has_valid_coordinates(detection)
-        ]
-
-        result = ObjectDistances()
-        result.detections = valid_detections
-        result.distances = [
-            DetectionDistance(
-                first,
-                second,
-                math.dist(
-                    (
-                        first.spatialCoordinates.x,
-                        first.spatialCoordinates.y,
-                        first.spatialCoordinates.z,
-                    ),
-                    (
-                        second.spatialCoordinates.x,
-                        second.spatialCoordinates.y,
-                        second.spatialCoordinates.z,
-                    ),
-                ),
-            )
-            for first, second in itertools.combinations(valid_detections, 2)
-        ]
-        result.setTimestamp(detections.getTimestamp())
-        result.setSequenceNum(detections.getSequenceNum())
-        self.output.send(result)
+    def process(self, tracklets: dai.Tracklets) -> None:
+        self.output.send(measure_tracklets(tracklets))

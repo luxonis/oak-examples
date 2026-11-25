@@ -64,8 +64,20 @@ with dai.Pipeline(device) as pipeline:
         shrinkingFactor=0.1,
     )
 
-    # Measure all detected person pairs once, then show the distances in both views.
-    measure_obj_dist = pipeline.create(MeasureObjectDistance).build(depth_merger.output)
+    tracker = pipeline.create(dai.node.ObjectTracker)
+    tracker.setDetectionLabelsToTrack([0])
+    tracker.setTrackerType(
+        dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM
+        if platform == "RVC2"
+        else dai.TrackerType.SHORT_TERM_IMAGELESS
+    )
+    tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
+    nn_parser.passthrough.link(tracker.inputTrackerFrame)
+    nn_parser.passthrough.link(tracker.inputDetectionFrame)
+    depth_merger.output.link(tracker.inputDetections)
+
+    # Measure tracked person pairs once, then show their IDs in both views.
+    measure_obj_dist = pipeline.create(MeasureObjectDistance).build(tracker.out)
     bird_eye_view = pipeline.create(BirdsEyeView).build(measure_obj_dist.output)
     distance_annotations = pipeline.create(DistanceAnnotations).build(
         measure_obj_dist.output
