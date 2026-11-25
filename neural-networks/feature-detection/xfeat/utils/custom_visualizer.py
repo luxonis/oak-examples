@@ -1,5 +1,21 @@
 import depthai as dai
+import numpy as np
+
 from .visualizer_utils import xfeat_visualizer
+
+
+def _visualization_frame(pixels: np.ndarray, source: dai.ImgFrame) -> dai.ImgFrame:
+    """Wrap a visualization, keeping the timing of the frame it was drawn from."""
+    frame = dai.ImgFrame()
+    frame.setCvFrame(pixels, dai.ImgFrame.Type.BGR888i)
+    frame.setBufferMetadataFrom(source)
+    if pixels.shape[:2] == (source.getHeight(), source.getWidth()):
+        # Not enough matches: the visualizer returned the source frame itself.
+        frame.setTransformation(source.getTransformation())
+    else:
+        # Side-by-side match mosaic; describe it as its own image space.
+        frame.setTransformation(dai.ImgTransformation(pixels.shape[1], pixels.shape[0]))
+    return frame
 
 
 class StereoVersionVisualizer(dai.node.HostNode):
@@ -35,19 +51,14 @@ class StereoVersionVisualizer(dai.node.HostNode):
         assert isinstance(right_frame, dai.ImgFrame)
         assert isinstance(tracked_features, dai.TrackedFeatures)
 
-        left_frame = left_frame.getCvFrame()
-        right_frame = right_frame.getCvFrame()
-
         resulting_frame = xfeat_visualizer(
-            left_frame,
-            right_frame,
+            left_frame.getCvFrame(),
+            right_frame.getCvFrame(),
             tracked_features.trackedFeatures,
             draw_warp_corners=False,
         )
 
-        output_frame = dai.ImgFrame()
-        output_frame.setCvFrame(resulting_frame, dai.ImgFrame.Type.BGR888i)
-        self.output.send(output_frame)
+        self.output.send(_visualization_frame(resulting_frame, right_frame))
 
 
 class MonoVersionVisualizer(dai.node.HostNode):
@@ -79,20 +90,18 @@ class MonoVersionVisualizer(dai.node.HostNode):
         assert isinstance(target_frame, dai.ImgFrame)
         assert isinstance(tracked_features, dai.TrackedFeatures)
 
-        target_frame = target_frame.getCvFrame()
+        target_image = target_frame.getCvFrame()
 
         if self.set_reference_frame:
-            self.referece_frame = target_frame
+            self.referece_frame = target_image
             self.set_reference_frame = False
 
         if self.referece_frame is not None:
             resulting_frame = xfeat_visualizer(
-                self.referece_frame, target_frame, tracked_features.trackedFeatures
+                self.referece_frame, target_image, tracked_features.trackedFeatures
             )
 
         else:
-            resulting_frame = target_frame
+            resulting_frame = target_image
 
-        output_frame = dai.ImgFrame()
-        output_frame.setCvFrame(resulting_frame, dai.ImgFrame.Type.BGR888i)
-        self.output.send(output_frame)
+        self.output.send(_visualization_frame(resulting_frame, target_frame))

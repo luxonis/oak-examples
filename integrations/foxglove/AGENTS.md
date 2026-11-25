@@ -84,6 +84,7 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
 
 - The Foxglove server port is fixed at `8765` in [main.py](main.py); it is not currently configurable through CLI arguments.
 - `process_pointcloud()` converts millimeters to meters and flips the X axis before publishing.
+- `getTimestamp()` is on the host steady clock (`dai.Clock.now()`), not Unix time; convert it before using it as a wall-clock stamp.
 - Frame channels are serialized as JPEG `CompressedImage` payloads encoded in base64 JSON, not as raw image buffers.
 - [oakapp.toml](oakapp.toml) installs `libgl1` and increases pip timeout because the dependency set includes Open3D.
 

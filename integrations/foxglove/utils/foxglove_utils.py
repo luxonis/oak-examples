@@ -1,12 +1,34 @@
 import base64
 import json
 import time
+from datetime import timedelta
+from typing import Tuple
 
 import cv2
+import depthai as dai
 import numpy as np
 import open3d as o3d
 from foxglove_websocket.server import FoxgloveServer, FoxgloveServerListener
 from foxglove_websocket.types import ChannelId
+
+
+def _timedelta_ns(value: timedelta) -> int:
+    return value // timedelta(microseconds=1) * 1_000
+
+
+def host_clock_to_unix_offset_ns() -> int:
+    """Offset that converts DepthAI host-clock timestamps to Unix time.
+
+    ``Buffer.getTimestamp()`` is the capture time on the host steady clock that
+    ``dai.Clock.now()`` reads, not wall-clock time.
+    """
+    return time.time_ns() - _timedelta_ns(dai.Clock.now())
+
+
+def capture_stamp(msg: dai.Buffer, offset_ns: int) -> Tuple[int, int]:
+    """Return the message capture time as Unix ``(sec, nsec)`` for a ROS header."""
+    stamp_ns = _timedelta_ns(msg.getTimestamp()) + offset_ns
+    return divmod(stamp_ns, 1_000_000_000)
 
 
 class Listener(FoxgloveServerListener):
@@ -183,7 +205,7 @@ async def send_frame(server, frame, sec, nsec, channel):
     # Data is sent with json (data must be in above schema order)
     await server.send_message(
         channel,
-        time.time_ns(),
+        sec * 1_000_000_000 + nsec,
         json.dumps(
             {
                 "header": {"stamp": {"sec": sec, "nsec": nsec}, "frame_id": "front"},
@@ -203,7 +225,7 @@ async def send_pointcloud(server, pcl_data, sec, nsec, channel):
     # Data is sent with json (data must be in above schema order)
     await server.send_message(
         channel,
-        time.time_ns(),
+        sec * 1_000_000_000 + nsec,
         json.dumps(
             {
                 "header": {

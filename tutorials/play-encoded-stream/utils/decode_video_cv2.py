@@ -18,9 +18,14 @@ class DecodeVideoCV2(dai.node.HostNode):
 
     def process(self, enc_vid: dai.ImgFrame) -> None:
         frame = cv2.imdecode(enc_vid.getData(), cv2.IMREAD_COLOR)
+        if frame is None:
+            return  # corrupt or truncated JPEG
 
         img = dai.ImgFrame()
         img.setCvFrame(frame, dai.ImgFrame.Type.NV12)
+        # Each MJPEG message decodes to one frame with the same pixel grid.
+        img.setBufferMetadataFrom(enc_vid)
+        img.setTransformation(enc_vid.getTransformation())
 
         self.out.send(img)
 

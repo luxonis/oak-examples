@@ -6,8 +6,8 @@ from typing import Tuple
 
 class HostDecoding(dai.node.HostNode):
     def __init__(self) -> None:
-        self._conf_thresh = 0.3
-        self._iou_thresh = 0.4
+        self._conf_thresh = 0.5
+        self._iou_thresh = 0.45
         self._nn_size = (512, 288)
         super().__init__()
 
@@ -39,7 +39,9 @@ class HostDecoding(dai.node.HostNode):
             for tn in tensor_names
         ]
         strides = [8, 16, 32]
-        decoded = decode_yolo_output(tensors, strides, 0.5, 0.45, 80)
+        decoded = decode_yolo_output(
+            tensors, strides, self._conf_thresh, self._iou_thresh, 80
+        )
         dets = []
         for d in decoded:
             xmin, ymin, xmax, ymax, conf, cls = d
@@ -53,6 +55,8 @@ class HostDecoding(dai.node.HostNode):
             dets.append(det)
         img_dets = dai.ImgDetections()
         img_dets.detections = dets
-        img_dets.setTimestamp(nn_data.getTimestamp())
-        img_dets.setSequenceNum(nn_data.getSequenceNum())
+        # Boxes are normalized to the NN input frame; keep its timing and geometry
+        # so consumers can remap them to other streams.
+        img_dets.setBufferMetadataFrom(nn_data)
+        img_dets.setTransformation(nn_data.getTransformation())
         self.output.send(img_dets)

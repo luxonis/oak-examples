@@ -44,13 +44,10 @@ class BlurBackground(dai.node.HostNode):
 
         blurred_bg[person_mask] = frame[person_mask]
 
-        ts = frame_msg.getTimestamp()
-        seq_num = frame_msg.getSequenceNum()
-
-        frame_type = frame_msg.getType()
         img = dai.ImgFrame()
-        img.setCvFrame(blurred_bg, frame_type)
-        img.setTimestamp(ts)
-        img.setSequenceNum(seq_num)
+        img.setCvFrame(blurred_bg, frame_msg.getType())
+        # Blurring keeps the pixel grid, so keep the source timing and geometry.
+        img.setBufferMetadataFrom(frame_msg)
+        img.setTransformation(frame_msg.getTransformation())
 
         self.out.send(img)
