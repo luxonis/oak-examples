@@ -1,7 +1,7 @@
 import depthai as dai
 import numpy as np
-from skimage.metrics import structural_similarity as ssim
 from depthai_nodes.utils import AnnotationHelper
+from skimage.metrics import structural_similarity as ssim
 
 
 class SSIM(dai.node.HostNode):
@@ -22,50 +22,42 @@ class SSIM(dai.node.HostNode):
                 dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
             ]
         )
-        self.max_generated_disparity = None
-        self.max_calculated_disparity = None
-
-    def setMaxGenDisparity(self, max_generated_disparity):
-        self.max_generated_disparity = max_generated_disparity
-
-    def setMaxCalDisparity(self, max_calculated_disparity):
-        self.max_calculated_disparity = max_calculated_disparity
+        self.generated_scale = 8
+        self.calculated_scale = 16
+        self.max_disparity_pixels = 96
 
     def build(
-        self, disp_generated: dai.Node.Output, disp_calculated: dai.Node.Output
+        self,
+        disp_generated: dai.Node.Output,
+        disp_calculated: dai.Node.Output,
+        generated_scale: int,
     ) -> "SSIM":
         self.link_args(disp_generated, disp_calculated)
+        self.generated_scale = generated_scale
         self.sendProcessingToPipeline(False)
         return self
 
     def process(self, disp_generated: dai.ImgFrame, disp_calculated: dai.ImgFrame):
-        if self.max_generated_disparity is None:
-            print("Warning: max_generated_disparity not set in SSIM node.")
+        if disp_generated.getSequenceNum() != disp_calculated.getSequenceNum():
             return
-        if self.max_calculated_disparity is None:
-            print("Warning: max_calculated_disparity not set in SSIM node.")
-            return
-
-        disp1_subpixel = np.array(disp_generated.getFrame()).astype(np.float32)
-        disp1 = disp1_subpixel
-
-        disp2_subpixel = np.array(disp_calculated.getFrame()).astype(np.float32)
-        disp2 = disp2_subpixel
-
-        max_disp1 = self.max_generated_disparity
-        max_disp2 = self.max_calculated_disparity
-
-        disp1_normalized = disp1 / max_disp1
-        disp2_normalized = disp2 / max_disp2
+        # Both matchers use horizontal pixel disparity, with different fixed-point scales.
+        disp1_normalized = (
+            np.asarray(disp_generated.getFrame(), dtype=np.float32)
+            / self.generated_scale
+        )
+        disp2_normalized = (
+            np.asarray(disp_calculated.getFrame(), dtype=np.float32)
+            / self.calculated_scale
+        )
 
         # Note: SSIM calculation is quite slow.
         ssim_noise = ssim(
-            disp1_normalized, disp2_normalized, data_range=1.0, multichannel=False
+            disp1_normalized, disp2_normalized, data_range=self.max_disparity_pixels
         )
         annotation_helper = AnnotationHelper()
 
         annotation_helper.draw_text(
-            text=f"SSIM between generated and calculated depth frame: {ssim_noise:.4f}",
+            text=f"SSIM between device and host disparity: {ssim_noise:.4f}",
             position=(0.02, 0.05),
             color=(0, 0, 0, 1),
             background_color=(1, 1, 1, 0.7),

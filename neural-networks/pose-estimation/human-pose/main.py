@@ -4,7 +4,6 @@ import depthai as dai
 from depthai_nodes.node import (
     ParsingNeuralNetwork,
     GatherData,
-    ImgDetectionsFilter,
     FrameCropper,
 )
 from depthai.beta.node import HRNetParser
@@ -68,10 +67,9 @@ with dai.Pipeline(device) as pipeline:
     valid_labels = [
         det_model_nn_archive.getConfig().model.heads[0].metadata.classes.index("person")
     ]
-    detections_filter = pipeline.create(ImgDetectionsFilter).build(det_nn.out)
-    detections_filter.keepLabels(
-        valid_labels
-    )  # we only want to work with person detections
+    detections_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+    detections_filter.initialConfig.labelsToKeep = valid_labels
+    det_nn.out.link(detections_filter.inputs["detections"])
 
     crop_node = (
         pipeline.create(FrameCropper)

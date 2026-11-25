@@ -8,6 +8,9 @@ class CuboidFitter:
     """
     A class to fit a 3D cuboid to a point cloud.
 
+    Distances and the returned dimensions are in the units of the input point cloud
+    (centimeters, as produced by the PointCloud node in this example).
+
     This class takes a point cloud as input and fits a cuboid to it by finding
     three orthogonal planes. It can then calculate the dimensions and corners
     of the fitted cuboid.
@@ -15,20 +18,20 @@ class CuboidFitter:
 
     def __init__(
         self,
-        distance_threshold: float = 10,
+        distance_threshold: float = 1.0,
         sample_points: int = 3,
         max_iterations: int = 500,
-        voxel_size: float = 10,
+        voxel_size: float = 1.0,
         max_attempts: int = 20,
     ):
         """
         Initializes the CuboidFitter.
 
         Args:
-            distance_threshold (float, optional): The maximum distance a point can be from a plane to be considered an inlier. Defaults to 10.
+            distance_threshold (float, optional): The maximum distance (in point-cloud units, cm here) a point can be from a plane to be considered an inlier. Defaults to 1.0.
             sample_points (int, optional): The number of points to sample when fitting a plane. Defaults to 3.
             max_iterations (int, optional): The maximum number of iterations for the RANSAC algorithm. Defaults to 500.
-            voxel_size (float, optional): The size of the voxels for downsampling the point cloud. Defaults to 10.
+            voxel_size (float, optional): The size of the voxels (in point-cloud units, cm here) for downsampling the point cloud. Defaults to 1.0.
             max_attempts (int, optional): The maximum number of attempts to fit orthogonal planes. Defaults to 20.
         """
         self.distance_threshold: float = distance_threshold
@@ -301,9 +304,10 @@ class CuboidFitter:
                 self.planes.append(plane_eq)
                 points = self.point_cloud.select_by_index(inliers)
                 self.plane_points.append(points)
-                self.point_cloud = self.point_cloud.select_by_index(
-                    inliers, invert=True
-                )
+
+            # Also remove rejected planes from the search cloud. Otherwise a
+            # remaining patch parallel to an accepted face wins every retry.
+            self.point_cloud = self.point_cloud.select_by_index(inliers, invert=True)
 
         return len(self.planes) == 3
 
@@ -361,7 +365,6 @@ class CuboidFitter:
         dimensions = np.array(
             [
                 self.distance_between_planes(self.planes[i], translated_planes[i])
-                / 10.0
                 for i in range(len(self.planes))
                 if self.distance_between_planes(self.planes[i], translated_planes[i])
                 is not None

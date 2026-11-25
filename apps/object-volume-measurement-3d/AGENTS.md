@@ -39,7 +39,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - [backend/src/utils/annotation_node.py](backend/src/utils/annotation_node.py): selection, segmentation, and overlay logic
 - [backend/src/utils/measurement_node.py](backend/src/utils/measurement_node.py): measurement backend
 - [backend/src/utils/PointCloudMeasurement.py](backend/src/utils/PointCloudMeasurement.py): pointcloud measurement helpers
-- [backend/src/utils/helper_functions.py](backend/src/utils/helper_functions.py): text embeddings and intrinsics helpers
+- [backend/src/utils/helper_functions.py](backend/src/utils/helper_functions.py): text embedding helpers
 - [backend/src/utils/arguments.py](backend/src/utils/arguments.py): CLI arguments
 - [frontend/src/App.tsx](frontend/src/App.tsx): combined stream and control layout
 - [frontend/src/ClickOverlay.tsx](frontend/src/ClickOverlay.tsx): click-to-select behavior
@@ -51,9 +51,10 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - RGB from `CAM_A` is resized and aligned with depth from `dai.node.Depth`.
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
-- Detection filtering keeps only the currently active class labels.
+- Detection filtering applies the active classes and frontend confidence threshold. Runtime config updates must preserve both settings.
 - The annotation node handles segmentation, selection, and display overlays.
-- An `RGBD` node creates pointcloud output for the segmented region.
+- A `PointCloud` node (organized mode, `setLengthUnit(CENTIMETER)`) creates colored pointcloud output for the segmented region from the masked depth and RGB frames, so the measurement code works in centimeters end to end with no unit conversion.
+- The point cloud explicitly targets `CAM_A` coordinates; the measurement overlay projects box corners with the cloud's own frame transformation, so no separate intrinsics are read.
 - The measurement node estimates dimensions and volume, either by oriented bounding box or height-grid over a captured support plane.
 - The frontend controls selection, classes, threshold, and measurement method through services.
 
@@ -61,13 +62,13 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - `RGB + text embeddings -> ParsingNeuralNetwork -> filtered detections`
 - `RGB + aligned depth + detections -> annotation node -> Detections`
-- `segmented RGB + segmented depth -> RGBD -> Pointclouds`
+- `segmented depth + segmented RGB -> PointCloud -> Pointclouds`
 - `Pointclouds + selection + IMU -> measurement node -> Measurement Overlay + Plane Status`
 
 ## Modification Guide
 
 - `Safe to change:` initial classes, confidence threshold, frontend labels, measurement mode defaults, topic names
-- `Requires care:` text-embedding updates, selection reset behavior, stereo alignment, plane-capture logic, intrinsics assumptions
+- `Requires care:` text-embedding updates, selection reset behavior, stereo alignment, plane-capture logic, intrinsics assumptions, the point-cloud length unit (all thresholds in [backend/src/utils/PointCloudMeasurement.py](backend/src/utils/PointCloudMeasurement.py) are in centimeters)
 - `Likely to break if changed blindly:` measurement method switching, pointcloud selection pipeline, or the label-encoding contract between backend and frontend
 
 ## Common Adaptations
@@ -75,13 +76,15 @@ This is the strongest standalone reference for interactive 3D object measurement
 - `To change the default classes:` edit `CLASS_NAMES` in [backend/src/main.py](backend/src/main.py)
 - `To change confidence behavior:` edit the parser threshold and [frontend/src/ConfidenceSlider.tsx](frontend/src/ConfidenceSlider.tsx)
 - `To reuse the pointcloud measurement backend:` keep [backend/src/utils/measurement_node.py](backend/src/utils/measurement_node.py) and feed it another segmented pointcloud source
-- `To study a lighter RGBD reference:` compare against [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud)
+- `To study a lighter point-cloud reference:` compare against [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud)
 
 ## Constraints
 
+- Selection masks and aligned depth must share the undistorted RGB pixel grid.
 - This example is intentionally RVC4 standalone only.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
+- Projection uses each native PointCloud cloud’s `ImgTransformation.project3DPoint` and image dimensions, including alignment and undistortion. Cloud coordinates are centimeters in the `CAM_A` optical frame (+X right, +Y down, +Z forward); dimensions/volume are reported in cm/cm³.
 - [backend/src/utils/arguments.py](backend/src/utils/arguments.py) parses `--ip` and `--port`, but the current backend runtime does not use those values.
 
 ## Non-Obvious Repo Conventions
@@ -94,12 +97,13 @@ This is the strongest standalone reference for interactive 3D object measurement
 ## Related Examples
 
 - [apps/p2p-measurement](https://github.com/luxonis/oak-examples/tree/main/apps/p2p-measurement): use this when you only need two-point distance measurement
-- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need a cleaner RGBD pointcloud reference
+- [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud): use this when you need a cleaner `PointCloud` reference
 - [apps/data-collection](https://github.com/luxonis/oak-examples/tree/main/apps/data-collection): use this when the main frontend pattern is interactive class control rather than 3D measurement
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when host-side spatial measurement is enough
 
 ## Validation
 
+- `Hardware check:` Check fitted dimensions against an object of known size at the image center and edges.
 - `Run:` `oakctl app run .`
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose

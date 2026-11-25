@@ -1,5 +1,6 @@
 import logging
 import signal
+from datetime import timedelta
 
 import depthai as dai
 
@@ -11,7 +12,6 @@ from depthai_nodes.node import (
     ExtendedNeuralNetwork,
     FrameCropper,
     GatherData,
-    CoordinatesMapper,
     ParsingNeuralNetwork,
     Tiling,
 )
@@ -35,7 +35,6 @@ signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 _, args = initialize_argparser()
 
 logger.error("Starting")
-frame_type = dai.ImgFrame.Type.BGR888i
 HIGH_RES_WIDTH, HIGH_RES_HEIGHT = 2000, 2000
 LOW_RES_WIDTH, LOW_RES_HEIGHT = 640, 640
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -92,10 +91,7 @@ with dai.Pipeline(device) as pipeline:
         preview_stream=switch_naive.rgb,
         det_stream=switch_naive.has_detections,
         out_size=(320, 320),
-        frame_type=frame_type,
         padding=0.02,
-        pool_size=5,
-        cfg_queue_size=5,
     )
     black_image_generator_naive = host_nodes.BlackFrame().build(
         switch_naive.no_detections
@@ -124,6 +120,7 @@ with dai.Pipeline(device) as pipeline:
         input=frame_cropper.out,
         nnSource=FACE_DETECTION_MODEL,
     )
+    face_det_nn.input.setBlocking(True)
     frame_cropper.fromImgDetections(
         inputImgDetections=largest_people_detection_cropped.out,
         outputSize=face_det_nn._nn_archive.getInputSize(),
@@ -131,18 +128,22 @@ with dai.Pipeline(device) as pipeline:
     ).build(
         inputImage=rgb_high_res_out,
     )
+    face_det_coordinates_mapper = pipeline.create(dai.node.Align)
+    face_det_coordinates_mapper.input.setBlocking(True)
+    face_det_coordinates_mapper.inputAlignTo.setWaitForMessage(False)
+    face_det_nn.out.link(face_det_coordinates_mapper.input)
+    rgb_high_res_out.link(face_det_coordinates_mapper.inputAlignTo)
     face_det_collector = pipeline.create(GatherData).build(
-        inputData=face_det_nn.out,
+        inputData=face_det_coordinates_mapper.outputAligned,
         inputReference=largest_people_detection_cropped.out,
         cameraFps=args.fps_limit,
-    )
-    face_det_coordinates_mapper = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=rgb_high_res_out,
-        fromTransformationInput=face_det_collector.out,
+        timeout=timedelta(seconds=5 / args.fps_limit),
+        maxPendingFrames=64,
+        preserveOrder=True,
     )
     face_detection_2_stage = pipeline.create(
         host_nodes.FaceDetectionFromCollection
-    ).build(node_out=face_det_coordinates_mapper.out)
+    ).build(node_out=face_det_collector.out)
     switch_2_stage = host_nodes.Switch().build(
         face_detection_2_stage.out, rgb_high_res_out
     )
@@ -151,10 +152,7 @@ with dai.Pipeline(device) as pipeline:
         preview_stream=switch_2_stage.rgb,
         det_stream=switch_2_stage.has_detections,
         out_size=(320, 320),
-        frame_type=frame_type,
         padding=0.02,
-        pool_size=7,
-        cfg_queue_size=5,
     )
     black_image_generator_2_stage = host_nodes.BlackFrame().build(
         switch_2_stage.no_detections
@@ -189,19 +187,24 @@ with dai.Pipeline(device) as pipeline:
         input=frame_cropper_tiling.out,
         nnSource=nn_source,
     )
+    face_detection_nn_tiling.input.setBlocking(True)
+    face_detection_tiling_remapper = pipeline.create(dai.node.Align)
+    face_detection_tiling_remapper.input.setBlocking(True)
+    face_detection_tiling_remapper.inputAlignTo.setWaitForMessage(False)
+    face_detection_nn_tiling.out.link(face_detection_tiling_remapper.input)
+    rgb_high_res_out.link(face_detection_tiling_remapper.inputAlignTo)
     face_detection_tiling_collector = pipeline.create(GatherData).build(
-        inputData=face_detection_nn_tiling.out,
+        inputData=face_detection_tiling_remapper.outputAligned,
         inputReference=rgb_high_res_out,
         cameraFps=args.fps_limit,
         waitCountFn=lambda _: tiling.tileCount,
-    )
-    face_detection_tiling_remapper = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=rgb_high_res_out,
-        fromTransformationInput=face_detection_tiling_collector.out,
+        timeout=timedelta(seconds=5 / args.fps_limit),
+        maxPendingFrames=64,
+        preserveOrder=True,
     )
     face_detections_tiling_merged = pipeline.create(
         host_nodes.MergeImgDetections
-    ).build(collection_out=face_detection_tiling_remapper.out)
+    ).build(collection_out=face_detection_tiling_collector.out)
     face_detection_tiling_filter = (
         pipeline.create(ImgDetectionsFilter)
         .minConfidence(
@@ -225,10 +228,7 @@ with dai.Pipeline(device) as pipeline:
         preview_stream=switch_tiling.rgb,
         det_stream=switch_tiling.has_detections,
         out_size=(320, 320),
-        frame_type=frame_type,
         padding=0.02,
-        pool_size=5,
-        cfg_queue_size=5,
     )
     black_image_generator_tiling = host_nodes.BlackFrame().build(
         switch_tiling.no_detections

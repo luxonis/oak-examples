@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 import depthai as dai
 
-from depthai_nodes.node import ParsingNeuralNetwork, GatherData
+from depthai_nodes.node import GatherData, ParsingNeuralNetwork
 
 
 class SecondStageNNNode(dai.node.ThreadedHostNode):
@@ -54,11 +56,16 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
         image_source.link(self._img_manip.inputImage)
 
         self._nn.build(self._img_manip.out, archive)
+        # Keep every face crop for reference matching.
+        self._nn.input.setBlocking(True)
 
         self._gather.build(
             cameraFps=camera_fps,
             inputData=self._nn.outputs if self._multi_head_nn else self._nn.out,
             inputReference=reference_detections,
+            timeout=timedelta(seconds=5 / camera_fps),
+            maxPendingFrames=64,
+            preserveOrder=True,
         )
 
         return self

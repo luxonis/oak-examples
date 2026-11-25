@@ -36,9 +36,9 @@ DEPTHAI_PIPELINE_DEBUGGING = "1"
 GGML_HEXAGON_PROFILE = "0" # Enable only for kernel profiling.
 
 [base_image]
-api_url = "https://registry-1.docker.io"
-service = "registry.docker.io"
-oauth_url = "https://auth.docker.io/token"
+api_url = "https://quay.io"
+service = "quay.io"
+oauth_url = "https://quay.io/v2/auth"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"

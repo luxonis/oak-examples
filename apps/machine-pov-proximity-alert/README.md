@@ -6,10 +6,6 @@ The example uses person instance segmentation, native object tracking, automatic
 
 > **Note:** This example runs on an RVC4 device in standalone mode and requires RGB, stereo, and IMU sensors. It is an example of visual alerting, not a certified safety system.
 
-## Demo
-
-> **TODO:** Record `media/demo.gif` from a camera mounted on a machine, showing a person entering the warning and danger areas in the live annotations. Embed it here with `![](media/demo.gif)`.
-
 ## Architecture
 
 ```mermaid
