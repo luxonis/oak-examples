@@ -99,10 +99,6 @@ KNOWN_FAILING = {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },
-    "tutorials/multiple-devices/multi-device-panorama": {
-        "reason": "Test suite doesn't support multi-device testing",
-        "rules": {"and": [{"platform": "all"}]},
-    },
     "tutorials/multiple-devices/multi-device-point-cloud": {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},

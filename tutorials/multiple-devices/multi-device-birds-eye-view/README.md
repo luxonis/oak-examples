@@ -1,13 +1,12 @@
 # Multi device bird's-eye view
 
-This example calibrates two or more OAK devices, finds the ground in their merged point cloud and projects the left stereo camera of every device onto it with the `Stitching` node. The result is a metric top-down view of the floor composed from every device.
+This example calibrates two or more OAK devices, finds the ground with the depthai-nodes `AutoSupportPlane` node and projects the left stereo camera of every device onto it with the `Stitching` node. The result is a metric top-down view of the floor composed from every device.
 
 How it works:
 
 1. **Calibration**: the `MultiDeviceCalibration` node estimates the pose of every device relative to one origin device (first run only).
-2. **Merged point cloud**: a first pipeline runs a `Depth` node on every device and one host `PointCloud` node that merges them in the common calibration origin.
-3. **Ground plane**: a RANSAC fit in [utils/plane.py](utils/plane.py) finds the largest roughly horizontal plane in that cloud.
-4. **Planar projection**: a second pipeline sends an undistorted `CAM_B` frame at the sensor's native size from every device to one host `Stitching` node in `PLANAR_PROJECTION` mode; `setPlane` receives the fitted plane, which is expressed in the same origin frame as the camera transformations.
+2. **Ground plane**: a first pipeline runs `StereoDepth`, a `PointCloud` in the calibration origin camera and the `IMU` on the origin device. The [`AutoSupportPlane`](https://github.com/luxonis/depthai-nodes/tree/main/depthai_nodes/node/support_plane_calibrator) node from depthai-nodes (a wrapper of `SupportPlaneCalibrator`) fits planes to that cloud and keeps the ones perpendicular to the measured gravity.
+3. **Planar projection**: a second pipeline sends an undistorted `CAM_B` frame at the sensor's native size from every device to one host `Stitching` node in `PLANAR_PROJECTION` mode; `setPlane` receives the fitted plane, which is expressed in the same origin frame as the camera transformations.
 
 Only the ground is correct in the result. Everything that rises above the floor, such as people or furniture, is smeared away from the cameras.
 
@@ -16,15 +15,15 @@ Only the ground is correct in the result. Everything that rises above the floor,
 The terminal reports the fitted plane before the second pipeline starts:
 
 ```
-Fitting the ground plane to the merged point cloud...
-Ground plane: 37% of the points, origin camera 0.88 m above it, normal [0.02, -1.00, -0.02]
+Searching for the ground plane...
+Ground plane: origin camera 0.88 m above it, normal [0.02, -1.00, -0.02]
 ```
 
 The Visualizer then shows a preview of every device and the `Birds-eye view` topic.
 
 The view is grayscale because `CAM_B` is a monochrome stereo camera on most devices. The projection input has to be at the sensor's native size: on depthai 3.12 the node rejects most of a resized camera output, and the native size of a color `CAM_A` is too large to stream.
 
-The devices must see the floor and be mounted roughly upright: the ground is searched among planes within 45° of the vertical axis of the origin camera.
+The origin device must have an IMU and see the floor. The ground is checked against gravity, so the cameras can be tilted at any angle.
 
 ## Usage
 
@@ -68,6 +67,7 @@ You can find more information about the supported devices and the set up instruc
 Moreover, you need to prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/)
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/) with the `box-measurement` extra (installs open3d)
 
 You can simply install them by running:
 

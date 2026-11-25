@@ -1,71 +1,99 @@
-"""Calibrate several OAK devices, fit the ground plane to their merged point cloud and
-project all cameras onto that plane with the Stitching node (bird's-eye view)."""
+"""Calibrate several OAK devices, find the ground plane with the AutoSupportPlane node
+and project all cameras onto that plane with the Stitching node (bird's-eye view)."""
 
 from datetime import timedelta
 
 import depthai as dai
 import numpy as np
+from depthai_nodes.node import (
+    AutoSupportPlane,
+    AutoSupportPlaneConfig,
+    PlaneCalibrationConfig,
+)
 
 from utils.arguments import initialize_argparser
 from utils.calibration import check_calibrated, load_or_calibrate, select_devices
-from utils.plane import fit_ground_plane
 
 HTTP_PORT = 8082
 DEPTH_SIZE = (640, 400)
 SOCKET = dai.CameraBoardSocket.CAM_B  # Left stereo camera, projected onto the ground
 MAX_VIEW_SIZE = (1280, 1280)
-WARMUP_CLOUDS = 10  # First clouds are skipped while exposure and depth settle
-PLANE_CLOUDS = 3  # Merged point clouds accumulated for the plane fit
+MAX_PLANE_CLOUDS = 50  # Point clouds fitted before the ground search gives up
 
 
-def estimate_ground_plane(device_infos, calibration, fps, max_range):
-    """Merge the depth of all devices into one point cloud and fit the ground plane to it."""
+def find_origin(calibration):
+    """Return the device ID and camera socket of the common calibration origin."""
+    device_id = calibration.getGraph()[0].fromDeviceId
+    to_origin = calibration.getExtrinsicsToOrigin(
+        device_id, calibration.getDeviceSocket(device_id)
+    )
+    origin_id = to_origin.toDeviceId
+    return origin_id, calibration.getDeviceSocket(origin_id)
+
+
+def estimate_ground_plane(device_infos, origin_id, origin_socket, fps):
+    """Find the ground in the origin device's point cloud, checked against its IMU gravity.
+
+    The cloud is expressed in the origin camera, the frame the Stitching plane uses.
+    """
     with dai.Pipeline(createImplicitDevice=False) as pipeline:
-        pipeline.setMultiDeviceCalibration(calibration.getGraph())
-
-        # One host PointCloud node merges the depth of every device. The cloud is
-        # expressed in the common calibration origin, the frame the Stitching plane uses.
-        point_cloud = pipeline.create(dai.node.PointCloud)
-        point_cloud.initialConfig.setLengthUnit(dai.LengthUnit.METER)
-        point_cloud.sync.setSyncThreshold(timedelta(seconds=1 / fps))
-
+        # A DeviceInfo given by IP has no device ID yet, so connect until the origin is found.
         for info in device_infos:
             device = pipeline.addDevice(info)
-            check_calibrated(calibration, device.getDeviceId())
-            depth = pipeline.create(dai.node.Depth, device).build(
-                dai.node.Depth.Algorithm.AUTO, fps, DEPTH_SIZE
-            )
-            depth.depth.link(point_cloud.getDepthInput(device.getDeviceId()))
+            if device.getDeviceId() == origin_id:
+                break
+        else:
+            raise RuntimeError(f"Calibration origin device {origin_id} is not selected")
 
-        queue = point_cloud.outputPointCloud.createOutputQueue(
-            maxSize=2, blocking=False
+        # The calibrator needs an organized cloud of a known size; the Depth node picks
+        # its own size per device, so StereoDepth runs without decimation instead.
+        stereo = pipeline.create(dai.node.StereoDepth, device).build(
+            autoCreateCameras=True, size=DEPTH_SIZE, fps=fps
         )
+        stereo.initialConfig.postProcessing.decimationFilter.decimationFactor = 1
+        point_cloud = pipeline.create(dai.node.PointCloud)
+        point_cloud.initialConfig.setOrganized(True)
+        point_cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
+        point_cloud.setTargetCoordinateSystem(origin_socket)
+        stereo.depth.link(point_cloud.inputDepth)
+
+        imu = pipeline.create(dai.node.IMU, device)
+        imu.enableIMUSensor(dai.IMUSensor.ACCELEROMETER_RAW, 100)
+        imu.setBatchReportThreshold(10)
+        imu.setMaxBatchReports(10)
+
+        support_plane = pipeline.create(AutoSupportPlane).build(
+            point_cloud.outputPointCloud,
+            imu.out,
+            DEPTH_SIZE,
+            AutoSupportPlaneConfig(
+                calibration=PlaneCalibrationConfig(
+                    max_calibration_attempts=MAX_PLANE_CLOUDS
+                )
+            ),
+        )
+        results = support_plane.out.createOutputQueue()
         pipeline.start()
-        print("Fitting the ground plane to the merged point cloud...")
+        print("Searching for the ground plane...")
+        result = results.get(timedelta(seconds=60))
 
-        clouds = []
-        for index in range(WARMUP_CLOUDS + PLANE_CLOUDS):
-            message = queue.get(timedelta(seconds=30))
-            if message is None:
-                raise RuntimeError("No merged point cloud received")
-            if index >= WARMUP_CLOUDS:
-                clouds.append(np.asarray(message.getPoints(), dtype=np.float64))
-
-    points = np.concatenate(clouds)
-    # Far depth is noisy and is not drawn anyway.
-    points = points[np.linalg.norm(points, axis=1) < max_range]
-    plane = fit_ground_plane(points)
-    if plane is None:
+    if result is None:
         raise RuntimeError(
-            "No ground plane found. The cameras must see the floor and be mounted roughly upright."
+            "No ground plane result. Check that the origin device has a working IMU."
         )
-    point, normal, inlier_ratio = plane
+    if not result.passed:
+        raise RuntimeError(
+            "No ground plane found. The origin device must see the floor."
+        )
+    down = np.asarray(result.plane.normal)
+    height = -result.plane.offset_mm / 1000
+    up = -down
     print(
-        f"Ground plane: {100 * inlier_ratio:.0f}% of the points, "
-        f"origin camera {abs(normal @ point):.2f} m above it, "
-        f"normal [{normal[0]:.2f}, {normal[1]:.2f}, {normal[2]:.2f}]"
+        f"Ground plane: origin camera {height:.2f} m above it, "
+        f"normal [{up[0]:.2f}, {up[1]:.2f}, {up[2]:.2f}]"
     )
-    return point, normal
+    # The point on the floor right below the camera and the normal pointing up to it.
+    return height * down, up
 
 
 def main():
@@ -76,8 +104,9 @@ def main():
         return
 
     calibration = load_or_calibrate(args, device_infos)
+    origin_id, origin_socket = find_origin(calibration)
     point, normal = estimate_ground_plane(
-        device_infos, calibration, args.fps_limit, args.max_range
+        device_infos, origin_id, origin_socket, args.fps_limit
     )
 
     # One pipeline spans all devices; every node is created on the device it runs on.

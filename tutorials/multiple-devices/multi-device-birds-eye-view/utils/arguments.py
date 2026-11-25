@@ -9,7 +9,7 @@ def initialize_argparser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    parser.description = "Calibrate multiple OAK devices, fit the ground plane to their merged point cloud and project the cameras onto it."
+    parser.description = "Calibrate multiple OAK devices, find the ground plane and project the cameras onto it."
 
     parser.add_argument(
         "-d",
