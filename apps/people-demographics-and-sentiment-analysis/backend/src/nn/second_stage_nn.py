@@ -1,8 +1,8 @@
+from datetime import timedelta
+
 import depthai as dai
 
-from depthai_nodes.node import ParsingNeuralNetwork
-
-from gather_crops import GatherCrops
+from depthai_nodes.node import GatherData, ParsingNeuralNetwork
 
 
 class SecondStageNNNode(dai.node.ThreadedHostNode):
@@ -12,7 +12,7 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
     Receives detection crops from the first stage and runs them through:
         -> ImageManip (resize to NN input resolution);
         -> ParsingNeuralNetwork (run the model);
-        -> GatherCrops (synchronize NN outputs with the correct reference detections).
+        -> GatherData (synchronize NN outputs with the correct reference detections).
 
     Exposes:
       - synced_out: NN outputs aligned with reference detections (for PeopleJoinNode)
@@ -29,7 +29,7 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
 
         self._img_manip: dai.node.ImageManip = self.createSubnode(dai.node.ImageManip)
         self._nn: ParsingNeuralNetwork = self.createSubnode(ParsingNeuralNetwork)
-        self._gather: GatherCrops = self.createSubnode(GatherCrops)
+        self._gather: GatherData = self.createSubnode(GatherData)
 
         self.synced_out: dai.Node.Output = self._gather.out
 
@@ -43,7 +43,7 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
         """
         @param image_source: Source RGB frames.
         @param archive: NN archive providing the model and input resolution.
-        @param reference_detections: Detections from the first-stage NN model, used by GatherCrops to sync
+        @param reference_detections: Detections from the first-stage NN model, used by GatherData to sync
                                      NN outputs to the correct detections.
         @param camera_fps: Camera FPS.
         """
@@ -63,6 +63,9 @@ class SecondStageNNNode(dai.node.ThreadedHostNode):
             cameraFps=camera_fps,
             inputData=self._nn.outputs if self._multi_head_nn else self._nn.out,
             inputReference=reference_detections,
+            timeout=timedelta(seconds=5 / camera_fps),
+            maxPendingFrames=64,
+            preserveOrder=True,
         )
 
         return self

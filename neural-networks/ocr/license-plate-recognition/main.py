@@ -1,12 +1,12 @@
+from datetime import timedelta
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import FrameCropper, ParsingNeuralNetwork
+from depthai_nodes.node import FrameCropper, GatherData, ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
 from utils.visualizer_node import VisualizeLicensePlates
 from utils.crop_regions import PlateRegions, VehicleRegions
-from utils.gather_crops import GatherCrops
 from utils.ocr_crops import OcrCrops
 
 REQ_WIDTH, REQ_HEIGHT = (
@@ -108,10 +108,13 @@ with dai.Pipeline(device) as pipeline:
     )
     # Keep every vehicle crop for frame-level gathering.
     lp_det_nn.input.setBlocking(True)
-    vehicle_plates = pipeline.create(GatherCrops).build(
+    vehicle_plates = pipeline.create(GatherData).build(
         cameraFps=args.fps_limit,
         inputData=lp_det_nn.out,
         inputReference=vehicles.reference,
+        timeout=timedelta(seconds=5 / args.fps_limit),
+        maxPendingFrames=64,
+        preserveOrder=True,
     )
     plates = pipeline.create(PlateRegions).build(
         vehicle_plates.out, (REQ_WIDTH, REQ_HEIGHT)
@@ -179,10 +182,13 @@ with dai.Pipeline(device) as pipeline:
     display_resize_node.setMaxOutputFrameSize(1280 * 720 * 3)
     input_node_out.link(display_resize_node.inputImage)
 
-    recognized_plates = pipeline.create(GatherCrops).build(
+    recognized_plates = pipeline.create(GatherData).build(
         cameraFps=args.fps_limit,
         inputData=ocr_crops.out,
         inputReference=plates.reference,
+        timeout=timedelta(seconds=5 / args.fps_limit),
+        maxPendingFrames=64,
+        preserveOrder=True,
     )
     visualizer_node = pipeline.create(VisualizeLicensePlates).build(
         display_resize_node.out, recognized_plates.out

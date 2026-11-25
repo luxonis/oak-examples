@@ -1,16 +1,17 @@
 import logging
 import signal
+from datetime import timedelta
 
 import depthai as dai
 
 import host_nodes
 import pipeline_builders
 from arguments import initialize_argparser
-from gather_crops import GatherCrops
 from depthai_nodes.node import (
     ImgDetectionsFilter,
     ExtendedNeuralNetwork,
     FrameCropper,
+    GatherData,
     ParsingNeuralNetwork,
     Tiling,
 )
@@ -132,10 +133,13 @@ with dai.Pipeline(device) as pipeline:
     face_det_coordinates_mapper.inputAlignTo.setWaitForMessage(False)
     face_det_nn.out.link(face_det_coordinates_mapper.input)
     rgb_high_res_out.link(face_det_coordinates_mapper.inputAlignTo)
-    face_det_collector = pipeline.create(GatherCrops).build(
+    face_det_collector = pipeline.create(GatherData).build(
         inputData=face_det_coordinates_mapper.outputAligned,
         inputReference=largest_people_detection_cropped.out,
         cameraFps=args.fps_limit,
+        timeout=timedelta(seconds=5 / args.fps_limit),
+        maxPendingFrames=64,
+        preserveOrder=True,
     )
     face_detection_2_stage = pipeline.create(
         host_nodes.FaceDetectionFromCollection
@@ -189,11 +193,14 @@ with dai.Pipeline(device) as pipeline:
     face_detection_tiling_remapper.inputAlignTo.setWaitForMessage(False)
     face_detection_nn_tiling.out.link(face_detection_tiling_remapper.input)
     rgb_high_res_out.link(face_detection_tiling_remapper.inputAlignTo)
-    face_detection_tiling_collector = pipeline.create(GatherCrops).build(
+    face_detection_tiling_collector = pipeline.create(GatherData).build(
         inputData=face_detection_tiling_remapper.outputAligned,
         inputReference=rgb_high_res_out,
         cameraFps=args.fps_limit,
         waitCountFn=lambda _: tiling.tileCount,
+        timeout=timedelta(seconds=5 / args.fps_limit),
+        maxPendingFrames=64,
+        preserveOrder=True,
     )
     face_detections_tiling_merged = pipeline.create(
         host_nodes.MergeImgDetections

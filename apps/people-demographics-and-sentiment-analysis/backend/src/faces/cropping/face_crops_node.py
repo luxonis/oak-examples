@@ -1,7 +1,7 @@
-import depthai as dai
-from depthai_nodes.node import FrameCropper
+from datetime import timedelta
 
-from gather_crops import GatherCrops
+import depthai as dai
+from depthai_nodes.node import FrameCropper, GatherData
 
 
 class FaceCropsNode(dai.node.ThreadedHostNode):
@@ -10,7 +10,7 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
 
     preview + face detections
         -> FrameCropper (synchronized face crops)
-        -> GatherCrops (sync crops with reference detections)
+        -> GatherData (sync crops with reference detections)
 
     Exposes:
       - out: Face crops for second-stage NNs
@@ -28,7 +28,7 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
         self._resize_mode = resize_mode
 
         self._cropper: FrameCropper = self.createSubnode(FrameCropper)
-        self._gather: GatherCrops = self.createSubnode(GatherCrops)
+        self._gather: GatherData = self.createSubnode(GatherData)
 
         self.out: dai.Node.Output = self._cropper.out
         self.synced_out: dai.Node.Output = self._gather.out
@@ -41,12 +41,12 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
         face_reference_detections: dai.Node.Output,
     ) -> "FaceCropsNode":
         """
-        @param camera_fps: The frames per second (FPS) of the camera, used by GatherCrops.
+        @param camera_fps: The frames per second (FPS) of the camera, used by GatherData.
         @param preview_source: Node output that produces RGB/preview frames (dai.ImgFrame).
         @param detections_source: Node output that produces face detections (ImgDetections)
                                   used to define crop ROIs.
         @param face_reference_detections: Node output that produces face detections (dai.ImgDetections)
-                                          used as reference for synchronization in GatherCrops.
+                                          used as reference for synchronization in GatherData.
         """
         self._cropper.fromImgDetections(
             inputImgDetections=detections_source,
@@ -59,6 +59,9 @@ class FaceCropsNode(dai.node.ThreadedHostNode):
             cameraFps=camera_fps,
             inputData=self._cropper.out,
             inputReference=face_reference_detections,
+            timeout=timedelta(seconds=5 / camera_fps),
+            maxPendingFrames=64,
+            preserveOrder=True,
         )
 
         return self
