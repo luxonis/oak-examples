@@ -1,5 +1,7 @@
 import base64
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from functools import cached_property
 
 import cv2
 import depthai as dai
@@ -16,10 +18,29 @@ class SceneFrame:
     color: dai.ImgFrame
     left: dai.ImgFrame
     right: dai.ImgFrame
-    image: np.ndarray
+    depth: dai.ImgFrame
     points: np.ndarray
     projection: CameraProjection
     generation: int
+    captured_at: str = ""
+    axial_correction: dict | None = None
+
+    @cached_property
+    def image(self):
+        data = self.color.getData()
+        width, height = self.color.getWidth(), self.color.getHeight()
+        stride = self.color.getStride()
+        luminance = np.ndarray(
+            (height, width), np.uint8, buffer=data, strides=(stride, 1)
+        )
+        chroma = np.ndarray(
+            (height // 2, width // 2, 2),
+            np.uint8,
+            buffer=data,
+            offset=self.color.getPlaneStride(),
+            strides=(stride, 2, 1),
+        )
+        return cv2.cvtColorTwoPlane(luminance, chroma, cv2.COLOR_YUV2BGR_NV12)
 
     @property
     def sequence(self):
@@ -50,24 +71,42 @@ def read_scene(group, generation):
             "The cloud and images do not share a calibrated reference frame."
         )
     depth = group["depth"]
+    correction = group["axialCorrection"]
+    if any(
+        message.getSequenceNum() != depth.getSequenceNum()
+        or message.getTimestamp() != depth.getTimestamp()
+        or message.getTimestampDevice() != depth.getTimestampDevice()
+        for message in (cloud, correction.frame)
+    ):
+        raise RuntimeError(
+            "Corrected depth, point cloud, and provenance must identify one frame."
+        )
     if (depth.getWidth(), depth.getHeight()) != DEPTH_SIZE:
         raise RuntimeError(
-            f"NeuralDepth returned {(depth.getWidth(), depth.getHeight())}, expected {DEPTH_SIZE}."
+            f"RGB-aligned depth returned {(depth.getWidth(), depth.getHeight())}, expected {DEPTH_SIZE}."
         )
-    points = np.asarray(cloud.getPoints(), dtype=np.float32)
+    points = np.array(cloud.getPoints(), dtype=np.float32, copy=True)
     if points.shape != (DEPTH_SIZE[0] * DEPTH_SIZE[1], 3):
         raise RuntimeError(
             f"Expected an organized {DEPTH_SIZE} point cloud, received {points.shape}."
         )
+    values = depth.getFrame().reshape(-1)
+    invalid = (values == 0) | (values == 65535) | ~np.isfinite(points).all(axis=1)
+    points[invalid] = 0
+    filtered_cloud = stamp(dai.PointCloudData(), cloud)
+    filtered_cloud.setPoints(points)
+    filtered_cloud.setTransformation(cloud.getTransformation())
     return SceneFrame(
-        cloud,
-        color,
-        left,
-        right,
-        color.getCvFrame(),
-        points,
-        CameraProjection.from_frame(color),
-        generation,
+        cloud=filtered_cloud,
+        color=color,
+        left=left,
+        right=right,
+        depth=depth,
+        points=points,
+        projection=CameraProjection.from_frame(color),
+        generation=generation,
+        captured_at=datetime.now(timezone.utc).isoformat(),
+        axial_correction=correction.provenance.to_dict(),
     )
 
 
@@ -118,12 +157,7 @@ def annotated_image(image, parcels):
     scale = max(0.45, image.shape[1] / 1400)
     for parcel in parcels:
         x1, y1, x2, y2 = map(round, parcel["bbox"])
-        values = parcel["dimensions_mm"]
-        dimensions = (
-            " x ".join("?" if v is None else str(round(v)) for v in values) + " mm"
-            if values
-            else parcel["status"]
-        )
+        dimensions = dimension_label(parcel)
         cv2.rectangle(
             result, (x1, y1), (x2, y2), (130, 230, 60), max(2, round(scale * 2))
         )
@@ -174,22 +208,32 @@ def native_annotations(frame, parcels):
             ]
         )
         annotation.points.append(rectangle)
-        values = parcel["dimensions_mm"]
-        dimensions = (
-            " x ".join("?" if value is None else str(round(value)) for value in values)
-            + " mm"
-            if values
-            else parcel["status"]
-        )
+        dimensions = dimension_label(parcel)
         text = dai.TextAnnotation()
         text.position = dai.Point2f(
             float(x1 / width), float(max(0, y1 - 30) / height), True
         )
         text.text = f"ID {parcel['track_id']} | {dimensions}"
         text.textColor = color
+        background = dai.Color()
+        background.r, background.g, background.b, background.a = 0.03, 0.05, 0.07, 0.85
+        text.backgroundColor = background
         text.fontSize = 24
         annotation.texts.append(text)
     message.annotations = dai.VectorImgAnnotation([annotation])
     message.setBufferMetadataFrom(frame)
     message.setTransformation(frame.getTransformation())
     return message
+
+
+def dimension_label(parcel):
+    values = parcel["dimensions_mm"]
+    if not values:
+        return parcel["status"]
+    return (
+        " x ".join(
+            f"{name}: {'?' if value is None else round(value)}"
+            for name, value in zip(("L", "W", "H"), values)
+        )
+        + " mm"
+    )

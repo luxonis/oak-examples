@@ -1,8 +1,10 @@
 # Measure parcels with an OAK4
 
-This example shows RGB parcel boxes, temporary tracking IDs, and length × width × height in millimeters. The frontend starts support-plane calibration and lets you select a candidate surface.
+This example shows RGB parcel boxes labeled with tracking IDs and `L: value x W: value x H: value` in millimeters. The frontend starts support-plane calibration, lets you select a candidate surface, and retains the latest 20 saved object measurements.
 
 The app uses public `ParcelDetector`, `ParcelDimensioner`, and `SupportPlaneCalibrator` nodes from the pinned revision of [depthai-nodes PR 348](https://github.com/luxonis/depthai-nodes/pull/348). Capture defaults to 10 FPS with unrectified RGB at 2000 × 1500, unrectified left and right images at 1280 × 800, and NeuralDepth LARGE at 768 × 480.
+
+NeuralDepth feeds `ImageAlign`, which targets a separate undistorted 768 × 480 RGB branch. Public `ImageAlignDepthCorrection` then converts aligned source-camera Z values into RGB-camera Z before PointCloud generation. The raw detector images retain their original grids.
 
 ## Run as an OAK App
 
@@ -33,6 +35,22 @@ RGB reaches the frontend as H.264, with native annotations for boxes and labels.
 The frontend distinguishes capture FPS from measurement throughput. Capture defaults to 10 FPS. Detection and measurement use the CPU of the machine running the backend, including the OAK4 CPU in standalone mode. Their rate depends on the scene and CPU.
 
 The logs print a `parcel_benchmark` JSON report for `ParcelDetector` and `ParcelDimensioner` every ten seconds. FPS counts actual output batches, including failures. `failed_messages` counts failed batches, and `latency_samples` counts native benchmark samples. `source_to_output_latency_ms` averages capture-to-stage latency, including queues and upstream processing. Idle windows report zero FPS and no latency.
+
+## Inspect saved measurements
+
+Open the **Measurements** tab and select a tracking ID. The detail modal shows the segmented object point cloud, fitted cuboid, source sequence, capture time, algorithm, and support-plane metadata. Drag to orbit, right-drag to pan, scroll to zoom, or click **Reset view**.
+
+The app saves one snapshot per measured tracking ID. **Update Measurement** requests a fresh snapshot and replaces the previous one if that ID remains in frame. Otherwise, the modal shows **Object not in frame**. The list retains the 20 most recently saved objects, including explicit updates.
+
+A storage host node writes snapshots sequentially without blocking the measurement controller. Only one object from one sequence is submitted, and another save waits for its acknowledgement and a newer sequence. Unsaved visible tracks keep their waiting order. Point-cloud encoding and disk writes run in the storage node.
+
+History lives in `OAKAGENT_STORAGE_APP/parcel-measurement.sqlite3` on the OAK4. Host runs use `data/parcel-measurement.sqlite3` beside the script. Use `--storage <database-path>` to choose another location. Saved history survives app restarts. New live tracks start above the persisted ID high-water mark; the app does not identify the same physical parcel across restarts.
+
+## Choose RGB overlays
+
+Enable **Colorized depth over RGB** to blend calibrated depth colors into the video. The scale spans 0.2 m to 3 m. After selecting a support plane, enable **Show selected support plane** to highlight its visible inliers in green. Both controls default off. A separate preview node caches the calibrated remap and blends textures without blocking measurements. Boxes and labels remain native annotations over the H.264 stream.
+
+The app limits the Python OpenCV worker pool to one thread so preview conversions leave CPU capacity for detection and measurement. The normal RGB path decodes no BGR image. Optional previews use active NV12 planes and keep the original frame identity when producing encoded output.
 
 ## Run on your computer
 
@@ -67,9 +85,9 @@ The published topics are **Color stream** and **Parcel annotations**. Depth rema
 
 ## Geometry and tracking
 
-NeuralDepth receives the raw mono outputs. Native PointCloud produces an organized 768 × 480 cloud with DEFAULT coordinates, millimeters, calibrated translation, and an identity custom transform. The app preserves native metadata when filtering detector input points.
+NeuralDepth receives the raw mono outputs. ImageAlign's aligned output and exact depth passthrough feed `ImageAlignDepthCorrection` with the explicit source-axial correction policy. Native PointCloud consumes its corrected output and produces an organized 768 × 480 cloud in CAM_A RGB optical coordinates and millimeters. Zero, saturated depth, and nonfinite XYZ become zero organized rows before calibration and are excluded from detector inputs. The app preserves native metadata and stores the matching depth-correction provenance with each new measurement.
 
-One pipeline creates all nodes before startup. Host nodes handle scene admission, IMU conversion, calibration results, parcel results, and timed benchmark logging. The main loop manages pipeline lifetime. The first selected plane and later selections reach the detector through `ParcelDetectorConfig` before the next admitted scene.
+One pipeline creates all nodes before startup. Host nodes handle scene admission, IMU conversion, calibration results, parcel results, preview rendering, snapshot storage, and timed benchmark logging. The main loop manages pipeline lifetime. Up to two measurement scenes can remain in flight to absorb timing jitter. Storage still allows only one snapshot job. The first selected plane and later selections reach the detector through `ParcelDetectorConfig` before the next admitted scene.
 
 Raw images and the cloud retain their independent sequence counters and timestamps. Boxes project through the delivered RGB intrinsics, distortion, and pose. Video and annotations carry matching RGB metadata.
 

@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import timedelta
 import json
 from pathlib import Path
+import sqlite3
 import threading
 import time
 
@@ -18,6 +19,8 @@ from depthai_nodes.message import (
 from benchmarks import BenchmarkWindow
 from domain import CalibrationPhase, CalibrationSession, ParcelTracker
 from geometry import transformed_imu
+from history import SaveScheduler
+from preview import PreviewRequest
 from rendering import (
     annotated_image,
     candidate_preview,
@@ -27,6 +30,8 @@ from rendering import (
     read_scene,
     stamp,
 )
+from snapshot import measurement_snapshot
+from storage_node import SaveMessage
 
 
 class Command(dai.Buffer):
@@ -36,9 +41,10 @@ class Command(dai.Buffer):
 
 
 class ParcelController(dai.node.ThreadedHostNode):
-    def __init__(self, profile, evidence=None):
+    def __init__(self, profile, evidence=None, store=None):
         super().__init__()
         self.profile = profile
+        self.store = store
         self.evidence = Path(evidence) if evidence else None
         if self.evidence:
             self.evidence.mkdir(parents=True, exist_ok=True)
@@ -50,6 +56,7 @@ class ParcelController(dai.node.ThreadedHostNode):
                 ("imu", 4),
                 ("detections", 4),
                 ("measurements", 4),
+                ("saved", 2),
                 ("scene", 2),
             )
         }
@@ -61,29 +68,33 @@ class ParcelController(dai.node.ThreadedHostNode):
             for name in ("cloud", "color", "left", "right")
         }
         self.imu = self.createOutput("calibrated_imu")
+        self.calibration_cloud = self.createOutput("organized_calibration_cloud")
         self.control = self.createOutput("calibration_control")
         self.config = self.createOutput("detector_config")
-        self.video = self.createOutput(
-            "video",
-            possibleDatatypes=[
-                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgFrame, True)
-            ],
-        )
-        self.annotations = self.createOutput(
-            "annotations",
-            possibleDatatypes=[
-                dai.Node.DatatypeHierarchy(dai.DatatypeEnum.ImgAnnotations, True)
-            ],
-        )
+        self.history_jobs = self.createOutput("history_jobs")
+        self.preview_jobs = self.createOutput("preview_jobs")
         self.session, self.tracker = CalibrationSession(), ParcelTracker()
+        self.scheduler = SaveScheduler(
+            known_saved=[row["track_id"] for row in store.list_summaries()]
+            if store
+            else ()
+        )
+        if store:
+            self.tracker.next_id = store.next_track_id
+        self.overlays = {"depth": False, "support_plane": False}
+        self.visible_tracks = set()
+        self.last_measurement_at = None
+        self._history_snapshot = {}
         self.candidates = []
         self.previews = {}
         self.frames = OrderedDict()
         self.pending_detections = {}
         self.pending_measurements = {}
-        self.inflight = None
+        self.inflight = OrderedDict()
+        self.last_result_sequence = -1
         self.latest_scene = None
         self.last_frame = None
+        self.axial_correction = None
         self.error = None
         self.config_dirty = False
         self.capture_samples = deque(maxlen=60)
@@ -110,10 +121,93 @@ class ParcelController(dai.node.ThreadedHostNode):
             "capture": self.profile,
             "rates": self.rates,
             "frame": self.last_frame,
+            "overlays": dict(self.overlays),
+            "depth_correction": self.axial_correction,
+        }
+        visible = self._current_visible()
+        history = {
+            "items": [
+                dict(row, in_frame=row["track_id"] in visible)
+                for row in self.store.list_summaries()
+            ]
+            if self.store
+            else [],
+            "saving_track_id": self.scheduler.busy.track_id
+            if self.scheduler.busy
+            else None,
+            "pending_track_ids": list(self.scheduler.pending_updates),
+            "storage_error": self.scheduler.error,
         }
         with self.lock:
             self._snapshot = deepcopy(state)
             self._preview_snapshot = dict(self.previews)
+            self._history_snapshot = history
+
+    def _current_visible(self):
+        if (
+            self.session.phase is not CalibrationPhase.READY
+            or self.last_measurement_at is None
+            or time.monotonic() - self.last_measurement_at
+            > self.tracker.max_age_seconds
+        ):
+            return set()
+        return self.visible_tracks
+
+    @staticmethod
+    def _track_id(payload):
+        if (
+            not isinstance(payload, dict)
+            or isinstance(payload.get("track_id"), bool)
+            or not isinstance(payload.get("track_id"), int)
+            or payload["track_id"] < 1
+        ):
+            raise ValueError("track_id must be a positive integer.")
+        return payload["track_id"]
+
+    def get_measurements(self, _payload):
+        with self.lock:
+            return deepcopy(self._history_snapshot)
+
+    def get_measurement(self, payload):
+        try:
+            track_id = self._track_id(payload)
+            if self.store is None:
+                raise ValueError("Measurement storage is unavailable.")
+            record = self.store.detail(track_id)
+            if record is None:
+                raise ValueError(
+                    "This measurement is no longer in the latest 20 objects."
+                )
+            return {"measurement": record}
+        except (
+            KeyError,
+            ValueError,
+            OSError,
+            RuntimeError,
+            sqlite3.Error,
+        ) as exception:
+            return {"error": str(exception)}
+
+    def update_measurement(self, payload):
+        try:
+            track_id = self._track_id(payload)
+        except ValueError as exception:
+            return {"error": str(exception)}
+        history = self.get_measurements({})
+        if not any(
+            row["track_id"] == track_id and row["in_frame"] for row in history["items"]
+        ):
+            return {"error": "Object not in frame."}
+        return self._enqueue("update_measurement", {"track_id": track_id})
+
+    def set_preview_options(self, payload):
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != {"depth", "support_plane"}
+            or any(not isinstance(value, bool) for value in payload.values())
+        ):
+            return {"error": "depth and support_plane must be booleans."}
+        return self._enqueue("preview_options", payload)
 
     def get_state(self, _payload):
         with self.lock:
@@ -155,6 +249,8 @@ class ParcelController(dai.node.ThreadedHostNode):
             if message.action == "calibrate":
                 self.session.start()
                 self.tracker.clear()
+                self.visible_tracks.clear()
+                self.scheduler.reset_visibility(set())
                 self.candidates = []
                 self.previews = {}
                 self.control.send(SupportPlaneCalibrationControl.reset())
@@ -166,6 +262,14 @@ class ParcelController(dai.node.ThreadedHostNode):
                 self.config_dirty = True
                 if self.evidence:
                     self.session.plane.toJsonFile(self.evidence / "support-plane.json")
+            elif message.action == "preview_options":
+                self.overlays = dict(message.payload)
+            elif message.action == "update_measurement":
+                track_id = message.payload["track_id"]
+                if track_id not in self._current_visible():
+                    self.scheduler.errors[track_id] = "Object not in frame"
+                else:
+                    self.scheduler.request_update(track_id, self.latest_scene.sequence)
             self.error = None
         except ValueError as exception:
             self.error = str(exception)
@@ -174,6 +278,10 @@ class ParcelController(dai.node.ThreadedHostNode):
         frame = read_scene(group, self.session.generation)
         first = self.latest_scene is None
         self.latest_scene = frame
+        self.axial_correction = frame.axial_correction
+        if first:
+            print(json.dumps({"depth_correction": self.axial_correction}), flush=True)
+        self.calibration_cloud.send(frame.cloud)
         self.frames[frame.sequence] = frame
         while len(self.frames) > 24:
             self.frames.popitem(last=False)
@@ -214,7 +322,7 @@ class ParcelController(dai.node.ThreadedHostNode):
                 [],
                 "Select a calibrated support plane to enable parcel measurements.",
             )
-        elif self.inflight is None:
+        elif len(self.inflight) < 2:
             finite = frame.points[
                 np.isfinite(frame.points).all(axis=1)
                 & (np.linalg.norm(frame.points, axis=1) > 0)
@@ -225,7 +333,7 @@ class ParcelController(dai.node.ThreadedHostNode):
             if self.config_dirty:
                 self.config.send(ParcelDetectorConfig(supportPlane=self.session.plane))
                 self.config_dirty = False
-            self.inflight = frame.sequence, time.monotonic(), frame
+            self.inflight[frame.sequence] = time.monotonic(), frame
             for name, message in (
                 ("color", frame.color),
                 ("left", frame.left),
@@ -287,10 +395,9 @@ class ParcelController(dai.node.ThreadedHostNode):
             return
         detected = self.pending_detections.pop(sequence)
         measured = self.pending_measurements.pop(sequence)
-        if self.inflight is None or self.inflight[0] != sequence:
+        if sequence not in self.inflight:
             return
-        reference = self.inflight[2]
-        self.inflight = None
+        _, reference = self.inflight.pop(sequence)
         self.measurement_samples.append(time.monotonic())
         if len(self.measurement_samples) > 1:
             self.rates["measurement_fps"] = (len(self.measurement_samples) - 1) / (
@@ -299,8 +406,10 @@ class ParcelController(dai.node.ThreadedHostNode):
         if (
             reference.generation != self.session.generation
             or self.session.phase is not CalibrationPhase.READY
+            or sequence <= self.last_result_sequence
         ):
             return
+        self.last_result_sequence = sequence
         parcels = parcel_boxes(detected, reference.projection)
         by_candidate = {item.candidate_id: item for item in measured.items}
         for parcel in parcels:
@@ -314,6 +423,30 @@ class ParcelController(dai.node.ThreadedHostNode):
                 else None
             )
         parcels = self.tracker.update(parcels, time.monotonic())
+        self.last_measurement_at = time.monotonic()
+        self.visible_tracks = {parcel["track_id"] for parcel in parcels}
+        self.scheduler.reset_visibility(self.visible_tracks)
+        if self.store is not None and self.scheduler.busy is None:
+            eligible = {
+                parcel["track_id"]: measurement_snapshot(
+                    parcel,
+                    detected,
+                    measured,
+                    reference,
+                    self.profile,
+                    self.tracker.next_id,
+                )
+                for parcel in parcels
+                if parcel["status"] == "measured"
+                and parcel["track_id"] not in self.scheduler.errors
+                and (
+                    parcel["track_id"] not in self.scheduler.known_saved
+                    or parcel["track_id"] in self.scheduler.pending_updates
+                )
+            }
+            request = self.scheduler.choose(sequence, eligible)
+            if request is not None:
+                self.history_jobs.send(SaveMessage(request))
         if measured.outcome is ParcelMeasurements.Outcome.FAILED:
             message = (
                 f"Frame failed: {measured.failure_code}. No measurement is available."
@@ -352,6 +485,9 @@ class ParcelController(dai.node.ThreadedHostNode):
         self._publish_state()
         return self.get_state({})
 
+    def _saved(self, acknowledgement):
+        self.scheduler.complete(acknowledgement.request, acknowledgement.error)
+
     def _display(self, frame, parcels, message):
         self.last_frame = {
             "sequence": frame.sequence,
@@ -361,17 +497,27 @@ class ParcelController(dai.node.ThreadedHostNode):
             "parcels": parcels,
             "message": message,
         }
-        self.annotations.send(native_annotations(frame.color, parcels))
-        self.video.send(frame.color)
+        self.preview_jobs.send(
+            PreviewRequest(
+                frame,
+                depth=self.overlays["depth"],
+                plane=self.session.plane if self.overlays["support_plane"] else None,
+                annotations=native_annotations(frame.color, parcels),
+            )
+        )
 
     def _watchdog(self):
+        self.scheduler.reset_visibility(self._current_visible())
         if self._started_at is None:
             return
         if self.latest_scene is None and time.monotonic() - self._started_at > 30:
             raise RuntimeError(
                 "No synchronized RGB, mono, and NeuralDepth point cloud arrived within 30 seconds."
             )
-        if self.inflight is not None and time.monotonic() - self.inflight[1] > 30:
+        if (
+            self.inflight
+            and time.monotonic() - next(iter(self.inflight.values()))[0] > 30
+        ):
             raise RuntimeError(
                 "Parcel processing did not return a result within 30 seconds."
             )
@@ -380,6 +526,7 @@ class ParcelController(dai.node.ThreadedHostNode):
         self._started_at = time.monotonic()
         handlers = {
             "commands": self._command,
+            "saved": self._saved,
             "calibration": self._calibration,
             "imu": self._imu,
             "detections": self._detections,

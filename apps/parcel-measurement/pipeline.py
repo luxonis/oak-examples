@@ -1,7 +1,9 @@
 from datetime import timedelta
 
+import cv2
 import depthai as dai
 from depthai_nodes.node import (
+    ImageAlignDepthCorrection,
     ParcelDetector,
     ParcelDimensioner,
     PlaneCalibrationConfig,
@@ -9,6 +11,8 @@ from depthai_nodes.node import (
 )
 
 from nodes import BenchmarkLogger, ParcelController
+from preview import PreviewRendererNode
+from storage_node import StorageHostNode
 
 RGB_SIZE = (2000, 1500)
 MONO_SIZE = (1280, 800)
@@ -16,7 +20,7 @@ DEPTH_SIZE = (768, 480)
 DEFAULT_FPS = 10
 
 
-def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None):
+def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
     profile = {
         "configured_fps": fps,
         "rgb": RGB_SIZE,
@@ -24,9 +28,18 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None):
         "right": MONO_SIZE,
         "depth": DEPTH_SIZE,
         "depth_source": "NeuralDepth LARGE",
+        "depth_alignment": "undistorted RGB 768 x 480",
+        "depth_axial_convention": "target_camera_axial_z",
         "images": "unrectified",
+        "opencv_threads": cv2.getNumThreads(),
     }
-    controller = pipeline.create(ParcelController, profile=profile, evidence=evidence)
+    controller = pipeline.create(
+        ParcelController, profile=profile, evidence=evidence, store=store
+    )
+    if store is not None:
+        storage = pipeline.create(StorageHostNode, store=store)
+        controller.history_jobs.link(storage.inputJobs)
+        storage.outSaved.link(controller.events["saved"])
     streams = {}
     for role, socket in (
         ("color", dai.CameraBoardSocket.CAM_A),
@@ -40,6 +53,14 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None):
             fps=fps,
             enableUndistortion=False,
         )
+        if role == "color":
+            depth_target = camera.requestOutput(
+                DEPTH_SIZE,
+                dai.ImgFrame.Type.NV12,
+                resizeMode=dai.ImgResizeMode.STRETCH,
+                fps=fps,
+                enableUndistortion=True,
+            )
     depth = pipeline.create(dai.node.NeuralDepth).build(
         streams["left"], streams["right"], dai.DeviceModelZoo.NEURAL_DEPTH_LARGE
     )
@@ -47,10 +68,22 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None):
         raise RuntimeError(
             "NeuralDepth LARGE must deliver the evaluated 768 × 480 grid."
         )
+    align = pipeline.create(dai.node.ImageAlign)
+    align.input.setBlocking(True)
+    depth.depth.link(align.input)
+    depth_target.link(align.inputAlignTo)
+    correction = pipeline.create(ImageAlignDepthCorrection).build(
+        alignedDepth=align.outputAligned,
+        sourceDepth=align.passthroughInput,
+        policy="source_axial_requires_correction",
+    )
     cloud = pipeline.create(dai.node.PointCloud)
     cloud.initialConfig.setOrganized(True)
-    depth.depth.link(cloud.inputDepth)
-    streams["depth"] = depth.depth
+    cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
+    cloud.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
+    correction.out.link(cloud.inputDepth)
+    streams["depth"] = correction.out
+    streams["axialCorrection"] = correction.result
     streams["pointCloud"] = cloud.outputPointCloud
     scene = pipeline.create(dai.node.Sync)
     scene.setRunOnHost(True)
@@ -66,7 +99,7 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None):
     imu.setMaxBatchReports(20)
     imu.out.link(controller.events["imu"])
     calibrator = pipeline.create(SupportPlaneCalibrator).build(
-        streams["pointCloud"],
+        controller.calibration_cloud,
         controller.imu,
         DEPTH_SIZE,
         config=PlaneCalibrationConfig(max_calibration_attempts=12),
@@ -95,8 +128,13 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None):
         output.link(benchmark.input)
         output.link(logger.events[prefix + "_message"])
         benchmark.report.link(logger.events[prefix + "_report"])
+    preview = pipeline.create(
+        PreviewRendererNode, current_generation=lambda: controller.session.generation
+    )
+    controller.preview_jobs.link(preview.inputFrames)
+    controller.annotations = preview.annotations
     encoder = pipeline.create(dai.node.VideoEncoder).build(
-        input=controller.video,
+        input=preview.out,
         frameRate=fps,
         profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
         keyframeFrequency=max(1, round(fps)),

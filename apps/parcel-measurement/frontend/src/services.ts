@@ -33,6 +33,7 @@ const stateSchema = z.object({
 		source_fps: z.number().nullable(),
 		measurement_fps: z.number().nullable(),
 	}),
+	overlays: z.object({ depth: z.boolean(), support_plane: z.boolean() }),
 });
 
 export type ParcelState = z.infer<typeof stateSchema>;
@@ -67,4 +68,82 @@ export const getSupportPlanePreview = {
 	serviceName: 'getSupportPlanePreview',
 	requestSchema: candidateRequestSchema,
 	responseSchema: z.object({ jpeg: z.string() }),
+} as const;
+
+const dimensionsSchema = z.tuple([z.number(), z.number(), z.number()]);
+const summarySchema = z.object({
+	track_id: z.number().int().positive(),
+	saved_at: z.string(),
+	captured_at: z.string(),
+	sequence: z.number().int(),
+	dimensions_mm: dimensionsSchema,
+	point_count: z.number().int().nonnegative(),
+	revision: z.number().int().positive(),
+	in_frame: z.boolean(),
+});
+
+const detailSchema = summarySchema.extend({
+	in_frame: z.boolean().optional(),
+	algorithm_id: z.string(),
+	status: z.string(),
+	candidate_id: z.number().int(),
+	reference_frame: z.string(),
+	source_timing: z.array(z.unknown()),
+	support_plane: planeSchema,
+	cuboid: z.object({
+		base_center_mm: dimensionsSchema,
+		length_axis: dimensionsSchema,
+		width_axis: dimensionsSchema,
+		up_axis: dimensionsSchema,
+		dimensions_mm: dimensionsSchema,
+		corners_mm: z.array(dimensionsSchema).length(8),
+	}),
+	point_cloud: z.object({
+		encoding: z.literal('float32-le-base64'),
+		count: z.number().int().nonnegative(),
+		xyz: z.string(),
+	}),
+	capture_profile: z.record(z.unknown()),
+	bbox_rgb: z.array(z.number()).length(4),
+	video_sequence: z.number().int(),
+	calibration_generation: z.number().int(),
+	depth_correction: z.record(z.unknown()).nullable().optional(),
+});
+
+const trackRequestSchema = z
+	.object({ track_id: z.number().int().positive() })
+	.strict();
+
+export type MeasurementSummary = z.infer<typeof summarySchema>;
+export type MeasurementDetails = z.infer<typeof detailSchema>;
+
+export const getMeasurements = {
+	serviceName: 'getMeasurements',
+	requestSchema: emptyBodySchema,
+	responseSchema: z.object({
+		items: z.array(summarySchema),
+		saving_track_id: z.number().int().nullable(),
+		pending_track_ids: z.array(z.number().int()),
+		storage_error: z.string().nullable(),
+	}),
+} as const;
+
+export const getMeasurement = {
+	serviceName: 'getMeasurement',
+	requestSchema: trackRequestSchema,
+	responseSchema: z.object({ measurement: detailSchema }),
+} as const;
+
+export const requestMeasurementUpdate = {
+	serviceName: 'requestMeasurementUpdate',
+	requestSchema: trackRequestSchema,
+	responseSchema: z.object({ ok: z.literal(true) }),
+} as const;
+
+export const setPreviewOptions = {
+	serviceName: 'setPreviewOptions',
+	requestSchema: z
+		.object({ depth: z.boolean(), support_plane: z.boolean() })
+		.strict(),
+	responseSchema: z.object({ ok: z.literal(true) }),
 } as const;

@@ -8,6 +8,7 @@ import {
 } from '@luxonis/ui-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { MeasurementHistory } from './MeasurementHistory';
 import { daiServiceQueryKey } from './backend/daiService';
 import { useDaiMutation } from './backend/useDaiMutation';
 import { useDaiQuery } from './backend/useDaiQuery';
@@ -17,6 +18,7 @@ import {
 	getParcelState,
 	getSupportPlanePreview,
 	selectSupportPlane,
+	setPreviewOptions,
 } from './services';
 
 const VIDEO_TOPIC = 'Color stream';
@@ -80,6 +82,7 @@ function rate(value?: number | null) {
 function App() {
 	const { connected } = useDaiConnection();
 	const queryClient = useQueryClient();
+	const [tab, setTab] = useState<'calibration' | 'measurements'>('calibration');
 	const [candidateSelection, setCandidateSelection] = useState<{
 		generation: number;
 		index: number;
@@ -104,6 +107,10 @@ function App() {
 		service: selectSupportPlane,
 		mutationOptions: { onSuccess: refreshState },
 	});
+	const previewOptions = useDaiMutation({
+		service: setPreviewOptions,
+		mutationOptions: { onSuccess: refreshState },
+	});
 	const state = stateQuery.data;
 	const calibration = state?.calibration;
 	const choosing = calibration?.phase === 'choosing';
@@ -116,6 +123,7 @@ function App() {
 		state?.error ??
 		calibrate.error?.message ??
 		select.error?.message ??
+		previewOptions.error?.message ??
 		(connected ? stateQuery.error?.message : null);
 
 	return (
@@ -139,7 +147,95 @@ function App() {
 					<Header text="Parcel measurement" />
 				</h1>
 				<Label text="Measure parcels on a fixed, flat support surface. RGB boxes show tracking IDs and length × width × height in millimeters." />
-				<section className="flex flex-col gap-3">
+				<section
+					aria-label="RGB overlays"
+					className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm"
+				>
+					<label className="flex items-center gap-2">
+						<input
+							type="checkbox"
+							checked={state?.overlays.depth ?? false}
+							disabled={!connected || !state || previewOptions.isPending}
+							onChange={(event) => {
+								if (state)
+									previewOptions.mutate({
+										...state.overlays,
+										depth: event.target.checked,
+									});
+							}}
+						/>
+						Colorized depth over RGB
+					</label>
+					{state?.overlays.depth ? (
+						<span className="text-xs text-muted-foreground">
+							Depth: 0.2 m (blue) → 3 m (red). Overlays add processing work.
+						</span>
+					) : null}
+					<label className="flex items-center gap-2">
+						<input
+							type="checkbox"
+							checked={state?.overlays.support_plane ?? false}
+							disabled={
+								!connected ||
+								calibration?.phase !== 'ready' ||
+								previewOptions.isPending
+							}
+							onChange={(event) => {
+								if (state)
+									previewOptions.mutate({
+										...state.overlays,
+										support_plane: event.target.checked,
+									});
+							}}
+						/>
+						Show selected support plane
+					</label>
+				</section>
+				<div
+					role="tablist"
+					aria-label="Parcel controls"
+					className="flex rounded-lg border border-border p-1"
+				>
+					{(['calibration', 'measurements'] as const).map((value) => (
+						<button
+							key={value}
+							id={`${value}-tab`}
+							type="button"
+							role="tab"
+							aria-selected={tab === value}
+							aria-controls={`${value}-panel`}
+							tabIndex={tab === value ? 0 : -1}
+							onClick={() => setTab(value)}
+							onKeyDown={(event) => {
+								if (
+									['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
+								) {
+									event.preventDefault();
+									const next =
+										event.key === 'Home'
+											? 'calibration'
+											: event.key === 'End'
+												? 'measurements'
+												: value === 'calibration'
+													? 'measurements'
+													: 'calibration';
+									setTab(next);
+									document.getElementById(`${next}-tab`)?.focus();
+								}
+							}}
+							className={`flex-1 rounded-md px-3 py-2 text-sm ${tab === value ? 'bg-muted font-semibold' : 'text-muted-foreground'}`}
+						>
+							{value === 'calibration' ? 'Calibration' : 'Measurements'}
+						</button>
+					))}
+				</div>
+				<section
+					id="calibration-panel"
+					role="tabpanel"
+					aria-labelledby="calibration-tab"
+					hidden={tab !== 'calibration'}
+					className={tab === 'calibration' ? 'flex flex-col gap-3' : 'hidden'}
+				>
 					<h2>
 						<NormalText weight="bold" text="Support plane" />
 					</h2>
@@ -204,6 +300,15 @@ function App() {
 					{calibration?.phase === 'ready' ? (
 						<Label text="Keep the camera fixed. Recalibrate after moving it or changing the support surface. Unknown heights appear as ?." />
 					) : null}
+				</section>
+				<section
+					id="measurements-panel"
+					role="tabpanel"
+					aria-labelledby="measurements-tab"
+					hidden={tab !== 'measurements'}
+					className={tab === 'measurements' ? 'block' : 'hidden'}
+				>
+					<MeasurementHistory connected={connected} />
 				</section>
 				{error ? (
 					<div role="alert">

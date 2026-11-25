@@ -46,7 +46,7 @@ class AnnotationTests(unittest.TestCase):
         self.assertAlmostEqual(points[0].y, 0.2)
         self.assertAlmostEqual(points[2].x, 0.5)
         self.assertAlmostEqual(points[2].y, 0.8)
-        self.assertEqual(annotation.texts[0].text, "ID 7 | 220 x 160 x ? mm")
+        self.assertEqual(annotation.texts[0].text, "ID 7 | L: 220 x W: 160 x H: ? mm")
 
     def test_empty_frame_clears_measurement_overlays(self):
         frame = dai.ImgFrame()
@@ -119,6 +119,16 @@ class ControllerServiceTests(unittest.TestCase):
                 "error", controller.preview({"generation": 0, "index": False})
             )
             self.assertIn("error", controller.preview({"generation": 0, "index": 0}))
+
+    def test_expected_history_status_is_not_a_service_error(self):
+        with dai.Pipeline(False) as pipeline:
+            controller = pipeline.create(ParcelController, profile={})
+            controller.scheduler.errors[7] = "Object not in frame"
+            controller._publish_state()
+            history = controller.get_measurements({})
+            self.assertNotIn("error", history)
+            self.assertEqual(history["storage_error"], "Object not in frame")
+            self.assertIn("error", controller.update_measurement({"track_id": 7}))
 
 
 if __name__ == "__main__":

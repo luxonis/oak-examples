@@ -1,5 +1,28 @@
 # Parcel measurement validation
 
+## Measurement history, RGB depth correction, and performance, 2026-11-25
+
+The example adds persistent history for the latest 20 saved tracking IDs, an interactive segmented-cloud and cuboid viewer, explicit snapshot replacement, labeled L/W/H annotations, and optional depth and support-plane overlays. SQLite storage runs in one host node. Its scheduler submits one object per sequence and waits for acknowledgement before submitting another. It retains waiting order across frames and does not automatically resave objects whose records were evicted.
+
+Live service checks compared all 20 detail records before and after an app restart, including their point bytes and cuboid metadata. Every record survived unchanged. Historical tracks became unavailable for live updates, and new IDs continued above the persisted high-water mark. Explicit updates through both the service and frontend button advanced the source sequence and stored revision. Browser checks covered the Measurements tab, modal, orbit/zoom/reset controls, unavailable-object status, and both overlays. Local evidence is under ignored `evidence/history-2026-11-25/`.
+
+The depth path is NeuralDepth → ImageAlign → public ImageAlignDepthCorrection → native PointCloud. Alignment uses a separate undistorted 768 × 480 RGB branch, while detector RGB and mono images retain their raw grids. Correction uses the exact ImageAlign depth passthrough and explicit source-axial policy. The live node reported `source_axial_to_target_axial/1` and `target_camera_axial_z` with matching source associations. Corrected depth, organized cloud, and provenance identities are checked at runtime; invalid depth rows are zeroed before calibration. Saved measurements include the correction provenance. The installed upstream host fixture also passed its geometry assertions with the pinned SDK and dependency.
+
+Performance work removed full-cloud reprojection from the preview, cached the calibrated remap, made RGB decoding lazy, and moved paired preview output into a separate host node. Two bounded measurement slots absorb capture jitter. Python OpenCV uses one worker thread; active-plane NV12 conversion avoids additional conversion pools. Tests compare the produced NV12 bytes with the SDK and cover padded rows, row stride, and non-row-aligned chroma offsets.
+
+The operator placed three objects on the support surface. With evidence capture disabled and the standard Chrome frontend connected, five ten-second windows per mode followed two-second warmups. The collector decoded native packet metadata, counted received video and annotations, and discarded image payloads. Camera-device timestamps yielded approximately 10.00 delivered video FPS in every mode. Arrival-time measurements varied with packet timing:
+
+| Preview       | Median video FPS | Arrival-time FPS range |
+| ------------- | ---------------: | ---------------------: |
+| RGB           |            10.02 |             9.99–10.03 |
+| Depth         |            10.02 |             9.96–10.07 |
+| Support plane |            10.03 |             9.96–10.10 |
+| Both overlays |             9.99 |             9.95–10.04 |
+
+Across 2,000 timed annotation frames, none were empty and all contained complete dimension labels. Exactly three complete labels appeared in 1,687 frames. The detector sometimes merged objects or included background clutter, yielding one to five labels; this is not a detector-recall or accuracy claim. There were no stream decoding errors, timestamp conflicts, or missing source sequences within the video windows. The native detector and dimensioner logs reported 9.9–10.1 output batches per second over ten-second windows, with zero failed batches. Small excursions above 10 reflect window boundaries and receive timing, not a higher configured capture rate.
+
+After switching the final decoder to exact active Y/UV views, another live combined-overlay window confirmed the same throughput. All 53 backend tests, frontend type checking, production build, Biome, repository hooks, agent-document checks, and generated-index checks pass. The tests include blocked-writer behavior, atomic rollback, retention, explicit-update races, fair scheduling, two-scene admission, stale-generation rejection, calibrated remapping, and paired preview output. Physical dimension accuracy and holistic replay remain unvalidated.
+
 ## Dependency update, 2026-11-25
 
 The example now pins depthai-nodes PR 348 revision `61dd0b863e055aaf3fd0d9ac2b9e92247cfbf188`, using `algorithm-5e4abc3a09b54148950317cdeac60ba2`. The detector, dimensioner, calibration, plane, and config interfaces used by the app are unchanged. The replacement implementation removes the old custom native kernels, so the obsolete compiler dependency and kernel-build command were removed. The DepthAI pin is now 3.12.0 to satisfy the dependency's exact SDK requirement.

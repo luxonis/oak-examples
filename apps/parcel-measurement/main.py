@@ -5,9 +5,11 @@ from pathlib import Path
 import signal
 import threading
 
+import cv2
 import depthai as dai
 
 from network import frontend_urls
+from history import MeasurementStore
 from pipeline import DEFAULT_FPS, init_pipeline
 
 
@@ -18,9 +20,19 @@ def main():
     parser.add_argument("--fps", type=float, default=DEFAULT_FPS)
     parser.add_argument("--inspect-port", type=int, default=8765)
     parser.add_argument("--evidence", type=Path, help="Save local validation artifacts")
+    parser.add_argument(
+        "--storage",
+        type=Path,
+        default=Path(
+            os.environ.get("OAKAGENT_STORAGE_APP", str(Path(__file__).parent / "data"))
+        )
+        / "parcel-measurement.sqlite3",
+        help="Persistent measurement history database",
+    )
     args = parser.parse_args()
     if not 0 < args.fps <= 30:
         parser.error("--fps must be greater than zero and at most 30")
+    cv2.setNumThreads(1)
 
     stopped = threading.Event()
     signal.signal(signal.SIGINT, lambda *_: stopped.set())
@@ -36,7 +48,10 @@ def main():
 
     with device, dai.Pipeline(device) as pipeline:
         try:
-            controller = init_pipeline(pipeline, fps=args.fps, evidence=args.evidence)
+            store = MeasurementStore(args.storage)
+            controller = init_pipeline(
+                pipeline, fps=args.fps, evidence=args.evidence, store=store
+            )
             for name, output in (
                 ("Color stream", controller.encoded_video),
                 ("Parcel annotations", controller.annotations),
@@ -48,6 +63,10 @@ def main():
                 ("calibrateSupportPlane", controller.calibrate),
                 ("selectSupportPlane", controller.select),
                 ("getSupportPlanePreview", controller.preview),
+                ("getMeasurements", controller.get_measurements),
+                ("getMeasurement", controller.get_measurement),
+                ("requestMeasurementUpdate", controller.update_measurement),
+                ("setPreviewOptions", controller.set_preview_options),
             ):
                 remote.registerService(name, handler)
 
