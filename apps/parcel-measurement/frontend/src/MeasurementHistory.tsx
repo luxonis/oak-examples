@@ -119,6 +119,39 @@ function MeasurementModal({
 					Close
 				</button>
 			</div>
+			<div className="flex flex-wrap items-center gap-3 border-b border-border pb-4 mb-5">
+				<Button
+					type="button"
+					label={
+						waiting && inFrame
+							? 'Waiting for fresh measurement…'
+							: 'Update Measurement'
+					}
+					disabled={!inFrame || waiting}
+					onClick={() => update.mutate({ track_id: record.track_id })}
+				/>
+				<output className="text-sm text-muted-foreground">
+					{!connected
+						? 'Disconnected from device'
+						: !historyCurrent
+							? 'Waiting for current tracking state.'
+							: !inFrame
+								? 'Object not in frame'
+								: waiting
+									? 'The next available frame will replace this saved measurement.'
+									: 'Object is in frame. Updates replace the existing snapshot.'}
+				</output>
+			</div>
+			{update.error ? (
+				<p role="alert" className="mt-3 text-sm text-destructive">
+					{update.error.message}
+				</p>
+			) : null}
+			{storageError ? (
+				<p role="alert" className="mt-3 text-sm text-destructive">
+					{storageError}
+				</p>
+			) : null}
 			{details.error ? (
 				<p role="alert" className="text-destructive">
 					{details.error.message}
@@ -191,39 +224,6 @@ function MeasurementModal({
 						</dd>
 					</dl>
 				</>
-			) : null}
-			<div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
-				<Button
-					type="button"
-					label={
-						waiting && inFrame
-							? 'Waiting for fresh measurement…'
-							: 'Update Measurement'
-					}
-					disabled={!inFrame || waiting}
-					onClick={() => update.mutate({ track_id: record.track_id })}
-				/>
-				<output className="text-sm text-muted-foreground">
-					{!connected
-						? 'Disconnected from device'
-						: !historyCurrent
-							? 'Waiting for current tracking state.'
-							: !inFrame
-								? 'Object not in frame'
-								: waiting
-									? 'The next available frame will replace this saved measurement.'
-									: 'Object is in frame. Updates replace the existing snapshot.'}
-				</output>
-			</div>
-			{update.error ? (
-				<p role="alert" className="mt-3 text-sm text-destructive">
-					{update.error.message}
-				</p>
-			) : null}
-			{storageError ? (
-				<p role="alert" className="mt-3 text-sm text-destructive">
-					{storageError}
-				</p>
 			) : null}
 		</dialog>
 	);
