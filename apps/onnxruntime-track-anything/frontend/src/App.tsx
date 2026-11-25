@@ -6,7 +6,6 @@ import {
 	AccordionTrigger,
 	AddIcon,
 	Alert,
-	Badge,
 	Button,
 	Card,
 	Flex,
@@ -249,25 +248,6 @@ export default function App() {
 			]);
 		} else await submit([...(state?.points ?? []), p]);
 	}
-	const status =
-		!connection.connected || !state
-			? 'Connecting'
-			: state?.phase === 'loading'
-				? 'Preparing models for QNN'
-				: state?.phase === 'catching_up'
-					? 'Catching up'
-					: state?.phase === 'tracking'
-						? 'Tracking'
-						: state?.phase === 'error'
-							? 'Needs attention'
-							: state?.phase === 'lost'
-								? 'Target not visible'
-								: snapshot
-									? expired
-										? 'Update frame'
-										: 'Select target'
-									: 'Ready';
-
 	const preparing =
 		!state ||
 		(!state.ready && state.phase !== 'error') ||
@@ -277,13 +257,6 @@ export default function App() {
 	return (
 		<AppShell
 			title="Track Anything"
-			status={
-				<Badge
-					intent={tracking ? 'success' : 'gray'}
-					variant="light"
-					label={status}
-				/>
-			}
 			streams={
 				<div className="track-camera">
 					<div className={`track-live ${snapshot ? 'track-live-hidden' : ''}`}>

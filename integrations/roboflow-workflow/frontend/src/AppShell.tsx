@@ -1,6 +1,4 @@
-import { useDaiConnection } from '@luxonis/depthai-viewer-common';
 import {
-	Badge,
 	Circle,
 	EmptyView,
 	Label,
@@ -26,7 +24,6 @@ export function AppShell({
 	fitContent,
 	children,
 }: AppShellProps) {
-	const { connected } = useDaiConnection();
 	const streamsClassName = [
 		'app-streams',
 		below || fitContent ? 'app-streams-fit' : null,
@@ -41,15 +38,7 @@ export function AppShell({
 				<h1>
 					<PageTitle text={title} />
 				</h1>
-				<div className="app-status">
-					{status}
-					<Badge
-						dot
-						iconProps={{ color: 'inherit' }}
-						intent={connected ? 'success' : 'gray'}
-						label={connected ? 'Connected' : 'Connecting'}
-					/>
-				</div>
+				{status ? <div className="app-status">{status}</div> : null}
 			</header>
 			<main className="app-main">
 				<section className={streamsClassName} aria-label="Streams">

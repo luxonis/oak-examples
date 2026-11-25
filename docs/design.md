@@ -7,7 +7,7 @@ looks like part of the same family and is a clean starting point to copy.
 ## Luxonis design
 
 - Default mode: functional
-- Foundation: ui-libs; use the versions installed in each frontend (`@luxonis/ui-components` 1.3.9).
+- Foundation: ui-libs; use the versions installed in each frontend.
 - Fonts: library and system default; frontends do not set their own font stack.
 - Image files: WebP, including animated images.
 - Area overrides: none.
@@ -20,8 +20,13 @@ Every frontend renders its page through `src/AppShell.tsx` and styles it with th
 [custom-frontend/raw-stream/frontend](../custom-frontend/raw-stream/frontend/src). Every other frontend
 holds a byte-identical copy, so a copied example stays standalone.
 
+Vite configuration stays app-specific because frontends use different build-tool versions and
+package plugins. The synchronizer writes shared files as UTF-8 with LF line endings for Biome on
+Windows and Linux.
+
 - Header: the app name as the page title (`<h1>` with `PageTitle`), and on the right an optional
-  `status` slot for app badges followed by the connection `Badge`.
+  `status` slot for app-specific context. Connection feedback stays in the stream viewer rather
+  than a repeated Connecting/Connected badge.
 - Streams: the `Streams` viewer and anything drawn over it. It fills the space next to the side
   column, and has a fixed height on screens narrower than 48rem.
 - `below`: content that belongs under the stream, such as a history list. The stream then sits in a

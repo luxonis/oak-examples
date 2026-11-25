@@ -1,7 +1,7 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { cn } from '@luxonis/ui-components';
+import { Card, Label } from '@luxonis/ui-components';
 import { useEffect, useRef } from 'react';
-import { TopBar } from './TopBar.tsx';
+import { AppShell } from './AppShell.tsx';
 import SettingsForm from './settings/SettingsForm.tsx';
 
 const STREAM_PANEL_ORDER = [
@@ -55,52 +55,19 @@ function LiveStreams() {
 }
 
 function App() {
-	const { connected } = useDaiConnection();
-
 	return (
-		<main className="flex h-screen w-screen flex-row gap-6 overflow-auto bg-background p-6 text-foreground">
-			<div className="flex min-w-[760px] flex-1 shrink-0 flex-col overflow-hidden rounded-md border border-border bg-background shadow-sm">
-				<TopBar />
-				<div className="relative min-h-0 flex-1">
-					<LiveStreams />
+		<AppShell
+			title="Machine-Mounted Person Proximity Alert"
+			streams={<LiveStreams />}
+		>
+			<Card title="About" variant="outline" intent="white">
+				<div className="flex flex-col gap-2">
+					<Label text="Proximity alerts from a camera mounted on a machine. Set the warning and danger areas for the machine's view; people entering them appear in the live annotations. Optional generic detection also shows obstacles above the support plane." />
+					<Label text="Point cloud: orange = warning zone, red = danger zone." />
 				</div>
-				<p className="px-4 pt-2 pb-3 text-xs text-muted-foreground">
-					Point cloud: orange = warning zone, red = danger zone.
-				</p>
-			</div>
-
-			<div className="w-0.5 shrink-0 bg-border" />
-
-			<aside className="flex max-h-full w-[420px] min-w-[360px] shrink-0 flex-col gap-5 text-left">
-				<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pr-2">
-					<h1 className="text-2xl font-bold">
-						Machine-Mounted Person Proximity Alert
-					</h1>
-					<p className="text-sm leading-6 text-muted-foreground">
-						Proximity alerts from a camera mounted on a machine. Set the warning
-						and danger areas for the machine&apos;s view; people entering them
-						appear in the live annotations. Optional generic detection also
-						shows obstacles above the support plane.
-					</p>
-					<SettingsForm />
-				</div>
-
-				<div
-					className={cn(
-						'mr-2 flex shrink-0 items-center gap-2 border-t border-border pt-4 text-sm',
-						connected ? 'text-success' : 'text-destructive',
-					)}
-				>
-					<div
-						className={cn(
-							'h-3 w-3 rounded-full',
-							connected ? 'bg-success' : 'bg-destructive',
-						)}
-					/>
-					<span>{connected ? 'Connected to device' : 'Disconnected'}</span>
-				</div>
-			</aside>
-		</main>
+			</Card>
+			<SettingsForm />
+		</AppShell>
 	);
 }
 

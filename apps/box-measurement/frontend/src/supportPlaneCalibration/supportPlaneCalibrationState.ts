@@ -22,13 +22,11 @@ export const SUPPORT_PLANE_CALIBRATION_STATUS_TEXT: Record<
 export const SUPPORT_PLANE_CALIBRATION_STATUS_PENDING_TEXT =
 	'Waiting for the support plane calibration status from the camera…';
 
-// Mirrors the colours the backend's SupportPlanePreview node paints onto the
-// preview cloud (backend/src/depthai_pipeline/node/support_plane_preview.py)
 export const SUPPORT_PLANE_CALIBRATION_STATE_COLOR: Partial<
 	Record<SupportPlaneCalibrationState, string>
 > = {
-	AWAITING_CONFIRMATION: 'rgb(255, 140, 0)',
-	CONFIRMED: 'rgb(0, 255, 0)',
+	AWAITING_CONFIRMATION: 'var(--lux-warning)',
+	CONFIRMED: 'var(--lux-success)',
 };
 
 /** Measurements are only produced once a support plane is confirmed. */

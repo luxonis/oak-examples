@@ -36,7 +36,6 @@ SHARED_FILES = [
     SharedFile("src/AppShell.tsx", "custom-frontend/raw-stream/frontend", True),
     SharedFile("src/index.css", "custom-frontend/raw-stream/frontend", True),
     SharedFile("src/Notifications.tsx", "apps/dino-tracking/frontend", False),
-    SharedFile("vite.config.ts", "custom-frontend/raw-stream/frontend", True),
 ]
 
 
@@ -127,10 +126,10 @@ def discover_frontends() -> list[Path]:
 
 
 def expected_content(shared: SharedFile, target: Path) -> str:
-    reference = (ROOT / shared.reference / shared.path).read_text()
+    reference = (ROOT / shared.reference / shared.path).read_text(encoding="utf-8")
     if shared.path != "src/index.css" or not target.exists():
         return reference
-    current = target.read_text()
+    current = target.read_text(encoding="utf-8")
     if APP_SPECIFIC_CSS_MARKER in current:
         return reference + "\n" + current[current.index(APP_SPECIFIC_CSS_MARKER) :]
     app_css = "\n".join(
@@ -150,10 +149,10 @@ def check_shared(frontend: Path, fix: bool) -> list[str]:
         if not target.exists() and not shared.required:
             continue
         expected = expected_content(shared, target)
-        if target.exists() and target.read_text() == expected:
+        if target.exists() and target.read_bytes() == expected.encode("utf-8"):
             continue
         if fix:
-            target.write_text(expected)
+            target.write_text(expected, encoding="utf-8", newline="\n")
             continue
         state = "missing" if not target.exists() else "differs from"
         problems.append(
