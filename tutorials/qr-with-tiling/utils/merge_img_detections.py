@@ -5,7 +5,7 @@ from depthai_nodes.node.base_host_node import BaseHostNode
 
 
 class MergeImgDetections(BaseHostNode):
-    """Merge all ImgDetections stored in a GatheredData message into one message."""
+    """Remap each tile into its reference frame and merge the detections."""
 
     def build(self, input: dai.Node.Output) -> "MergeImgDetections":
         self.link_args(input)
@@ -22,9 +22,10 @@ class MergeImgDetections(BaseHostNode):
                 raise TypeError(
                     f"Expected GatheredData items to be dai.ImgDetections, got {type(item)}"
                 )
-            detections.extend(item.detections)
+            detections.extend(
+                item.transformTo(msg.reference_data.getTransformation()).detections
+            )
 
-        merged.detections = detections
         merged.setSequenceNum(msg.reference_data.getSequenceNum())
         merged.setTimestamp(msg.reference_data.getTimestamp())
         merged.setTimestampDevice(msg.reference_data.getTimestampDevice())
@@ -32,6 +33,18 @@ class MergeImgDetections(BaseHostNode):
         if hasattr(msg.reference_data, "getTransformation"):
             transformation = msg.reference_data.getTransformation()
             if transformation is not None:
+                width, height = transformation.getSize()
+                # Update axis-aligned bounds while preserving the rotated rectangle.
+                for detection in detections:
+                    rect = detection.getBoundingBox().denormalize(width, height)
+                    xmin, ymin, xmax, ymax = rect.getOuterRect()
+                    detection.xmin, detection.ymin, detection.xmax, detection.ymax = (
+                        xmin / width,
+                        ymin / height,
+                        xmax / width,
+                        ymax / height,
+                    )
                 merged.setTransformation(transformation)
 
+        merged.detections = detections
         self.out.send(merged)

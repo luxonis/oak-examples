@@ -10,13 +10,13 @@ class PointCloudMeasurement:
     """
 
     def __init__(self):
-        # Note: parameters in millimeters
-        self.distance_thr = 10
+        # Note: all lengths are in centimeters (the unit the PointCloud node emits)
+        self.distance_thr = 1.0
         self.sample_points = 3
         self.max_iterations = 500
         self.ransac_inlier_ratio_thr = 0.17
 
-        self.voxel_size = 5
+        self.voxel_size = 0.5
         self.points_buffer: np.ndarray = np.empty((0, 3), dtype=np.float64)
         self.points_buffer_plane: np.ndarray = np.empty((0, 3), dtype=np.float64)
         self.point_cloud: o3d.geometry.PointCloud = o3d.geometry.PointCloud()
@@ -24,9 +24,9 @@ class PointCloudMeasurement:
         # For ground + HG
         self.point_cloud_tf: o3d.geometry.PointCloud = o3d.geometry.PointCloud()
         self.point_cloud_plane: o3d.geometry.PointCloud = o3d.geometry.PointCloud()
-        self.cell = 5.0
+        self.cell = 0.5
         self.fill_iters = 1
-        self.z_base = 5.0
+        self.z_base = 0.5
         self.plane_eq = None
         self.center = None
         self.corners3d = None
@@ -54,10 +54,10 @@ class PointCloudMeasurement:
 
         # Robustness
         self.extent_delta_clamp = (
-            20.0  # mm; max per-frame size change we allow in the filter
+            2.0  # cm; max per-frame size change we allow in the filter
         )
         self.max_center_jump = (
-            100.0  # mm; if raw center jumps more than this, reject update
+            10.0  # cm; if raw center jumps more than this, reject update
         )
 
         # HG case
@@ -66,13 +66,13 @@ class PointCloudMeasurement:
         self.hg_prev_LW = None
         self.hg_prev_H = None
 
-        self.extent_delta_clamp_hg = 20.0
-        self.max_hg_center_jump = 100.0
+        self.extent_delta_clamp_hg = 2.0
+        self.max_hg_center_jump = 10.0
 
         self.from_reset = False
 
         self.reinit_inlier_ratio = 0.70
-        self.inlier_margin_mm = 10.0
+        self.inlier_margin_cm = 1.0
 
     def _is_finite_like(self, x) -> bool:
         if x is None:
@@ -214,7 +214,7 @@ class PointCloudMeasurement:
         """
         Find permutation P and signs S so that R_new @ P @ S best aligns to R_ref.
         - R_new: 3x3 rotation (columns are OBB axes)
-        - e_new: (3,) extents (mm)
+        - e_new: (3,) extents (cm)
         - R_ref: 3x3 previous rotation
 
         Returns:
@@ -261,13 +261,13 @@ class PointCloudMeasurement:
 
     @staticmethod
     def ratio_inside_box(
-        points: np.ndarray, C: np.ndarray, R: np.ndarray, E: np.ndarray, margin=10.0
+        points: np.ndarray, C: np.ndarray, R: np.ndarray, E: np.ndarray, margin=1.0
     ):
         """
         Returns ratio of points inside a box defined with:
         C: (3,) box center
         R: (3,3) box rotation
-        E: (3,) box extents (mm)
+        E: (3,) box extents (cm)
         """
         H = E * 0.5 + margin
         Q = (points - C) @ R
@@ -363,7 +363,9 @@ class PointCloudMeasurement:
         self.point_cloud = self.point_cloud.select_by_index(np.where(mask)[0])
 
     def filter_point_cloud_plane(self):
-        self.point_cloud_plane = self.point_cloud_plane.voxel_down_sample(voxel_size=10)
+        self.point_cloud_plane = self.point_cloud_plane.voxel_down_sample(
+            voxel_size=1.0
+        )
         self.point_cloud_plane, _ = self.point_cloud_plane.remove_statistical_outlier(
             20, 0.1
         )
@@ -681,7 +683,7 @@ class PointCloudMeasurement:
                 h01 = Hv[j + 1, i]
                 V += Atri * (h00 + h10 + h11) / 3.0
                 V += Atri * (h00 + h11 + h01) / 3.0
-        return float(V)  # mm^3
+        return float(V)  # cm^3
 
     # --------------- Filtering bbox positions-------------------
 
@@ -733,22 +735,22 @@ class PointCloudMeasurement:
 
         self.obb_pts = self._build_corners(c_s, R_s, e_s)
 
-        self.dimensions = (e_s / 10.0).astype(float)
-        self.volume = float((e_s[0] * e_s[1] * e_s[2]) / 1000.0)
+        self.dimensions = e_s.astype(float)  # cm
+        self.volume = float(e_s[0] * e_s[1] * e_s[2])  # cm^3
         self.prev_c, self.prev_R, self.prev_e = c_s, R_s, e_s
 
         # Sanity check if points inside the box
         P = np.asarray(self.point_cloud.points)
         inside_ratio = self.ratio_inside_box(
-            P, c_s, R_s, e_s, margin=self.inlier_margin_mm
+            P, c_s, R_s, e_s, margin=self.inlier_margin_cm
         )
         if inside_ratio < self.reinit_inlier_ratio:
             self.prev_c, self.prev_R, self.prev_e = c_new, R_new, e_new
             self.obb_pts = self._build_corners(self.prev_c, self.prev_R, self.prev_e)
-            self.dimensions = (self.prev_e / 10.0).astype(float)
+            self.dimensions = self.prev_e.astype(float)  # cm
             self.volume = float(
-                (self.prev_e[0] * self.prev_e[1] * self.prev_e[2]) / 1000.0
-            )
+                self.prev_e[0] * self.prev_e[1] * self.prev_e[2]
+            )  # cm^3
             self.from_reset = True
 
     def get_measurement_groundHG(self):
@@ -836,8 +838,8 @@ class PointCloudMeasurement:
 
         self.corners3d_table = corners_t
         self.corners3d = corners_w
-        self.dimensions = np.array([LW_s[0], LW_s[1], H_s], float) / 10.0  # cm
-        self.volume = self.volume_from_height_grid(G) / 1000.0  # cm^3
+        self.dimensions = np.array([LW_s[0], LW_s[1], H_s], float)  # cm
+        self.volume = self.volume_from_height_grid(G)  # cm^3
 
         self.hg_prev_center2 = c2_s
         self.hg_prev_yaw = yaw_s
@@ -847,6 +849,6 @@ class PointCloudMeasurement:
         # Sanity check if points inside the box
         C, R, E = self.box_from_corners(self.corners3d)
         P = np.asarray(self.point_cloud.points)
-        inside_ratio = self.ratio_inside_box(P, C, R, E, margin=self.inlier_margin_mm)
+        inside_ratio = self.ratio_inside_box(P, C, R, E, margin=self.inlier_margin_cm)
         if inside_ratio < self.reinit_inlier_ratio:
             self.from_reset = True

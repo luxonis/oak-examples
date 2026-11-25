@@ -1,11 +1,11 @@
 from pathlib import Path
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.node import FrameCropper, ParsingNeuralNetwork
 
 from utils.arguments import initialize_argparser
 from utils.simple_barcode_overlay import SimpleBarcodeOverlay
 from utils.barcode_decoder import BarcodeDecoder
-from utils.host_crop_config_creator import CropConfigsCreator
+from utils.barcode_regions import BarcodeRegions
 
 _, args = initialize_argparser()
 
@@ -66,24 +66,19 @@ with dai.Pipeline(device) as pipeline:
         resize_node.out, nn_archive
     )
 
-    crop_code = pipeline.create(CropConfigsCreator).build(
-        detection_nn.out,
-        source_size=(2592, 1944),
-        target_size=(640, 480),
-        resize_mode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
+    regions = pipeline.create(BarcodeRegions).build(detection_nn.out)
+    crop_node = (
+        pipeline.create(FrameCropper)
+        .fromImgDetections(
+            inputImgDetections=regions.out,
+            outputSize=(640, 480),
+            resizeMode=dai.ImageManipConfig.ResizeMode.LETTERBOX,
+        )
+        .build(inputImage=input_node)
     )
-
-    crop_manip = pipeline.create(dai.node.ImageManip)
-    crop_manip.inputConfig.setReusePreviousMessage(False)
-    crop_manip.setMaxOutputFrameSize(640 * 480 * 5)
-    input_node.link(crop_manip.inputImage)
-    crop_code.config_output.link(crop_manip.inputConfig)
-
-    decoder = pipeline.create(BarcodeDecoder)
-    crop_manip.out.link(decoder.input)
-
+    decoder = pipeline.create(BarcodeDecoder).build(crop_node.out)
     barcode_overlay = pipeline.create(SimpleBarcodeOverlay).build(
-        decoder.output, resize_node.out, detection_nn.out
+        decoder.out, resize_node.out, detection_nn.out
     )
 
     visualizer.addTopic("Barcode Overlay", barcode_overlay.output)

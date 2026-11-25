@@ -1,5 +1,5 @@
-depthai==3.11.0
-depthai-nodes==0.7.0
+depthai==3.12.2
+depthai-nodes==0.8.0
 numpy<2.0.0
 open3d==0.18.0; python_version < "3.12"
 open3d==0.20.0; python_version >= "3.12"

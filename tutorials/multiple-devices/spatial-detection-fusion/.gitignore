@@ -1,4 +1,2 @@
-config/*
-calibration_data/
-test.ipynb
+calibration.json
 __pycache__
