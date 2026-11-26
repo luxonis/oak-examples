@@ -2,7 +2,9 @@ import cv2
 import depthai as dai
 
 
-def convert_thermal_color(src: dai.ImgFrame, frame_type, width: int, height: int) -> dai.ImgFrame:
+def convert_thermal_color(
+    src: dai.ImgFrame, frame_type, width: int, height: int
+) -> dai.ImgFrame:
     """Turn one Thermal.color frame into the detector's BGR frame.
 
     ``getCvFrame`` decodes YUV422i as YUYV, which matches the thermal sensor
@@ -49,7 +51,9 @@ class YUV2BGR(dai.node.ThreadedHostNode):
         self.width = 0
         self.height = 0
 
-    def build(self, thermal_color: dai.Node.Output, frame_type, width: int, height: int):
+    def build(
+        self, thermal_color: dai.Node.Output, frame_type, width: int, height: int
+    ):
         thermal_color.link(self.input)
         self.frame_type = frame_type
         self.width = int(width)
@@ -59,4 +63,6 @@ class YUV2BGR(dai.node.ThreadedHostNode):
     def run(self):
         while self.isRunning():
             src = self.input.get()
-            self.out.send(convert_thermal_color(src, self.frame_type, self.width, self.height))
+            self.out.send(
+                convert_thermal_color(src, self.frame_type, self.width, self.height)
+            )
