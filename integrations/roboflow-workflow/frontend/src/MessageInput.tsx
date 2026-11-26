@@ -1,5 +1,19 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Input } from '@luxonis/ui-components';
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+	Alert,
+	Button,
+	Card,
+	Flex,
+	Input,
+	Label,
+	NormalText,
+	PasswordInput,
+	SubLabel,
+} from '@luxonis/ui-components';
 import {
 	type ChangeEvent,
 	type FormEvent,
@@ -128,6 +142,7 @@ export function MessageInput() {
 		null,
 	);
 	const [qnnPreparing, setQnnPreparing] = useState(false);
+	const [showApiKey, setShowApiKey] = useState(false);
 	const lastErrorToastRef = useRef<string | null>(null);
 
 	const applyInterface = useCallback((data: unknown) => {
@@ -324,200 +339,212 @@ export function MessageInput() {
 		);
 	};
 
+	const pipelineError = pipelineStatus?.error;
+
 	return (
-		<section className="flex w-full max-w-full flex-col gap-4 text-left">
-			<header className="flex flex-col gap-2">
-				<h2 className="font-semibold">Adjust Roboflow Inference Parameters</h2>
-				<div className="flex min-w-0 items-start justify-between gap-3">
-					{workflowInterface ? (
-						<p className="min-w-0 text-sm text-muted-foreground">
-							Active workflow: <b>{workflowInterface.workflow_id}</b> (workspace{' '}
-							<b>{workflowInterface.workspace_name}</b>)
-						</p>
-					) : interfaceError ? (
-						<p className="text-sm text-destructive">
-							Could not load the workflow interface.
-						</p>
-					) : (
-						<p className="text-sm text-muted-foreground">
-							Loading workflow interface. Initial QNN model preparation may take a few minutes.
-						</p>
-					)}
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						className="shrink-0"
-						onClick={workflowInterface ? handleRefresh : fetchInterface}
-						disabled={refreshing || submitting}
-						title={
-							workflowInterface
-								? 'Re-fetch the workflow definition from Roboflow and restart inference'
-								: 'Retry loading the workflow interface'
-						}
-						aria-label={
-							workflowInterface
-								? 'Refresh workflow definition'
-								: 'Retry loading the workflow interface'
-						}
-					>
-						{refreshing ? 'Refreshing...' : 'Refresh'}
-					</Button>
-				</div>
-			</header>
-
-			{(qnnPreparing || submitting || refreshing) && (
-				<output className="rounded-md border border-border bg-muted p-3 text-sm" aria-live="polite">
-					{qnnPreparing
-						? 'Preparing the workflow model for QNN. The first run may take a few minutes while its graph is optimized.'
-						: 'Updating the workflow. QNN model preparation may take a few minutes on first use.'}
-				</output>
-			)}
-
-			{pipelineStatus?.error ? (
-				<div
-					role="alert"
-					className="break-words rounded-md border border-destructive bg-background p-3 text-sm text-destructive"
-				>
-					<b>
-						Inference pipeline{' '}
-						{pipelineStatus.running ? 'is failing' : 'stopped'}
-						{pipelineStatus.error.error_type
-							? ` (${pipelineStatus.error.error_type})`
-							: ''}
-						.
-					</b>{' '}
-					{pipelineStatus.error.message ?? 'No error details available.'}
-					<p className="mt-1">
-						Fix the workflow in the Roboflow builder and press Refresh, or
-						submit different parameter values.
-					</p>
-				</div>
-			) : pipelineStatus && !pipelineStatus.running ? (
-				<p className="text-sm text-muted-foreground">
-					Inference pipeline is starting. QNN model preparation may take a few minutes on first use.
-				</p>
-			) : null}
-
-			<form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
-				<details>
-					<summary className="mb-2 cursor-pointer font-medium">
-						Workflow selection
-					</summary>
-					<div className="flex min-w-0 flex-col gap-3 pl-2">
-						<label className="flex min-w-0 flex-col gap-1" htmlFor="api_key">
-							<span className="font-medium">API Key</span>
-							<Input
-								id="api_key"
-								type="text"
-								name="api_key"
-								value={credentials.api_key}
-								onChange={handleCredentialChange}
-								placeholder="Unchanged"
-								className={inputClassName}
-							/>
-						</label>
-
-						<label
-							className="flex min-w-0 flex-col gap-1"
-							htmlFor="workspace_name"
-						>
-							<span className="font-medium">Workspace Name</span>
-							<Input
-								id="workspace_name"
-								type="text"
-								name="workspace_name"
-								value={credentials.workspace_name}
-								onChange={handleCredentialChange}
-								placeholder="Unchanged"
-								className={inputClassName}
-							/>
-						</label>
-
-						<label
-							className="flex min-w-0 flex-col gap-1"
-							htmlFor="workflow_id"
-						>
-							<span className="font-medium">Workflow ID</span>
-							<Input
-								id="workflow_id"
-								type="text"
-								name="workflow_id"
-								value={credentials.workflow_id}
-								onChange={handleCredentialChange}
-								placeholder="Unchanged"
-								className={inputClassName}
-							/>
-						</label>
-					</div>
-				</details>
-
-				<details open>
-					<summary className="mb-2 cursor-pointer font-medium">
-						Workflow parameters
-					</summary>
-					<div className="flex min-w-0 flex-col gap-3 pl-2">
-						{workflowInterface === null ? (
-							<p className="text-muted-foreground">
-								{interfaceError
-									? 'Workflow parameters unavailable.'
-									: 'Loading workflow interface...'}
-							</p>
-						) : workflowInterface.parameters.length === 0 ? (
-							<p className="text-muted-foreground">
-								This workflow does not expose any parameters. Add a{' '}
-								<i>Workflow Parameter</i> input in the Roboflow workflow builder
-								and it will show up here.
-							</p>
-						) : (
-							workflowInterface.parameters.map((param) => (
-								<label
-									key={param.name}
-									className="flex min-w-0 flex-col gap-1"
-									htmlFor={`workflow-param-${param.name}`}
-								>
-									<span className="font-medium">
-										{param.name}
-										{param.kind?.length ? (
-											<span className="ml-1 text-sm font-normal text-muted-foreground">
-												({param.kind.join(', ')})
-											</span>
-										) : null}
-									</span>
-									<Input
-										id={`workflow-param-${param.name}`}
-										type={
-											typeof param.default_value === 'number'
-												? 'number'
-												: 'text'
-										}
-										step="any"
-										value={paramValues[param.name] ?? ''}
-										onChange={(e) =>
-											handleParamChange(param.name, e.target.value)
-										}
-										placeholder={
-											param.default_value === null ||
-											param.default_value === undefined
-												? 'No default'
-												: `Default: ${valueToText(param.default_value)}`
-										}
-										className={inputClassName}
-									/>
-								</label>
-							))
-						)}
-					</div>
-				</details>
-
+		<Card
+			title="Workflow"
+			variant="outline"
+			intent="white"
+			actions={
 				<Button
-					type="submit"
-					disabled={submitting || refreshing}
-					className="mt-2 w-full justify-center"
+					type="button"
+					variant="outline"
+					intent="gray"
+					size="sm"
+					onClick={workflowInterface ? handleRefresh : fetchInterface}
+					disabled={refreshing || submitting}
+					title={
+						workflowInterface
+							? 'Re-fetch the workflow definition from Roboflow and restart inference'
+							: 'Retry loading the workflow interface'
+					}
 				>
-					{submitting ? 'Applying...' : 'Submit'}
+					{refreshing
+						? 'Refreshing...'
+						: workflowInterface
+							? 'Refresh'
+							: 'Retry'}
 				</Button>
-			</form>
-		</section>
+			}
+		>
+			<Flex direction="column" gap="sm">
+				{workflowInterface ? (
+					<dl className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-4">
+						<dt>
+							<Label text="Workflow" />
+						</dt>
+						<dd>
+							<NormalText break="word" text={workflowInterface.workflow_id} />
+						</dd>
+						<dt>
+							<Label text="Workspace" />
+						</dt>
+						<dd>
+							<NormalText
+								break="word"
+								text={workflowInterface.workspace_name}
+							/>
+						</dd>
+					</dl>
+				) : interfaceError ? (
+					<Alert
+						intent="error"
+						description="Could not load the workflow interface."
+					/>
+				) : (
+					<Label text="Loading workflow interface. Initial QNN model preparation may take a few minutes." />
+				)}
+
+				{qnnPreparing || submitting || refreshing ? (
+					<Alert
+						role="status"
+						aria-live="polite"
+						intent="active"
+						variant="light"
+						description={
+							qnnPreparing
+								? 'Preparing the workflow model for QNN. The first run may take a few minutes while its graph is optimized.'
+								: 'Updating the workflow. QNN model preparation may take a few minutes on first use.'
+						}
+					/>
+				) : null}
+
+				{pipelineError ? (
+					<Alert
+						intent="error"
+						className="break-words"
+						title={`Inference pipeline ${pipelineStatus.running ? 'is failing' : 'stopped'}${
+							pipelineError.error_type ? ` (${pipelineError.error_type})` : ''
+						}`}
+						description={`${pipelineError.message ?? 'No error details available.'} Fix the workflow in the Roboflow builder and press Refresh, or update the parameter values.`}
+					/>
+				) : pipelineStatus && !pipelineStatus.running ? (
+					<Label text="Inference pipeline is starting. QNN model preparation may take a few minutes on first use." />
+				) : null}
+
+				<form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4">
+					<Accordion type="multiple" defaultValue={['parameters']}>
+						<AccordionItem value="selection">
+							<AccordionTrigger>Workflow selection</AccordionTrigger>
+							<AccordionContent>
+								<Flex direction="column" gap="sm">
+									<SubLabel text="Leave a field empty to keep its current value. A new workflow ID starts with that workflow's default parameters." />
+									<Flex direction="column" gap="xs">
+										<label htmlFor="api_key">
+											<Label text="API key" />
+										</label>
+										<PasswordInput
+											id="api_key"
+											name="api_key"
+											autoComplete="off"
+											value={credentials.api_key}
+											onChange={handleCredentialChange}
+											placeholder="Unchanged"
+											controlledShow={showApiKey}
+											onToggleShow={setShowApiKey}
+											toggleButtonProps={{
+												'aria-label': showApiKey
+													? 'Hide API key'
+													: 'Show API key',
+											}}
+										/>
+									</Flex>
+									<Flex direction="column" gap="xs">
+										<label htmlFor="workspace_name">
+											<Label text="Workspace name" />
+										</label>
+										<Input
+											id="workspace_name"
+											type="text"
+											name="workspace_name"
+											value={credentials.workspace_name}
+											onChange={handleCredentialChange}
+											placeholder="Unchanged"
+											className={inputClassName}
+										/>
+									</Flex>
+									<Flex direction="column" gap="xs">
+										<label htmlFor="workflow_id">
+											<Label text="Workflow ID" />
+										</label>
+										<Input
+											id="workflow_id"
+											type="text"
+											name="workflow_id"
+											value={credentials.workflow_id}
+											onChange={handleCredentialChange}
+											placeholder="Unchanged"
+											className={inputClassName}
+										/>
+									</Flex>
+								</Flex>
+							</AccordionContent>
+						</AccordionItem>
+
+						<AccordionItem value="parameters">
+							<AccordionTrigger>Workflow parameters</AccordionTrigger>
+							<AccordionContent>
+								{workflowInterface === null ? (
+									<Label
+										text={
+											interfaceError
+												? 'Workflow parameters unavailable.'
+												: 'Loading workflow interface...'
+										}
+									/>
+								) : workflowInterface.parameters.length === 0 ? (
+									<Label text="This workflow does not expose any parameters. Add a Workflow Parameter input in the Roboflow workflow builder and it will show up here." />
+								) : (
+									<Flex direction="column" gap="sm">
+										{workflowInterface.parameters.map((param) => (
+											<Flex key={param.name} direction="column" gap="xs">
+												<label
+													htmlFor={`workflow-param-${param.name}`}
+													className="flex flex-wrap items-baseline gap-x-2"
+												>
+													<Label text={param.name} />
+													{param.kind?.length ? (
+														<SubLabel text={param.kind.join(', ')} />
+													) : null}
+												</label>
+												<Input
+													id={`workflow-param-${param.name}`}
+													type={
+														typeof param.default_value === 'number'
+															? 'number'
+															: 'text'
+													}
+													step="any"
+													value={paramValues[param.name] ?? ''}
+													onChange={(e) =>
+														handleParamChange(param.name, e.target.value)
+													}
+													placeholder={
+														param.default_value === null ||
+														param.default_value === undefined
+															? 'No default'
+															: `Default: ${valueToText(param.default_value)}`
+													}
+													className={inputClassName}
+												/>
+											</Flex>
+										))}
+									</Flex>
+								)}
+							</AccordionContent>
+						</AccordionItem>
+					</Accordion>
+
+					<Button
+						type="submit"
+						disabled={submitting || refreshing}
+						className="w-full"
+					>
+						{submitting ? 'Updating...' : 'Update workflow'}
+					</Button>
+				</form>
+			</Flex>
+		</Card>
 	);
 }

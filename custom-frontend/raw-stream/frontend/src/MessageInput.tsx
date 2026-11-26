@@ -1,36 +1,71 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Flex, Input } from '@luxonis/ui-components';
-import { useRef } from 'react';
+import { Button, Card, Flex, Input, SubLabel } from '@luxonis/ui-components';
+import { type FormEvent, useState } from 'react';
+
+type Status =
+	| { kind: 'idle' }
+	| { kind: 'sending' }
+	| { kind: 'answered'; text: string }
+	| { kind: 'failed'; text: string };
 
 export function MessageInput() {
 	const connection = useDaiConnection();
-	const inputRef = useRef<HTMLInputElement>(null);
+	const [message, setMessage] = useState('');
+	const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
-	const handleSendMessage = () => {
-		if (inputRef.current) {
-			const message = inputRef.current.value;
-			const messageService = 'Message Service' as Parameters<
-				NonNullable<typeof connection.daiConnection>['postToService']
-			>[0];
+	const handleSubmit = (event: FormEvent) => {
+		event.preventDefault();
+		const messageService = 'Message Service' as Parameters<
+			NonNullable<typeof connection.daiConnection>['postToService']
+		>[0];
 
-			console.log('Sending message:', message);
-			connection.daiConnection?.postToService(
+		const daiConnection = connection.daiConnection;
+		if (!daiConnection) return;
+
+		const fail = (text: string) => setStatus({ kind: 'failed', text });
+		setStatus({ kind: 'sending' });
+		daiConnection
+			.postToService(
 				messageService,
 				message,
 				(response) => {
-					console.log('Received response:', response);
+					setStatus({ kind: 'answered', text: JSON.stringify(response) });
 				},
-			);
-
-			inputRef.current.value = '';
-		}
+				(response) => fail(String(response?.error ?? 'No response.')),
+			)
+			.catch((error: unknown) => fail(String(error)));
+		setMessage('');
 	};
 
 	return (
-		<Flex direction="row" gap="sm" align="center">
-			<Input type="text" placeholder="Message" ref={inputRef} />
-
-			<Button onClick={handleSendMessage}>Send</Button>
-		</Flex>
+		<Card title="Message Service" variant="outline" intent="white">
+			<form onSubmit={handleSubmit}>
+				<Flex direction="column" gap="sm">
+					<label htmlFor="message">
+						<SubLabel text="Message sent to the Python backend" />
+					</label>
+					<Flex direction="row" gap="sm" align="center">
+						<Input
+							id="message"
+							value={message}
+							placeholder="Message"
+							onChange={(event) => setMessage(event.target.value)}
+						/>
+						<Button
+							type="submit"
+							disabled={!connection.connected || status.kind === 'sending'}
+						>
+							Send
+						</Button>
+					</Flex>
+					{status.kind === 'answered' ? (
+						<SubLabel text={`Response: ${status.text}`} />
+					) : null}
+					{status.kind === 'failed' ? (
+						<SubLabel color="error" text={`Request failed: ${status.text}`} />
+					) : null}
+				</Flex>
+			</form>
+		</Card>
 	);
 }

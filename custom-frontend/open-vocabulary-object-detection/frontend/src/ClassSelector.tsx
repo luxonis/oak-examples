@@ -1,6 +1,13 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Input } from '@luxonis/ui-components';
-import { useRef, useState } from 'react';
+import {
+	Badge,
+	Button,
+	Flex,
+	Input,
+	Label,
+	SubLabel,
+} from '@luxonis/ui-components';
+import { type FormEvent, useRef, useState } from 'react';
 import { useNotifications } from './Notifications.tsx';
 import { postToCustomService } from './services.ts';
 
@@ -19,7 +26,8 @@ export function ClassSelector({
 		useState<string[]>(initialClasses);
 	const { notify } = useNotifications();
 
-	const handleSendMessage = () => {
+	const handleSendMessage = (event: FormEvent) => {
+		event.preventDefault();
 		if (inputRef.current) {
 			const value = inputRef.current.value;
 			const updatedClasses = value
@@ -67,35 +75,41 @@ export function ClassSelector({
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
-			<h3 className="font-semibold">Update Classes with Text Input:</h3>
-
-			<div className="max-h-[150px] overflow-y-auto rounded-md border border-border bg-card p-4 text-left">
+		<Flex direction="column" gap="sm">
+			<Flex direction="column" gap="xs">
+				<Label id="active-classes-label" text="Active classes" />
 				{selectedClasses.length > 0 ? (
-					<ul className="m-0 list-disc pl-6">
+					<ul
+						aria-labelledby="active-classes-label"
+						className="flex flex-wrap gap-2"
+					>
 						{selectedClasses.map((cls) => (
-							<li key={cls}>{cls}</li>
+							<li key={cls}>
+								<Badge intent="gray" variant="light" label={cls} />
+							</li>
 						))}
 					</ul>
 				) : (
-					<p className="text-sm text-muted-foreground">No classes selected.</p>
+					<SubLabel text="No classes selected." />
 				)}
-			</div>
+			</Flex>
 
-			<div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-1">
-				<Input
-					className="min-w-0 w-full"
-					type="text"
-					placeholder="person,chair,TV"
-					ref={inputRef}
-				/>
-				<Button
-					className="shrink-0 whitespace-nowrap px-4"
-					onClick={handleSendMessage}
-				>
-					Update Classes
-				</Button>
-			</div>
-		</div>
+			<form onSubmit={handleSendMessage}>
+				<Flex direction="column" gap="xs">
+					<label htmlFor="class-input">
+						<Label text="New classes, separated by commas" />
+					</label>
+					<div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+						<Input
+							id="class-input"
+							type="text"
+							placeholder="person, chair, TV"
+							ref={inputRef}
+						/>
+						<Button type="submit">Update classes</Button>
+					</div>
+				</Flex>
+			</form>
+		</Flex>
 	);
 }

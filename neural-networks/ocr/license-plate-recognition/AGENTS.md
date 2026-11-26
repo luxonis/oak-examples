@@ -35,14 +35,14 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 - [README.md](README.md)
 - [main.py](main.py)
-- [utils/config_sender_script.py](utils/config_sender_script.py)
-- [utils/license_plate_sender_script.py](utils/license_plate_sender_script.py)
+- [utils/crop_regions.py](utils/crop_regions.py)
+- [utils/ocr_crops.py](utils/ocr_crops.py)
 - [utils/visualizer_node.py](utils/visualizer_node.py)
 
 ## Architecture
 
 - A first-stage vehicle detector runs on a very large source frame.
-- Script nodes generate crop configs for vehicles and then for license plates inside those vehicle crops.
+- [utils/crop_regions.py](utils/crop_regions.py) selects vehicle and plate regions for `FrameCropper`.
 - A second detector finds plates inside each vehicle crop.
 - A third OCR stage reads the cropped plates.
 - [utils/visualizer_node.py](utils/visualizer_node.py) fuses the stages back into a 1280×720 source-frame overlay and keeps plate previews within the frame bounds.
@@ -53,6 +53,7 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
 - `REQ_WIDTH` and `REQ_HEIGHT` are set to doubled `1920x1080`, which makes this much heavier than most examples; a separate `ImageManip` resizes the display to 1280×720 before it reaches the host visualizer.
 - The OCR parser ignores a long list of token indexes in code, so blindly swapping OCR models is risky.
+- Match OCR results to individual crops; source-frame timestamps are shared by multiple crops.
 
 ## Related Examples
 
@@ -64,4 +65,4 @@ This is the repository reference for three-stage ALPR: vehicle detection, licens
 
 - `Run:` `python3 main.py`
 - `Success looks like:` the Visualizer shows `License Plates` with detected vehicles, plates, and OCR text merged into one output
-- `Common failure meaning:` the device is not RVC4, the scene resolution is too poor for the crop cascade, or one of the scripted crop stages is no longer aligned with the model outputs
+- `Common failure meaning:` the device is not RVC4, the scene resolution is too poor for the crop cascade, or crop/result counts or reference metadata no longer match

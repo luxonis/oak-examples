@@ -117,7 +117,7 @@ Afterwards, navigate to desired application as listed below
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="neural-networks/object-detection/human-machine-safety/media/hms.gif" alt="Neural Networks Demo">
+      <img src="neural-networks/object-detection/spatial-detections/media/spatial-detections.gif" alt="Neural Networks Demo">
     </td>
     <td width="50%" valign="middle" align="center">
       Comprehensive collection of AI model usage, including object detection, classification, segmentation, and many more.

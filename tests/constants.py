@@ -95,19 +95,27 @@ KNOWN_FAILING = {
         "reason": "Needs ros base image",
         "rules": {"and": [{"mode": ["peripheral"]}]},
     },
-    "tutorials/multiple-devices/multi-cam-calibration": {
-        "reason": "Needs --include-ip flag turned to work on RVC4.",
-        "rules": {"and": [{"platform": ["rvc4"]}]},
+    "tutorials/multiple-devices/multi-device-birds-eye-view": {
+        "reason": "Test suite doesn't support multi-device testing",
+        "rules": {"and": [{"platform": "all"}]},
     },
-    "tutorials/multiple-devices/multiple-devices-preview": {
-        "reason": "Needs --include-ip flag turned to work on RVC4.",
+    "tutorials/multiple-devices/multi-device-point-cloud": {
+        "reason": "Test suite doesn't support multi-device testing",
+        "rules": {"and": [{"platform": "all"}]},
+    },
+    "tutorials/multiple-devices/multi-device-calibration": {
+        "reason": "Test suite doesn't support multi-device testing",
+        "rules": {"and": [{"platform": "all"}]},
+    },
+    "tutorials/multiple-devices/multi-device-preview": {
+        "reason": "Discovery skips IP-only devices by default; RVC4 needs --include-ip or --devices.",
         "rules": {"and": [{"platform": ["rvc4"]}]},
     },
     "tutorials/multiple-devices/spatial-detection-fusion": {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },
-    "tutorials/multiple-devices/multiple-device-stitch-nn": {
+    "tutorials/multiple-devices/multi-device-stitch-nn": {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },

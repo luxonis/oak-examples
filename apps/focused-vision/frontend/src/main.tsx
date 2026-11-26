@@ -2,7 +2,7 @@ import { DepthAIContext } from '@luxonis/depthai-viewer-common';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router';
-import './styles.css';
+import './index.css';
 import '@luxonis/depthai-viewer-common/styles';
 import '@luxonis/ui-components/styles.css';
 import '@luxonis/depthai-pipeline-lib/styles';

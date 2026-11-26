@@ -37,7 +37,7 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 - [backend/src/depthai_pipeline/init_pipeline.py](backend/src/depthai_pipeline/init_pipeline.py): camera, model, depth, IMU, and topic wiring.
 - [backend/src/main.py](backend/src/main.py): service registration and pipeline restart lifecycle.
 - [backend/src/settings/settings.py](backend/src/settings/settings.py): validated runtime settings and startup defaults.
-- [frontend/src/App.tsx](frontend/src/App.tsx): live stream layout and the sidebar's device connection status.
+- [frontend/src/App.tsx](frontend/src/App.tsx) and [frontend/src/AppShell.tsx](frontend/src/AppShell.tsx): shared page layout, live streams, and settings sidebar. Connection feedback stays in the stream viewer.
 - [frontend/src/settings/SettingsForm.tsx](frontend/src/settings/SettingsForm.tsx): live controls.
 
 ## Architecture
@@ -90,7 +90,7 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 ## Related Examples
 
 - [apps/object-volume-measurement-3d](https://github.com/luxonis/oak-examples/tree/main/apps/object-volume-measurement-3d): custom frontend and ground-aligned 3D processing.
-- [neural-networks/object-detection/human-machine-safety](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/human-machine-safety): another proximity alert example.
+- [neural-networks/object-detection/person-distance-bev](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/person-distance-bev): camera-relative bird's-eye view and pairwise person distances without alert zones.
 
 ## Validation
 

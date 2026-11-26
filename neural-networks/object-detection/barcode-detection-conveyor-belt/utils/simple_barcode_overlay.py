@@ -1,23 +1,17 @@
 import cv2
 import depthai as dai
-from threading import Lock
 import time
 
 
 class SimpleBarcodeOverlay(dai.node.HostNode):
-    """
-    Simple overlay that shows the most recently decoded barcode on the video stream and detection boxes.
-    """
+    """Display synchronized detections and asynchronously decoded barcode history."""
 
     def __init__(self):
         super().__init__()
-
         self.barcodes = {}
-        self.latest_detections = None
-        self.lock = Lock()
         self.max_display_time = 3.0
         self.max_barcodes = 5
-        self.input_barcode = self.createInput()
+        self.input_barcode = self.createInput(blocking=False)
         self.output = self.createOutput()
         self.output.setPossibleDatatypes([(dai.DatatypeEnum.ImgFrame, True)])
 
@@ -25,85 +19,48 @@ class SimpleBarcodeOverlay(dai.node.HostNode):
         self,
         barcode_source: dai.Node.Output,
         video_source: dai.Node.Output,
-        detection_source: dai.Node.Output = None,
+        detection_source: dai.Node.Output,
     ) -> "SimpleBarcodeOverlay":
         self.link_args(video_source, detection_source)
         barcode_source.link(self.input_barcode)
-
         self.sendProcessingToPipeline(True)
         return self
 
     def process(
-        self, video_msg: dai.ImgFrame, detection_msg: dai.Buffer = None
-    ) -> dai.ImgFrame:
-        try:
-            with self.lock:
-                current_time = time.time()
-                while self.input_barcode.has():
-                    barcode_msg = self.input_barcode.get()
-                    data = barcode_msg.getData()
+        self, video_msg: dai.ImgFrame, detection_msg: dai.ImgDetections
+    ) -> None:
+        if video_msg.getSequenceNum() != detection_msg.getSequenceNum():
+            return
 
-                    if isinstance(data, bytes):
-                        barcode_text = data.decode("utf-8", errors="ignore")
-                    elif hasattr(data, "tobytes"):
-                        barcode_text = data.tobytes().decode("utf-8", errors="ignore")
-                    else:
-                        barcode_text = str(data)
+        current_time = time.time()
+        for decoded in self.input_barcode.tryGetAll():
+            for _, payload in decoded:
+                text = bytes(payload.getData()).decode("utf-8", errors="ignore")
+                self.barcodes[text] = current_time
 
-                    self.barcodes[barcode_text] = current_time
-
-                self.barcodes = {
-                    code: timestamp
+        self.barcodes = dict(
+            sorted(
+                (
+                    (code, timestamp)
                     for code, timestamp in self.barcodes.items()
                     if current_time - timestamp < self.max_display_time
-                }
+                ),
+                key=lambda item: item[1],
+                reverse=True,
+            )[: self.max_barcodes]
+        )
+        frame = video_msg.getCvFrame()
+        self._draw_detection_boxes(frame, detection_msg)
+        if self.barcodes:
+            self._draw_multiple_barcodes(frame, self.barcodes, current_time)
 
-                if len(self.barcodes) > self.max_barcodes:
-                    sorted_barcodes = sorted(
-                        self.barcodes.items(), key=lambda x: x[1], reverse=True
-                    )
-                    self.barcodes = dict(sorted_barcodes[: self.max_barcodes])
-        except Exception as e:
-            pass
-
-        try:
-            with self.lock:
-                self.latest_detections = detection_msg
-        except Exception as e:
-            pass
-
-        try:
-            frame = video_msg.getCvFrame()
-
-            with self.lock:
-                current_time = time.time()
-
-                if self.latest_detections:
-                    self._draw_detection_boxes(frame, self.latest_detections)
-
-                active_barcodes = {
-                    code: timestamp
-                    for code, timestamp in self.barcodes.items()
-                    if current_time - timestamp < self.max_display_time
-                }
-                self.barcodes = active_barcodes
-
-                if active_barcodes:
-                    self._draw_multiple_barcodes(frame, active_barcodes, current_time)
-
-            output_msg = dai.ImgFrame()
-            output_msg.setData(frame)
-            output_msg.setTimestamp(video_msg.getTimestamp())
-            output_msg.setSequenceNum(video_msg.getSequenceNum())
-            output_msg.setWidth(frame.shape[1])
-            output_msg.setHeight(frame.shape[0])
-            output_msg.setType(video_msg.getType())
-
-            # Send the frame to the node's output so it appears in the DepthAI Visualizer
-            self.output.send(output_msg)
-
-        except Exception as e:
-            pass
+        output_msg = dai.ImgFrame()
+        output_msg.setCvFrame(frame, video_msg.getType())
+        output_msg.setTimestamp(video_msg.getTimestamp())
+        output_msg.setTimestampDevice(video_msg.getTimestampDevice())
+        output_msg.setSequenceNum(video_msg.getSequenceNum())
+        output_msg.setTransformation(video_msg.getTransformation())
+        self.output.send(output_msg)
 
     def _draw_multiple_barcodes(self, frame, active_barcodes, current_time):
         """Draw multiple barcode texts with prettier styling"""
@@ -219,7 +176,7 @@ class SimpleBarcodeOverlay(dai.node.HostNode):
                 )
                 cv2.circle(frame, (panel_x + 5, y_pos - 5), 4, dot_color, -1)
 
-        except Exception as e:
+        except Exception:
             pass
 
     def _draw_detection_boxes(self, frame, detections):
@@ -272,5 +229,5 @@ class SimpleBarcodeOverlay(dai.node.HostNode):
                     2,
                 )
 
-        except Exception as e:
+        except Exception:
             pass

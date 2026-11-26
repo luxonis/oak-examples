@@ -108,12 +108,12 @@ class WLSFilter(dai.node.HostNode):
                 cv2.COLOR_GRAY2BGR,
             )
 
+        # Outputs are on the disparity grid. Take all metadata from disparity:
+        # rectified right can differ in grid (RVC2) and timestamps (RVC4).
         depth_fr = dai.ImgFrame()
         depth_fr.setCvFrame(color_arr, dai.ImgFrame.Type.BGR888i)
+        depth_fr.setBufferMetadataFrom(disparity)
         depth_fr.setTransformation(disparity.getTransformation())
-        depth_fr.setTimestamp(right.getTimestamp())
-        depth_fr.setTimestampDevice(right.getTimestampDevice())
-        depth_fr.setSequenceNum(right.getSequenceNum())
         self.depth_frame.send(depth_fr)
 
         self.filtered_disp.send(
@@ -154,7 +154,9 @@ class WLSFilter(dai.node.HostNode):
             size=8,
         )
 
-        annots_msg = annots.build(right.getTimestamp(), right.getSequenceNum())
+        annots_msg = annots.build(disparity.getTimestamp(), disparity.getSequenceNum())
+        annots_msg.setBufferMetadataFrom(disparity)
+        annots_msg.setTransformation(disparity.getTransformation())
         self.annotations.send(annots_msg)
 
     def handle_key(self, key: int) -> None:
@@ -175,9 +177,7 @@ class WLSFilter(dai.node.HostNode):
         img_frame.setHeight(frame.shape[0])
         img_frame.setType(type)
         img_frame.setFrame(frame)
+        img_frame.setBufferMetadataFrom(source)
         img_frame.setTransformation(source.getTransformation())
-        img_frame.setTimestamp(source.getTimestamp())
-        img_frame.setTimestampDevice(source.getTimestampDevice())
-        img_frame.setSequenceNum(source.getSequenceNum())
 
         return img_frame
