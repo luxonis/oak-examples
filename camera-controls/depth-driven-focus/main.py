@@ -4,41 +4,16 @@ import depthai as dai
 from depthai_nodes.node import ParsingNeuralNetwork, ApplyDepthColormap
 from utils.arguments import initialize_argparser
 from utils.depth_driven_focus import DepthDrivenFocus
-
-_DEPTH_LOWER_THRESHOLD_MM = 200
-_DEPTH_UPPER_THRESHOLD_MM = 30000
-_KEYPOINT_RADIUS_PX = 5
+from utils.spatial_calculator import create_spatial_calculator
 
 _, args = initialize_argparser()
 MODEL_DIR = Path(__file__).resolve().parent / "depthai_models"
 
 
-def create_spatial_calculator(pipeline: dai.Pipeline, shrinking_factor: float):
-    calculator = pipeline.create(dai.node.SpatialLocationCalculator)
-    calculator.initialConfig.setDepthThresholds(
-        _DEPTH_LOWER_THRESHOLD_MM, _DEPTH_UPPER_THRESHOLD_MM
-    )
-    calculator.initialConfig.setCalculationAlgorithm(
-        dai.SpatialLocationCalculatorAlgorithm.AVERAGE
-    )
-    calculator.initialConfig.setStepSize(1)
-    calculator.initialConfig.setBoundingBoxScaleFactor(1.0 - 2.0 * shrinking_factor)
-    calculator.initialConfig.setCalculateSpatialKeypoints(True)
-    calculator.initialConfig.setKeypointRadius(_KEYPOINT_RADIUS_PX)
-    calculator.initialConfig.setUseSegmentation(False)
-    # Set to blocking to avoid dropping and mismatching frames
-    calculator.inputDetections.setBlocking(True)
-    calculator.inputDetections.setMaxSize(2)
-    calculator.inputDepth.setBlocking(True)
-    calculator.inputDepth.setMaxSize(1)
-    calculator.setRunOnHost(False)
-    return calculator
-
-
 def detector_frame_type(
     nn_archive: dai.NNArchive, platform: dai.Platform
 ) -> dai.ImgFrame.Type:
-    """Frame type NeuralNetwork.build would request for this archive."""
+    """Color format the face detector expects."""
     preprocessing = nn_archive.getConfigV1().model.inputs[0].preprocessing
     if preprocessing.daiType:
         return getattr(dai.ImgFrame.Type, preprocessing.daiType)
@@ -82,7 +57,7 @@ with dai.Pipeline(device) as pipeline:
     face_det_nn = pipeline.create(ParsingNeuralNetwork).build(color_out, nn_archive)
     if platform == dai.Platform.RVC2:
         face_det_nn.setNNArchive(nn_archive, numShaves=7)
-    spatial_calculator = create_spatial_calculator(pipeline, shrinking_factor=0.0)
+    spatial_calculator = create_spatial_calculator(pipeline)
     face_det_nn.out.link(spatial_calculator.inputDetections)
     depth.depth.link(spatial_calculator.inputDepth)
 

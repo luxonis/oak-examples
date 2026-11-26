@@ -1,6 +1,6 @@
 # Depth Driven Focus
 
-This example demonstrates how to continuously focus on the closest detected face. The preview and YuNet share one undistorted camera output. `SpatialLocationCalculator` reads depth aligned to that output inside each face box, and the host converts that distance into a lens position. The distance and lens position are drawn on the preview. The example requires a device with an auto-focus color camera and a stereo camera pair to function properly. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
+This example demonstrates how to continuously focus on the closest detected face. It determines the distance to that face and adjusts the lens position accordingly. The distance and the lens position are drawn on the preview. The example requires a device with an auto-focus color camera and a stereo camera pair to function properly. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
 
 ## Demo
 
