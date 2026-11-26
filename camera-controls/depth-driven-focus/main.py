@@ -35,7 +35,9 @@ def create_spatial_calculator(pipeline: dai.Pipeline, shrinking_factor: float):
     return calculator
 
 
-def detector_frame_type(nn_archive: dai.NNArchive, platform: dai.Platform) -> dai.ImgFrame.Type:
+def detector_frame_type(
+    nn_archive: dai.NNArchive, platform: dai.Platform
+) -> dai.ImgFrame.Type:
     """Frame type NeuralNetwork.build would request for this archive."""
     preprocessing = nn_archive.getConfigV1().model.inputs[0].preprocessing
     if preprocessing.daiType:
