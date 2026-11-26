@@ -1,5 +1,5 @@
-depthai==3.11.0
-depthai-nodes==0.7.0
+depthai==3.12.1
+depthai-nodes==0.8.0
 opencv-python-headless~=4.10.0
 numpy>=1.23,<2
 pyarrow==17.0.0

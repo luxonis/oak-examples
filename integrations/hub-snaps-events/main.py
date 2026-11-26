@@ -3,10 +3,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 import depthai as dai
-from depthai_nodes.node import (
-    ParsingNeuralNetwork,
-    ImgDetectionsFilter,
-)
+from depthai_nodes.node import ParsingNeuralNetwork
 from depthai_nodes.node import SnapsUploader
 
 from utils.snaps_producer import SnapsProducer
@@ -69,9 +66,11 @@ with dai.Pipeline(device) as pipeline:
         except ValueError:
             print(f"Class `{curr_class}` not predicted by the model, skipping.")
 
-    det_process_filter = pipeline.create(ImgDetectionsFilter).build(nn_with_parser.out)
-    det_process_filter.keepLabels(labels_to_keep)
-    det_process_filter.minConfidence(args.confidence_threshold)
+    det_process_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+    det_process_filter.initialConfig.labelsToKeep = labels_to_keep
+    det_process_filter.initialConfig.minConfidence = args.confidence_threshold
+    det_process_filter.initialConfig.maxConfidence = float("inf")
+    nn_with_parser.out.link(det_process_filter.inputs["detections"])
 
     snaps_producer = pipeline.create(SnapsProducer).build(
         frame=nn_with_parser.passthrough,
@@ -86,6 +85,7 @@ with dai.Pipeline(device) as pipeline:
     print("Pipeline created.")
 
     pipeline.start()
+    print("Pipeline started.")
     visualizer.registerPipeline(pipeline)
 
     while pipeline.isRunning():

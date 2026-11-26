@@ -2,6 +2,8 @@
 
 This DepthAI example uses stereo cameras for face detection with [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915), calculating 3D spatial coordinates via triangulation. It visualizes bounding boxes, keypoints, and disparity in real-time. Because there are often application-specific host-side filtering to be done on the stereo neural inference results, and because these calculations are lightweight (i.e. could be done on an ESP32), we leave the triangulation itself to the host.
 
+The cameras are rectified using device calibration before inference. Triangulation uses signed horizontal disparity and the rectified-left frame’s intrinsics; XYZ is reported in the rectified-left camera frame (X right, Y down, Z forward). Only a single face in each view is accepted. Non-positive/near-zero disparity and keypoints more than 3 pixels apart vertically do not produce a measurement. This single-face demo does not establish identity across cameras; verify metric accuracy using known-distance targets.
+
 ## Demo
 
 ![Stereo Inference GIF](https://user-images.githubusercontent.com/59799831/132098832-70a2d0b9-1a30-4994-8dad-dc880a803fb3.gif)

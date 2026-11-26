@@ -37,7 +37,10 @@ async def main():
                 dai.CameraBoardSocket.CAM_A
             )
             color_out = color_cam.requestOutput(
-                resolution, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+                resolution,
+                type=dai.ImgFrame.Type.NV12,
+                fps=args.fps_limit,
+                enableUndistortion=args.pointcloud,
             )
             color_q = color_out.createOutputQueue(blocking=False, maxSize=1)
 

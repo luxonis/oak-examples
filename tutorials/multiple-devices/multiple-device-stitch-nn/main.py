@@ -1,192 +1,258 @@
-#!/usr/bin/env python3
+"""Calibrated multi-device panorama with per-camera YOLO detections merged by ImgDetectionsFilter."""
 
-from depthai_nodes.node import (
-    CoordinatesMapper,
-    FrameCropper,
-    GatherData,
-    ImgDetectionsFilter,
-    ParsingNeuralNetwork,
-    Tiling,
-)
-from utils.arguments import initialize_argparser
-from utils.merge_img_detections import MergeImgDetections
-from utils.stitch import Stitch
-import contextlib
+import logging
+from datetime import timedelta
+from pathlib import Path
+
 import depthai as dai
-import time
 
-_, args = initialize_argparser()
+from utils.arguments import initialize_argparser
 
-IMG_SIZES = {
-    "2160p": (3840, 2160),
-    "1080p": (1920, 1080),
-    "720p": (1280, 720),
-    "480p": (640, 480),
-    "360p": (640, 360),
-}
-# Nr of seconds in float to wait before autofocus is turned off after program start and after homography recalculation.
-AF_MSG_DELAY_S = 5.0
-IMG_SHAPE = IMG_SIZES[args.input_size]
-AF_MODE_NAMES = {
-    dai.CameraControl.AutoFocusMode.OFF: "OFF",
-    dai.CameraControl.AutoFocusMode.AUTO: "AUTO",
-}
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
-
-def createPipeline(pipeline):
-    camRgb = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
-    output = camRgb.requestOutput(
-        IMG_SHAPE, dai.ImgFrame.Type.NV12, dai.ImgResizeMode.CROP, fps=args.fps_limit
-    )
-    input = camRgb.inputControl.createInputQueue()
-    return pipeline, input, output
+MODELS_DIR = Path(__file__).parent / "depthai_models"
+VIEW_SIZE = (
+    640,
+    400,
+)  # Camera view sent to the host for stitching, multiplied by --panorama-scale
+CONFIDENCE_THRESHOLD = 0.5
+OVERLAP_MODES = (
+    dai.ImgDetectionsFilterConfig.OverlapMode.OFF,
+    dai.ImgDetectionsFilterConfig.OverlapMode.NMS,
+    dai.ImgDetectionsFilterConfig.OverlapMode.AVERAGE,
+)
+STEREO_SOCKETS = (dai.CameraBoardSocket.CAM_B, dai.CameraBoardSocket.CAM_C)
 
 
-def send_af_mode(inputs, mode):
-    ctrl = dai.CameraControl()
-    ctrl.setAutoFocusMode(mode)
-    print(f"Setting autofocus mode to {AF_MODE_NAMES[mode]} for {len(inputs)} cameras.")
-    for input in inputs:
-        input.send(ctrl)
-
-
-with contextlib.ExitStack() as stack:
-    visualizer = dai.RemoteConnection(httpPort=8082)
-    deviceInfos = dai.Device.getAllAvailableDevices()
-    print("=== Found devices: ", deviceInfos)
-    inputs = []
-    outputs = []
-    pipelines = []
-
-    for deviceInfo in deviceInfos:
-        pipeline = stack.enter_context(dai.Pipeline())
-        device = pipeline.getDefaultDevice()
-
-        print("===Connected to ", deviceInfo.getDeviceId())
-        mxId = device.getDeviceId()
-        cameras = device.getConnectedCameras()
-        usbSpeed = device.getUsbSpeed()
-        eepromData = device.readCalibration2().getEepromData()
-        print("   >>> Device ID:", mxId)
-        print("   >>> Num of cameras:", len(cameras))
-        if eepromData.boardName != "":
-            print("   >>> Board name:", eepromData.boardName)
-        if eepromData.productName != "":
-            print("   >>> Product name:", eepromData.productName)
-
-        pipeline, input, output = createPipeline(pipeline)
-        pipelines.append(pipeline)
-        outputs.append(output)
-        inputs.append(input)
-
-    platform = device.getPlatform()
-    # Get model based on platform type from yaml file
-    model_description = dai.NNModelDescription.fromYamlFile(
-        f"yolov6_nano.{platform.name}.yaml"
-    )
-    nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
-
-    # Determine stitched output resolution x = nn y size + (nn_y_size//2)*nr of cameras,
-    #                                      y = y size of nn model
-    out_stitch_res = (
-        nn_archive.getInputSize()[0]
-        + (nn_archive.getInputSize()[0] // 2) * len(outputs),
-        nn_archive.getInputSize()[1],
-    )
-    # Create threaded node pipeline with Stitch class, setting nr on inputs and output resolution
-    # set to NN input resolution
-    stitch_pl = pipeline.create(
-        Stitch, nr_inputs=len(outputs), output_resolution=out_stitch_res
-    )
-    for i, output in enumerate(outputs):
-        # Link each output of a camera to stitching inputs
-        output.link(stitch_pl.inputs[i])
-        # Do not block stream if image queue gets full - less delay in output detection stream
-        stitch_pl.inputs[i].setBlocking(False)
-
-    grid_size = (len(outputs), 1)
-
-    tile_manager = pipeline.create(Tiling).build(
-        canvasShape=out_stitch_res,
-        overlap=0.5,
-        gridSize=grid_size,
-        gridMatrix=None,
-        globalDetection=False,
-        resizeShape=nn_archive.getInputSize(),
-    )
-
-    tiling_cropper = (
-        pipeline.create(FrameCropper)
-        .fromManipConfigs(
-            inputManipConfigs=tile_manager.out,
-            maxOutputFrameSize=nn_archive.getInputWidth()
-            * nn_archive.getInputHeight()
-            * 3,
-            waitForConfig=False,
+def calibrated_sockets(device):
+    """Connected cameras that have factory intrinsics; others cannot be calibrated or undistorted."""
+    calibrated = device.readCalibration().getEepromData().cameraData
+    sockets = [s for s in device.getConnectedCameras() if s in calibrated]
+    if not sockets:
+        raise RuntimeError(
+            f"Device {device.getDeviceId()} has no factory calibration for its connected cameras "
+            f"{[s.name for s in device.getConnectedCameras()]}"
         )
-        .build(
-            inputImage=stitch_pl.out,
-        )
+    return sockets
+
+
+def panorama_socket(device):
+    """CAM_A when it is calibrated, otherwise the first calibrated camera (e.g. FFC boards)."""
+    sockets = calibrated_sockets(device)
+    return (
+        dai.CameraBoardSocket.CAM_A
+        if dai.CameraBoardSocket.CAM_A in sockets
+        else min(sockets, key=int)
     )
 
-    nn = pipeline.create(ParsingNeuralNetwork).build(
-        input=tiling_cropper.out, nnSource=nn_archive
-    )
 
-    detections_in_stitched_space = pipeline.create(CoordinatesMapper).build(
-        toTransformationInput=stitch_pl.out,
-        fromTransformationInput=nn.out,
-    )
+def calibrate(device_ids, output, sample_count, known_distance):
+    """Estimate the pose between the devices with MultiDeviceCalibration and save it as JSON."""
+    with dai.Pipeline(createImplicitDevice=False) as pipeline:
+        calibration = pipeline.create(dai.beta.node.MultiDeviceCalibration)
+        calibration.setSampleCount(sample_count)
+        # Devices are free-running; grouping tolerates capture offsets of a static scene.
+        calibration.sync.setSyncThreshold(timedelta(seconds=5))
 
-    gathered_detections = pipeline.create(GatherData).build(
-        inputData=detections_in_stitched_space.out,
-        inputReference=stitch_pl.out,
-        cameraFps=args.fps_limit,
-        waitCountFn=lambda _: tile_manager.tileCount,
-    )
-
-    merged_detections = pipeline.create(MergeImgDetections).build(
-        input=gathered_detections.out
-    )
-
-    filtered_detections = (
-        pipeline.create(ImgDetectionsFilter)
-        .useNms(
-            confThresh=0.1,
-            iouThresh=0.2,
-        )
-        .build(input=merged_detections.out)
-    )
-
-    # Show stitched image on visualizer overlayed with nn detections
-    visualizer.addTopic("Stitched", stitch_pl.out_full_res)
-    visualizer.addTopic("Patcher", filtered_detections.out)
-
-    for i, p in enumerate(pipelines):
-        p.start()
-
-    # Register visualizer with the first pipeline
-    visualizer.registerPipeline(pipelines[0])
-
-    print("Press 'r' in visualizer to recalculate homography.")
-    print(f"Autofocus will be tuned OFF after {AF_MSG_DELAY_S} seconds")
-    af_start_time = time.time()
-    af_on = True
-    while pipeline.isRunning():
-        pipeline.processTasks()  # run processTasks in every loop since .start() doesn't do it
-        key = visualizer.waitKey(1)
-        if key == ord("q"):
-            print("Got q key from the remote connection!")
-            break
-        if key == ord("r"):
-            print(
-                f"Got r key from the remote connection, recalculating homography. Autofocus will be turned to AUTO for {AF_MSG_DELAY_S}s."
+        first_cameras = []
+        for identifier in device_ids:
+            device = pipeline.addDevice(dai.DeviceInfo(identifier))
+            # A factory-calibrated stereo pair fixes the metric scale; single cameras need --known-distance.
+            if all(socket in calibrated_sockets(device) for socket in STEREO_SOCKETS):
+                sockets = STEREO_SOCKETS
+            else:
+                sockets = (panorama_socket(device),)
+            logger.info(
+                "Calibrating %s with %s",
+                device.getDeviceId(),
+                ", ".join(s.name for s in sockets),
             )
-            send_af_mode(inputs, dai.CameraControl.AutoFocusMode.AUTO)
-            af_on = True
-            stitch_pl.recalculate_homography()
-            af_start_time = time.time()
-        if af_on and (time.time() - af_start_time > AF_MSG_DELAY_S):
-            # After AF_MSG_DELAY_S seconds send the autofocus off message to all cams to avoid flickering
-            send_af_mode(inputs, dai.CameraControl.AutoFocusMode.OFF)
-            af_on = False
+            for socket in sockets:
+                camera = pipeline.create(dai.node.Camera, device).build(
+                    socket, sensorFps=5
+                )
+                calibration.addCamera(camera.requestFullResolutionOutput(fps=5))
+            first_cameras.append((device.getDeviceId(), sockets[0]))
+
+        if known_distance is not None:
+            (id_a, socket_a), (id_b, socket_b) = first_cameras[:2]
+            calibration.setKnownDistance(
+                id_a,
+                socket_a,
+                id_b,
+                socket_b,
+                known_distance,
+                dai.LengthUnit.CENTIMETER,
+            )
+
+        control_queue = calibration.inputControl.createInputQueue()
+        result_queue = calibration.calibrationOutput.createOutputQueue()
+        pipeline.start()
+        logger.info(
+            "Collecting %d synchronized samples. "
+            "Point the cameras at a shared textured scene and keep them still.",
+            sample_count,
+        )
+        control_queue.send(dai.beta.MultiDeviceCalibrationControl.start())
+        result = result_queue.get(timedelta(minutes=3))
+
+    if result is None:
+        raise RuntimeError("Calibration timed out")
+    if not result.passed or result.graph is None:
+        raise RuntimeError(f"Calibration failed: {result.info}")
+    if not result.getHandler().toJsonFile(str(output)):
+        raise RuntimeError(f"Failed to save calibration to {output}")
+    logger.info("Calibration saved to %s", output)
+    logger.info(
+        "Confidence: %.3f, Sampson error: %.4g",
+        result.dataConfidence,
+        result.sampsonError,
+    )
+
+
+def make_filter_config(mode_index, iou_threshold):
+    # Runtime configs replace every option, so always send a complete one.
+    config = dai.ImgDetectionsFilterConfig()
+    config.overlapMode = OVERLAP_MODES[mode_index]
+    config.overlapIouThreshold = iou_threshold
+    return config
+
+
+def main():
+    _, args = initialize_argparser()
+    calibration_path = Path(args.calibration)
+    if args.calibrate or not calibration_path.exists():
+        calibrate(
+            args.devices, calibration_path, args.sample_count, args.known_distance
+        )
+    else:
+        logger.info(
+            "Using calibration %s; pass --calibrate to redo it", calibration_path
+        )
+
+    sync_threshold = timedelta(milliseconds=args.sync_threshold_ms)
+    mode_index = 2 if args.average else 1
+    iou_threshold = 0.4
+
+    with dai.Pipeline(createImplicitDevice=False) as pipeline:
+        # Every camera transformation must be expressed in one coordinate system before start.
+        handler = dai.beta.MultiDeviceCalibrationHandler(str(calibration_path))
+        pipeline.setMultiDeviceCalibration(handler.getGraph())
+        visualizer = dai.RemoteConnection(httpPort=8082)
+
+        # Detections from all devices are grouped by host timestamp before merging.
+        detection_sync = pipeline.create(dai.node.Sync)
+        detection_sync.setRunOnHost(True)
+        detection_sync.setSyncThreshold(sync_threshold)
+        demux = pipeline.create(dai.node.MessageDemux)
+        demux.setRunOnHost(True)
+        detection_sync.out.link(demux.input)
+
+        merged = pipeline.create(dai.node.ImgDetectionsFilter)
+        merged.initialConfig.overlapMode = OVERLAP_MODES[mode_index]
+        merged.initialConfig.overlapIouThreshold = iou_threshold
+        config_queue = merged.inputConfig.createInputQueue(maxSize=1, blocking=False)
+
+        views = []
+        for index, identifier in enumerate(args.devices):
+            device = pipeline.addDevice(dai.DeviceInfo(identifier))
+            platform = device.getPlatform()
+            socket = panorama_socket(device)
+            logger.info(
+                "Panorama source %d: %s %s", index, device.getDeviceId(), socket.name
+            )
+            camera = pipeline.create(dai.node.Camera, device).build(
+                socket, sensorFps=args.fps_limit
+            )
+            # Detect on undistorted frames: boxes mapped from a distorted image are not rectangles.
+            network_input = dai.ImgFrameCapability()
+            network_input.fps.fixed(args.fps_limit)
+            network_input.enableUndistortion = True
+            description = dai.NNModelDescription.fromYamlFile(
+                str(MODELS_DIR / f"yolov6_nano.{platform.name}.yaml")
+            )
+            network = pipeline.create(dai.node.DetectionNetwork, device).build(
+                camera, description, network_input
+            )
+            # Drop low-confidence boxes on the device so they are never sent or merged.
+            network.setConfidenceThreshold(CONFIDENCE_THRESHOLD)
+            key = f"cam{index}"
+            network.out.link(detection_sync.inputs[key])
+            # MessageDemux outputs are untyped Buffers; declare the type for the filter inputs.
+            demux.outputs[key].setPossibleDatatypes(
+                [(dai.DatatypeEnum.ImgDetections, False)]
+            )
+            demux.outputs[key].link(merged.inputs[key])
+
+            # One undistorted NV12 view per camera feeds both the stitcher and the input preview.
+            view = camera.requestOutput(
+                (
+                    VIEW_SIZE[0] * args.panorama_scale,
+                    VIEW_SIZE[1] * args.panorama_scale,
+                ),
+                type=dai.ImgFrame.Type.NV12,
+                fps=args.fps_limit,
+                enableUndistortion=True,
+            )
+            views.append(view)
+            if args.show_inputs:
+                visualizer.addTopic(f"Input-{index}", view, group=f"Camera-{index}")
+                visualizer.addTopic(
+                    f"Detections-{index}", network.out, group=f"Camera-{index}"
+                )
+
+        stitch = pipeline.create(dai.node.Stitching).build(views)
+        stitch.setMode(dai.node.Stitching.Mode.PANORAMA)
+        # Compose from the calibrated camera poses instead of image features.
+        stitch.setUseInputCalibration(True)
+        stitch.setCameraModel(getattr(dai.CameraModel, args.projection))
+        stitch.setSeamFinder(
+            dai.node.Stitching.SeamFinder.GRAPHCUT_COLOR
+            if args.blend
+            else dai.node.Stitching.SeamFinder.NONE
+        )
+        stitch.setMaxPanoramaSize(1600 * args.panorama_scale, 800 * args.panorama_scale)
+        stitch.setSyncThreshold(sync_threshold)
+        # The panorama transformation is the target frame for every camera's boxes.
+        stitch.out.link(merged.inputReference)
+        # Source masks let duplicate removal keep the box from the camera visible at that seam.
+        for index in range(len(views)):
+            stitch.outSourceMasks[f"input{index}"].link(
+                merged.inputSourceMasks[f"cam{index}"]
+            )
+
+        visualizer.addTopic("Stitched", stitch.out, group="Panorama")
+        visualizer.addTopic("PanoramaDetections", merged.out, group="Panorama")
+
+        pipeline.start()
+        logger.info("Pipeline started.")
+        visualizer.registerPipeline(pipeline)
+        logger.info(
+            "Keys: 1 duplicates off, 2 NMS, 3 average, W/S IoU +/-0.05, q quit."
+        )
+        try:
+            while pipeline.isRunning():
+                pipeline.processTasks()
+                key = visualizer.waitKey(1)
+                if key == ord("q"):
+                    break
+                if key in (ord("1"), ord("2"), ord("3")):
+                    mode_index = key - ord("1")
+                elif key in (ord("w"), ord("W"), ord("s"), ord("S")):
+                    step = 0.05 if key in (ord("w"), ord("W")) else -0.05
+                    iou_threshold = min(1.0, max(0.0, round(iou_threshold + step, 2)))
+                else:
+                    continue
+                config_queue.send(make_filter_config(mode_index, iou_threshold))
+                logger.info(
+                    "Duplicates: %s, IoU threshold: %.2f",
+                    OVERLAP_MODES[mode_index].name,
+                    iou_threshold,
+                )
+        except KeyboardInterrupt:
+            pass
+
+
+if __name__ == "__main__":
+    main()
