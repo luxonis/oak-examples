@@ -53,10 +53,9 @@ class StereoSGBM(dai.node.HostNode):
 
     @staticmethod
     def _frame(source, pixels, frame_type):
+        # Disparity is computed on the left rectified pixel grid.
         frame = dai.ImgFrame()
         frame.setCvFrame(pixels, frame_type)
-        frame.setTimestamp(source.getTimestamp())
-        frame.setTimestampDevice(source.getTimestampDevice())
-        frame.setSequenceNum(source.getSequenceNum())
+        frame.setBufferMetadataFrom(source)
         frame.setTransformation(source.getTransformation())
         return frame

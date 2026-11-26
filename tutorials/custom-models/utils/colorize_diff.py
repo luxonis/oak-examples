@@ -24,8 +24,11 @@ class ColorizeDiff(dai.node.HostNode):
 
         img = dai.ImgFrame()
         img.setCvFrame(frame, dai.ImgFrame.Type.BGR888p)
-        img.setTimestamp(nn_data.getTimestamp())
-        img.setSequenceNum(nn_data.getSequenceNum())
+        # The diff map has the same pixel grid as the NN input frames.
+        img.setBufferMetadataFrom(nn_data)
+        transformation = nn_data.getTransformation()
+        if transformation is not None:
+            img.setTransformation(transformation)
 
         self._out.send(img)
 

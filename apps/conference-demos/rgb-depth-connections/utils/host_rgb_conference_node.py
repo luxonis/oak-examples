@@ -68,8 +68,7 @@ class CombineOutputs(dai.node.HostNode):
         half_frame = depth.shape[1] // 2
         combined_frame[:, half_frame:] = depth[:, half_frame:]
 
-        height = combined_frame.shape[0]
-        width = combined_frame.shape[1]
+        source_height, source_width = combined_frame.shape[:2]
         combined_frame = cv2.flip(combined_frame, 1)
 
         resized_frame = cv2.resize(combined_frame, (1920, 1080))
@@ -89,10 +88,11 @@ class CombineOutputs(dai.node.HostNode):
                 outline_color=(0, 255, 0, 255),  # RGBA: green, fully opaque
                 thickness=2,
             )
-            try:
-                label = self.label_map[detection.label]
-            except KeyError:
-                label = str(detection.label)
+            label = (
+                self.label_map[detection.label]
+                if 0 <= detection.label < len(self.label_map)
+                else str(detection.label)
+            )
             text_x = left + 0.01  # Small offset in normalized units
             text_y = top + 0.02
             annotation_helper.draw_text(
@@ -125,10 +125,20 @@ class CombineOutputs(dai.node.HostNode):
         output_frame.setCvFrame(
             resized_frame, dai.ImgFrame.Type.BGR888i
         )  # TODO: first resize then add birdframe and logo
+        # Depth is aligned to color, so the view is the color frame mirrored and
+        # resized; the logo and bird's-eye inset are drawn on top of it.
+        output_frame.setBufferMetadataFrom(color_frame)
+        output_frame.setTransformation(
+            color_frame.getTransformation()
+            .addFlipHorizontal()
+            .addScale(width / source_width, height / source_height)
+        )
 
         annotations_msg = annotation_helper.build(
             timestamp=output_frame.getTimestamp(),
             sequence_num=output_frame.getSequenceNum(),
         )
+        annotations_msg.setBufferMetadataFrom(output_frame)
+        annotations_msg.setTransformation(output_frame.getTransformation())
         self.detections_output.send(annotations_msg)
         self.output.send(output_frame)
