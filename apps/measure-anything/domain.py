@@ -19,7 +19,7 @@ class CalibrationSession:
     plane: object | None = None
     selected: int | None = None
     recalibration_required: bool = False
-    message: str = "Calibrate the empty support surface before measuring parcels."
+    message: str = "Calibrate the empty support surface before measuring objects."
 
     def start(self):
         if self.phase is CalibrationPhase.CALIBRATING:
@@ -40,7 +40,7 @@ class CalibrationSession:
             CalibrationPhase.CHOOSING if self.candidates else CalibrationPhase.FAILED
         )
         self.message = (
-            "Choose the surface on which parcels rest. Green pixels mark each candidate."
+            "Choose the surface on which objects rest. Green pixels mark each candidate."
             if self.candidates
             else "No support plane found. Show an empty horizontal surface, then retry."
         )
@@ -55,7 +55,7 @@ class CalibrationSession:
         self.plane = self.candidates[index].plane
         self.selected = index
         self.phase = CalibrationPhase.READY
-        self.message = "Support plane selected. Place parcels on that surface."
+        self.message = "Support plane selected. Place objects on that surface."
 
     def invalidate(self, reason):
         if self.phase is not CalibrationPhase.READY:
@@ -87,7 +87,7 @@ class Track:
 
 
 @dataclass
-class ParcelTracker:
+class ObjectTracker:
     max_age_seconds: float = 2.0
     max_distance_mm: float = 180.0
     confirmation_frames: int = 10
@@ -97,17 +97,17 @@ class ParcelTracker:
     def clear(self):
         self.tracks.clear()
 
-    def update(self, parcels, now: float):
+    def update(self, objects, now: float):
         self.tracks = {
             key: track
             for key, track in self.tracks.items()
             if now - track.last_seen <= self.max_age_seconds
         }
         matches = []
-        for index, parcel in enumerate(parcels):
+        for index, detected_object in enumerate(objects):
             for key, track in self.tracks.items():
-                distance = math.dist(parcel["center_mm"], track.center)
-                iou = overlap(parcel["bbox"], track.bbox)
+                distance = math.dist(detected_object["center_mm"], track.center)
+                iou = overlap(detected_object["bbox"], track.bbox)
                 if distance <= self.max_distance_mm and (iou >= 0.1 or distance <= 60):
                     matches.append(
                         (distance / self.max_distance_mm + 1 - iou, index, key)
@@ -120,7 +120,7 @@ class ParcelTracker:
         for key, track in self.tracks.items():
             if key not in used and not track.confirmed:
                 track.consecutive_observations = 0
-        for index, parcel in enumerate(parcels):
+        for index, detected_object in enumerate(objects):
             key = assigned.get(index)
             if key is None:
                 key, self.next_id = self.next_id, self.next_id + 1
@@ -130,15 +130,15 @@ class ParcelTracker:
                 previous.consecutive_observations + 1 if previous else 1,
             )
             self.tracks[key] = Track(
-                tuple(parcel["bbox"]),
-                tuple(parcel["center_mm"]),
+                tuple(detected_object["bbox"]),
+                tuple(detected_object["center_mm"]),
                 now,
                 observations,
                 (previous.confirmed if previous else False)
                 or observations >= self.confirmation_frames,
             )
-            parcel["track_id"] = key
-        return parcels
+            detected_object["track_id"] = key
+        return objects
 
     def is_confirmed(self, track_id):
         track = self.tracks.get(track_id)

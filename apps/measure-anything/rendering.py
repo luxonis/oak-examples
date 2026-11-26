@@ -110,20 +110,20 @@ def read_scene(group, generation):
     )
 
 
-def parcel_boxes(batch, projection):
-    parcels = []
+def object_boxes(batch, projection):
+    objects = []
     for item in batch.items:
         points = np.asarray(item.xyz_mm)
         bbox = projection.bounds(points)
         if bbox is not None:
-            parcels.append(
+            objects.append(
                 {
                     "candidate_id": item.candidate_id,
                     "bbox": bbox,
                     "center_mm": points.mean(axis=0).astype(float).tolist(),
                 }
             )
-    return parcels
+    return objects
 
 
 def candidate_preview(frame, plane):
@@ -152,18 +152,18 @@ def candidate_preview(frame, plane):
     return jpeg(image)
 
 
-def annotated_image(image, parcels):
+def annotated_image(image, objects):
     result = image.copy()
     scale = max(0.45, image.shape[1] / 1400)
-    for parcel in parcels:
-        x1, y1, x2, y2 = map(round, parcel["bbox"])
-        dimensions = dimension_label(parcel)
+    for detected_object in objects:
+        x1, y1, x2, y2 = map(round, detected_object["bbox"])
+        dimensions = dimension_label(detected_object)
         cv2.rectangle(
             result, (x1, y1), (x2, y2), (130, 230, 60), max(2, round(scale * 2))
         )
         cv2.putText(
             result,
-            f"ID {parcel['track_id']} | {dimensions}",
+            f"ID {detected_object['track_id']} | {dimensions}",
             (max(0, x1), max(round(25 * scale), y1 - 8)),
             cv2.FONT_HERSHEY_SIMPLEX,
             scale,
@@ -189,14 +189,14 @@ def metadata_record(message):
     }
 
 
-def native_annotations(frame, parcels):
+def native_annotations(frame, objects):
     message = dai.ImgAnnotations()
     annotation = dai.ImgAnnotation()
     width, height = frame.getWidth(), frame.getHeight()
     color = dai.Color()
     color.r, color.g, color.b, color.a = 0.3, 0.9, 0.45, 1
-    for parcel in parcels:
-        x1, y1, x2, y2 = parcel["bbox"]
+    for detected_object in objects:
+        x1, y1, x2, y2 = detected_object["bbox"]
         rectangle = dai.PointsAnnotation()
         rectangle.type = dai.PointsAnnotationType.LINE_LOOP
         rectangle.outlineColor = color
@@ -208,12 +208,12 @@ def native_annotations(frame, parcels):
             ]
         )
         annotation.points.append(rectangle)
-        dimensions = dimension_label(parcel)
+        dimensions = dimension_label(detected_object)
         text = dai.TextAnnotation()
         text.position = dai.Point2f(
             float(x1 / width), float(max(0, y1 - 30) / height), True
         )
-        text.text = f"ID {parcel['track_id']} | {dimensions}"
+        text.text = f"ID {detected_object['track_id']} | {dimensions}"
         text.textColor = color
         background = dai.Color()
         background.r, background.g, background.b, background.a = 0.03, 0.05, 0.07, 0.85
@@ -226,10 +226,10 @@ def native_annotations(frame, parcels):
     return message
 
 
-def dimension_label(parcel):
-    values = parcel["dimensions_mm"]
+def dimension_label(detected_object):
+    values = detected_object["dimensions_mm"]
     if not values:
-        return parcel["status"]
+        return detected_object["status"]
     return (
         " x ".join(
             f"{name}: {'?' if value is None else round(value)}"

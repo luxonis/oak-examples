@@ -45,7 +45,7 @@ const stateSchema = z.object({
 	overlays: z.object({ depth: z.boolean(), support_plane: z.boolean() }),
 });
 
-export type ParcelState = z.infer<typeof stateSchema>;
+export type MeasurementState = z.infer<typeof stateSchema>;
 export type PlaneCandidate = z.infer<typeof candidateSchema>;
 
 const candidateRequestSchema = z
@@ -55,8 +55,8 @@ const candidateRequestSchema = z
 	})
 	.strict();
 
-export const getParcelState = {
-	serviceName: 'getParcelState',
+export const getMeasurementState = {
+	serviceName: 'getMeasurementState',
 	requestSchema: emptyBodySchema,
 	responseSchema: stateSchema,
 } as const;

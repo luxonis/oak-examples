@@ -6,11 +6,11 @@ import unittest
 
 import depthai as dai
 from depthai_nodes.message import (
-    Parcel,
-    ParcelCuboid,
-    ParcelDetections,
-    ParcelMeasurement,
-    ParcelMeasurements,
+    MeasureAnythingDetection,
+    MeasureAnythingCuboid,
+    MeasureAnythingDetections,
+    MeasureAnythingMeasurement,
+    MeasureAnythingMeasurements,
     SupportPlane,
 )
 import numpy as np
@@ -23,25 +23,25 @@ class SnapshotTests(unittest.TestCase):
     def test_saved_cloud_and_cuboid_belong_to_selected_candidate(self):
         plane = SupportPlane(normal=(0, 0, -1), offset_mm=1000)
         cloud = np.array([[1, 2, 920], [20, 30, 950]], dtype=np.float32)
-        selected = Parcel(candidate_id=4, xyz_mm=cloud)
-        detected = ParcelDetections(
+        selected = MeasureAnythingDetection(candidate_id=4, xyz_mm=cloud)
+        detected = MeasureAnythingDetections(
             frame="common",
             plane=plane,
             items=(
-                Parcel(
+                MeasureAnythingDetection(
                     candidate_id=0, xyz_mm=np.array([[99, 99, 99]], dtype=np.float32)
                 ),
                 selected,
             ),
         )
-        measured = ParcelMeasurements(
+        measured = MeasureAnythingMeasurements(
             frame="common",
             plane=plane,
             items=(
-                ParcelMeasurement(
+                MeasureAnythingMeasurement(
                     candidate_id=4,
-                    status=ParcelMeasurement.Status.MEASURED,
-                    cuboid=ParcelCuboid(
+                    status=MeasureAnythingMeasurement.Status.MEASURED,
+                    cuboid=MeasureAnythingCuboid(
                         base_center_mm=(10, 20, 1000),
                         length_axis=(1, 0, 0),
                         length_mm=200,

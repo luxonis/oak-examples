@@ -5,13 +5,13 @@ import depthai as dai
 from depthai_nodes.node import (
     ApplyDepthColormap,
     ImageAlignDepthCorrection,
-    ParcelDetector,
-    ParcelDimensioner,
+    MeasureAnythingDetector,
+    MeasureAnythingDimensioner,
     PlaneCalibrationConfig,
     SupportPlaneCalibrator,
 )
 
-from nodes import BenchmarkLogger, ParcelController
+from nodes import BenchmarkLogger, MeasurementController
 from preview import PreviewRendererNode
 from storage_node import StorageHostNode
 
@@ -28,14 +28,14 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
         "left": MONO_SIZE,
         "right": MONO_SIZE,
         "depth": DEPTH_SIZE,
-        "depth_source": "NeuralDepth LARGE",
+        "depth_source": "Depth (default configuration)",
         "depth_alignment": "undistorted RGB 768 x 480",
         "depth_axial_convention": "target_camera_axial_z",
         "images": "unrectified",
         "opencv_threads": cv2.getNumThreads(),
     }
     controller = pipeline.create(
-        ParcelController, profile=profile, evidence=evidence, store=store
+        MeasurementController, profile=profile, evidence=evidence, store=store
     )
     if store is not None:
         storage = pipeline.create(StorageHostNode, store=store)
@@ -62,16 +62,13 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
                 fps=fps,
                 enableUndistortion=True,
             )
-    depth = pipeline.create(dai.node.NeuralDepth).build(
-        streams["left"], streams["right"], dai.DeviceModelZoo.NEURAL_DEPTH_LARGE
-    )
-    if depth.getInputSize(dai.DeviceModelZoo.NEURAL_DEPTH_LARGE) != DEPTH_SIZE:
-        raise RuntimeError(
-            "NeuralDepth LARGE must deliver the evaluated 768 × 480 grid."
-        )
+    depth = pipeline.create(dai.node.Depth).build(fps=fps)
     align = pipeline.create(dai.node.ImageAlign)
     align.input.setBlocking(True)
     depth.depth.link(align.input)
+    profile["depth_requested_algorithm"] = str(depth.getRequestedAlgorithm())
+    profile["depth_algorithm"] = str(depth.getResolvedAlgorithm())
+    profile["depth_config"] = str(depth.getResolvedConfig())
     depth_target.link(align.inputAlignTo)
     correction = pipeline.create(ImageAlignDepthCorrection).build(
         alignedDepth=align.outputAligned,
@@ -108,14 +105,14 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
     controller.control.link(calibrator.inputControl)
     calibrator.out.link(controller.events["calibration"])
     calibrator.verificationOutput.link(controller.events["verification"])
-    detector = pipeline.create(ParcelDetector).build(
+    detector = pipeline.create(MeasureAnythingDetector).build(
         *(
             controller.detector_streams[name]
             for name in ("cloud", "color", "left", "right")
         )
     )
     controller.config.link(detector.inputConfig)
-    dimensioner = pipeline.create(ParcelDimensioner).build(detector.out)
+    dimensioner = pipeline.create(MeasureAnythingDimensioner).build(detector.out)
     detector.out.link(controller.events["detections"])
     dimensioner.out.link(controller.events["measurements"])
     logger = pipeline.create(BenchmarkLogger)

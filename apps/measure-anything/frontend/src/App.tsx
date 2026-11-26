@@ -15,14 +15,14 @@ import { useDaiQuery } from './backend/useDaiQuery';
 import {
 	type PlaneCandidate,
 	calibrateSupportPlane,
-	getParcelState,
+	getMeasurementState,
 	getSupportPlanePreview,
 	selectSupportPlane,
 	setPreviewOptions,
 } from './services';
 
 const VIDEO_TOPIC = 'Color stream';
-const ANNOTATIONS_TOPIC = 'Parcel annotations';
+const ANNOTATIONS_TOPIC = 'Object annotations';
 const TOPICS = [VIDEO_TOPIC, ANNOTATIONS_TOPIC];
 
 function CandidatePreview({
@@ -88,7 +88,7 @@ function App() {
 		index: number;
 	} | null>(null);
 	const stateQuery = useDaiQuery({
-		service: getParcelState,
+		service: getMeasurementState,
 		request: {},
 		queryOptions: {
 			refetchInterval: 500,
@@ -97,7 +97,7 @@ function App() {
 	});
 	const refreshState = () =>
 		queryClient.invalidateQueries({
-			queryKey: daiServiceQueryKey(getParcelState),
+			queryKey: daiServiceQueryKey(getMeasurementState),
 		});
 	const calibrate = useDaiMutation({
 		service: calibrateSupportPlane,
@@ -155,9 +155,9 @@ function App() {
 			<div className="w-0.5 shrink-0 bg-border max-[800px]:h-0.5 max-[800px]:w-full" />
 			<aside className="flex max-h-full w-[420px] shrink-0 flex-col gap-5 overflow-y-auto pr-2 text-left max-[800px]:max-h-none max-[800px]:w-full max-[800px]:overflow-visible max-[800px]:pr-0">
 				<h1>
-					<Header text="Parcel measurement" />
+					<Header text="Measure anything" />
 				</h1>
-				<Label text="Measure parcels on a fixed, flat support surface. Objects appear after 10 consecutive observations. RGB boxes show tracking IDs and length × width × height in millimeters." />
+				<Label text="Measure objects on a fixed, flat support surface. Objects appear after 10 consecutive observations. RGB boxes show tracking IDs and length × width × height in millimeters." />
 				<section
 					aria-label="RGB overlays"
 					className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm"
@@ -209,7 +209,7 @@ function App() {
 				</section>
 				<div
 					role="tablist"
-					aria-label="Parcel controls"
+					aria-label="Measurement controls"
 					className="flex rounded-lg border border-border p-1"
 				>
 					{(['calibration', 'measurements'] as const).map((value) => (
@@ -262,7 +262,7 @@ function App() {
 							className="rounded-lg border border-destructive p-3 text-sm text-destructive"
 						>
 							Support plane verification failed. Recalibrate before measuring
-							more parcels.
+							more objects.
 						</div>
 					) : null}
 					<Button

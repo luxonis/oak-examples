@@ -14,7 +14,7 @@ from pipeline import DEFAULT_FPS, init_pipeline
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Measure parcels with an OAK4.")
+    parser = argparse.ArgumentParser(description="Measure anything with an OAK4.")
     parser.add_argument("-d", "--device", help="OAK4 IP or device ID")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--fps", type=float, default=DEFAULT_FPS)
@@ -26,7 +26,7 @@ def main():
         default=Path(
             os.environ.get("OAKAGENT_STORAGE_APP", str(Path(__file__).parent / "data"))
         )
-        / "parcel-measurement.sqlite3",
+        / "measure-anything.sqlite3",
         help="Persistent measurement history database",
     )
     args = parser.parse_args()
@@ -66,12 +66,12 @@ def main():
             )
             for name, output in (
                 ("Color stream", controller.encoded_video),
-                ("Parcel annotations", controller.annotations),
+                ("Object annotations", controller.annotations),
             ):
                 remote.addTopic(name, output, "preview")
                 topics.append(name)
             for name, handler in (
-                ("getParcelState", controller.get_state),
+                ("getMeasurementState", controller.get_state),
                 ("calibrateSupportPlane", controller.calibrate),
                 ("selectSupportPlane", controller.select),
                 ("getSupportPlanePreview", controller.preview),
@@ -94,7 +94,7 @@ def main():
                 port = int(os.environ.get("OAKAPP_STATIC_FRONTEND_PORT", "8000"))
                 urls = frontend_urls(args.host, port)
                 for url in urls:
-                    print(f"Parcel frontend at {url}", flush=True)
+                    print(f"Measure anything frontend at {url}", flush=True)
                 if not urls:
                     print(f"Open the OAK4's HTTPS address on port {port}.", flush=True)
             else:

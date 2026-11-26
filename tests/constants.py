@@ -1,5 +1,5 @@
 KNOWN_FAILING = {
-    "apps/parcel-measurement": {
+    "apps/measure-anything": {
         "reason": "Requires an OAK4 with RGB, stereo depth, and an accelerometer",
         "rules": {"and": [{"platform": ["rvc2"]}]},
     },

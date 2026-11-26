@@ -11,13 +11,13 @@ import cv2
 import depthai as dai
 import numpy as np
 from depthai_nodes.message import (
-    ParcelDetectorConfig,
-    ParcelMeasurements,
+    MeasureAnythingDetectorConfig,
+    MeasureAnythingMeasurements,
     SupportPlaneCalibrationControl,
 )
 
 from benchmarks import BenchmarkWindow
-from domain import CalibrationPhase, CalibrationSession, ParcelTracker
+from domain import CalibrationPhase, CalibrationSession, ObjectTracker
 from geometry import transformed_imu
 from history import SaveScheduler
 from preview import PreviewRequest
@@ -26,7 +26,7 @@ from rendering import (
     candidate_preview,
     metadata_record,
     native_annotations,
-    parcel_boxes,
+    object_boxes,
     read_scene,
     stamp,
 )
@@ -40,7 +40,7 @@ class Command(dai.Buffer):
         self.action, self.payload = action, payload
 
 
-class ParcelController(dai.node.ThreadedHostNode):
+class MeasurementController(dai.node.ThreadedHostNode):
     def __init__(self, profile, evidence=None, store=None):
         super().__init__()
         self.profile = profile
@@ -74,7 +74,7 @@ class ParcelController(dai.node.ThreadedHostNode):
         self.config = self.createOutput("detector_config")
         self.history_jobs = self.createOutput("history_jobs")
         self.preview_jobs = self.createOutput("preview_jobs")
-        self.session, self.tracker = CalibrationSession(), ParcelTracker()
+        self.session, self.tracker = CalibrationSession(), ObjectTracker()
         self.scheduler = SaveScheduler(
             known_saved=[row["track_id"] for row in store.list_summaries()]
             if store
@@ -356,7 +356,7 @@ class ParcelController(dai.node.ThreadedHostNode):
             self._display(
                 frame,
                 [],
-                "Select a calibrated support plane to enable parcel measurements.",
+                "Select a calibrated support plane to enable object measurements.",
             )
         elif len(self.inflight) < 2:
             finite = frame.points[
@@ -367,7 +367,9 @@ class ParcelController(dai.node.ThreadedHostNode):
             cloud.setPoints(finite)
             cloud.setTransformation(frame.cloud.getTransformation())
             if self.config_dirty:
-                self.config.send(ParcelDetectorConfig(supportPlane=self.session.plane))
+                self.config.send(
+                    MeasureAnythingDetectorConfig(supportPlane=self.session.plane)
+                )
                 self.config_dirty = False
             self.inflight[frame.sequence] = time.monotonic(), frame
             for name, message in (
@@ -502,64 +504,68 @@ class ParcelController(dai.node.ThreadedHostNode):
             self.rates["measurement_fps"] = (len(self.measurement_samples) - 1) / (
                 self.measurement_samples[-1] - self.measurement_samples[0]
             )
-        parcels = parcel_boxes(detected, reference.projection)
+        objects = object_boxes(detected, reference.projection)
         by_candidate = {item.candidate_id: item for item in measured.items}
-        for parcel in parcels:
-            item = by_candidate.get(parcel["candidate_id"])
-            parcel["status"] = (
+        for detected_object in objects:
+            item = by_candidate.get(detected_object["candidate_id"])
+            detected_object["status"] = (
                 item.status.value if item is not None else "measurement_failed"
             )
-            parcel["dimensions_mm"] = (
+            detected_object["dimensions_mm"] = (
                 [item.cuboid.length_mm, item.cuboid.width_mm, item.cuboid.height_mm]
                 if item is not None and item.cuboid
                 else None
             )
-        parcels = [
-            parcel
-            for parcel in self.tracker.update(parcels, time.monotonic())
-            if self.tracker.is_confirmed(parcel["track_id"])
+        objects = [
+            detected_object
+            for detected_object in self.tracker.update(objects, time.monotonic())
+            if self.tracker.is_confirmed(detected_object["track_id"])
         ]
         self.last_measurement_at = time.monotonic()
-        self.visible_tracks = {parcel["track_id"] for parcel in parcels}
+        self.visible_tracks = {
+            detected_object["track_id"] for detected_object in objects
+        }
         self.scheduler.reset_visibility(self.visible_tracks)
         if self.store is not None and self.scheduler.busy is None:
             eligible = {
-                parcel["track_id"]: measurement_snapshot(
-                    parcel,
+                detected_object["track_id"]: measurement_snapshot(
+                    detected_object,
                     detected,
                     measured,
                     reference,
                     self.profile,
                     self.tracker.next_id,
                 )
-                for parcel in parcels
-                if parcel["status"] == "measured"
-                and parcel["track_id"] not in self.scheduler.errors
+                for detected_object in objects
+                if detected_object["status"] == "measured"
+                and detected_object["track_id"] not in self.scheduler.errors
                 and (
-                    parcel["track_id"] not in self.scheduler.known_saved
-                    or parcel["track_id"] in self.scheduler.pending_updates
+                    detected_object["track_id"] not in self.scheduler.known_saved
+                    or detected_object["track_id"] in self.scheduler.pending_updates
                 )
             }
             request = self.scheduler.choose(sequence, eligible)
             if request is not None:
                 self.history_jobs.send(SaveMessage(request))
-        if measured.outcome is ParcelMeasurements.Outcome.FAILED:
+        if measured.outcome is MeasureAnythingMeasurements.Outcome.FAILED:
             message = (
                 f"Frame failed: {measured.failure_code}. No measurement is available."
             )
-        elif parcels:
-            complete = sum(parcel["status"] == "measured" for parcel in parcels)
+        elif objects:
+            complete = sum(
+                detected_object["status"] == "measured" for detected_object in objects
+            )
             message = (
-                f"{len(parcels)} parcels detected, {complete} with complete dimensions."
+                f"{len(objects)} objects detected, {complete} with complete dimensions."
             )
         else:
-            message = "No eligible parcels in view. Keep each parcel fully visible and separated."
-        self._display(reference, parcels, message)
+            message = "No eligible objects in view. Keep each object fully visible and separated."
+        self._display(reference, objects, message)
         if self.evidence:
             cv2.imwrite(str(self.evidence / "rgb.png"), reference.image)
             cv2.imwrite(
                 str(self.evidence / "overlay.png"),
-                annotated_image(reference.image, parcels),
+                annotated_image(reference.image, objects),
             )
             (self.evidence / "latest.json").write_text(
                 json.dumps(
@@ -584,13 +590,13 @@ class ParcelController(dai.node.ThreadedHostNode):
     def _saved(self, acknowledgement):
         self.scheduler.complete(acknowledgement.request, acknowledgement.error)
 
-    def _display(self, frame, parcels, message):
+    def _display(self, frame, objects, message):
         self.last_frame = {
             "sequence": frame.sequence,
             "video_sequence": frame.color.getSequenceNum(),
             "width": frame.color.getWidth(),
             "height": frame.color.getHeight(),
-            "parcels": parcels,
+            "objects": objects,
             "message": message,
         }
         self.preview_jobs.send(
@@ -598,7 +604,7 @@ class ParcelController(dai.node.ThreadedHostNode):
                 frame,
                 depth=self.overlays["depth"],
                 plane=self.session.plane if self.overlays["support_plane"] else None,
-                annotations=native_annotations(frame.color, parcels),
+                annotations=native_annotations(frame.color, objects),
             )
         )
 
@@ -609,14 +615,14 @@ class ParcelController(dai.node.ThreadedHostNode):
             return
         if self.latest_scene is None and time.monotonic() - self._started_at > 30:
             raise RuntimeError(
-                "No synchronized RGB, mono, and NeuralDepth point cloud arrived within 30 seconds."
+                "No synchronized RGB, mono, and depth point cloud arrived within 30 seconds."
             )
         if (
             self.inflight
             and time.monotonic() - next(iter(self.inflight.values()))[0] > 30
         ):
             raise RuntimeError(
-                "Parcel processing did not return a result within 30 seconds."
+                "Object processing did not return a result within 30 seconds."
             )
 
     def run(self):
@@ -662,7 +668,7 @@ class BenchmarkLogger(dai.node.ThreadedHostNode):
     def run(self):
         windows = {
             name: BenchmarkWindow(time.monotonic())
-            for name in ("ParcelDetector", "ParcelDimensioner")
+            for name in ("MeasureAnythingDetector", "MeasureAnythingDimensioner")
         }
         while self.isRunning():
             remaining = max(
@@ -675,8 +681,8 @@ class BenchmarkLogger(dai.node.ThreadedHostNode):
             )
             events = dai.MessageQueue.getAny(self.events, timedelta(seconds=remaining))
             for prefix, name in (
-                ("detector", "ParcelDetector"),
-                ("dimensioner", "ParcelDimensioner"),
+                ("detector", "MeasureAnythingDetector"),
+                ("dimensioner", "MeasureAnythingDimensioner"),
             ):
                 message = events.get(prefix + "_message")
                 if message is not None:
@@ -690,4 +696,6 @@ class BenchmarkLogger(dai.node.ThreadedHostNode):
                     )
                 stats = windows[name].report(time.monotonic())
                 if stats is not None:
-                    print(json.dumps({"parcel_benchmark": name, **stats}), flush=True)
+                    print(
+                        json.dumps({"measurement_benchmark": name, **stats}), flush=True
+                    )

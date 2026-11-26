@@ -62,7 +62,7 @@ export function PointCloudViewer({
 		renderer.setClearColor(0x101923);
 		renderer.domElement.setAttribute(
 			'aria-label',
-			'Segmented parcel point cloud with measured cuboid',
+			'Segmented object point cloud with measured cuboid',
 		);
 		host.appendChild(renderer.domElement);
 		const scene = new THREE.Scene();

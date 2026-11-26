@@ -1,4 +1,4 @@
-identifier = "com.example.apps.parcel-measurement"
+identifier = "com.example.apps.measure-anything"
 entrypoint = ["/entrypoint.sh", "python3.12", "-u", "/app/main.py", "--host", "0.0.0.0"]
 app_version = "0.1.0"
 

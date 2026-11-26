@@ -268,7 +268,7 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 				<p className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
 					{history.isLoading
 						? 'Loading measurement history…'
-						: 'No saved measurements yet. Select a support plane and keep a parcel in view.'}
+						: 'No saved measurements yet. Select a support plane and keep a object in view.'}
 				</p>
 			) : null}
 			<ol className="flex flex-col gap-2">

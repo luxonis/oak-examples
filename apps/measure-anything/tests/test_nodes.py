@@ -16,7 +16,7 @@ from depthai_nodes.message import (
 )
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-ParcelController = import_module("nodes").ParcelController
+MeasurementController = import_module("nodes").MeasurementController
 native_annotations = import_module("rendering").native_annotations
 
 
@@ -72,7 +72,7 @@ class ControllerServiceTests(unittest.TestCase):
     def test_service_commands_drive_the_running_pipeline_node(self):
         with dai.Pipeline(False) as pipeline:
             controller = pipeline.create(
-                ParcelController, profile={"configured_fps": 10}
+                MeasurementController, profile={"configured_fps": 10}
             )
             calibration = controller.events["calibration"].createInputQueue()
             pipeline.start()
@@ -115,7 +115,7 @@ class ControllerServiceTests(unittest.TestCase):
 
     def test_service_rejects_boolean_candidate_identifiers(self):
         with dai.Pipeline(False) as pipeline:
-            controller = pipeline.create(ParcelController, profile={})
+            controller = pipeline.create(MeasurementController, profile={})
             self.assertIn("error", controller.select({"generation": True, "index": 0}))
             self.assertIn(
                 "error", controller.preview({"generation": 0, "index": False})
@@ -124,7 +124,7 @@ class ControllerServiceTests(unittest.TestCase):
 
     def test_expected_history_status_is_not_a_service_error(self):
         with dai.Pipeline(False) as pipeline:
-            controller = pipeline.create(ParcelController, profile={})
+            controller = pipeline.create(MeasurementController, profile={})
             controller.scheduler.errors[7] = "Object not in frame"
             controller._publish_state()
             history = controller.get_measurements({})
@@ -137,7 +137,7 @@ class ControllerServiceTests(unittest.TestCase):
         store.list_summaries.return_value = []
         store.preview.return_value = {"jpeg": "saved-jpeg"}
         with dai.Pipeline(False) as pipeline:
-            controller = pipeline.create(ParcelController, profile={}, store=store)
+            controller = pipeline.create(MeasurementController, profile={}, store=store)
             self.assertEqual(
                 controller.get_measurement_preview({"track_id": 7, "revision": 2}),
                 {"jpeg": "saved-jpeg"},
@@ -159,7 +159,7 @@ class ControllerServiceTests(unittest.TestCase):
             snapshot = request(7)
             snapshot.metadata["preview_jpeg"] = "saved-jpeg"
             store.save(snapshot)
-            controller = pipeline.create(ParcelController, profile={}, store=store)
+            controller = pipeline.create(MeasurementController, profile={}, store=store)
             self.assertEqual(
                 controller.get_measurement_preview({"track_id": 7, "revision": 1}),
                 {"jpeg": "saved-jpeg"},

@@ -32,7 +32,7 @@ def request(track_id, sequence=1, next_track_id=100):
         metadata={
             "captured_at": "2026-11-25T12:00:00+00:00",
             "dimensions_mm": [220, 160, 110],
-            "algorithm_id": "public-parcel-algorithm",
+            "algorithm_id": "public-measure-anything-algorithm",
         },
         next_track_id=next_track_id,
     )
@@ -133,7 +133,7 @@ class MeasurementStoreTests(unittest.TestCase):
         self.assertEqual(summary["dimensions_mm"], [220, 160, 110])
         self.assertEqual(reopened.next_track_id, 100)
         detail = reopened.detail(7)
-        self.assertEqual(detail["algorithm_id"], "public-parcel-algorithm")
+        self.assertEqual(detail["algorithm_id"], "public-measure-anything-algorithm")
         self.assertEqual(detail["point_cloud"]["encoding"], "float32-le-base64")
         points = np.frombuffer(
             base64.b64decode(detail["point_cloud"]["xyz"]), dtype="<f4"

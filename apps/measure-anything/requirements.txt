@@ -1,0 +1,2 @@
+depthai==3.12.0
+depthai-nodes[measure-anything,box-measurement] @ git+https://github.com/luxonis/depthai-nodes.git@ce406ed9bb8d5e6fde14694100a4000830da533f

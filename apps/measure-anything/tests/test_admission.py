@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 
 import depthai as dai
 from depthai_nodes.message import (
-    ParcelDetections,
-    ParcelMeasurements,
+    MeasureAnythingDetections,
+    MeasureAnythingMeasurements,
     SupportPlane,
     SupportPlaneVerificationResult,
 )
@@ -21,7 +21,7 @@ domain = import_module("domain")
 
 class AdmissionTests(unittest.TestCase):
     def setup_controller(self, pipeline):
-        controller = pipeline.create(nodes.ParcelController, profile={})
+        controller = pipeline.create(nodes.MeasurementController, profile={})
         controller.session.plane = SupportPlane(normal=(0, 0, -1), offset_mm=1000)
         controller.session.phase = domain.CalibrationPhase.READY
         controller.calibration_cloud = Mock()
@@ -52,8 +52,8 @@ class AdmissionTests(unittest.TestCase):
 
     def complete(self, controller, sequence, plane=None):
         for cls, deliver in (
-            (ParcelDetections, controller._detections),
-            (ParcelMeasurements, controller._measurements),
+            (MeasureAnythingDetections, controller._detections),
+            (MeasureAnythingMeasurements, controller._measurements),
         ):
             batch = cls(frame="common", plane=plane or controller.session.plane)
             batch.setSequenceNum(sequence)
@@ -170,7 +170,7 @@ class AdmissionTests(unittest.TestCase):
                 patch.object(
                     nodes, "measurement_snapshot", return_value=request
                 ) as snapshot,
-                patch.object(nodes, "parcel_boxes") as boxes,
+                patch.object(nodes, "object_boxes") as boxes,
             ):
                 for sequence in range(1, 11):
                     boxes.return_value = [
@@ -186,7 +186,8 @@ class AdmissionTests(unittest.TestCase):
                     )
                     controller.pending_detections[sequence] = object()
                     controller.pending_measurements[sequence] = SimpleNamespace(
-                        items=[item], outcome=ParcelMeasurements.Outcome.SUCCESS
+                        items=[item],
+                        outcome=MeasureAnythingMeasurements.Outcome.SUCCESS,
                     )
                     controller._complete(sequence)
                     if sequence < 10:
@@ -206,7 +207,7 @@ class AdmissionTests(unittest.TestCase):
                 controller.inflight[11] = nodes.time.monotonic(), self.frame(11)
                 controller.pending_detections[11] = object()
                 controller.pending_measurements[11] = SimpleNamespace(
-                    items=[], outcome=ParcelMeasurements.Outcome.SUCCESS
+                    items=[], outcome=MeasureAnythingMeasurements.Outcome.SUCCESS
                 )
                 controller._complete(11)
                 self.assertEqual(controller._display.call_args.args[1], [])

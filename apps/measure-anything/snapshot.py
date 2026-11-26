@@ -3,9 +3,13 @@ import numpy as np
 from history import SaveRequest
 
 
-def measurement_snapshot(parcel, detected, measured, frame, profile, next_track_id):
+def measurement_snapshot(
+    detected_object, detected, measured, frame, profile, next_track_id
+):
     item = next(
-        item for item in measured.items if item.candidate_id == parcel["candidate_id"]
+        item
+        for item in measured.items
+        if item.candidate_id == detected_object["candidate_id"]
     )
     cuboid = item.cuboid
     up = np.asarray(measured.plane.normal)
@@ -18,7 +22,7 @@ def measurement_snapshot(parcel, detected, measured, frame, profile, next_track_
         for lx, wy in ((-1, -1), (1, -1), (1, 1), (-1, 1))
     ]
     metadata = {
-        "track_id": parcel["track_id"],
+        "track_id": detected_object["track_id"],
         "sequence": frame.sequence,
         "video_sequence": frame.color.getSequenceNum(),
         "captured_at": frame.captured_at,
@@ -39,7 +43,7 @@ def measurement_snapshot(parcel, detected, measured, frame, profile, next_track_
         ],
         "capture_profile": profile,
         "depth_correction": frame.axial_correction,
-        "bbox_rgb": parcel["bbox"],
+        "bbox_rgb": detected_object["bbox"],
         "calibration_generation": frame.generation,
         "support_plane": measured.plane.toJson(),
         "cuboid": {
@@ -58,7 +62,7 @@ def measurement_snapshot(parcel, detected, measured, frame, profile, next_track_
         if detection.candidate_id == item.candidate_id
     )
     return SaveRequest(
-        track_id=parcel["track_id"],
+        track_id=detected_object["track_id"],
         sequence=frame.sequence,
         request_revision=None,
         points=points,
