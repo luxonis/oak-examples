@@ -18,7 +18,9 @@ encoder_profiles = {
 }
 
 # Unsupported codecs have to be muxed by PyAV on VideoSaver HostNode.
-use_record_video = args.codec in ("h264", "mjpeg") and Path(args.output).suffix == ".mp4"
+use_record_video = (
+    args.codec in ("h264", "mjpeg") and Path(args.output).suffix == ".mp4"
+)
 
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
