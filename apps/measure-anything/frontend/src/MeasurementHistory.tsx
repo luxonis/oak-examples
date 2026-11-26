@@ -1,4 +1,4 @@
-import { Button } from '@luxonis/ui-components';
+import { Button, Label, SubHeader, SubLabel } from '@luxonis/ui-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { PointCloudViewer } from './PointCloudViewer';
@@ -37,7 +37,10 @@ function MeasurementPreview({ record }: { record: MeasurementSummary }) {
 		},
 	});
 	return (
-		<span className="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-muted text-center text-xs text-muted-foreground">
+		<SubLabel
+			color="label"
+			className="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-muted text-center"
+		>
 			{preview.data?.jpeg ? (
 				<img
 					src={`data:image/jpeg;base64,${preview.data.jpeg}`}
@@ -51,7 +54,7 @@ function MeasurementPreview({ record }: { record: MeasurementSummary }) {
 			) : (
 				'Loading preview…'
 			)}
-		</span>
+		</SubLabel>
 	);
 }
 
@@ -110,33 +113,34 @@ function MeasurementModal({
 			ref={dialog}
 			onCancel={onClose}
 			aria-labelledby="measurement-title"
-			className="fixed inset-0 m-auto max-h-[92dvh] w-[min(1100px,94vw)] overflow-y-auto rounded-xl border border-border bg-background p-6 text-foreground shadow-xl backdrop:bg-black/60 max-[800px]:p-4"
+			className="fixed inset-0 m-auto max-h-[92dvh] w-[min(1100px,94vw)] overflow-y-auto rounded-xl border border-border bg-background p-6 text-foreground shadow-xl measurement-modal max-[800px]:p-4"
 		>
 			<div className="mb-5 flex items-start justify-between gap-4">
 				<div>
-					<h2 id="measurement-title" className="text-xl font-semibold">
-						Measurement · Tracking ID {record.track_id}
+					<h2 id="measurement-title">
+						<SubHeader text={`Measurement, Tracking ID ${record.track_id}`} />
 					</h2>
-					<p className="mt-1 text-sm text-muted-foreground">
-						{dimensions(record.dimensions_mm)}
+					<p className="mt-1">
+						<Label color="label">{dimensions(record.dimensions_mm)}</Label>
 					</p>
 					{cameraDistanceMm !== null ? (
 						<p
-							className="mt-1 text-sm text-muted-foreground"
+							className="mt-1"
 							title="Straight-line distance from the RGB camera's optical center."
 						>
-							Camera → cuboid center: {(cameraDistanceMm / 1000).toFixed(3)} m
+							<Label color="label">
+								Camera → cuboid center: {(cameraDistanceMm / 1000).toFixed(3)} m
+							</Label>
 						</p>
 					) : null}
 				</div>
-				<button
+				<Button
 					type="button"
 					onClick={onClose}
 					aria-label="Close measurement details"
-					className="rounded border border-border px-3 py-1.5"
-				>
-					Close
-				</button>
+					variant="outline"
+					label="Close"
+				/>
 			</div>
 			<div className="flex flex-wrap items-center gap-3 border-b border-border pb-4 mb-5">
 				<Button
@@ -149,99 +153,141 @@ function MeasurementModal({
 					disabled={!trackActive || waiting}
 					onClick={() => update.mutate({ track_id: record.track_id })}
 				/>
-				<output className="text-sm text-muted-foreground">
-					{!connected
-						? 'Disconnected from device'
-						: !historyCurrent
-							? 'Waiting for current tracking state.'
-							: !trackActive
-								? 'Object not in frame'
-								: waiting
-									? 'The next available frame will replace this saved measurement.'
-									: record.in_frame
-										? 'Object is in frame. Updates replace the existing snapshot.'
-										: 'Tracking active. Waiting for the next observation.'}
+				<output>
+					<Label color="label">
+						{!connected
+							? 'Disconnected from device'
+							: !historyCurrent
+								? 'Waiting for current tracking state.'
+								: !trackActive
+									? 'Object not in frame'
+									: waiting
+										? 'The next available frame will replace this saved measurement.'
+										: record.in_frame
+											? 'Object is in frame. Updates replace the existing snapshot.'
+											: 'Tracking active. Waiting for the next observation.'}
+					</Label>
 				</output>
 			</div>
 			{update.error ? (
-				<p role="alert" className="mt-3 text-sm text-destructive">
-					{update.error.message}
+				<p role="alert" className="mt-3">
+					<Label color="error">{update.error.message}</Label>
 				</p>
 			) : null}
 			{storageError ? (
-				<p role="alert" className="mt-3 text-sm text-destructive">
-					{storageError}
+				<p role="alert" className="mt-3">
+					<Label color="error">{storageError}</Label>
 				</p>
 			) : null}
 			{details.error ? (
-				<p role="alert" className="text-destructive">
-					{details.error.message}
+				<p role="alert">
+					<Label color="error">{details.error.message}</Label>
 				</p>
 			) : null}
 			{!measurement && !details.error ? (
-				<p>Loading saved measurement…</p>
+				<p>
+					<Label color="normal">Loading saved measurement…</Label>
+				</p>
 			) : null}
 			{measurement ? (
 				<>
 					<PointCloudViewer measurement={measurement} />
-					<dl className="my-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-2 text-sm max-[600px]:grid-cols-1">
-						<dt className="text-muted-foreground">Captured</dt>
-						<dd>{date(measurement.captured_at)}</dd>
-						<dt className="text-muted-foreground">Saved</dt>
+					<dl className="my-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-2 max-[600px]:grid-cols-1">
+						<dt>
+							<Label color="label">Captured</Label>
+						</dt>
 						<dd>
-							{date(measurement.saved_at)} · revision {measurement.revision}
+							<Label>{date(measurement.captured_at)}</Label>
 						</dd>
-						<dt className="text-muted-foreground">Segmented points</dt>
-						<dd>{measurement.point_count.toLocaleString()}</dd>
-						<dt className="text-muted-foreground">Source sequence</dt>
+						<dt>
+							<Label color="label">Saved</Label>
+						</dt>
 						<dd>
-							{measurement.sequence} · RGB {measurement.video_sequence}
+							<Label>
+								{date(measurement.saved_at)}, revision {measurement.revision}
+							</Label>
 						</dd>
-						<dt className="text-muted-foreground">Measurement status</dt>
-						<dd>{measurement.status}</dd>
-						<dt className="text-muted-foreground">Coordinate reference</dt>
+						<dt>
+							<Label color="label">Segmented points</Label>
+						</dt>
+						<dd>
+							<Label>{measurement.point_count.toLocaleString()}</Label>
+						</dd>
+						<dt>
+							<Label color="label">Source sequence</Label>
+						</dt>
+						<dd>
+							<Label>
+								{measurement.sequence}, RGB {measurement.video_sequence}
+							</Label>
+						</dd>
+						<dt>
+							<Label color="label">Measurement status</Label>
+						</dt>
+						<dd>
+							<Label>{measurement.status}</Label>
+						</dd>
+						<dt>
+							<Label color="label">Coordinate reference</Label>
+						</dt>
 						<dd className="break-all">
-							{measurement.reference_frame} · millimeters
+							<Label>{measurement.reference_frame}, millimeters</Label>
 						</dd>
-						<dt className="text-muted-foreground">Cuboid base center</dt>
+						<dt>
+							<Label color="label">Cuboid base center</Label>
+						</dt>
 						<dd>
-							{measurement.cuboid.base_center_mm
-								.map((value) => value.toFixed(1))
-								.join(', ')}{' '}
-							mm
+							<Label>
+								{measurement.cuboid.base_center_mm
+									.map((value) => value.toFixed(1))
+									.join(', ')}{' '}
+								mm
+							</Label>
 						</dd>
-						<dt className="text-muted-foreground">Support plane</dt>
+						<dt>
+							<Label color="label">Support plane</Label>
+						</dt>
 						<dd>
-							Normal [
-							{measurement.support_plane.normal
-								.map((value) => value.toFixed(4))
-								.join(', ')}
-							], offset {measurement.support_plane.offset_mm.toFixed(1)} mm ·
-							calibration {measurement.calibration_generation}
+							<Label>
+								Normal [
+								{measurement.support_plane.normal
+									.map((value) => value.toFixed(4))
+									.join(', ')}
+								], offset {measurement.support_plane.offset_mm.toFixed(1)} mm,
+								calibration {measurement.calibration_generation}
+							</Label>
 						</dd>
-						<dt className="text-muted-foreground">Algorithm</dt>
-						<dd className="break-all">{measurement.algorithm_id}</dd>
-						<dt className="text-muted-foreground">RGB depth correction</dt>
+						<dt>
+							<Label color="label">Algorithm</Label>
+						</dt>
 						<dd className="break-all">
-							{measurement.depth_correction ? (
-								<>
-									{correctionMetadata(
-										measurement.depth_correction.correction_method,
-									)}
-									<br />
-									Input:{' '}
-									{correctionMetadata(
-										measurement.depth_correction.input_axial_convention,
-									)}
-									<br />
-									Output:{' '}
-									{correctionMetadata(
-										measurement.depth_correction.output_axial_convention,
-									)}
-								</>
-							) : (
-								'Not recorded for this measurement.'
-							)}
+							<Label>{measurement.algorithm_id}</Label>
+						</dd>
+						<dt>
+							<Label color="label">RGB depth correction</Label>
+						</dt>
+						<dd className="break-all">
+							<Label>
+								{measurement.depth_correction ? (
+									<>
+										{correctionMetadata(
+											measurement.depth_correction.correction_method,
+										)}
+										<br />
+										Input:{' '}
+										{correctionMetadata(
+											measurement.depth_correction.input_axial_convention,
+										)}
+										<br />
+										Output:{' '}
+										{correctionMetadata(
+											measurement.depth_correction.output_axial_convention,
+										)}
+									</>
+								) : (
+									'Not recorded for this measurement.'
+								)}
+							</Label>
 						</dd>
 					</dl>
 				</>
@@ -271,25 +317,31 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 		history.data?.storage_error ?? (connected ? history.error?.message : null);
 	return (
 		<section className="flex flex-col gap-3" aria-label="Measurement history">
-			<p className="text-sm text-muted-foreground">
-				Last 20 saved objects. Select an object to inspect its point cloud and
-				measurement. History survives app restarts.
+			<p>
+				<Label color="label">
+					Last 20 saved objects. Select an object to inspect its point cloud and
+					measurement. History survives app restarts.
+				</Label>
 			</p>
 			{error ? (
-				<p role="alert" className="text-sm text-destructive">
-					{error}
+				<p role="alert">
+					<Label color="error">{error}</Label>
 				</p>
 			) : null}
 			{history.data?.saving_track_id != null ? (
-				<output className="text-sm">
-					Saving tracking ID {history.data.saving_track_id}…
+				<output>
+					<Label color="normal">
+						Saving tracking ID {history.data.saving_track_id}…
+					</Label>
 				</output>
 			) : null}
 			{!records.length ? (
-				<p className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
-					{history.isLoading
-						? 'Loading measurement history…'
-						: 'No saved measurements yet. Select a support plane and keep a object in view.'}
+				<p className="rounded-lg border border-dashed border-border p-5">
+					<Label color="label">
+						{history.isLoading
+							? 'Loading measurement history…'
+							: 'No saved measurements yet. Select a support plane and keep a object in view.'}
+					</Label>
 				</p>
 			) : null}
 			<ol className="flex flex-col gap-2">
@@ -302,13 +354,14 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 						>
 							<MeasurementPreview record={record} />
 							<span className="flex min-w-0 flex-1 flex-col gap-1">
-								<span className="flex justify-between gap-2 text-sm font-medium">
-									<span>Tracking ID {record.track_id}</span>
-									<span
-										className={
-											connected && record.track_active
-												? 'text-success'
-												: 'text-muted-foreground'
+								<span className="flex justify-between gap-2">
+									<Label
+										weight="medium"
+										text={`Tracking ID ${record.track_id}`}
+									/>
+									<SubLabel
+										color={
+											connected && record.track_active ? 'success' : 'label'
 										}
 									>
 										{connected && record.track_active
@@ -316,15 +369,13 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 												? 'In frame'
 												: 'Tracking'
 											: 'Saved'}
-									</span>
+									</SubLabel>
 								</span>
-								<span className="text-sm">
-									{dimensions(record.dimensions_mm)}
-								</span>
-								<span className="text-xs text-muted-foreground">
-									{date(record.captured_at)} ·{' '}
+								<Label text={dimensions(record.dimensions_mm)} />
+								<SubLabel color="label">
+									{date(record.captured_at)},{' '}
 									{record.point_count.toLocaleString()} points
-								</span>
+								</SubLabel>
 							</span>
 						</button>
 					</li>

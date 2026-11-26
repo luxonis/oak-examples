@@ -1,13 +1,16 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
 import {
 	Button,
-	Header,
+	Card,
 	Label,
 	NormalText,
 	StyledText,
+	SubLabel,
 } from '@luxonis/ui-components';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import './App.css';
+import { AppShell } from './AppShell';
 import { MeasurementHistory } from './MeasurementHistory';
 import { daiServiceQueryKey } from './backend/daiService';
 import { useDaiMutation } from './backend/useDaiMutation';
@@ -62,20 +65,23 @@ function CandidatePreview({
 					className="aspect-[4/3] w-full rounded object-contain"
 				/>
 			) : (
-				<div className="flex aspect-[4/3] w-full items-center justify-center rounded bg-muted text-sm text-muted-foreground">
-					{preview.error ? preview.error.message : 'Loading preview…'}
+				<div className="flex aspect-[4/3] w-full items-center justify-center rounded bg-muted">
+					<Label
+						color="label"
+						text={preview.error ? preview.error.message : 'Loading preview…'}
+					/>
 				</div>
 			)}
-			<div className="flex w-full items-center justify-between gap-2 text-sm">
-				<span>Candidate {candidate.index + 1}</span>
+			<div className="flex w-full items-center justify-between gap-2">
+				<Label text={`Candidate ${candidate.index + 1}`} />
 				{candidate.recommended ? (
-					<span className="text-success">Most inliers</span>
+					<SubLabel color="success" text="Most inliers" />
 				) : null}
 			</div>
-			<span className="text-xs text-muted-foreground">
-				{candidate.inlier_count.toLocaleString()} inliers ·{' '}
-				{(100 * candidate.inlier_ratio).toFixed(1)}%
-			</span>
+			<SubLabel
+				color="label"
+				text={`${candidate.inlier_count.toLocaleString()} inliers (${(100 * candidate.inlier_ratio).toFixed(1)}%)`}
+			/>
 		</button>
 	);
 }
@@ -144,8 +150,9 @@ function App() {
 		(connected ? stateQuery.error?.message : null);
 
 	return (
-		<main className="flex h-dvh w-full flex-row gap-6 bg-background p-6 max-[800px]:h-auto max-[800px]:min-h-dvh max-[800px]:flex-col max-[800px]:gap-5 max-[800px]:p-4">
-			<div className="relative min-h-0 min-w-0 flex-1 overflow-hidden max-[800px]:h-[55dvh] max-[800px]:min-h-[260px] max-[800px]:flex-none">
+		<AppShell
+			title="Measure anything"
+			streams={
 				<Streams
 					defaultTopics={TOPICS}
 					topicGroups={{
@@ -157,33 +164,29 @@ function App() {
 						TOPICS.indexOf(a.name) - TOPICS.indexOf(b.name)
 					}
 				/>
-			</div>
-			<div className="w-0.5 shrink-0 bg-border max-[800px]:h-0.5 max-[800px]:w-full" />
-			<aside className="flex min-h-0 max-h-full w-[420px] shrink-0 flex-col gap-5 overflow-hidden pr-2 text-left max-[800px]:max-h-none max-[800px]:w-full max-[800px]:overflow-visible max-[800px]:pr-0">
-				<div className="flex shrink-0 flex-col gap-5">
-					<h1>
-						<Header text="Measure anything" />
-					</h1>
-					<Label text="Measure objects on a fixed, flat support surface. Objects appear after 10 consecutive observations." />
-				</div>
-				<section
-					aria-label="Processing"
-					className="flex shrink-0 flex-col gap-3 border-t border-border pt-4"
-				>
-					<h2>
-						<NormalText weight="bold" text="Processing" />
-					</h2>
-					<div className="flex justify-between gap-2 text-sm">
-						<span>Capture</span>
-						<span>{rate(state?.rates.source_fps)}</span>
-					</div>
-					<div className="flex justify-between gap-2 text-sm">
-						<span>Measurements</span>
-						<span>{rate(state?.rates.measurement_fps)}</span>
-					</div>
-					<Label
-						text={`Capture is configured at ${state?.capture.configured_fps ?? 10} FPS. Measurement throughput depends on the scene and CPU. Video follows the matching measured frame.`}
-					/>
+			}
+		>
+			<div className="measurement-controls">
+				<Label text="Measure objects on a fixed, flat support surface. Objects appear after 10 consecutive observations." />
+				<section aria-label="Processing">
+					<Card
+						title="Processing"
+						variant="outline"
+						intent="white"
+						contentClassName="flex flex-col gap-3"
+					>
+						<div className="flex justify-between gap-2">
+							<Label text="Capture" />
+							<Label text={rate(state?.rates.source_fps)} />
+						</div>
+						<div className="flex justify-between gap-2">
+							<Label text="Measurements" />
+							<Label text={rate(state?.rates.measurement_fps)} />
+						</div>
+						<Label
+							text={`Capture is configured at ${state?.capture.configured_fps ?? 10} FPS. Measurement throughput depends on the scene and CPU. Video follows the matching measured frame.`}
+						/>
+					</Card>
 				</section>
 
 				<div
@@ -192,7 +195,7 @@ function App() {
 					className="flex shrink-0 rounded-lg border border-border p-1"
 				>
 					{CONTROL_TABS.map(({ id: value, label }, index) => (
-						<button
+						<Button
 							key={value}
 							id={`${value}-tab`}
 							type="button"
@@ -221,13 +224,14 @@ function App() {
 									document.getElementById(`${next}-tab`)?.focus();
 								}
 							}}
-							className={`flex-1 rounded-md px-3 py-2 text-sm ${tab === value ? 'bg-muted font-semibold' : 'text-muted-foreground'}`}
-						>
-							{label}
-						</button>
+							className="flex-1"
+							variant={tab === value ? 'filled' : 'ghost'}
+							intent={tab === value ? 'active' : 'gray'}
+							label={label}
+						/>
 					))}
 				</div>
-				<div className="min-h-0 flex-1 overflow-y-auto pr-1 max-[800px]:flex-none max-[800px]:overflow-visible max-[800px]:pr-0">
+				<div className="measurement-panels">
 					<section
 						id="calibration-panel"
 						role="tabpanel"
@@ -242,10 +246,12 @@ function App() {
 						{calibration?.recalibration_required ? (
 							<div
 								role="alert"
-								className="rounded-lg border border-destructive p-3 text-sm text-destructive"
+								className="rounded-lg border border-destructive p-3"
 							>
-								Support plane verification failed. Recalibrate before measuring
-								more objects.
+								<Label
+									color="error"
+									text="Support plane verification failed. Recalibrate before measuring more objects."
+								/>
 							</div>
 						) : null}
 						<Button
@@ -329,7 +335,7 @@ function App() {
 					>
 						<section
 							aria-label="RGB overlays"
-							className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm"
+							className="flex flex-col gap-2 rounded-lg border border-border p-3"
 						>
 							<label className="flex items-center gap-2">
 								<input
@@ -347,13 +353,13 @@ function App() {
 											});
 									}}
 								/>
-								Colorized depth over RGB
+								<Label text="Colorized depth over RGB" />
 							</label>
 							{state?.overlays.depth ? (
-								<span className="text-xs text-muted-foreground">
-									Depth colors are blended at 50% opacity. One overlay is shown
-									at a time.
-								</span>
+								<SubLabel
+									color="label"
+									text="Depth colors are blended at 50% opacity. One overlay is shown at a time."
+								/>
 							) : null}
 							<label className="flex items-center gap-2">
 								<input
@@ -375,7 +381,7 @@ function App() {
 											});
 									}}
 								/>
-								Show selected support plane
+								<Label text="Show selected support plane" />
 							</label>
 						</section>
 					</section>
@@ -385,16 +391,8 @@ function App() {
 						</div>
 					) : null}
 				</div>
-				<div
-					className={`mt-auto flex shrink-0 items-center gap-2 border-t border-border pt-4 text-sm ${connected ? 'text-success' : 'text-destructive'}`}
-				>
-					<span
-						className={`h-2 w-2 rounded-full ${connected ? 'bg-success' : 'bg-destructive'}`}
-					/>
-					<span>{connected ? 'Connected to device' : 'Disconnected'}</span>
-				</div>
-			</aside>
-		</main>
+			</div>
+		</AppShell>
 	);
 }
 

@@ -1,3 +1,4 @@
+import { Button, Label, SubLabel } from '@luxonis/ui-components';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -59,7 +60,8 @@ export function PointCloudViewer({
 			return;
 		}
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-		renderer.setClearColor(0x101923);
+		const theme = getComputedStyle(host);
+		renderer.setClearColor(theme.getPropertyValue('--lux-muted').trim());
 		renderer.domElement.setAttribute(
 			'aria-label',
 			'Segmented object point cloud with measured cuboid',
@@ -79,7 +81,7 @@ export function PointCloudViewer({
 		cloud.applyQuaternion(rotation);
 		cloud.computeBoundingBox();
 		const pointMaterial = new THREE.PointsMaterial({
-			color: 0x71cfff,
+			color: theme.getPropertyValue('--lux-primary').trim(),
 			size: 2.5,
 			sizeAttenuation: false,
 		});
@@ -99,14 +101,19 @@ export function PointCloudViewer({
 		edges.translate(-center.x, -center.y, -center.z);
 		edges.applyQuaternion(rotation);
 		const edgeMaterial = new THREE.LineBasicMaterial({
-			color: 0x82ed8f,
+			color: theme.getPropertyValue('--lux-success').trim(),
 			depthTest: false,
 		});
 		const wireframe = new THREE.LineSegments(edges, edgeMaterial);
 		wireframe.renderOrder = 1;
 		scene.add(wireframe);
 		const span = Math.max(...measurement.dimensions_mm, 50);
-		const grid = new THREE.GridHelper(span * 2.4, 12, 0x3f6477, 0x253b49);
+		const grid = new THREE.GridHelper(
+			span * 2.4,
+			12,
+			theme.getPropertyValue('--lux-muted-foreground').trim(),
+			theme.getPropertyValue('--lux-border').trim(),
+		);
 		scene.add(grid);
 		controls.target.set(0, measurement.dimensions_mm[2] / 2, 0);
 		controls.minDistance = span * 0.15;
@@ -147,29 +154,29 @@ export function PointCloudViewer({
 		<section className="flex flex-col gap-2">
 			<div
 				ref={container}
-				className="relative h-[420px] min-h-[260px] w-full overflow-hidden rounded-lg bg-[#101923] max-[800px]:h-[300px]"
+				className="relative h-[420px] min-h-[260px] w-full overflow-hidden rounded-lg bg-muted max-[800px]:h-[300px]"
 			>
 				{error ? (
 					<p
 						role="alert"
-						className="absolute inset-0 flex items-center justify-center p-6 text-center text-white"
+						className="absolute inset-0 flex items-center justify-center p-6 text-center"
 					>
-						{error}
+						<Label color="error" text={error} />
 					</p>
 				) : null}
 			</div>
-			<div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-				<span>
-					Drag to orbit · Right-drag to pan · Scroll to zoom. Blue points, green
-					cuboid. Units: mm.
-				</span>
-				<button
+			<div className="flex items-center justify-between gap-3">
+				<SubLabel
+					color="label"
+					text="Drag to orbit. Right-drag to pan. Scroll to zoom. Points show the segmented object, and green lines show the cuboid. Units: mm."
+				/>
+				<Button
 					type="button"
 					onClick={() => reset.current()}
-					className="shrink-0 rounded border border-border px-3 py-1 text-foreground"
-				>
-					Reset view
-				</button>
+					className="shrink-0"
+					variant="outline"
+					label="Reset view"
+				/>
 			</div>
 		</section>
 	);
