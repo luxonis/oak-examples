@@ -184,9 +184,6 @@ function App() {
 					<Label
 						text={`Capture is configured at ${state?.capture.configured_fps ?? 10} FPS. Measurement throughput depends on the scene and CPU. Video follows the matching measured frame.`}
 					/>
-					{calibration?.phase === 'ready' && state?.frame ? (
-						<Label text={state.frame.message} />
-					) : null}
 				</section>
 
 				<div
