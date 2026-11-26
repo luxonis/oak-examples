@@ -71,6 +71,8 @@ class AnnotationNode(dai.node.HostNode):
             timestamp=detections_message.getTimestamp(),
             sequence_num=detections_message.getSequenceNum(),
         )
+        annotations.setBufferMetadataFrom(detections_message)
+        annotations.setTransformation(detections_message.getTransformation())
 
         depth_map = depth_message.getCvFrame()
         depth_map = cv2.applyColorMap(

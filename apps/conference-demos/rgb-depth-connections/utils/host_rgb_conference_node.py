@@ -138,5 +138,7 @@ class CombineOutputs(dai.node.HostNode):
             timestamp=output_frame.getTimestamp(),
             sequence_num=output_frame.getSequenceNum(),
         )
+        annotations_msg.setBufferMetadataFrom(output_frame)
+        annotations_msg.setTransformation(output_frame.getTransformation())
         self.detections_output.send(annotations_msg)
         self.output.send(output_frame)

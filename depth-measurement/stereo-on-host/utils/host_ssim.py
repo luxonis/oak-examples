@@ -67,6 +67,8 @@ class SSIM(dai.node.HostNode):
         annotations = annotation_helper.build(
             disp_calculated.getTimestamp(), disp_calculated.getSequenceNum()
         )
+        annotations.setBufferMetadataFrom(disp_calculated)
+        annotations.setTransformation(disp_calculated.getTransformation())
 
         self.output.send(annotations)
         self.passthrough_disp_generated.send(disp_generated)

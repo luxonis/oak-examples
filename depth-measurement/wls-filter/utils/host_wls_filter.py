@@ -155,7 +155,8 @@ class WLSFilter(dai.node.HostNode):
         )
 
         annots_msg = annots.build(disparity.getTimestamp(), disparity.getSequenceNum())
-        annots_msg.setTimestampDevice(disparity.getTimestampDevice())
+        annots_msg.setBufferMetadataFrom(disparity)
+        annots_msg.setTransformation(disparity.getTransformation())
         self.annotations.send(annots_msg)
 
     def handle_key(self, key: int) -> None:
