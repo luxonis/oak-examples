@@ -1,9 +1,14 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button } from '@luxonis/ui-components';
+import { Button, Label } from '@luxonis/ui-components';
 import { useState } from 'react';
 import { postToObjectVolumeService } from './services.ts';
 
 export type MeasurementMethod = 'obb' | 'heightgrid';
+
+const METHODS: { id: MeasurementMethod; label: string }[] = [
+	{ id: 'obb', label: 'Bounding box' },
+	{ id: 'heightgrid', label: 'Height grid' },
+];
 
 const DESCRIPTIONS: Record<MeasurementMethod, string[]> = {
 	obb: [
@@ -35,43 +40,49 @@ export function MeasurementMethodSelector() {
 	};
 
 	return (
-		<div className="flex flex-col gap-3">
-			<h3 className="font-semibold">Measurement method</h3>
+		<fieldset className="flex flex-col gap-1">
+			<legend>
+				<Label text="Measurement method" />
+			</legend>
+			<div className="grid grid-cols-2 gap-2">
+				{METHODS.map(({ id, label }) => {
+					const isActive = id === method;
 
-			<div className="grid grid-cols-2 gap-3">
-				<Button
-					variant={method === 'obb' ? 'light' : 'filled'}
-					intent={method === 'obb' ? 'gray' : 'active'}
-					disabled={method === 'obb' || !connection.connected}
-					onClick={() => handleClick('obb')}
-				>
-					Min OBB
-				</Button>
-				<Button
-					variant={method === 'heightgrid' ? 'light' : 'filled'}
-					intent={method === 'heightgrid' ? 'gray' : 'active'}
-					disabled={method === 'heightgrid' || !connection.connected}
-					onClick={() => handleClick('heightgrid')}
-				>
-					Height Grid
-				</Button>
+					return (
+						<Button
+							key={id}
+							variant={isActive ? 'filled' : 'outline'}
+							intent={isActive ? 'active' : 'gray'}
+							aria-pressed={isActive}
+							disabled={!connection.connected}
+							onClick={() => {
+								if (!isActive) handleClick(id);
+							}}
+						>
+							{label}
+						</Button>
+					);
+				})}
 			</div>
+
+			<ul className="ovm-notes">
+				{DESCRIPTIONS[method].map((line) => (
+					<li key={line}>
+						<Label text={line} />
+					</li>
+				))}
+			</ul>
 
 			{method === 'heightgrid' ? (
 				<Button
 					variant="outline"
+					intent="gray"
 					disabled={!connection.connected}
 					onClick={() => handleClick('heightgrid')}
 				>
-					Retry Plane Capture
+					Retry plane capture
 				</Button>
 			) : null}
-
-			<ul className="m-0 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
-				{DESCRIPTIONS[method].map((line) => (
-					<li key={line}>{line}</li>
-				))}
-			</ul>
-		</div>
+		</fieldset>
 	);
 }

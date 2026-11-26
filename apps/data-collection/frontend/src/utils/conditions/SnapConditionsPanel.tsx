@@ -1,5 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { useToast } from '@luxonis/ui-components';
+import { Flex, useToast } from '@luxonis/ui-components';
 import { useEffect, useState } from 'react';
 import { postToDataCollectionService } from '../../services.ts';
 import { SliderControl } from '../SliderControl.tsx';
@@ -306,7 +306,7 @@ export function SnapConditionsPanel({
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
+		<Flex direction="column" gap="sm">
 			<ConditionCard
 				title="Timing"
 				enabled={timingEnabled}
@@ -351,7 +351,7 @@ export function SnapConditionsPanel({
 				description="Sends a snap if any detection confidence falls below the threshold; throttled by the cooldown."
 			>
 				<SliderControl
-					label={`Confidence threshold: ${(lowConfThreshold * 100).toFixed(0)}%`}
+					label={`Confidence threshold ${(lowConfThreshold * 100).toFixed(0)}%`}
 					value={lowConfThreshold}
 					onChange={setLowConfThreshold}
 					onCommit={pushLowConfUpdate}
@@ -407,20 +407,18 @@ export function SnapConditionsPanel({
 				/>
 			</ConditionCard>
 
-			<div className="mt-2">
-				<SnapCollectionButton
-					running={running}
-					busy={busy}
-					disabled={
-						busy ||
-						anyInvalid ||
-						(!running &&
-							lowConfEnabled &&
-							!(lowConfThreshold >= 0 && lowConfThreshold <= 1))
-					}
-					onClick={handleStartStop}
-				/>
-			</div>
-		</div>
+			<SnapCollectionButton
+				running={running}
+				busy={busy}
+				disabled={
+					busy ||
+					anyInvalid ||
+					(!running &&
+						lowConfEnabled &&
+						!(lowConfThreshold >= 0 && lowConfThreshold <= 1))
+				}
+				onClick={handleStartStop}
+			/>
+		</Flex>
 	);
 }

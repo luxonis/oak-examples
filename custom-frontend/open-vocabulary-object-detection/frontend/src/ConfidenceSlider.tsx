@@ -1,5 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Slider } from '@luxonis/ui-components';
+import { Flex, Label, Slider } from '@luxonis/ui-components';
 import { useState } from 'react';
 import { postToCustomService } from './services.ts';
 
@@ -31,10 +31,8 @@ export function ConfidenceSlider({
 	};
 
 	return (
-		<div className="flex flex-col gap-2">
-			<div className="font-medium">
-				Confidence Threshold: {value.toFixed(2)}
-			</div>
+		<Flex direction="column" gap="xs">
+			<Label text={`Confidence threshold ${value.toFixed(2)}`} />
 			<Slider
 				min={0.01}
 				max={0.99}
@@ -42,7 +40,8 @@ export function ConfidenceSlider({
 				value={value}
 				onChange={setValue}
 				onValueCommit={handleCommit}
+				aria-label="Confidence threshold"
 			/>
-		</div>
+		</Flex>
 	);
 }

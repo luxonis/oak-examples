@@ -51,7 +51,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 - [backend/src/api/request_handler.py](backend/src/api/request_handler.py) registers services with pydantic-validated requests and responses; failures become `{"error": "..."}`.
 - One pipeline runs for the app's lifetime; it stops on pipeline stop, `SIGINT`/`SIGTERM`, or `q` from the remote connection.
 - The frontend picks its view from the polled support plane calibration state: the support plane calibration view until a support plane is confirmed, then the measurement view. There is no routing.
-- Both views fill the shared side panel layout of the other apps, `AppLayout`: the stream on the left, then a divider and a 420px right panel that scrolls on its own and holds the title, description, the view's controls and the connection indicator. Narrow screens stack the panes; nothing goes below the stream.
+- Both views use `AppLayout`, which passes the stream and controls to the shared [frontend/src/AppShell.tsx](frontend/src/AppShell.tsx). The page title sits above the stream and a scrolling 24rem control panel; narrow screens stack the panes. Connection feedback stays in the stream viewer.
 - The right panel's controls are `PanelSection`s. The support plane calibration view has one, **Support plane calibration**; the measurement view has **Support plane** (camera distance and **Recalibrate**), **Distance offset** and **Detection settings**, always visible.
 - Service calls go through TanStack Query + zod in [frontend/src/backend/](frontend/src/backend/).
 
@@ -101,5 +101,5 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 ## Validation
 
 - `Run:` `oakctl app run .`
-- `Success looks like:` the frontend opens on the support plane calibration view with the `Support plane preview` on the left and the calibration controls in the right panel, which reads "Connected to device"; after confirming a support plane the stream switches to the color stream, the panel to the measurement sections, and boxes passing the camera get L × W × H and volume overlaid
+- `Success looks like:` the frontend opens on the support plane calibration view with the `Support plane preview` on the left and the calibration controls in the right panel; after confirming a support plane the stream switches to the color stream, the panel to the measurement sections, and boxes passing the camera get L × W × H and volume overlaid
 - `Common failure meaning:` a non-stereo device (`UnsupportedDeviceError`), no support plane confirmed yet, the static frontend was not built, or the model download failed on first start

@@ -1,5 +1,16 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
+import {
+	Badge,
+	Card,
+	EmptyView,
+	Flex,
+	Label,
+	NormalText,
+	ShowIcon,
+	SubLabel,
+} from '@luxonis/ui-components';
 import { memo, useEffect, useRef, useState } from 'react';
+import { AppShell } from './AppShell';
 import {
 	type Decision,
 	type DecisionResult,
@@ -40,7 +51,7 @@ function shortAnswer(result: DecisionResult | null) {
 	if (result.type === 'noul')
 		return `${result.probabilities[0].label}: ${((result.yes_probability ?? 0) * 100).toFixed(0)}%`;
 	if (result.type === 'choice') return result.choice ?? 'Unknown';
-	return `Score ${result.score?.toFixed(1) ?? '—'}`;
+	return result.score == null ? 'No score' : `Score ${result.score.toFixed(1)}`;
 }
 
 export default function App() {
@@ -275,42 +286,74 @@ export default function App() {
 		comparableQuestions(state?.decision.questions ?? []);
 
 	return (
-		<main className="workspace">
-			<section className="camera-column">
-				<div className="camera-panel">
-					<LiveStream />
+		<AppShell
+			title="Visual Decision Model"
+			status={<Badge intent="gray" variant="light" label="d3-lite" />}
+			streams={
+				<div className="vdm-viewer">
+					<div className="vdm-stream">
+						<LiveStream />
+					</div>
 				</div>
-				<section className="tracks-panel">
-					<div className="section-heading">
-						<h2>Visible objects</h2>
-						<span>
-							{state?.tracks.length ?? 0} tracked ·{' '}
-							{state?.decision.actual_per_second ?? 0} decisions/s
-						</span>
-					</div>
-					<div className="tracks-list">
-						{state?.tracks.length ? (
-							state.tracks.map((track) => (
-								<div className="track-row" key={track.id}>
-									<strong>
-										{track.class_name} #{track.id}
-									</strong>
-									<span>YOLO-E {(track.confidence * 100).toFixed(0)}%</span>
-									<span>
-										{shortAnswer(track.last_result)}
-										{track.decision_age != null
-											? ` · ${track.decision_age.toFixed(1)}s old`
-											: ''}
-									</span>
-								</div>
-							))
-						) : (
-							<div className="empty">Waiting for YOLO-E detections.</div>
-						)}
-					</div>
-				</section>
-				<DecisionLog history={history} />
-			</section>
+			}
+			below={
+				<>
+					<Card
+						title="Visible objects"
+						variant="outline"
+						intent="white"
+						withoutPadding
+						actions={
+							<Flex direction="row" align="center" gap="xs" wrap="wrap">
+								<Badge
+									intent="gray"
+									variant="light"
+									label={`${state?.tracks.length ?? 0} tracked`}
+								/>
+								<Badge
+									intent="gray"
+									variant="light"
+									label={`${state?.decision.actual_per_second ?? 0} decisions/s`}
+								/>
+							</Flex>
+						}
+					>
+						<div className="vdm-tracks">
+							{state?.tracks.length ? (
+								<ul>
+									{state.tracks.map((track) => (
+										<li className="vdm-track-row" key={track.id}>
+											<NormalText
+												weight="medium"
+												text={`${track.class_name} #${track.id}`}
+											/>
+											<SubLabel
+												text={`YOLO-E ${(track.confidence * 100).toFixed(0)}%`}
+											/>
+											<Label
+												text={`${shortAnswer(track.last_result)}${
+													track.decision_age != null
+														? `, ${track.decision_age.toFixed(1)} s old`
+														: ''
+												}`}
+											/>
+										</li>
+									))}
+								</ul>
+							) : (
+								<EmptyView
+									className="vdm-empty"
+									icon={ShowIcon}
+									title="No visible objects"
+									subtitle="Waiting for YOLO-E detections."
+								/>
+							)}
+						</div>
+					</Card>
+					<DecisionLog history={history} />
+				</>
+			}
+		>
 			<SettingsPanel
 				state={state}
 				connected={connection.connected}
@@ -334,6 +377,6 @@ export default function App() {
 				applyDecision={applyDecision}
 				updateQuestion={updateQuestion}
 			/>
-		</main>
+		</AppShell>
 	);
 }

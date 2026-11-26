@@ -1,14 +1,14 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { useToast } from '@luxonis/ui-components';
+import { Alert, Card, Flex, SubLabel, useToast } from '@luxonis/ui-components';
 import {
 	type MouseEvent,
-	type ReactNode,
 	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 } from 'react';
+import { AppShell, Steps } from './AppShell.tsx';
 import {
 	QNN_PREPARATION_EVENT,
 	clearQnnPreparation,
@@ -106,10 +106,6 @@ function parseBackendConfig(response: unknown): BackendConfig | null {
 		console.error('[App] Failed to parse service response:', error);
 		return null;
 	}
-}
-
-function SectionTitle({ children }: { children: ReactNode }) {
-	return <h2 className="mt-2 mb-1 text-base font-semibold">{children}</h2>;
 }
 
 function App() {
@@ -440,7 +436,8 @@ function App() {
 			setQnnPreparing((event as CustomEvent<boolean>).detail);
 		};
 		window.addEventListener(QNN_PREPARATION_EVENT, onPreparation);
-		return () => window.removeEventListener(QNN_PREPARATION_EVENT, onPreparation);
+		return () =>
+			window.removeEventListener(QNN_PREPARATION_EVENT, onPreparation);
 	}, []);
 
 	useEffect(() => {
@@ -478,7 +475,9 @@ function App() {
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		ctx.strokeStyle = '#22c55e';
+		ctx.strokeStyle = getComputedStyle(document.documentElement)
+			.getPropertyValue('--lux-success')
+			.trim();
 		ctx.lineWidth = 2;
 		ctx.strokeRect(x0, y0, w, h);
 	};
@@ -489,97 +488,86 @@ function App() {
 	};
 
 	return (
-		<main className="flex h-screen w-screen flex-row gap-6 p-6">
-			<div
-				className="relative min-w-0 flex-1 overflow-hidden"
-				ref={streamContainerRef}
-			>
-				<Streams
-					allowedTopics={allowedTopics}
-					defaultTopics={allowedTopics}
-					topicGroups={topicGroups}
-				/>
-				{isDrawing ? (
-					<canvas
-						ref={overlayCanvasRef}
-						data-role="overlay"
-						className="absolute inset-0 z-10 cursor-crosshair"
-						onMouseDown={onOverlayMouseDown}
-						onMouseMove={onOverlayMouseMove}
-						onMouseUp={onOverlayMouseUp}
+		<AppShell
+			title="Data Collection"
+			streams={
+				<div className="data-collection-stream" ref={streamContainerRef}>
+					<Streams
+						allowedTopics={allowedTopics}
+						defaultTopics={allowedTopics}
+						topicGroups={topicGroups}
 					/>
-				) : null}
-			</div>
+					{isDrawing ? (
+						<canvas
+							ref={overlayCanvasRef}
+							data-role="overlay"
+							className="absolute inset-0 z-10 cursor-crosshair"
+							onMouseDown={onOverlayMouseDown}
+							onMouseMove={onOverlayMouseMove}
+							onMouseUp={onOverlayMouseUp}
+						/>
+					) : null}
+				</div>
+			}
+		>
+			{connection.connected ? null : (
+				<Alert
+					role="status"
+					intent="active"
+					variant="light"
+					title="Connecting to the device"
+					description="Initial QNN model preparation may take a few minutes."
+				/>
+			)}
+			{qnnPreparing ? (
+				<Alert
+					role="status"
+					intent="active"
+					variant="light"
+					title="Preparing the prompt model for QNN"
+					description="First use of a prompt size may take a few minutes while its graph is optimized."
+				/>
+			) : null}
 
-			<div className="w-0.5 shrink-0 bg-border" />
+			<Card title="How to use" variant="outline" intent="white">
+				<Steps
+					items={[
+						'Detect by text labels, or by a visual example from an uploaded image or a box drawn on the stream.',
+						'Updating text labels switches back to text mode. Uploading an image or drawing a box switches to image mode.',
+						'Choose snap conditions and start snapping to auto-capture images with metadata.',
+					]}
+				/>
+			</Card>
 
-			<aside className="flex max-h-full w-[420px] min-w-[340px] max-w-[520px] shrink-0 flex-col gap-4 overflow-y-auto pr-2 text-left">
-				<h1 className="text-2xl font-bold">Data Collection</h1>
-				<p className="mb-2 text-sm leading-6 text-muted-foreground">
-					Detect by text labels or a visual example. Updating text labels
-					switches back to text mode; uploading an image or drawing a box
-					switches to image mode.
-				</p>
-				{qnnPreparing && (
-					<output className="rounded-md border border-border bg-muted p-3 text-sm" aria-live="polite">
-						Preparing the prompt model for QNN. First use of a prompt size may take a few minutes while its graph is optimized.
-					</output>
-				)}
-				{!connection.connected && (
-					<p className="text-sm text-muted-foreground">
-						Connecting to the device. Initial QNN model preparation may take a few minutes.
-					</p>
-				)}
-
-				<SectionTitle>Labels by Text</SectionTitle>
-				<p className="text-xs text-muted-foreground">
-					Enter labels to find (e.g., person, chair, TV).
-				</p>
+			<Card title="Labels by text" variant="outline" intent="white">
 				<ClassSelector initialClasses={backendConfig?.classes} />
+			</Card>
 
-				<SectionTitle>Labels by Image</SectionTitle>
-				<p className="text-xs text-muted-foreground">
-					Upload an image or draw a box to switch to image mode.
-				</p>
+			<Card title="Labels by image" variant="outline" intent="white">
 				<ImageUploader
 					onDrawBBox={handleBeginBBoxDraw}
 					onResetView={handleResetStreamView}
 					resetViewDisabled={!streamViewMoved}
 					drawBBoxDisabled={streamViewMoved}
 				/>
+			</Card>
 
-				<SectionTitle>Confidence Filter</SectionTitle>
-				<p className="text-xs text-muted-foreground">
-					Detections below this confidence are dropped.
-				</p>
-				<ConfidenceSlider
-					initialValue={backendConfig?.confidence_threshold ?? 0.1}
-				/>
-
-				<section className="flex flex-col gap-3 rounded-md border border-border bg-background p-4 shadow-sm">
-					<h2 className="text-lg font-semibold">Snap conditions</h2>
-					<p className="text-xs leading-5 text-muted-foreground">
-						Choose when to auto-capture a snap.
-					</p>
-					<SnapConditionsPanel initialConfig={backendConfig?.snapping} />
-				</section>
-
-				<div
-					className={`sticky bottom-0 mt-2 flex items-center gap-2 border-t border-border bg-background py-3 text-xs ${
-						connection.connected ? 'text-success' : 'text-destructive'
-					}`}
-				>
-					<div
-						className={`h-2 w-2 shrink-0 rounded-full ${
-							connection.connected ? 'bg-success' : 'bg-destructive'
-						}`}
+			<Card title="Confidence filter" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					<SubLabel text="Detections below this confidence are dropped." />
+					<ConfidenceSlider
+						initialValue={backendConfig?.confidence_threshold ?? 0.1}
 					/>
-					<span className="whitespace-nowrap">
-						{connection.connected ? 'Connected to device' : 'Disconnected'}
-					</span>
-				</div>
-			</aside>
-		</main>
+				</Flex>
+			</Card>
+
+			<Card title="Snap conditions" variant="outline" intent="white">
+				<Flex direction="column" gap="sm">
+					<SubLabel text="Choose when to auto-capture a snap." />
+					<SnapConditionsPanel initialConfig={backendConfig?.snapping} />
+				</Flex>
+			</Card>
+		</AppShell>
 	);
 }
 
