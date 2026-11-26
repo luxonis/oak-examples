@@ -86,7 +86,9 @@ with dai.Pipeline(device) as pipeline:
 archives = [
     entry
     for entry in Path(args.output).iterdir()
-    if entry.is_file() and entry.name.startswith("recording_") and entry.name.endswith(".tar.gz")
+    if entry.is_file()
+    and entry.name.startswith("recording_")
+    and entry.name.endswith(".tar.gz")
 ]
 if archives:
     newest = max(archives, key=lambda entry: entry.stat().st_mtime)
