@@ -40,7 +40,7 @@ The logs print a `measurement_benchmark` JSON report for `MeasureAnythingDetecto
 
 ## Inspect saved measurements
 
-Open the **Measurements** tab and select an object using its RGB thumbnail and tracking ID. The thumbnail comes from the same frame as its saved measurement. The detail modal shows the segmented object point cloud, fitted cuboid, source sequence, capture time, algorithm, and support-plane metadata. Drag to orbit, right-drag to pan, scroll to zoom, or click **Reset view**.
+Open the **Measurements** tab and select an object using its RGB thumbnail and tracking ID. The thumbnail comes from the same frame as its saved measurement. The detail modal shows the segmented object point cloud, fitted cuboid, camera-to-cuboid-center distance, source sequence, capture time, algorithm, and support-plane metadata. The distance is the straight-line range from the RGB camera's optical center to the cuboid's geometric center. It is calculated from saved coordinates and is available for historical records. Drag to orbit, right-drag to pan, scroll to zoom, or click **Reset view**.
 
 An object must appear in 10 consecutive processed frames before its box appears or its measurement is saved. A missing observation resets an unconfirmed track's count. Confirmed tracks retain confirmation during the tracking grace period, but appear live only while observed. Tracks that never reach 10 observations are never displayed or saved.
 
@@ -52,7 +52,7 @@ History lives in `OAKAGENT_STORAGE_APP/measure-anything.sqlite3` on the OAK4. Ho
 
 ## Choose RGB overlays
 
-Enable **Colorized depth over RGB** to blend the public `ApplyDepthColormap` node's colors into RGB at 50% opacity. Colors use the node's 2nd–98th depth percentiles, rather than a fixed metric scale. Invalid depth stays transparent. After selecting a support plane, enable **Show selected support plane** to highlight only its visible inliers in green; objects and background keep their RGB colors. Enabling either overlay switches the other off. Both default off. A separate preview node caches the calibrated remap and blends textures without blocking measurements. Boxes and labels remain native annotations over the H.264 stream.
+The **Processing** section stays above the tabs while their content scrolls. Open the **Configuration** tab to control RGB overlays. Enable **Colorized depth over RGB** to blend the public `ApplyDepthColormap` node's colors into RGB at 50% opacity. Colors use the node's 2nd–98th depth percentiles, rather than a fixed metric scale. Invalid depth stays transparent. After selecting a support plane, enable **Show selected support plane** to highlight only its visible inliers in green; objects and background keep their RGB colors. Enabling either overlay switches the other off. Both default off. A separate preview node caches the calibrated remap and blends textures without blocking measurements. Boxes and labels remain native annotations over the H.264 stream.
 
 The app asks `SupportPlaneCalibrator` to verify the selected plane every five seconds against the current cloud and gravity. If verification fails, measurements pause, the frontend opens **Calibration**, and a warning prompts recalibration. Keep the camera fixed, click **Recalibrate**, and select the supporting surface again.
 

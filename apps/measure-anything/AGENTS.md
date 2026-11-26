@@ -96,6 +96,7 @@ The React frontend uses the same Luxonis viewer, service hooks, and static build
 - Keep storage serialization and I/O off the controller thread. Retain the single in-flight job and later-sequence gates, atomic replacement, 20-record retention, and durable ID high-water. Do not derive visibility from the tracker's grace-period entries.
 - Keep the startup OpenCV thread budget and lazy active-plane NV12 decoding. The preview conversion uses Python OpenCV and public frame setters; its NV12 bytes must match the SDK conversion. Storage padding is outside the delivered RGB image.
 - Use `measured.plane.normal` for cuboid height and width axes. The measurement plane can normalize the selected plane's sign.
+- Keep Processing outside the scrollable tab panels. Overlay controls belong to Configuration. Camera-to-cuboid-center distance is computed in the frontend from saved CAM_A coordinates as the norm of `base_center_mm + up_axis * height_mm / 2`; it requires no pipeline output or storage change.
 
 ## Related Examples
 

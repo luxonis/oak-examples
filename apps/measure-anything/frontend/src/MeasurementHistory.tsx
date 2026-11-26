@@ -92,6 +92,17 @@ function MeasurementModal({
 		return () => element?.close();
 	}, []);
 	const measurement = details.data?.measurement;
+	const cameraDistanceMm = measurement
+		? Math.hypot(
+				...measurement.cuboid.base_center_mm.map(
+					(value, axis) =>
+						value +
+						(measurement.cuboid.up_axis[axis] *
+							measurement.cuboid.dimensions_mm[2]) /
+							2,
+				),
+			)
+		: null;
 	const inFrame = connected && historyCurrent && record.in_frame;
 	const waiting = pending || update.isPending;
 	return (
@@ -109,6 +120,14 @@ function MeasurementModal({
 					<p className="mt-1 text-sm text-muted-foreground">
 						{dimensions(record.dimensions_mm)}
 					</p>
+					{cameraDistanceMm !== null ? (
+						<p
+							className="mt-1 text-sm text-muted-foreground"
+							title="Straight-line distance from the RGB camera's optical center."
+						>
+							Camera → cuboid center: {(cameraDistanceMm / 1000).toFixed(3)} m
+						</p>
+					) : null}
 				</div>
 				<button
 					type="button"
