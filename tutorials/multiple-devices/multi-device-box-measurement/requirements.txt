@@ -1,0 +1,2 @@
+depthai==3.12.1
+depthai-nodes[box-measurement] @ git+https://github.com/luxonis/depthai-nodes.git@feat/box-measurement-multi-device
