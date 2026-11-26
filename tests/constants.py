@@ -1,4 +1,8 @@
 KNOWN_FAILING = {
+    "apps/diagnostic-data-capture": {
+        "reason": "Diagnostic capture requires RVC4",
+        "rules": {"platform": ["rvc2"]},
+    },
     "apps/focused-vision": {
         "reason": "RVC4 only app",
         "rules": {"and": [{"platform": ["rvc2"]}]},
