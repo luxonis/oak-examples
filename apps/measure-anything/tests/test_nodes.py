@@ -4,8 +4,9 @@ from pathlib import Path
 import sys
 import time
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import depthai as dai
 from depthai_nodes.message import (
@@ -60,6 +61,106 @@ class AnnotationTests(unittest.TestCase):
 
 
 class ControllerServiceTests(unittest.TestCase):
+    def saved_track_controller(self, pipeline):
+        from domain import CalibrationPhase
+        from test_domain import detected_object
+
+        store = Mock(next_track_id=7)
+        store.list_summaries.return_value = [{"track_id": 7}]
+        controller = pipeline.create(MeasurementController, profile={}, store=store)
+        self.assertFalse(controller.get_measurements({})["items"][0]["track_active"])
+        controller.session.phase = CalibrationPhase.READY
+        controller.latest_scene = SimpleNamespace(sequence=20)
+        controller.next_verification_at = float("inf")
+        for observation in range(10):
+            controller.tracker.update(
+                [detected_object(0, 20)], 100 - (9 - observation) * 0.1
+            )
+        controller.visible_tracks = {7}
+        controller.last_measurement_at = 100
+        return controller
+
+    def test_lost_track_can_request_update_and_reappear_before_removal(self):
+        from test_domain import detected_object
+        from test_history import request
+
+        with dai.Pipeline(False) as pipeline:
+            controller = self.saved_track_controller(pipeline)
+            controller.tracker.update([], 100.5)
+            controller.visible_tracks.clear()
+            controller.last_measurement_at = 100.5
+            with patch("nodes.time.monotonic", return_value=100.5):
+                controller._publish_state()
+                row = controller.get_measurements({})["items"][0]
+                self.assertFalse(row["in_frame"])
+                self.assertTrue(row["track_active"])
+                with patch.object(controller, "_enqueue", return_value={"ok": True}):
+                    self.assertEqual(
+                        controller.update_measurement({"track_id": 7}), {"ok": True}
+                    )
+                controller._command(
+                    SimpleNamespace(
+                        action="update_measurement", payload={"track_id": 7}
+                    )
+                )
+                controller._watchdog()
+            self.assertIn(7, controller.scheduler.pending_updates)
+            self.assertIsNone(controller.scheduler.error)
+            self.assertIsNone(controller.scheduler.choose(21, {}))
+            returned = controller.tracker.update([detected_object(1, 20)], 101)
+            self.assertEqual(returned[0]["track_id"], 7)
+            with patch("nodes.time.monotonic", return_value=101):
+                controller._watchdog()
+            self.assertIsNone(controller.scheduler.choose(20, {7: request(7, 20)}))
+            fresh = controller.scheduler.choose(21, {7: request(7, 21)})
+            self.assertEqual(fresh.sequence, 21)
+            self.assertIsNotNone(fresh.request_revision)
+            controller.scheduler.complete(fresh)
+            self.assertFalse(controller.scheduler.pending_updates)
+
+    def test_watchdog_removes_track_and_rejects_previously_accepted_update(self):
+        from test_domain import detected_object
+
+        with dai.Pipeline(False) as pipeline:
+            controller = self.saved_track_controller(pipeline)
+            with patch("nodes.time.monotonic", return_value=102):
+                controller._publish_state()
+                self.assertTrue(
+                    controller.get_measurements({})["items"][0]["track_active"]
+                )
+                with patch.object(controller, "_enqueue", return_value={"ok": True}):
+                    self.assertEqual(
+                        controller.update_measurement({"track_id": 7}), {"ok": True}
+                    )
+                controller.scheduler.request_update(7, 20)
+            with patch("nodes.time.monotonic", return_value=102.001):
+                controller._watchdog()
+                controller._publish_state()
+                row = controller.get_measurements({})["items"][0]
+                self.assertFalse(row["track_active"])
+                self.assertFalse(row["in_frame"])
+                self.assertNotIn(7, controller.tracker.tracks)
+                self.assertFalse(controller.scheduler.pending_updates)
+                controller._command(
+                    SimpleNamespace(
+                        action="update_measurement", payload={"track_id": 7}
+                    )
+                )
+                self.assertFalse(controller.scheduler.pending_updates)
+                self.assertIn("error", controller.update_measurement({"track_id": 7}))
+                self.assertIsNone(controller.get_measurements({})["storage_error"])
+            returned = controller.tracker.update([detected_object(0, 20)], 102.1)
+            self.assertEqual(returned[0]["track_id"], 8)
+            controller.store.list_summaries.return_value.append({"track_id": 8})
+            with patch("nodes.time.monotonic", return_value=102.1):
+                controller._publish_state()
+            self.assertFalse(
+                any(
+                    row["track_active"]
+                    for row in controller.get_measurements({})["items"]
+                )
+            )
+
     def wait_for(self, controller, predicate):
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline:
@@ -122,14 +223,14 @@ class ControllerServiceTests(unittest.TestCase):
             )
             self.assertIn("error", controller.preview({"generation": 0, "index": 0}))
 
-    def test_expected_history_status_is_not_a_service_error(self):
+    def test_storage_failure_is_not_a_service_error(self):
         with dai.Pipeline(False) as pipeline:
             controller = pipeline.create(MeasurementController, profile={})
-            controller.scheduler.errors[7] = "Object not in frame"
+            controller.scheduler.errors[7] = "Disk full"
             controller._publish_state()
             history = controller.get_measurements({})
             self.assertNotIn("error", history)
-            self.assertEqual(history["storage_error"], "Object not in frame")
+            self.assertEqual(history["storage_error"], "Disk full")
             self.assertIn("error", controller.update_measurement({"track_id": 7}))
 
     def test_measurement_preview_validates_revision_and_keeps_image_out_of_state(self):

@@ -103,7 +103,7 @@ function MeasurementModal({
 				),
 			)
 		: null;
-	const inFrame = connected && historyCurrent && record.in_frame;
+	const trackActive = connected && historyCurrent && record.track_active;
 	const waiting = pending || update.isPending;
 	return (
 		<dialog
@@ -142,11 +142,11 @@ function MeasurementModal({
 				<Button
 					type="button"
 					label={
-						waiting && inFrame
+						waiting && trackActive
 							? 'Waiting for fresh measurement…'
 							: 'Update Measurement'
 					}
-					disabled={!inFrame || waiting}
+					disabled={!trackActive || waiting}
 					onClick={() => update.mutate({ track_id: record.track_id })}
 				/>
 				<output className="text-sm text-muted-foreground">
@@ -154,11 +154,13 @@ function MeasurementModal({
 						? 'Disconnected from device'
 						: !historyCurrent
 							? 'Waiting for current tracking state.'
-							: !inFrame
+							: !trackActive
 								? 'Object not in frame'
 								: waiting
 									? 'The next available frame will replace this saved measurement.'
-									: 'Object is in frame. Updates replace the existing snapshot.'}
+									: record.in_frame
+										? 'Object is in frame. Updates replace the existing snapshot.'
+										: 'Tracking active. Waiting for the next observation.'}
 				</output>
 			</div>
 			{update.error ? (
@@ -304,12 +306,16 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 									<span>Tracking ID {record.track_id}</span>
 									<span
 										className={
-											connected && record.in_frame
+											connected && record.track_active
 												? 'text-success'
 												: 'text-muted-foreground'
 										}
 									>
-										{connected && record.in_frame ? 'In frame' : 'Saved'}
+										{connected && record.track_active
+											? record.in_frame
+												? 'In frame'
+												: 'Tracking'
+											: 'Saved'}
 									</span>
 								</span>
 								<span className="text-sm">

@@ -89,11 +89,13 @@ const summarySchema = z.object({
 	point_count: z.number().int().nonnegative(),
 	revision: z.number().int().positive(),
 	in_frame: z.boolean(),
+	track_active: z.boolean(),
 	has_preview: z.boolean().default(false),
 });
 
 const detailSchema = summarySchema.extend({
 	in_frame: z.boolean().optional(),
+	track_active: z.boolean().optional(),
 	algorithm_id: z.string(),
 	status: z.string(),
 	candidate_id: z.number().int(),

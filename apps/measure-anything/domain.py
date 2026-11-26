@@ -97,12 +97,15 @@ class ObjectTracker:
     def clear(self):
         self.tracks.clear()
 
-    def update(self, objects, now: float):
+    def expire(self, now: float):
         self.tracks = {
             key: track
             for key, track in self.tracks.items()
             if now - track.last_seen <= self.max_age_seconds
         }
+
+    def update(self, objects, now: float):
+        self.expire(now)
         matches = []
         for index, detected_object in enumerate(objects):
             for key, track in self.tracks.items():

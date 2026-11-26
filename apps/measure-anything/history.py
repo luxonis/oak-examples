@@ -272,14 +272,13 @@ class SaveScheduler:
             self.pending_updates[track_id] = UpdateRequest(self._revision, min_sequence)
         self.errors.pop(track_id, None)
 
-    def reset_visibility(self, visible):
+    def retain_tracks(self, active):
         for track_id in list(self.waiting):
-            if track_id not in visible:
+            if track_id not in active:
                 self.waiting.pop(track_id)
         for track_id in list(self.pending_updates):
-            if track_id not in visible:
+            if track_id not in active:
                 self.pending_updates.pop(track_id)
-                self.errors[track_id] = "Object not in frame"
 
     def choose(self, sequence, eligible):
         for track_id in eligible:

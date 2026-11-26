@@ -131,9 +131,14 @@ class MeasurementController(dai.node.ThreadedHostNode):
             "depth_correction": self.axial_correction,
         }
         visible = self._current_visible()
+        active = self._current_active()
         history = {
             "items": [
-                dict(row, in_frame=row["track_id"] in visible)
+                dict(
+                    row,
+                    in_frame=row["track_id"] in visible,
+                    track_active=row["track_id"] in active,
+                )
                 for row in self.store.list_summaries()
             ]
             if self.store
@@ -158,6 +163,16 @@ class MeasurementController(dai.node.ThreadedHostNode):
         ):
             return set()
         return self.visible_tracks
+
+    def _current_active(self):
+        self.tracker.expire(time.monotonic())
+        if self.session.phase is not CalibrationPhase.READY:
+            return set()
+        return {
+            track_id
+            for track_id, track in self.tracker.tracks.items()
+            if track.confirmed
+        }
 
     @staticmethod
     def _track_id(payload):
@@ -201,7 +216,8 @@ class MeasurementController(dai.node.ThreadedHostNode):
             return {"error": str(exception)}
         history = self.get_measurements({})
         if not any(
-            row["track_id"] == track_id and row["in_frame"] for row in history["items"]
+            row["track_id"] == track_id and row["track_active"]
+            for row in history["items"]
         ):
             return {"error": "Object not in frame."}
         return self._enqueue("update_measurement", {"track_id": track_id})
@@ -278,7 +294,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
                 self.session.start()
                 self.tracker.clear()
                 self.visible_tracks.clear()
-                self.scheduler.reset_visibility(set())
+                self.scheduler.retain_tracks(set())
                 self.candidates = []
                 self.previews = {}
                 self.verification = None
@@ -302,9 +318,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
                     self.overlays["support_plane"] = self.session.plane is not None
             elif message.action == "update_measurement":
                 track_id = message.payload["track_id"]
-                if track_id not in self._current_visible():
-                    self.scheduler.errors[track_id] = "Object not in frame"
-                else:
+                if track_id in self._current_active():
                     self.scheduler.request_update(track_id, self.latest_scene.sequence)
             self.error = None
         except ValueError as exception:
@@ -470,7 +484,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
         self.last_measurement_at = None
         self.measurement_samples.clear()
         self.rates["measurement_fps"] = None
-        self.scheduler.reset_visibility(set())
+        self.scheduler.retain_tracks(set())
         self.candidates = []
         self.previews = {}
         self.last_frame = None
@@ -525,7 +539,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
         self.visible_tracks = {
             detected_object["track_id"] for detected_object in objects
         }
-        self.scheduler.reset_visibility(self.visible_tracks)
+        self.scheduler.retain_tracks(self._current_active())
         if self.store is not None and self.scheduler.busy is None:
             eligible = {
                 detected_object["track_id"]: measurement_snapshot(
@@ -609,7 +623,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
         )
 
     def _watchdog(self):
-        self.scheduler.reset_visibility(self._current_visible())
+        self.scheduler.retain_tracks(self._current_active())
         self._verify_due(time.monotonic())
         if self._started_at is None:
             return

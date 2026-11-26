@@ -296,7 +296,7 @@ class SaveSchedulerTests(unittest.TestCase):
         scheduler = SaveScheduler()
         first = scheduler.choose(1, {1: request(1, 1)})
         self.assertIsNone(scheduler.choose(2, {2: request(2, 2), 3: request(3, 2)}))
-        scheduler.reset_visibility({1, 3})
+        scheduler.retain_tracks({1, 3})
         scheduler.complete(first)
         next_item = scheduler.choose(3, {4: request(4, 3), 3: request(3, 3)})
         self.assertEqual(next_item.track_id, 3)
@@ -325,14 +325,26 @@ class SaveSchedulerTests(unittest.TestCase):
         self.assertEqual(scheduler.pending_updates[7].revision, revision)
         self.assertEqual(scheduler.pending_updates[7].min_sequence, 10)
 
-    def test_disappearance_cancels_update_without_losing_existing_history(self):
+    def test_track_removal_cancels_update_without_losing_existing_history(self):
         scheduler = SaveScheduler(known_saved=[7])
         scheduler.request_update(7, 10)
-        scheduler.reset_visibility(set())
+        scheduler.retain_tracks(set())
         self.assertFalse(scheduler.pending_updates)
         self.assertIn(7, scheduler.known_saved)
-        self.assertEqual(scheduler.error, "Object not in frame")
+        self.assertIsNone(scheduler.error)
         self.assertIsNone(scheduler.choose(11, {}))
+
+    def test_track_removal_keeps_inflight_save_until_acknowledged(self):
+        scheduler = SaveScheduler()
+        first = scheduler.choose(10, {7: request(7, 10)})
+        scheduler.request_update(7, 10)
+        scheduler.retain_tracks(set())
+        self.assertFalse(scheduler.pending_updates)
+        self.assertIs(scheduler.busy, first)
+        self.assertIsNone(scheduler.choose(11, {8: request(8, 11)}))
+        scheduler.complete(first)
+        self.assertIn(7, scheduler.known_saved)
+        self.assertEqual(scheduler.choose(12, {8: request(8, 12)}).track_id, 8)
 
     def test_failed_save_releases_gate_but_requires_explicit_retry_for_that_track(self):
         scheduler = SaveScheduler()
