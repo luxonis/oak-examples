@@ -46,7 +46,6 @@ class BlurBackground(dai.node.HostNode):
 
         img = dai.ImgFrame()
         img.setCvFrame(blurred_bg, frame_msg.getType())
-        # Blurring keeps the pixel grid, so keep the source timing and geometry.
         img.setBufferMetadataFrom(frame_msg)
         img.setTransformation(frame_msg.getTransformation())
 

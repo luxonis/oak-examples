@@ -108,8 +108,6 @@ async def main():
                 (left_q, left_channel),
                 (right_q, right_channel),
             )
-            # Stamp each message with its own capture time, converted from the
-            # DepthAI host clock to Unix time for Foxglove.
             offset_ns = host_clock_to_unix_offset_ns()
             while pipeline.isRunning():
                 await asyncio.sleep(0.01)

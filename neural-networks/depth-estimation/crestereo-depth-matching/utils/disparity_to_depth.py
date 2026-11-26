@@ -61,8 +61,6 @@ class DisparityToDepth(dai.node.HostNode):
         depth_frame.setWidth(depth_mm.shape[1])
         depth_frame.setHeight(depth_mm.shape[0])
         depth_frame.setType(dai.ImgFrame.Type.RAW16)
-        # Depth uses the rectified input's pixel grid; take timing and geometry
-        # from that one capture (sequence numbers were checked above).
         depth_frame.setBufferMetadataFrom(rectified)
         depth_frame.setTransformation(rectified.getTransformation())
         self.output.send(depth_frame)

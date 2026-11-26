@@ -108,8 +108,8 @@ class WLSFilter(dai.node.HostNode):
                 cv2.COLOR_GRAY2BGR,
             )
 
-        # Every output is computed on the disparity pixel grid, so all of them
-        # take timing, sequence number and geometry from the disparity frame.
+        # Outputs are on the disparity grid. Take all metadata from disparity:
+        # rectified right can differ in grid (RVC2) and timestamps (RVC4).
         depth_fr = dai.ImgFrame()
         depth_fr.setCvFrame(color_arr, dai.ImgFrame.Type.BGR888i)
         depth_fr.setBufferMetadataFrom(disparity)

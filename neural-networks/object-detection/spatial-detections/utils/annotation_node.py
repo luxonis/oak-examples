@@ -79,7 +79,6 @@ class AnnotationNode(dai.node.HostNode):
 
         depth_frame = dai.ImgFrame()
         depth_frame.setCvFrame(depth_map, dai.ImgFrame.Type.BGR888i)
-        # Colorizing keeps the depth pixel grid, so keep its timing and geometry.
         depth_frame.setBufferMetadataFrom(depth_message)
         depth_frame.setTransformation(depth_message.getTransformation())
 

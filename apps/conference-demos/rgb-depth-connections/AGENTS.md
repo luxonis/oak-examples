@@ -61,7 +61,7 @@ This is the best app-shaped reference for composing RGB, depth, and spatial dete
 ## Modification Guide
 
 - `Safe to change:` topic names, depth colormap styling, logo usage, label rendering, bird's-eye scaling constants
-- `Requires care:` fixed camera sockets, sync semantics, flipped-coordinate annotation math and the matching output transformation, spatial coordinate assumptions in the bird's-eye overlay
+- `Requires care:` fixed camera sockets, sync semantics, flipped-coordinate annotation math, spatial coordinate assumptions in the bird's-eye overlay
 - `Likely to break if changed blindly:` removing on-device sync, moving away from stereo-capable devices, changing the detection label map contract
 
 ## Common Adaptations

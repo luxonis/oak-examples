@@ -11,7 +11,6 @@ class BlurBboxes(dai.node.HostNode):
     def build(
         self, frame: dai.Node.Output, detections: dai.Node.Output
     ) -> "BlurBboxes":
-        # HostNode pairs each frame with the detections from the same capture.
         self.link_args(frame, detections)
         return self
 
@@ -62,7 +61,6 @@ class BlurBboxes(dai.node.HostNode):
 
         img = dai.ImgFrame()
         img.setCvFrame(frame_copy, frame.getType())
-        # Blurring keeps the pixel grid, so keep the source timing and geometry.
         img.setBufferMetadataFrom(frame)
         img.setTransformation(frame.getTransformation())
 

@@ -10,7 +10,7 @@ def _visualization_frame(pixels: np.ndarray, source: dai.ImgFrame) -> dai.ImgFra
     frame.setCvFrame(pixels, dai.ImgFrame.Type.BGR888i)
     frame.setBufferMetadataFrom(source)
     if pixels.shape[:2] == (source.getHeight(), source.getWidth()):
-        # Not enough matches: the visualizer returned the source frame itself.
+        # Fallback: the source frame passed through unchanged.
         frame.setTransformation(source.getTransformation())
     else:
         # Side-by-side match mosaic; describe it as its own image space.

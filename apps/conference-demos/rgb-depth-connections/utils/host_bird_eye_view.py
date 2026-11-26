@@ -30,7 +30,6 @@ class BirdsEyeView(dai.node.HostNode):
             x = detection.spatialCoordinates.x
             z = detection.spatialCoordinates.z
 
-            # check if float is nan or inf
             if not (math.isfinite(x) and math.isfinite(z)):
                 continue
 

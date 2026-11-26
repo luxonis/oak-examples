@@ -1,9 +1,9 @@
 import av
 import depthai as dai
 
-# Encoded messages kept while waiting for their decoded frame. PyAV's default
-# slice threading returns frames within a few packets; raise this if you enable
-# frame threading, which delays output by about one frame per thread.
+# PyAV's default slice threading returns frames within a few packets. Raise
+# this if you enable frame threading, which delays output by about one frame
+# per thread.
 MAX_PENDING = 16
 
 
@@ -29,10 +29,9 @@ class DecodeVideoAv(dai.node.HostNode):
         return self
 
     def process(self, enc_vid) -> None:
-        # VideoEncoder emits one complete frame per message, so each message is
-        # decoded as its own packet. Decoders may return a frame later (HEVC
-        # holds a few back), so each packet gets its own PTS and each decoded
-        # frame keeps the metadata of the message with that PTS.
+        # VideoEncoder emits one complete frame per message, so decode each
+        # message as its own packet (no parse()). Decoders may return frames a
+        # few packets late (HEVC holds some back).
         packet = av.Packet(enc_vid.getData().tobytes())
         packet.pts = self._next_pts
         self._next_pts += 1
@@ -40,7 +39,7 @@ class DecodeVideoAv(dai.node.HostNode):
         try:
             frames = self.codec.decode(packet)
         except av.error.FFmpegError:
-            del self._pending[packet.pts]  # skip a corrupt packet
+            del self._pending[packet.pts]
             return
         for frame in frames:
             img = dai.ImgFrame()
