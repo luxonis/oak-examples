@@ -61,6 +61,29 @@ def initialize_argparser():
         type=float,
     )
 
+    parser.add_argument(
+        "--crossing_margin",
+        help="Normalized half-width of the no-count band around the line.",
+        default=0.02,
+        type=float,
+    )
+
+    parser.add_argument(
+        "--track_labels",
+        help="Model class IDs to count. By default, count every detected class.",
+        nargs="+",
+        type=int,
+    )
+
+    parser.add_argument(
+        "--show_raw_detections",
+        help="Show raw detector boxes in the Visualizer alongside tracked boxes.",
+        action="store_true",
+    )
+
     args = parser.parse_args()
+
+    if args.track_labels is not None and any(label < 0 for label in args.track_labels):
+        parser.error("--track_labels IDs must be non-negative")
 
     return parser, args

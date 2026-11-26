@@ -1,8 +1,6 @@
 # Cumulative Object Counting
 
-This example demonstrates how to run an inference pipeline for cummulative object counting using the DepthAI and OAK cameras.
-It utilizes an object detection model to detect objects (e.g. `people`) and counts how many pass in an upward and downward direction.
-By default it uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) model but you can also try running it with some other general object detection model as, for example, [Mobilenet-SSD](https://models.luxonis.com/luxonis/mobilenet-ssd/2da6e0a5-4785-488d-8cf5-c35f7ec1a1ed).
+This DepthAI example counts each tracked object once, on its first crossing of a line. It reports up/down or left/right totals; later crossings by the same track ID do not count. It uses [YOLOv6 Nano](https://models.luxonis.com/luxonis/yolov6-nano/face58c4-45ab-42a0-bafc-19f9fee8a034) by default, or you can supply another detector.
 
 The example is inspired by / based on:
 
@@ -19,6 +17,7 @@ The example is inspired by / based on:
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
 You can run the example fully on device ([`STANDALONE` mode](#standalone-mode-rvc4-only)) or using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
+The Visualizer displays 1080p H.264 video with tracked boxes and counts. Raw detector boxes are hidden by default; use `--show_raw_detections` to display them. Inference uses the model's input resolution.
 
 Here is a list of all available parameters:
 
@@ -34,8 +33,20 @@ Here is a list of all available parameters:
 -a AXIS, --axis AXIS
                       Axis for cumulative counting (either x or y). (default: x)
 -roi ROI_POSITION, --roi_position ROI_POSITION
-                      osition of the axis (if 0.5, axis is placed in the middle of the frame). (default: 0.5)
+                      Position of the axis (if 0.5, axis is placed in the middle of the frame). (default: 0.5)
+--crossing_margin CROSSING_MARGIN
+                      Normalized half-width of the no-count band around the line. (default: 0.02)
+--track_labels TRACK_LABELS [TRACK_LABELS ...]
+                      Model class IDs to count. By default, count every detected class. (default: None)
+--show_raw_detections
+                      Show raw detector boxes alongside tracked boxes. (default: False)
 ```
+
+## Counting behavior and model limits
+
+A crossing requires the same track ID on opposite sides of the `--crossing_margin` band. `LOST` preserves its last side; `REMOVED` clears it. `--axis x` counts up/down and `--axis y` counts left/right.
+
+Reliable counts require a detector that recognizes the target and a track ID that persists across the line. Use `--model` to choose a suitable detector and `--track_labels` to filter its classes. Class filtering cannot recover missed detections or changed track IDs.
 
 ## Peripheral Mode
 

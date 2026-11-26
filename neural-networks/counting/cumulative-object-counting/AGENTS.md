@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the repository reference for line-crossing cumulative counting with tracked detections. Use it when you need directional counts from object motion across a configurable axis rather than a simple per-frame total.
+This example counts each track ID once, on its first line crossing. It reports directional totals from tracked detections.
 
 ## Use This Example When
 
@@ -27,7 +27,8 @@ This is the repository reference for line-crossing cumulative counting with trac
 - `Runs on:` RVC2 peripheral, RVC4 peripheral, and RVC4 standalone packaging
 - `Requires:` object detector, tracker support, and optional media input
 - `Input:` camera frames by default or `ReplayVideo` via `--media_path`
-- `Output:` `Video` and `Count`
+- `Output:` `Video` and `Count` with tracked boxes; optional raw `Detections` via `--show_raw_detections`
+- `Video:` 1920x1080 H.264 stream; inference stays at model resolution
 - `Models:` default YOLOv6 YAMLs in [depthai_models/](depthai_models/)
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
 
@@ -42,12 +43,13 @@ This is the repository reference for line-crossing cumulative counting with trac
 
 - A `ParsingNeuralNetwork` runs the detector on camera or replay input.
 - `ObjectTracker` tracks detections across frames.
-- [utils/annotation_node.py](utils/annotation_node.py) applies the configured `axis` and `roi_position` logic and emits the cumulative count overlay.
+- [utils/annotation_node.py](utils/annotation_node.py) counts the first stable-side change per ID outside the crossing margin.
 - The example keeps tracker settings platform-specific, using different tracker types on RVC2 and RVC4.
 
 ## Constraints
 
 - Counts depend on tracker continuity; this is not a detection-only counter.
+- Reliable counts require a detector that recognizes the target and a stable track ID across the line.
 - The result quality depends heavily on axis placement and replay/camera framing.
 - Default FPS is set in code and is higher than some other counting examples to keep tracker state usable.
 
