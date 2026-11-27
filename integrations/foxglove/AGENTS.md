@@ -43,7 +43,7 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
 
 ## Architecture
 
-- `main.py` runs as an `asyncio` application through `run_cancellable`.
+- `main.py` runs as an `asyncio` application through `asyncio.run`, with graceful Ctrl+C shutdown.
 - Stream creation is flag-driven:
   - color from `CAM_A` unless `--no-color`
   - left from `CAM_B` when `--left` or `--pointcloud`

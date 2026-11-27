@@ -2,7 +2,6 @@ import argparse as argparse
 import asyncio
 
 import depthai as dai
-from foxglove_websocket import run_cancellable
 from foxglove_websocket.server import FoxgloveServer
 from utils.arguments import initialize_argparser
 from utils.foxglove_utils import (
@@ -133,4 +132,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    run_cancellable(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

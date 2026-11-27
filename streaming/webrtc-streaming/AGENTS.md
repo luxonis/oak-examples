@@ -46,6 +46,7 @@ This is the repository reference for browser-based WebRTC streaming with runtime
 - [main.py](main.py) runs an `aiohttp` app that serves the HTML shell and accepts WebRTC offers at `/offer`.
 - The browser UI posts selected form options such as `camera_type`, `cam_width`, `cam_height`, and `nn_model`.
 - [utils/transform.py](utils/transform.py) creates the DepthAI pipeline, exposes a `VideoStreamTrack`, and overlays detections when a model is selected for RGB mode.
+- Both RGB and colorized depth use `getCvFrame()` to normalize planar/interleaved images, then convert BGR to RGB for PyAV.
 - [utils/datachannel.py](utils/datachannel.py) only handles simple `PING` and `STREAM_CLOSED` messages.
 
 ## Constraints
