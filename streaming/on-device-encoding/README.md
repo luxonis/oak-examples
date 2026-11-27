@@ -1,6 +1,10 @@
 # On Device Encoding
 
-This example demonstrates how to stream encoded frames from the device to the host and save them directly into a video container. **Video is encoded on the device itself** before it's sent to the host computer.
+This example demonstrates how to encode video on the device and save the bitstream without decoding or re-encoding it. **Video is encoded on the device itself.**
+
+`h264` and `mjpeg` written to a `.mp4` file are saved by `dai.node.RecordVideo`. The node stores `--fps_limit` as the frame rate of that file. It does not write an `.mcap`, and this example does not replay the recording. `h265`, and `h264` or `mjpeg` written to any other container, are muxed with PyAV. PyAV keeps the device timestamps and closes the container when the pipeline stops.
+
+`RecordVideo` accepts only a `.mp4` extension for encoded video. The check is case-sensitive, so `video.MP4` stays on PyAV. On an RVC4 device the current DepthAI build runs that `RecordVideo` node on the device and copies the file to `--output` when the pipeline stops.
 
 This demo uses codecs that some video players (eg. Quicktime) might not support. We suggest using [VLC](https://www.videolan.org/vlc/) to play the video.
 
@@ -24,9 +28,11 @@ Here is a list of all available parameters:
 -fps FPS_LIMIT, --fps_limit FPS_LIMIT
                     FPS limit for the model runtime. (default: 30)
 -c {h264,h265,mjpeg}, --codec {h264,h265,mjpeg}
-                    Video encoding (h264 is default) (default: h264)
+                    Video encoding. h264 and mjpeg written to a .mp4 file use RecordVideo.
+                    h265 and any other container use PyAV. (default: h264)
 -o OUTPUT, --output OUTPUT
-                    Path to the output file. (default: video.mp4)
+                    Path to the output file. For h264 and mjpeg, a .mp4 path uses RecordVideo
+                    and any other extension uses PyAV. (default: video.mp4)
 ```
 
 ## Peripheral Mode
@@ -51,13 +57,25 @@ Running in peripheral mode requires a host computer and there will be communicat
 python3 main.py
 ```
 
-This will run the On Device Encoding example with the default device, camera input and H264 codec.
+This will run the On Device Encoding example with the default device, camera input and H264 codec. The output is `video.mp4`, saved by `RecordVideo`.
+
+```bash
+python3 main.py --codec mjpeg --output video_mjpeg.mp4
+```
+
+This saves an MJPEG `.mp4` with `RecordVideo`.
 
 ```bash
 python3 main.py --codec h265 --output video_h265.mp4
 ```
 
-This will run the On Device Encoding example with the default device, H265 codec and `video_h265.mp4` output file.
+This saves H.265 with PyAV. `RecordVideo` does not write H.265.
+
+```bash
+python3 main.py --codec h264 --output video.mkv
+```
+
+This saves H.264 into a Matroska file with PyAV. `RecordVideo` only writes encoded video to `.mp4`.
 
 ## Standalone Mode (RVC4 only)
 

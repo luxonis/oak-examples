@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import depthai as dai
+
 from utils.arguments import initialize_argparser
 from utils.video_saver import VideoSaver
 
@@ -14,6 +17,11 @@ encoder_profiles = {
     "mjpeg": dai.VideoEncoderProperties.Profile.MJPEG,
 }
 
+# Unsupported codecs have to be muxed by PyAV on VideoSaver HostNode.
+use_record_video = (
+    args.codec in ("h264", "mjpeg") and Path(args.output).suffix == ".mp4"
+)
+
 with dai.Pipeline(device) as pipeline:
     print("Creating pipeline...")
     cam = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
@@ -27,13 +35,22 @@ with dai.Pipeline(device) as pipeline:
     )
     cam_out.link(video_enc.input)
 
-    video_saver = pipeline.create(VideoSaver).build(
-        encoded_stream=video_enc.out,
-        codec=args.codec,
-        output_shape=(640, 480),
-        fps=args.fps_limit,
-        output_path=args.output,
-    )
+    if use_record_video:
+        video_rec = pipeline.create(dai.node.RecordVideo)
+        video_rec.setKeepOnDevice(False)
+        video_rec.setRecordVideoFile(Path(args.output).absolute().__str__())
+        video_rec.setFps(args.fps_limit)
+        video_enc.out.link(video_rec.input)
+        print(f"Saving {args.codec} with RecordVideo to {args.output}")
+    else:
+        pipeline.create(VideoSaver).build(
+            encoded_stream=video_enc.out,
+            codec=args.codec,
+            output_shape=(640, 480),
+            fps=args.fps_limit,
+            output_path=args.output,
+        )
+        print(f"Saving {args.codec} with PyAV to {args.output}")
 
     # Visualizer currently doesn't support H265 or any encoded videos in RVC4 standalone mode - use non-encoded streams instead
     if args.codec == "h265" or device.getPlatform() == dai.Platform.RVC4:

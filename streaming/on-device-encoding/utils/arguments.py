@@ -31,13 +31,19 @@ def initialize_argparser():
         choices=["h264", "h265", "mjpeg"],
         default="h264",
         type=str,
-        help="Video encoding",
+        help=(
+            "Video encoding. h264 and mjpeg written to a .mp4 file use RecordVideo. "
+            "h265 and any other container use PyAV."
+        ),
     )
 
     parser.add_argument(
         "-o",
         "--output",
-        help="Path to the output file.",
+        help=(
+            "Path to the output file. For h264 and mjpeg with a .mp4 extension, "
+            "a RecordVideo node is used. Otherwise PyAV in a HostNode is used to mux the video."
+        ),
         required=False,
         default="video.mp4",
         type=str,
