@@ -325,6 +325,7 @@ jobs:
           pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.HIL_FRAMEWORK_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
+        id: run_tests
         env:
           OAKCTL_VERSION: ${{ inputs.oakctl_version }}
         run: |
@@ -354,11 +355,24 @@ jobs:
             ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
           fi
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --oakctl --sync-workspace \
+          agent_logs_dir=$(mktemp -d "$RUNNER_TEMP/oak-agent-logs.XXXXXX")
+          echo "agent_logs_dir=$agent_logs_dir" >> "$GITHUB_OUTPUT"
+
+          exec python3 tests/hil_runner_with_context.py --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --oakctl --sync-workspace \
+              --pull /tmp/oak-examples/.artifacts/agent-logs/ --save-to "$agent_logs_dir" \
               --dockerfile ./tests/Dockerfile_standalone \
               --docker-build-args "--build-arg PYTHON_VERSION=3.12 --build-arg OAKCTL_VERSION=$OAKCTL_VERSION" \
-              --docker-run-args "$ENV_VARS"
+              --docker-run-args "$ENV_VARS" \
+              --after-docker 'if [ "${exit_code:-0}" -ne 0 ]; then python3 /tmp/oak-examples/tests/collect_agent_logs.py || true; fi'
 
+      - name: Upload agent logs
+        if: ${{ failure() && steps.run_tests.outputs.agent_logs_dir != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: oak-agent-logs-${{ github.job }}-${{ github.run_attempt }}
+          path: ${{ steps.run_tests.outputs.agent_logs_dir }}
+          retention-days: 3
+          if-no-files-found: warn
 
   test_standalone_windows:
     if: >
@@ -381,6 +395,7 @@ jobs:
           pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.HIL_FRAMEWORK_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
+        id: run_tests
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-windows"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
@@ -397,8 +412,21 @@ jobs:
             ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
           fi
 
-          exec hil_runner --no-shell --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl \
-              --commands "cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+          agent_logs_dir=$(mktemp -d "$RUNNER_TEMP/oak-agent-logs.XXXXXX")
+          echo "agent_logs_dir=$agent_logs_dir" >> "$GITHUB_OUTPUT"
+
+          exec python3 tests/hil_runner_with_context.py --no-shell --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os windows --basic-sanity --oakctl \
+              --pull AppData/Local/Temp/oak-examples/.artifacts/agent-logs/ --save-to "$agent_logs_dir" \
+              --commands "set HIL_COLLECT_AGENT_LOGS=1&& cd %TEMP%\oak-examples && tests\run_tests_standalone.cmd 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+
+      - name: Upload agent logs
+        if: ${{ failure() && steps.run_tests.outputs.agent_logs_dir != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: oak-agent-logs-${{ github.job }}-${{ github.run_attempt }}
+          path: ${{ steps.run_tests.outputs.agent_logs_dir }}
+          retention-days: 3
+          if-no-files-found: warn
 
   test_standalone_mac:
     if: >
@@ -421,6 +449,7 @@ jobs:
           pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.HIL_FRAMEWORK_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
+        id: run_tests
         run: |
           export RESERVATION_NAME="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#standalone-mac"
           export INFLUXDB_TOKEN=${{ secrets.INFLUXDB_TOKEN }}
@@ -437,5 +466,18 @@ jobs:
             ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
           fi
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity --oakctl \
-              --commands "cd /tmp/oak-examples && tests/run_tests_standalone.sh 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+          agent_logs_dir=$(mktemp -d "$RUNNER_TEMP/oak-agent-logs.XXXXXX")
+          echo "agent_logs_dir=$agent_logs_dir" >> "$GITHUB_OUTPUT"
+
+          exec python3 tests/hil_runner_with_context.py --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace  -os mac --basic-sanity --oakctl \
+              --pull /tmp/oak-examples/.artifacts/agent-logs/ --save-to "$agent_logs_dir" \
+              --commands "cd /tmp/oak-examples && HIL_COLLECT_AGENT_LOGS=1 tests/run_tests_standalone.sh 3.10 rvc4 ${{ secrets.DEVICE_PASSWORD }} ${{ secrets.LOCAL_STATIC_REGISTRY }} ${{ github.event.inputs.root_dir }} ${{ github.event.inputs.log_level }} ${{ needs.setup.outputs.dai_version }} ${{ needs.setup.outputs.dai_nodes_version }}"
+
+      - name: Upload agent logs
+        if: ${{ failure() && steps.run_tests.outputs.agent_logs_dir != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: oak-agent-logs-${{ github.job }}-${{ github.run_attempt }}
+          path: ${{ steps.run_tests.outputs.agent_logs_dir }}
+          retention-days: 3
+          if-no-files-found: warn

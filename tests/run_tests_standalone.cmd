@@ -87,3 +87,9 @@ pytest -v -r a --log-cli-level=%LOG_LEVEL% --log-file=out.log --color=yes ^
     --local-static-registry=%LOCAL_STATIC_REGISTRY% ^
     --root-dir "%ROOT_DIR%" ^
     -q "%~dp0test_examples_standalone.py"
+
+set "TEST_STATUS=%ERRORLEVEL%"
+if "%HIL_COLLECT_AGENT_LOGS%"=="1" if not "%TEST_STATUS%"=="0" (
+    python "%~dp0collect_agent_logs.py"
+)
+exit /b %TEST_STATUS%

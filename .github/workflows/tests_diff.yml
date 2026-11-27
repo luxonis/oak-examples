@@ -225,6 +225,7 @@ jobs:
           pip install hil_framework --upgrade --no-cache-dir --index-url https://__token__:${{ secrets.HIL_FRAMEWORK_TOKEN }}@gitlab.luxonis.com/api/v4/projects/213/packages/pypi/simple
 
       - name: Run Test
+        id: run_tests
         env:
           OAKCTL_VERSION: ${{ inputs.oakctl_version }}
         run: |
@@ -242,11 +243,24 @@ jobs:
 
           RESERVATION_OPTION="--reservation-name $RESERVATION_NAME"
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --oakctl --sync-workspace \
+          agent_logs_dir=$(mktemp -d "$RUNNER_TEMP/oak-agent-logs.XXXXXX")
+          echo "agent_logs_dir=$agent_logs_dir" >> "$GITHUB_OUTPUT"
+
+          exec python3 tests/hil_runner_with_context.py --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait --oakctl --sync-workspace \
+              --pull /tmp/oak-examples/.artifacts/agent-logs/ --save-to "$agent_logs_dir" \
               --dockerfile ./tests/Dockerfile_standalone \
               --docker-build-args "--build-arg PYTHON_VERSION=3.12 --build-arg OAKCTL_VERSION=$OAKCTL_VERSION" \
-              --docker-run-args "$ENV_VARS"
+              --docker-run-args "$ENV_VARS" \
+              --after-docker 'if [ "${exit_code:-0}" -ne 0 ]; then python3 /tmp/oak-examples/tests/collect_agent_logs.py || true; fi'
 
+      - name: Upload agent logs
+        if: ${{ failure() && steps.run_tests.outputs.agent_logs_dir != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: oak-agent-logs-${{ github.job }}-${{ github.run_attempt }}
+          path: ${{ steps.run_tests.outputs.agent_logs_dir }}
+          retention-days: 3
+          if-no-files-found: warn
 
   final:
     name: Runnability of changed examples
