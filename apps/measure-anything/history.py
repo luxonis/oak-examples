@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import sqlite3
 import threading
+import time
 
 import cv2
 import depthai as dai
@@ -253,6 +254,8 @@ class MeasurementStore:
 
 
 class SaveScheduler:
+    INITIAL_SAVE_RETRY_SECONDS = 1.0
+
     def __init__(self, known_saved=()):
         self.known_saved = set(known_saved)
         self.pending_updates = OrderedDict()
@@ -260,6 +263,7 @@ class SaveScheduler:
         self.busy = None
         self.last_submitted_sequence = -1
         self.errors = {}
+        self.retry_at = {}
         self._revision = 0
 
     @property
@@ -271,8 +275,22 @@ class SaveScheduler:
             self._revision += 1
             self.pending_updates[track_id] = UpdateRequest(self._revision, min_sequence)
         self.errors.pop(track_id, None)
+        self.retry_at.pop(track_id, None)
+
+    def needs_snapshot(self, track_id):
+        if track_id in self.errors:
+            retry_at = self.retry_at.get(track_id)
+            return (
+                track_id not in self.known_saved
+                and retry_at is not None
+                and time.monotonic() >= retry_at
+            )
+        return track_id not in self.known_saved or track_id in self.pending_updates
 
     def retain_tracks(self, active):
+        for track_id in list(self.retry_at):
+            if track_id not in active:
+                self.retry_at.pop(track_id)
         for track_id in list(self.waiting):
             if track_id not in active:
                 self.waiting.pop(track_id)
@@ -282,12 +300,16 @@ class SaveScheduler:
 
     def choose(self, sequence, eligible):
         for track_id in eligible:
-            if track_id not in self.known_saved and track_id not in self.errors:
+            if track_id not in self.known_saved and self.needs_snapshot(track_id):
                 self.waiting.setdefault(track_id, None)
         if self.busy is not None or sequence <= self.last_submitted_sequence:
             return None
         for track_id, update in self.pending_updates.items():
-            if track_id in eligible and sequence > update.min_sequence:
+            if (
+                track_id in eligible
+                and self.needs_snapshot(track_id)
+                and sequence > update.min_sequence
+            ):
                 self.busy = replace(
                     eligible[track_id], request_revision=update.revision
                 )
@@ -300,7 +322,7 @@ class SaveScheduler:
                     if track_id in eligible
                     and track_id not in self.known_saved
                     and track_id not in self.pending_updates
-                    and track_id not in self.errors
+                    and self.needs_snapshot(track_id)
                 ),
                 None,
             )
@@ -323,5 +345,10 @@ class SaveScheduler:
         if error is None:
             self.known_saved.add(request.track_id)
             self.errors.pop(request.track_id, None)
+            self.retry_at.pop(request.track_id, None)
         else:
             self.errors[request.track_id] = str(error)
+            if request.track_id not in self.known_saved:
+                self.retry_at[request.track_id] = (
+                    time.monotonic() + self.INITIAL_SAVE_RETRY_SECONDS
+                )

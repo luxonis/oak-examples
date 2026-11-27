@@ -346,7 +346,67 @@ class SaveSchedulerTests(unittest.TestCase):
         self.assertIn(7, scheduler.known_saved)
         self.assertEqual(scheduler.choose(12, {8: request(8, 12)}).track_id, 8)
 
-    def test_failed_save_releases_gate_but_requires_explicit_retry_for_that_track(self):
+    def test_initial_save_retries_after_cooldown_without_blocking_other_objects(self):
+        with patch("history.time.monotonic", return_value=100) as clock:
+            scheduler = SaveScheduler()
+            first = scheduler.choose(10, {1: request(1, 10)})
+            scheduler.complete(first, "Storage temporarily unavailable")
+            self.assertFalse(scheduler.needs_snapshot(1))
+            other = scheduler.choose(11, {1: request(1, 11), 2: request(2, 11)})
+            self.assertEqual(other.track_id, 2)
+            scheduler.complete(other)
+            clock.return_value = 100.999
+            self.assertIsNone(scheduler.choose(12, {1: request(1, 12)}))
+            clock.return_value = 101
+            self.assertTrue(scheduler.needs_snapshot(1))
+            self.assertIsNone(scheduler.choose(11, {1: request(1, 11)}))
+            retry = scheduler.choose(12, {1: request(1, 12)})
+            self.assertEqual(retry.sequence, 12)
+            scheduler.complete(retry)
+            self.assertIsNone(scheduler.error)
+            self.assertFalse(scheduler.retry_at)
+            self.assertFalse(scheduler.needs_snapshot(1))
+
+    def test_persistent_initial_failure_waits_again_and_stops_on_track_removal(self):
+        with patch("history.time.monotonic", return_value=100) as clock:
+            scheduler = SaveScheduler()
+            first = scheduler.choose(1, {1: request(1)})
+            scheduler.complete(first, "Disk full")
+            clock.return_value = 101
+            retry = scheduler.choose(2, {1: request(1, 2)})
+            scheduler.complete(retry, "Disk full")
+            clock.return_value = 101.999
+            self.assertIsNone(scheduler.choose(3, {1: request(1, 3)}))
+            scheduler.retain_tracks(set())
+            clock.return_value = 200
+            self.assertFalse(scheduler.needs_snapshot(1))
+            self.assertIsNone(scheduler.choose(4, {1: request(1, 4)}))
+
+    def test_late_initial_failure_cannot_retry_after_track_removal(self):
+        scheduler = SaveScheduler()
+        first = scheduler.choose(1, {1: request(1)})
+        scheduler.retain_tracks(set())
+        scheduler.complete(first, "Storage unavailable")
+        scheduler.retain_tracks(set())
+        with patch("history.time.monotonic", return_value=float("inf")):
+            self.assertFalse(scheduler.needs_snapshot(1))
+            self.assertIsNone(scheduler.choose(2, {1: request(1, 2)}))
+
+    def test_failed_update_to_saved_track_requires_explicit_retry(self):
+        scheduler = SaveScheduler(known_saved=[1])
+        scheduler.request_update(1, 10)
+        first = scheduler.choose(11, {1: request(1, 11)})
+        scheduler.complete(first, "Disk full")
+        with patch("history.time.monotonic", return_value=float("inf")):
+            self.assertFalse(scheduler.needs_snapshot(1))
+            self.assertIsNone(scheduler.choose(12, {1: request(1, 12)}))
+        scheduler.request_update(1, 12)
+        self.assertTrue(scheduler.needs_snapshot(1))
+        retry = scheduler.choose(13, {1: request(1, 13)})
+        scheduler.complete(retry)
+        self.assertIsNone(scheduler.error)
+
+    def test_failed_save_releases_gate_and_supports_explicit_retry(self):
         scheduler = SaveScheduler()
         first = scheduler.choose(1, {1: request(1, 1)})
         scheduler.complete(first, "Disk full")

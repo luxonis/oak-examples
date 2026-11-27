@@ -552,19 +552,15 @@ class MeasurementController(dai.node.ThreadedHostNode):
                 )
                 for detected_object in objects
                 if detected_object["status"] == "measured"
-                and detected_object["track_id"] not in self.scheduler.errors
-                and (
-                    detected_object["track_id"] not in self.scheduler.known_saved
-                    or detected_object["track_id"] in self.scheduler.pending_updates
-                )
+                and self.scheduler.needs_snapshot(detected_object["track_id"])
             }
             request = self.scheduler.choose(sequence, eligible)
             if request is not None:
                 self.history_jobs.send(SaveMessage(request))
+        failure_code = None
         if measured.outcome is MeasureAnythingMeasurements.Outcome.FAILED:
-            message = (
-                f"Frame failed: {measured.failure_code}. No measurement is available."
-            )
+            failure_code = measured.failure_code
+            message = f"Frame failed: {failure_code}. No measurement is available."
         elif objects:
             complete = sum(
                 detected_object["status"] == "measured" for detected_object in objects
@@ -574,7 +570,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
             )
         else:
             message = "No eligible objects in view. Keep each object fully visible and separated."
-        self._display(reference, objects, message)
+        self._display(reference, objects, message, failure_code=failure_code)
         if self.evidence:
             cv2.imwrite(str(self.evidence / "rgb.png"), reference.image)
             cv2.imwrite(
@@ -604,7 +600,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
     def _saved(self, acknowledgement):
         self.scheduler.complete(acknowledgement.request, acknowledgement.error)
 
-    def _display(self, frame, objects, message):
+    def _display(self, frame, objects, message, failure_code=None):
         self.last_frame = {
             "sequence": frame.sequence,
             "video_sequence": frame.color.getSequenceNum(),
@@ -612,6 +608,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
             "height": frame.color.getHeight(),
             "objects": objects,
             "message": message,
+            "failure_code": failure_code,
         }
         self.preview_jobs.send(
             PreviewRequest(

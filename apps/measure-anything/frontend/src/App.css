@@ -13,6 +13,16 @@
 	min-height: 0;
 }
 
+.processing-frame-status {
+	display: -webkit-box;
+	height: 2lh;
+	flex-shrink: 0;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
 @media (min-width: 48rem) {
 	.app-side:has(> .measurement-controls) {
 		overflow: hidden;

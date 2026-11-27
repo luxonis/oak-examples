@@ -11,6 +11,8 @@ from unittest.mock import Mock, patch
 import depthai as dai
 from depthai_nodes.message import (
     CalibrationOutcome,
+    MeasureAnythingDetections,
+    MeasureAnythingMeasurements,
     SupportPlane,
     SupportPlaneCalibrationResult,
     SupportPlaneCandidate,
@@ -61,6 +63,43 @@ class AnnotationTests(unittest.TestCase):
 
 
 class ControllerServiceTests(unittest.TestCase):
+    def test_failed_frame_exposes_processing_failure_and_next_frame_clears_it(self):
+        from domain import CalibrationPhase
+
+        with dai.Pipeline(False) as pipeline:
+            controller = pipeline.create(MeasurementController, profile={})
+            controller.session.phase = CalibrationPhase.READY
+            controller.session.plane = SupportPlane(normal=(0, 0, -1), offset_mm=1000)
+            controller.preview_jobs = Mock()
+            for sequence, failure in ((1, "detection_failed"), (2, None)):
+                color = dai.ImgFrame()
+                color.setWidth(640)
+                color.setHeight(480)
+                color.setSequenceNum(sequence)
+                frame = SimpleNamespace(
+                    sequence=sequence, generation=0, color=color, projection=None
+                )
+                controller.inflight[sequence] = time.monotonic(), frame
+                for cls, target in (
+                    (MeasureAnythingDetections, controller.pending_detections),
+                    (MeasureAnythingMeasurements, controller.pending_measurements),
+                ):
+                    target[sequence] = cls(
+                        frame="CAM_A",
+                        plane=None if failure else controller.session.plane,
+                        outcome=cls.Outcome.FAILED if failure else cls.Outcome.SUCCESS,
+                        failure_code=failure,
+                    )
+                controller._complete(sequence)
+                controller._publish_state()
+                state = controller.get_state({})
+                self.assertIsNone(state["error"])
+                self.assertEqual(state["frame"].get("failure_code"), failure)
+                if failure:
+                    self.assertIn("detection_failed", state["frame"]["message"])
+                else:
+                    self.assertNotIn("Frame failed", state["frame"]["message"])
+
     def saved_track_controller(self, pipeline):
         from domain import CalibrationPhase
         from test_domain import detected_object

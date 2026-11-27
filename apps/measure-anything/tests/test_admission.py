@@ -1,6 +1,7 @@
 from importlib import import_module
 from pathlib import Path
 import sys
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -20,6 +21,76 @@ domain = import_module("domain")
 
 
 class AdmissionTests(unittest.TestCase):
+    def test_failed_first_snapshot_recovers_without_a_saved_history_entry(self):
+        from test_history import MeasurementStore, request
+        from storage_node import SaveAck
+
+        with TemporaryDirectory() as folder, dai.Pipeline(False) as pipeline:
+            controller = self.setup_controller(pipeline)
+            controller.store = MeasurementStore(Path(folder) / "history.sqlite3")
+            controller.history_jobs = Mock()
+            item = SimpleNamespace(
+                candidate_id=0,
+                status=SimpleNamespace(value="measured"),
+                cuboid=SimpleNamespace(length_mm=100, width_mm=80, height_mm=60),
+            )
+            with (
+                patch("nodes.time.monotonic", return_value=100) as clock,
+                patch.object(nodes, "object_boxes") as boxes,
+                patch.object(
+                    nodes,
+                    "measurement_snapshot",
+                    side_effect=lambda obj,
+                    detected,
+                    measured,
+                    frame,
+                    profile,
+                    next_id: request(obj["track_id"], frame.sequence),
+                ) as snapshot,
+            ):
+                for sequence in range(1, 13):
+                    clock.return_value = (
+                        100 + sequence * 0.1
+                        if sequence <= 10
+                        else 101.5 + (sequence - 11) * 0.5
+                    )
+                    boxes.return_value = [
+                        {
+                            "candidate_id": 0,
+                            "bbox": [20, 10, 70, 60],
+                            "center_mm": [40, 0, 1000],
+                        }
+                    ]
+                    controller.inflight[sequence] = (
+                        clock.return_value,
+                        self.frame(sequence),
+                    )
+                    controller.pending_detections[sequence] = object()
+                    controller.pending_measurements[sequence] = SimpleNamespace(
+                        items=[item],
+                        outcome=MeasureAnythingMeasurements.Outcome.SUCCESS,
+                    )
+                    controller._complete(sequence)
+                    if sequence == 10:
+                        first = controller.history_jobs.send.call_args.args[0].request
+                        controller._saved(SaveAck(first, "Temporary storage error"))
+                        controller._publish_state()
+                        self.assertFalse(controller.get_measurements({})["items"])
+                    if sequence == 11:
+                        self.assertEqual(snapshot.call_count, 1)
+                        self.assertEqual(controller.history_jobs.send.call_count, 1)
+                retry = controller.history_jobs.send.call_args.args[0].request
+                self.assertEqual(snapshot.call_count, 2)
+                self.assertEqual(retry.track_id, first.track_id)
+                self.assertEqual(retry.sequence, 12)
+                controller.store.save(retry)
+                controller._saved(SaveAck(retry))
+                controller._publish_state()
+                history = controller.get_measurements({})
+                self.assertEqual(history["items"][0]["track_id"], first.track_id)
+                self.assertIsNone(history["storage_error"])
+                self.assertFalse(controller.scheduler.needs_snapshot(first.track_id))
+
     def setup_controller(self, pipeline):
         controller = pipeline.create(nodes.MeasurementController, profile={})
         controller.session.plane = SupportPlane(normal=(0, 0, -1), offset_mm=1000)

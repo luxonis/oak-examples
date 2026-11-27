@@ -148,6 +148,8 @@ function App() {
 		select.error?.message ??
 		previewOptions.error?.message ??
 		(connected ? stateQuery.error?.message : null);
+	const frameError =
+		state?.frame?.failure_code != null ? state.frame.message : '';
 
 	return (
 		<AppShell
@@ -185,6 +187,15 @@ function App() {
 						</div>
 						<Label
 							text={`Capture is configured at ${state?.capture.configured_fps ?? 10} FPS. Measurement throughput depends on the scene and CPU. Video follows the matching measured frame.`}
+						/>
+						<Label
+							role="status"
+							aria-live="polite"
+							aria-atomic="true"
+							color="error"
+							className="processing-frame-status"
+							text={frameError}
+							title={frameError || undefined}
 						/>
 					</Card>
 				</section>

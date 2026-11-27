@@ -34,7 +34,12 @@ const stateSchema = z.object({
 	}),
 	error: z.string().nullable(),
 	frame_sequence: z.number().nullable(),
-	frame: z.object({ message: z.string() }).nullable(),
+	frame: z
+		.object({
+			message: z.string(),
+			failure_code: z.string().nullable().default(null),
+		})
+		.nullable(),
 	capture: z.object({
 		configured_fps: z.number(),
 	}),
