@@ -20,7 +20,7 @@
 		"react": "19.2.5",
 		"react-dom": "19.2.5",
 		"react-router": "^7.5.0",
-		"zod": "^4.3.6"
+		"zod": "^4.6.6"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
@@ -31,5 +31,8 @@
 		"tailwindcss": "^4.3.0",
 		"typescript": "~5.7.2",
 		"vite": "^6.3.1"
+	},
+	"overrides": {
+		"zod": "^4.6.6"
 	}
 }
