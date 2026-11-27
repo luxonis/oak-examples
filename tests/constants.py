@@ -21,10 +21,6 @@ KNOWN_FAILING = {
             ],
         },
     },
-    "apps/p2p-measurement": {
-        "reason": "RVC4 only app",
-        "rules": {"and": [{"platform": ["rvc2"]}]},
-    },
     "apps/machine-pov-proximity-alert": {
         "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
         "rules": {

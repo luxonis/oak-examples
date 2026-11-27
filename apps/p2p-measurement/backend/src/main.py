@@ -40,9 +40,6 @@ try:
 
     platform = device.getPlatformAsString()
 
-    if platform != "RVC4":
-        raise ValueError("This example is supported only on RVC4 platform")
-
     if args.fps_limit is None:
         args.fps_limit = 15
         print(

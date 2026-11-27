@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the reference app for interactive two-point 3D distance measurement on RVC4 in both peripheral and standalone modes. Use it when you need click-based point selection, aligned RGB-depth visualization, and host-side tracking or remeasurement of selected points without the heavier segmentation and pointcloud logic from the 3D volume app.
+This is the reference app for interactive two-point 3D distance measurement on RVC2 (peripheral) and RVC4 (peripheral and standalone). Use it when you need click-based point selection, aligned RGB-depth visualization, and host-side tracking or remeasurement of selected points without the heavier segmentation and pointcloud logic from the 3D volume app.
 
 ## Use This Example When
 
@@ -15,7 +15,7 @@ This is the reference app for interactive two-point 3D distance measurement on R
 
 - You need segmented pointclouds and object volume.
 - You need a generic depth baseline with no frontend.
-- You need RVC2 device support.
+- You need RVC2 standalone packaging (RVC2 supports peripheral mode only).
 - You need a polished ROS measurement workflow.
 
 ## Quick Facts
@@ -26,8 +26,8 @@ This is the reference app for interactive two-point 3D distance measurement on R
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 (standalone and peripheral)
-- `Requires:` RVC4 device with RGB and stereo; calibration on device; static frontend build
+- `Runs on:` RVC2 (peripheral), RVC4 (standalone and peripheral)
+- `Requires:` RVC2 or RVC4 device with RGB and stereo; calibration on device; static frontend build
 - `Input:` RGB camera, unified depth, and frontend point clicks
 - `Output:` `Video`, `Depth`, `Point Annotations`, and service-based distance/tracking state
 - `Models:` none
@@ -79,7 +79,7 @@ This is the reference app for interactive two-point 3D distance measurement on R
 
 ## Constraints
 
-- This example supports RVC4 only (standalone and peripheral modes).
+- Standalone mode is RVC4 only; peripheral mode supports both RVC2 and RVC4.
 - Peripheral mode requires building the static frontend bundle (`cd frontend && npm ci && npm run build`) before running [backend/src/main.py](backend/src/main.py).
 - The backend defaults to `15` FPS when no limit is provided.
 - Measurement quality depends on valid aligned depth for both points.
