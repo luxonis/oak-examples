@@ -13,9 +13,9 @@ import depthai as dai
 from depthai_nodes.message import SupportPlane
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-CameraProjection = import_module("geometry").CameraProjection
-preview = import_module("preview")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+CameraProjection = import_module("depthai_pipeline.geometry").CameraProjection
+preview = import_module("depthai_pipeline.preview")
 PreviewRequest = preview.PreviewRequest
 PreviewRenderer = preview.PreviewRenderer
 PreviewRendererNode = preview.PreviewRendererNode

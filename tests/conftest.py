@@ -137,8 +137,14 @@ def pytest_generate_tests(metafunc):
                     backend_dir / "requirements.txt",
                     backend_dir / "src" / "requirements.txt",
                 )
+                supports_peripheral = (
+                    (example_dir / "frontend" / "package.json").is_file()
+                    and (example_dir / "README.md").is_file()
+                    and "## Peripheral Mode"
+                    in (example_dir / "README.md").read_text(encoding="utf-8")
+                )
                 if (
-                    is_standalone_test
+                    (is_standalone_test or supports_peripheral)
                     and "oakapp.toml" in filenames
                     and any(path.is_file() for path in backend_requirements)
                     and (backend_dir / "src" / "main.py").is_file()

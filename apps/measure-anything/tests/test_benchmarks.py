@@ -3,8 +3,8 @@ from pathlib import Path
 import sys
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-BenchmarkWindow = import_module("benchmarks").BenchmarkWindow
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+BenchmarkWindow = import_module("depthai_pipeline.benchmarks").BenchmarkWindow
 
 
 class BenchmarkTests(unittest.TestCase):

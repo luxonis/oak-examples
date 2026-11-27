@@ -18,9 +18,9 @@ from depthai_nodes.message import (
     SupportPlaneCandidate,
 )
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-MeasurementController = import_module("nodes").MeasurementController
-native_annotations = import_module("rendering").native_annotations
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+MeasurementController = import_module("depthai_pipeline.nodes").MeasurementController
+native_annotations = import_module("depthai_pipeline.rendering").native_annotations
 
 
 class AnnotationTests(unittest.TestCase):
@@ -64,7 +64,7 @@ class AnnotationTests(unittest.TestCase):
 
 class ControllerServiceTests(unittest.TestCase):
     def test_failed_frame_exposes_processing_failure_and_next_frame_clears_it(self):
-        from domain import CalibrationPhase
+        from measurement.domain import CalibrationPhase
 
         with dai.Pipeline(False) as pipeline:
             controller = pipeline.create(MeasurementController, profile={})
@@ -101,7 +101,7 @@ class ControllerServiceTests(unittest.TestCase):
                     self.assertNotIn("Frame failed", state["frame"]["message"])
 
     def saved_track_controller(self, pipeline):
-        from domain import CalibrationPhase
+        from measurement.domain import CalibrationPhase
         from test_domain import detected_object
 
         store = Mock(next_track_id=7)
@@ -128,7 +128,7 @@ class ControllerServiceTests(unittest.TestCase):
             controller.tracker.update([], 100.5)
             controller.visible_tracks.clear()
             controller.last_measurement_at = 100.5
-            with patch("nodes.time.monotonic", return_value=100.5):
+            with patch("depthai_pipeline.nodes.time.monotonic", return_value=100.5):
                 controller._publish_state()
                 row = controller.get_measurements({})["items"][0]
                 self.assertFalse(row["in_frame"])
@@ -148,7 +148,7 @@ class ControllerServiceTests(unittest.TestCase):
             self.assertIsNone(controller.scheduler.choose(21, {}))
             returned = controller.tracker.update([detected_object(1, 20)], 101)
             self.assertEqual(returned[0]["track_id"], 7)
-            with patch("nodes.time.monotonic", return_value=101):
+            with patch("depthai_pipeline.nodes.time.monotonic", return_value=101):
                 controller._watchdog()
             self.assertIsNone(controller.scheduler.choose(20, {7: request(7, 20)}))
             fresh = controller.scheduler.choose(21, {7: request(7, 21)})
@@ -162,7 +162,7 @@ class ControllerServiceTests(unittest.TestCase):
 
         with dai.Pipeline(False) as pipeline:
             controller = self.saved_track_controller(pipeline)
-            with patch("nodes.time.monotonic", return_value=102):
+            with patch("depthai_pipeline.nodes.time.monotonic", return_value=102):
                 controller._publish_state()
                 self.assertTrue(
                     controller.get_measurements({})["items"][0]["track_active"]
@@ -172,7 +172,7 @@ class ControllerServiceTests(unittest.TestCase):
                         controller.update_measurement({"track_id": 7}), {"ok": True}
                     )
                 controller.scheduler.request_update(7, 20)
-            with patch("nodes.time.monotonic", return_value=102.001):
+            with patch("depthai_pipeline.nodes.time.monotonic", return_value=102.001):
                 controller._watchdog()
                 controller._publish_state()
                 row = controller.get_measurements({})["items"][0]
@@ -191,7 +191,7 @@ class ControllerServiceTests(unittest.TestCase):
             returned = controller.tracker.update([detected_object(0, 20)], 102.1)
             self.assertEqual(returned[0]["track_id"], 8)
             controller.store.list_summaries.return_value.append({"track_id": 8})
-            with patch("nodes.time.monotonic", return_value=102.1):
+            with patch("depthai_pipeline.nodes.time.monotonic", return_value=102.1):
                 controller._publish_state()
             self.assertFalse(
                 any(

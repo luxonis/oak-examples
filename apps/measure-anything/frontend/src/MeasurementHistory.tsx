@@ -21,10 +21,6 @@ function date(value: string) {
 	return new Date(value).toLocaleString();
 }
 
-function correctionMetadata(value: unknown) {
-	return typeof value === 'string' ? value : 'Not recorded';
-}
-
 function MeasurementPreview({ record }: { record: MeasurementSummary }) {
 	const preview = useDaiQuery({
 		service: getMeasurementPreview,
@@ -263,32 +259,6 @@ function MeasurementModal({
 						<dd className="break-all">
 							<Label>{measurement.algorithm_id}</Label>
 						</dd>
-						<dt>
-							<Label color="label">RGB depth correction</Label>
-						</dt>
-						<dd className="break-all">
-							<Label>
-								{measurement.depth_correction ? (
-									<>
-										{correctionMetadata(
-											measurement.depth_correction.correction_method,
-										)}
-										<br />
-										Input:{' '}
-										{correctionMetadata(
-											measurement.depth_correction.input_axial_convention,
-										)}
-										<br />
-										Output:{' '}
-										{correctionMetadata(
-											measurement.depth_correction.output_axial_convention,
-										)}
-									</>
-								) : (
-									'Not recorded for this measurement.'
-								)}
-							</Label>
-						</dd>
 					</dl>
 				</>
 			) : null}
@@ -340,7 +310,7 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 					<Label color="label">
 						{history.isLoading
 							? 'Loading measurement history…'
-							: 'No saved measurements yet. Select a support plane and keep a object in view.'}
+							: 'No saved measurements yet. Select a support plane and keep an object in view.'}
 					</Label>
 				</p>
 			) : null}
@@ -350,13 +320,15 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 						<button
 							type="button"
 							onClick={() => setSelected(record)}
-							className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+							aria-label={`View details for tracking ID ${record.track_id}`}
+							aria-haspopup="dialog"
+							className="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:border-primary hover:bg-muted focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 						>
 							<MeasurementPreview record={record} />
 							<span className="flex min-w-0 flex-1 flex-col gap-1">
 								<span className="flex justify-between gap-2">
 									<Label
-										weight="medium"
+										weight="bold"
 										text={`Tracking ID ${record.track_id}`}
 									/>
 									<SubLabel
@@ -375,6 +347,9 @@ export function MeasurementHistory({ connected }: { connected: boolean }) {
 								<SubLabel color="label">
 									{date(record.captured_at)},{' '}
 									{record.point_count.toLocaleString()} points
+								</SubLabel>
+								<SubLabel className="font-semibold text-primary group-hover:underline group-focus-visible:underline">
+									View details
 								</SubLabel>
 							</span>
 						</button>

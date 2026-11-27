@@ -15,8 +15,8 @@ from depthai_nodes.message import (
 )
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-measurement_snapshot = import_module("snapshot").measurement_snapshot
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+measurement_snapshot = import_module("measurement.snapshot").measurement_snapshot
 
 
 class SnapshotTests(unittest.TestCase):
