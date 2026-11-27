@@ -61,6 +61,7 @@ adb root
 # ==============================================================================
 echo "Running tests..."
 
+test_status=0
 pytest -v -r a --log-cli-level="${LOG_LEVEL}" --log-file=out.log --color=yes \
   --depthai-version="${DAI_VERSION}" \
   --depthai-nodes-version="${DAI_NODES_VERSION}" \
@@ -70,4 +71,9 @@ pytest -v -r a --log-cli-level="${LOG_LEVEL}" --log-file=out.log --color=yes \
   --device-password="${DEVICE_PASSWORD}" \
   --local-static-registry="${LOCAL_STATIC_REGISTRY}" \
   --root-dir "${ROOT_DIR}" \
-  -q tests/test_examples_standalone.py
+  -q tests/test_examples_standalone.py || test_status=$?
+
+if [[ "$test_status" -ne 0 && "${HIL_COLLECT_AGENT_LOGS:-}" == 1 ]]; then
+  python tests/collect_agent_logs.py || true
+fi
+exit "$test_status"
