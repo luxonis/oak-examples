@@ -233,6 +233,10 @@ KNOWN_FAILING = {
         "reason": "Needs an external UVC camera visible to OpenCV at runtime",
         "rules": {"and": [{"platform": "all"}]},
     },
+    "streaming/record-start-stop": {
+        "reason": "RecordVideo start/stop (RecordControl, setWaitForTrigger, setPreTriggerFrames) is not in released depthai wheels through 3.12.2",
+        "rules": {"and": [{"platform": "all"}]},
+    },
 }
 
 IGNORED_WARNINGS = [
