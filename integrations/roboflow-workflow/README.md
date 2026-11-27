@@ -71,9 +71,11 @@ For richer or customized visual outputs, consider:
 
 ## Peripheral Mode (RVC4)
 
-> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+Requires Python 3.12 and Node.js 22+.
 
-Use Python 3.12 and Node.js 22 or newer. From this example directory:
+Configure the workspace, workflow and API key in `backend/src/config/yaml_configs/config.yaml` before starting. Workflow inference runs on the host CPU and requires the workflow-specific dependencies.
+
+From this example directory:
 
 ```bash
 python3.12 -m venv .venv
@@ -86,25 +88,13 @@ cd ..
 EP=cpu USE_INFERENCE_MODELS=False python backend/src/main.py --device <DEVICE_IP>
 ```
 
-Open `http://localhost:8082` on the host computer. Python serves the built custom
-frontend and runs the backend; streams and controls use `RemoteConnection` on
-port 8765. The frontend directory is resolved relative to the entrypoint.
-Rebuild the frontend after changing its source.
-
-Use `--frontend-dir` for another build directory, `--frontend-port` for another
-HTTP port, or `--no-frontend` with a separate development server. The default
-bind address is `127.0.0.1`; `--frontend-host` overrides it. Access from another
-computer requires a separate HTTPS/WebSocket proxy.
-
-Standalone mode keeps the existing oakapp frontend server. The Python helper
-automatically skips its listener when that server is configured.
-
-Configure the Roboflow workspace, workflow and API key in
-`backend/src/config/yaml_configs/config.yaml` before starting. The host runs
-workflow inference on its CPU; workflow-specific dependencies and credentials
-are still required.
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
 
 ## Standalone Mode (RVC4 only)
+
+oakapp serves the frontend automatically in standalone mode.
 
 Running the example in the standalone mode, app runs entirely on the device.
 To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).

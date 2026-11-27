@@ -27,8 +27,8 @@ Here is a list of all available parameters:
 
 Notes:
 
-- The backend CLI currently supports `--fps_limit`, `--media_path`, `--model`, `--semantic_seg`, `--device`, and the frontend options below.
-- Frontend serving is handled by the packaged oakapp container stack, so there are no active `--ip` or `--port` CLI options here.
+- The backend CLI currently supports `--fps_limit`, `--media_path`, `--model`, `--semantic_seg`, `--device`; run with `--help` for all options.
+- Python serves the frontend in peripheral mode; oakapp serves it in standalone mode.
 - Model precision is currently controlled by the backend configuration files, not by a CLI flag.
 
 ### Model Options
@@ -44,9 +44,9 @@ Notes:
 
 ## Peripheral Mode (RVC4)
 
-> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+Requires Python 3.12 and Node.js 22+.
 
-Use Python 3.12 and Node.js 22 or newer. From this example directory:
+From this example directory:
 
 ```bash
 python3.12 -m venv .venv
@@ -59,20 +59,13 @@ cd ..
 python backend/src/main.py --device <DEVICE_IP>
 ```
 
-Open `http://localhost:8082` on the host computer. Python serves the built custom
-frontend and runs the backend; streams and controls use `RemoteConnection` on
-port 8765. The frontend directory is resolved relative to the entrypoint.
-Rebuild the frontend after changing its source.
-
-Use `--frontend-dir` for another build directory, `--frontend-port` for another
-HTTP port, or `--no-frontend` with a separate development server. The default
-bind address is `127.0.0.1`; `--frontend-host` overrides it. Access from another
-computer requires a separate HTTPS/WebSocket proxy.
-
-Standalone mode keeps the existing oakapp frontend server. The Python helper
-automatically skips its listener when that server is configured.
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
 
 ## Standalone Mode (RVC4 only)
+
+oakapp serves the frontend automatically in standalone mode.
 
 Running the example in the standalone mode, app runs entirely on the device.
 To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).

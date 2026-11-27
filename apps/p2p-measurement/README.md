@@ -26,9 +26,11 @@ Running this example requires a **Luxonis device** connected to your computer. R
 
 ## Peripheral Mode (RVC2 or RVC4)
 
-> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+Requires Python 3.10+ and Node.js 22+.
 
-Use Python 3.10 or newer and Node.js 22 or newer. From this example directory:
+Use the USB device ID for RVC2 or the device IP for RVC4 as `<DEVICE>`.
+
+From this example directory:
 
 ```bash
 python3 -m venv .venv
@@ -41,17 +43,9 @@ cd ..
 python backend/src/main.py --device <DEVICE>
 ```
 
-Use the USB device ID for RVC2 or the device IP for RVC4.
-
-Open `http://localhost:8082` on the host computer. The Python process serves the built
-frontend and runs the backend; `RemoteConnection` carries streams and service calls
-on port 8765. Paths are resolved relative to the Python file, so launching from
-another directory also works. Rebuild the frontend after changing its source.
-
-Use `--frontend-dir` for another build directory, `--frontend-port` to change the
-HTTP port, or `--no-frontend` when running a separate frontend development server.
-The default bind address is `127.0.0.1`; `--frontend-host` changes it. Remote browser
-access requires separate HTTPS/WebSocket proxy configuration.
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
 
 ## Standalone Mode (RVC4 only)
 

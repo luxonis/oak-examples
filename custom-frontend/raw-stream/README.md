@@ -27,53 +27,26 @@ Here is a list of all available parameters:
 
 ## Peripheral Mode
 
-> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+Requires Python 3.10+ and Node.js 22+.
 
-### Installation
+Use the USB device ID for RVC2 or the device IP for RVC4 as `<DEVICE>`.
 
-#### BackEnd
-
-You need to first prepare a **Python >= 3.10** environment with the following packages installed:
-
-- [DepthAI](https://pypi.org/project/depthai/),
-- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).
-
-You can simply install them by running:
+From this example directory:
 
 ```bash
-pip install -r requirements.txt
-```
-
-#### Front End
-
-You need to have [Node.js](https://nodejs.org/en/download/) installed (version 22 or higher).
-
-Then, navigate to the `frontend` folder and install the dependencies by running:
-
-```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+cd frontend
 npm ci
-```
-
-and build the frontend with:
-
-```bash
 npm run build
+cd ..
+python main.py --device <DEVICE>
 ```
 
-Running in peripheral mode requires a host computer and there will be communication between device and host which could affect the overall speed of the app. Below are some examples of how to run the example.
-
-### Examples
-
-The backend finds `frontend/dist` relative to `main.py`; no frontend environment variables are needed.
-From the root of the example folder, run:
-
-```bash
-python3 main.py
-```
-
-Open `http://localhost:8082` on the host computer. The same Python process serves the built frontend and runs the backend. `RemoteConnection` carries streams and service calls on port 8765. Both RVC2 and RVC4 are supported; select one with `--device <DEVICE_ID_OR_IP>`.
-
-Use `--frontend-dir` for another build directory, or `--no-frontend` when using a separate frontend development server. Rebuild the frontend after changing its source. The server binds to `127.0.0.1` by default; `--ip` and `--port` override the HTTP listener. Remote browser access requires separate HTTPS/WebSocket proxy configuration.
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
 
 ## Standalone Mode (RVC4 only)
 
