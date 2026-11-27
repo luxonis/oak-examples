@@ -1,5 +1,11 @@
-import { Switch } from '@luxonis/ui-components';
-import type { ReactNode } from 'react';
+import {
+	Flex,
+	Label,
+	Separator,
+	SubLabel,
+	Switch,
+} from '@luxonis/ui-components';
+import { type ReactNode, useId } from 'react';
 
 interface ConditionCardProps {
 	title: string;
@@ -18,21 +24,23 @@ export function ConditionCard({
 	description,
 	children,
 }: ConditionCardProps) {
+	const labelId = useId();
+
 	return (
-		<div className="flex flex-col gap-4 border-t border-border pt-4">
-			<div className="flex items-center justify-between gap-4">
-				<span className="font-semibold">{title}</span>
+		<Flex direction="column" gap="sm">
+			<Separator />
+			<Flex direction="row" align="center" justify="between" gap="sm">
+				<Label id={labelId} text={title} />
 				<Switch
+					aria-labelledby={labelId}
 					value={enabled}
 					onChange={onToggle}
 					disabled={disabled}
 					showActiveLabelOnly
 				/>
-			</div>
-			{enabled && description ? (
-				<p className="text-sm text-muted-foreground">{description}</p>
-			) : null}
+			</Flex>
+			{enabled && description ? <SubLabel text={description} /> : null}
 			{enabled ? children : null}
-		</div>
+		</Flex>
 	);
 }

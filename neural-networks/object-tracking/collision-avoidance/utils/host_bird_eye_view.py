@@ -29,8 +29,8 @@ class BirdsEyeView(dai.node.HostNode):
             x = tracklet.spatialCoordinates.x
             z = tracklet.spatialCoordinates.z
 
-            # check if float is nan
-            if math.isnan(x) or math.isnan(z):
+            # check if float is nan or inf
+            if not (math.isfinite(x) and math.isfinite(z)):
                 continue
 
             y = (
@@ -42,8 +42,10 @@ class BirdsEyeView(dai.node.HostNode):
             cv2.circle(frame, (x, y), 2, (0, 255, 0), thickness=5, lineType=8, shift=0)
 
         output = dai.ImgFrame()
-        output.setTimestamp(tracklets.getTimestamp())
         output.setCvFrame(frame, dai.ImgFrame.Type.BGR888i)
+        output.setBufferMetadataFrom(tracklets)
+        # A top-down canvas is not a camera image; describe its own pixel space.
+        output.setTransformation(dai.ImgTransformation(frame.shape[1], frame.shape[0]))
         self.output.send(output)
 
 

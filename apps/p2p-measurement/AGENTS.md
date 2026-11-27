@@ -51,7 +51,7 @@ This is the reference app for interactive two-point 3D distance measurement on R
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
 - `Depth.setAlignTo(...)` aligns depth to RGB.
 - A colorized depth stream is published for viewing.
-- The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using calibration intrinsics, and emits overlay annotations.
+- The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using the current aligned depth frame’s native inverse intrinsic matrix, and emits overlay annotations.
 - The frontend interacts with backend services for point selection, clearing, distance polling, and tracking-mode toggling.
 - In peripheral mode, [backend/src/utils/frontend_server.py](backend/src/utils/frontend_server.py) serves the built static bundle from `frontend/dist` over HTTP (default port `8082`) or optional local HTTPS (`--https`).
 - In standalone mode, [oakapp.toml](oakapp.toml) passes `--no-frontend` (and the runtime sets `OAKAPP_STATIC_FRONTEND_PORT`), so the Python HTTP server is skipped and `oakapp` serves `[static_frontend]` directly.
@@ -101,6 +101,7 @@ This is the reference app for interactive two-point 3D distance measurement on R
 
 ## Validation
 
+- `Hardware check:` Measure a known distance at the image center and corners, then repeat with another output aspect ratio.
 - `Run:` standalone: `oakctl app run .`; peripheral: `cd frontend && npm ci && npm run build && cd .. && python3 backend/src/main.py` (or add `--https` for local HTTPS)
 - `Success looks like:` the frontend loads on `http://localhost:8082` (or `https://localhost:8082` with `--https`, or `https://<OAK4_IP>:9000/` in standalone), shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target
 - `Common failure meaning:` missing `frontend/dist` build in peripheral mode, stereo alignment or calibration is missing, invalid depth prevents measurement, or frontend topic/service assumptions drifted from the backend

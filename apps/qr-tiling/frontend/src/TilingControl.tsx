@@ -1,5 +1,12 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button, Input, Switch } from '@luxonis/ui-components';
+import {
+	Button,
+	Flex,
+	Input,
+	Label,
+	SubLabel,
+	Switch,
+} from '@luxonis/ui-components';
 import { useEffect, useMemo, useState } from 'react';
 import { useNotifications } from './Notifications.tsx';
 import { postToQRTilingService } from './services.ts';
@@ -16,10 +23,7 @@ interface TilingControlProps {
 	initialParams: TilingParams;
 }
 
-function getCellColor(index: number): string {
-	const hue = (index * 137.508) % 360;
-	return `hsl(${hue}, 70%, 60%)`;
-}
+const MERGED_GROUP_TONES = ['active', 'success', 'warning', 'error'] as const;
 
 function createDefaultMatrix(rows: number, cols: number): number[][] {
 	const matrix: number[][] = [];
@@ -88,39 +92,40 @@ function GridMatrixEditor({
 			valueCounts.set(val, (valueCounts.get(val) ?? 0) + 1);
 		}
 	}
+	const mergedTones = new Map(
+		[...valueCounts]
+			.filter(([, count]) => count > 1)
+			.map(([val]) => val)
+			.sort((a, b) => a - b)
+			.map((val, i) => [
+				val,
+				MERGED_GROUP_TONES[i % MERGED_GROUP_TONES.length],
+			]),
+	);
 
 	return (
 		<div
-			className="grid gap-0.5"
-			style={{ gridTemplateColumns: `repeat(${cols}, 2.25rem)` }}
+			className="qr-grid"
+			style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 2.25rem))` }}
 		>
 			{Array.from({ length: rows }).map((_, rowIdx) =>
 				Array.from({ length: cols }).map((_, colIdx) => {
 					const cellValue = matrix[rowIdx]?.[colIdx] ?? 0;
-					const isSelected = selectedValue === cellValue;
-					const isMerged = (valueCounts.get(cellValue) ?? 0) > 1;
-					const color = isMerged ? getCellColor(cellValue) : '#ffffff';
-					const borderColor = isSelected
-						? isMerged
-							? color
-							: '#2563eb'
-						: 'rgba(15, 23, 42, 0.22)';
+					const group = cellValue + 1;
 
 					return (
 						<button
 							// biome-ignore lint/suspicious/noArrayIndexKey: Tiles are addressed by fixed grid coordinates.
 							key={`${rowIdx}-${colIdx}`}
 							type="button"
-							aria-label={`Tile ${rowIdx + 1}, ${colIdx + 1}`}
-							className="h-9 w-9 cursor-pointer rounded border bg-white transition-shadow"
+							aria-label={`Tile row ${rowIdx + 1}, column ${colIdx + 1}, group ${group}`}
+							aria-pressed={selectedValue === cellValue}
+							data-tone={mergedTones.get(cellValue)}
+							className="qr-tile"
 							onClick={() => onCellClick(rowIdx, colIdx)}
-							style={{
-								backgroundColor: color,
-								borderColor,
-								borderWidth: isSelected ? 3 : 1,
-								boxShadow: isSelected ? `0 0 8px ${borderColor}` : 'none',
-							}}
-						/>
+						>
+							<Label text={group} color="unset" cursor="pointer" />
+						</button>
 					);
 				}),
 			)}
@@ -255,13 +260,11 @@ export function TilingControl({ initialParams }: TilingControlProps) {
 	};
 
 	return (
-		<section className="flex flex-col gap-5 border-t border-border pt-4">
-			<h2 className="font-semibold">Tiling Configuration</h2>
-
-			<div className="grid grid-cols-2 gap-3">
-				<div className="flex min-w-0 flex-col gap-2">
-					<label htmlFor="qr-tiling-rows" className="text-sm font-medium">
-						Rows
+		<Flex direction="column" gap="sm">
+			<div className="grid grid-cols-2 gap-2">
+				<Flex direction="column" gap="xs" className="min-w-0">
+					<label htmlFor="qr-tiling-rows">
+						<Label text="Rows" />
 					</label>
 					<Input
 						id="qr-tiling-rows"
@@ -286,11 +289,11 @@ export function TilingControl({ initialParams }: TilingControlProps) {
 						min={1}
 						max={8}
 					/>
-				</div>
+				</Flex>
 
-				<div className="flex min-w-0 flex-col gap-2">
-					<label htmlFor="qr-tiling-cols" className="text-sm font-medium">
-						Columns
+				<Flex direction="column" gap="xs" className="min-w-0">
+					<label htmlFor="qr-tiling-cols">
+						<Label text="Columns" />
 					</label>
 					<Input
 						id="qr-tiling-cols"
@@ -315,12 +318,12 @@ export function TilingControl({ initialParams }: TilingControlProps) {
 						min={1}
 						max={8}
 					/>
-				</div>
+				</Flex>
 			</div>
 
-			<div className="flex min-w-0 flex-col gap-2">
-				<label htmlFor="qr-tiling-overlap" className="text-sm font-medium">
-					Overlap
+			<Flex direction="column" gap="xs" className="min-w-0">
+				<label htmlFor="qr-tiling-overlap">
+					<Label text="Overlap" />
 				</label>
 				<Input
 					id="qr-tiling-overlap"
@@ -344,41 +347,52 @@ export function TilingControl({ initialParams }: TilingControlProps) {
 					max={0.99}
 					step={0.05}
 				/>
-			</div>
+				<SubLabel text="Overlap between adjacent tiles, from 0 to 0.99." />
+			</Flex>
 
-			<div className="flex items-center justify-between gap-4">
-				<span className="text-sm font-medium">
-					Global Detection (include full image)
-				</span>
+			<Flex direction="row" align="center" justify="between" gap="sm">
+				<Flex direction="column">
+					<Label id="qr-global-detection-label" text="Global detection" />
+					<SubLabel text="Also run detection on the full image." />
+				</Flex>
 				<Switch
+					aria-labelledby="qr-global-detection-label"
 					value={globalDetection}
 					onChange={setGlobalDetection}
 					showActiveLabelOnly
 				/>
-			</div>
+			</Flex>
 
-			<div className="flex flex-col gap-3">
-				<GridMatrixEditor
-					rows={rows}
-					cols={cols}
-					matrix={gridMatrix}
-					selectedValue={selectedValue}
-					onCellClick={handleCellClick}
-				/>
+			<fieldset className="flex flex-col gap-1">
+				<legend>
+					<Label text="Tile groups" />
+				</legend>
+				<SubLabel text="Select a tile, then select neighboring tiles to merge them into its group. Select the group again to deselect it." />
+				<div className="pt-1">
+					<GridMatrixEditor
+						rows={rows}
+						cols={cols}
+						matrix={gridMatrix}
+						selectedValue={selectedValue}
+						onCellClick={handleCellClick}
+					/>
+				</div>
+			</fieldset>
 
+			<div className="grid grid-cols-2 gap-2">
 				<Button
 					variant="outline"
+					intent="gray"
 					onClick={() => {
 						setGridMatrix(createDefaultMatrix(rows, cols));
 						setSelectedValue(null);
 					}}
 					disabled={!isGridModified}
 				>
-					Reset Grid
+					Reset grid
 				</Button>
+				<Button onClick={handleUpdate}>Update tiling</Button>
 			</div>
-
-			<Button onClick={handleUpdate}>Update Tiling</Button>
-		</section>
+		</Flex>
 	);
 }

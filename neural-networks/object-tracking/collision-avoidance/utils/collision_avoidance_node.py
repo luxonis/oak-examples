@@ -157,11 +157,17 @@ class CollisionAvoidanceNode(dai.node.HostNode):
         annotations = annotation_helper.build(
             timestamp=tracklets.getTimestamp(), sequence_num=tracklets.getSequenceNum()
         )
+        annotations.setBufferMetadataFrom(tracklets)
+        # Tracklet ROIs are normalized to the tracker input, which is this frame.
+        annotations.setTransformation(img_frame.getTransformation())
         self.out.send(annotations)
 
         direction_frame = self.draw_line_cv2(mbs)
         frame_msg = dai.ImgFrame()
         frame_msg.setCvFrame(direction_frame, dai.ImgFrame.Type.BGR888i)
-        frame_msg.setWidth(400)
-        frame_msg.setHeight(400)
+        frame_msg.setBufferMetadataFrom(tracklets)
+        # A synthetic plot, not a camera image; describe its own pixel space.
+        frame_msg.setTransformation(
+            dai.ImgTransformation(direction_frame.shape[1], direction_frame.shape[0])
+        )
         self.out_direction.send(frame_msg)

@@ -46,9 +46,7 @@ with dai.Pipeline(device) as pipeline:
     )
 
     # blurring
-    blur_node = pipeline.create(BlurBboxes)
-    det_nn.out.link(blur_node.input_detections)
-    det_nn.passthrough.link(blur_node.input_frame)
+    blur_node = pipeline.create(BlurBboxes).build(det_nn.passthrough, det_nn.out)
 
     # visualization
     visualizer.addTopic("FaceBlur", blur_node.out)

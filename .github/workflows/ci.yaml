@@ -18,6 +18,9 @@ jobs:
     - name: Check generated AGENTS index
       run: python3 scripts/generate_agents_index.py --check
 
+    - name: Check custom frontends share the Luxonis design shell
+      run: python3 scripts/check_frontends.py
+
   pre-commit:
     runs-on: ubuntu-latest
     steps:

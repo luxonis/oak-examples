@@ -91,6 +91,7 @@ This is the runtime stereo dynamic-calibration workflow reference in the repo. U
 
 ## Related Examples
 
+- [depth-measurement/auto-calibration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/auto-calibration): automatic on-start or continuous runtime calibration with a compact status HUD and no EEPROM writes
 - [depth-measurement/stereo-runtime-configuration](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-runtime-configuration): use this when you want runtime stereo parameter tuning rather than calibration workflows
 - [depth-measurement/stereo-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/stereo-on-host): use this when you want host-side stereo benchmarking rather than calibration control
 - [depth-measurement/calc-spatial-on-host](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/calc-spatial-on-host): use this when you need host-side ROI spatial measurement

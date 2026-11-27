@@ -67,7 +67,7 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
 
 ## Common Adaptations
 
-- `To expose more channels:` extend `create_channels()` and the main event loop in [utils/foxglove_utils.py](utils/foxglove_utils.py) and [main.py](main.py)
+- `To expose more channels:` extend `create_channels()` and the main event loop in [utils/foxglove_utils.py](utils/foxglove_utils.py) and [main.py](main.py), and stamp messages with `capture_stamp()` (DepthAI timestamps are host steady-clock, not Unix time)
 - `To disable downsampling:` change `downsample_pcl` in [main.py](main.py) or `process_pointcloud()` in [utils/foxglove_utils.py](utils/foxglove_utils.py)
 - `To move to another external viewer:` compare this example with [integrations/rerun](https://github.com/luxonis/oak-examples/tree/main/integrations/rerun)
 - `To keep point-cloud logic but use the Visualizer instead:` start instead from [depth-measurement/measurement-3d/rgbd-pointcloud](https://github.com/luxonis/oak-examples/tree/main/depth-measurement/measurement-3d/rgbd-pointcloud)
@@ -75,6 +75,7 @@ This is the repository reference for streaming DepthAI data into Foxglove Studio
 ## Constraints
 
 - This example does not use `dai.RemoteConnection`; there is no built-in Visualizer fallback.
+- Keep the RGB alignment reference undistorted when point-cloud mode is enabled.
 - Point-cloud preprocessing depends on Open3D even though the final viewer is Foxglove.
 - If `--no-color` is used without any of `--left`, `--right`, or `--pointcloud`, the example produces no useful streams.
 - The standalone `oakapp.toml` entrypoint passes no flags, so packaged runs default to color-only unless the file is edited.

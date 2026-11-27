@@ -33,10 +33,10 @@ steps = ["bash -c 'cd /app/frontend && . $HOME/.nvm/nvm.sh && npm ci --no-audit 
 DEPTHAI_PIPELINE_DEBUGGING = "1"
 
 [base_image]
-api_url = "https://registry-1.docker.io"
-service = "registry.docker.io"
-oauth_url = "https://auth.docker.io/token"
+api_url = "https://quay.io"
+service = "quay.io"
+oauth_url = "https://quay.io/v2/auth"
 auth_type = "repository"
 auth_name = "luxonis/oakapp-base"
 image_name = "luxonis/oakapp-base"
-image_tag = "1.5.1-llamacpp"
+image_tag = "1.5.2-llamacpp"

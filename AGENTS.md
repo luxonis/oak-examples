@@ -21,6 +21,4 @@ If the user is likely to customize an example for their own use case, bootstrap 
 
 Use this path only when you are adding, removing, moving, or materially changing examples in this repository.
 
-1. Read [EXAMPLE_AUTHORING.md](EXAMPLE_AUTHORING.md).
-2. Use [INDEX.md](INDEX.md) to find the closest existing example before creating new code.
-3. Update or add example-specific `AGENTS.md` guidance for agent-critical details.
+Follow the [Making changes](CONTRIBUTING.md#making-changes) guidance in `CONTRIBUTING.md` for example selection, implementation, documentation, and validation.

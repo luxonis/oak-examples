@@ -55,8 +55,13 @@ class AnnotationNode(dai.node.HostNode):
                 thickness=2.0,
             )
 
+            label = (
+                self.labels[detection.label]
+                if 0 <= detection.label < len(self.labels)
+                else str(detection.label)
+            )
             annotation_helper.draw_text(
-                text=f"{self.labels[detection.label]} {int(detection.confidence * 100)}% \nx: {detection.spatialCoordinates.x:.0f}mm \ny: {detection.spatialCoordinates.y:.0f}mm \nz:{detection.spatialCoordinates.z:.0f}mm",
+                text=f"{label} {int(detection.confidence * 100)}% \nx: {detection.spatialCoordinates.x:.0f}mm \ny: {detection.spatialCoordinates.y:.0f}mm \nz:{detection.spatialCoordinates.z:.0f}mm",
                 position=(xmin + 0.01, ymin + 0.2),
                 size=12,
                 color=SECONDARY_COLOR,
@@ -66,6 +71,8 @@ class AnnotationNode(dai.node.HostNode):
             timestamp=detections_message.getTimestamp(),
             sequence_num=detections_message.getSequenceNum(),
         )
+        annotations.setBufferMetadataFrom(detections_message)
+        annotations.setTransformation(detections_message.getTransformation())
 
         depth_map = depth_message.getCvFrame()
         depth_map = cv2.applyColorMap(
@@ -74,8 +81,8 @@ class AnnotationNode(dai.node.HostNode):
 
         depth_frame = dai.ImgFrame()
         depth_frame.setCvFrame(depth_map, dai.ImgFrame.Type.BGR888i)
-        depth_frame.setTimestamp(depth_message.getTimestamp())
-        depth_frame.setSequenceNum(depth_message.getSequenceNum())
+        depth_frame.setBufferMetadataFrom(depth_message)
+        depth_frame.setTransformation(depth_message.getTransformation())
 
         self.out_annotations.send(annotations)
         self.out_depth.send(depth_frame)

@@ -61,7 +61,7 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 ## Modification Guide
 
 - `Safe to change:` target crop size, averaging window, default FPS, topic names, replay usage
-- `Requires care:` hardcoded source-size assumptions, first-detection-only behavior, `ImageManipConfig` timing, replay-versus-camera frame types
+- `Requires care:` source-frame transformation metadata, first-detection-only behavior, `ImageManipConfig` timing, replay-versus-camera frame types
 - `Likely to break if changed blindly:` crop synchronization, crop-size normalization, or platform-specific frame-type handling
 
 ## Common Adaptations
@@ -73,13 +73,14 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 
 ## Constraints
 
-- The crop logic assumes a source size of `3840x2880` and a target size of `1920x1088`.
+- The crop uses actual source dimensions and outputs `1920x1088`; smaller sources require upscaling.
 - Only the first detected face is used for zooming.
 - When no face is detected, `CropFace` sends `setSkipCurrentImage(True)` and the crop branch intentionally skips that frame.
 - In standalone mode, the default packaged path uses camera input; `--media_path` is mainly a peripheral-mode workflow unless you edit the app config.
 
 ## Non-Obvious Repo Conventions
 
+- Crop-control Sync uses device timestamps to match RVC2 Script metadata.
 - Default FPS is platform-dependent when not provided: `30` on RVC4 and `5` on RVC2.
 - The detector input frame type differs by platform: `BGR888i` on RVC4 and `BGR888p` on RVC2.
 - `crop_manip.inputConfig.setReusePreviousMessage(False)` is an important synchronization requirement for this example.
@@ -98,4 +99,4 @@ This is the best reference in the repo for lossless digital zoom implemented as 
 - `Media replay run:` `python3 main.py --media_path <PATH_TO_VIDEO>`
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows the detector-view `Video`, face `Visualizations`, and a stable `Cropped Face` stream that follows the detected face
-- `Common failure meaning:` the source resolution does not match the crop assumptions, no face is being detected, or crop-config timing drifted from the source frames
+- `Common failure meaning:` source transformation metadata is missing, no face is being detected, or crop-config timing drifted from the source frames

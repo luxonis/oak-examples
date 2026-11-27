@@ -1,7 +1,7 @@
 import { Streams, useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Switch } from '@luxonis/ui-components';
+import { Card, Flex, Label, SubLabel, Switch } from '@luxonis/ui-components';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CircleLoader } from './CircleLoader.tsx';
+import { AppShell, LoadingState, Steps } from './AppShell.tsx';
 import { useNotifications } from './Notifications.tsx';
 import { TilingControl, type TilingParams } from './TilingControl.tsx';
 import { fetchQRTilingService, postToQRTilingService } from './services.ts';
@@ -19,8 +19,6 @@ function App() {
 	const [paramsLoaded, setParamsLoaded] = useState(false);
 	const [tilingParams, setTilingParams] = useState<TilingParams | null>(null);
 	const [decodeEnabled, setDecodeEnabled] = useState(false);
-
-	const streamContainerRef = useRef<HTMLDivElement>(null);
 
 	const onCurrentParams = useCallback((response: CurrentParamsResponse) => {
 		console.log('[Init] Returned tiling params:', response);
@@ -89,37 +87,33 @@ function App() {
 	);
 
 	return (
-		<main className="flex h-screen w-screen overflow-hidden p-8">
-			<div className="relative min-w-0 flex-1" ref={streamContainerRef}>
-				<Streams allowedTopics={['Video']} defaultTopics={['Video']} />
-			</div>
-
-			<div className="mx-8 w-px shrink-0 bg-border" />
-
-			<aside className="flex max-h-full w-[360px] shrink-0 flex-col gap-6 overflow-y-auto pr-3">
-				<div className="flex flex-col gap-3">
-					<h1 className="text-2xl font-bold">QR Tiling Detector</h1>
-					<p className="text-sm leading-6 text-muted-foreground">
-						High-resolution QR detection with configurable tiled inference.
-					</p>
-				</div>
+		<AppShell
+			title="QR Tiling Detector"
+			streams={<Streams allowedTopics={['Video']} defaultTopics={['Video']} />}
+		>
+			<>
+				<Card title="How to use" variant="outline" intent="white">
+					<Steps
+						items={[
+							'Set the rows, columns, and overlap of the tile grid.',
+							'Optionally merge neighboring tiles into larger tiles.',
+							'Select Update tiling to apply the grid to the stream.',
+						]}
+					/>
+				</Card>
 
 				{!paramsLoaded || !tilingParams ? (
-					<div className="flex min-h-[260px] flex-col items-center justify-center gap-4 text-muted-foreground">
-						<CircleLoader />
-						<span>Loading tiling configuration...</span>
-					</div>
+					<LoadingState title="Loading tiling configuration" />
 				) : (
 					<>
-						<section className="flex flex-col gap-4 border-t border-border pt-4">
-							<div className="flex items-center justify-between gap-4">
-								<div className="flex flex-col gap-1">
-									<h2 className="font-semibold">QR Code Configuration</h2>
-									<span className="text-sm text-muted-foreground">
-										Decode QR contents from detected tiles.
-									</span>
-								</div>
+						<Card title="QR decoding" variant="outline" intent="white">
+							<Flex direction="row" align="center" justify="between" gap="sm">
+								<Flex direction="column">
+									<Label id="qr-decode-label" text="Decode QR contents" />
+									<SubLabel text="Read the contents of QR codes found in the tiles." />
+								</Flex>
 								<Switch
+									aria-labelledby="qr-decode-label"
 									value={decodeEnabled}
 									showActiveLabelOnly
 									onChange={(newState) => {
@@ -127,27 +121,16 @@ function App() {
 										sendQRConfig(newState);
 									}}
 								/>
-							</div>
-						</section>
+							</Flex>
+						</Card>
 
-						<TilingControl initialParams={tilingParams} />
+						<Card title="Tiling" variant="outline" intent="white">
+							<TilingControl initialParams={tilingParams} />
+						</Card>
 					</>
 				)}
-
-				<div
-					className={`mt-auto flex items-center gap-2 pt-4 ${
-						connection.connected ? 'text-success' : 'text-destructive'
-					}`}
-				>
-					<div
-						className={`h-3 w-3 rounded-full ${
-							connection.connected ? 'bg-success' : 'bg-destructive'
-						}`}
-					/>
-					<span>{connection.connected ? 'Connected' : 'Disconnected'}</span>
-				</div>
-			</aside>
-		</main>
+			</>
+		</AppShell>
 	);
 }
 

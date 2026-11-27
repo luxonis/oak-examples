@@ -1,5 +1,5 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Switch } from '@luxonis/ui-components';
+import { Flex, Label, Switch } from '@luxonis/ui-components';
 import { useNotifications } from './Notifications.tsx';
 import { postToDinoTrackingService } from './services.ts';
 
@@ -37,13 +37,14 @@ export function OutlinesToggle({ enabled, setEnabled }: Props) {
 	};
 
 	return (
-		<div className="flex items-center justify-between gap-4">
-			<h3 className="font-semibold">Outlines</h3>
+		<Flex direction="row" align="center" justify="between" gap="sm">
+			<Label id="outlines-label" text="FastSAM outlines" />
 			<Switch
+				aria-labelledby="outlines-label"
 				value={enabled}
 				onChange={handleToggle}
 				showActiveLabelOnly
 			/>
-		</div>
+		</Flex>
 	);
 }

@@ -61,11 +61,10 @@ class QRDecoder(BaseHostNode):
 
     @staticmethod
     def _denormalize_bbox(frame: np.ndarray, det) -> np.ndarray:
-        """Convert normalized detection bbox to pixel coordinates."""
-        bbox = (det.xmin, det.ymin, det.xmax, det.ymax)
-        norm_vals = np.full(len(bbox), frame.shape[0])
-        norm_vals[::2] = frame.shape[1]
-        return (np.clip(np.array(bbox), 0, 1) * norm_vals).astype(int)
+        """Return clipped pixel bounds from the rotated detection rectangle."""
+        height, width = frame.shape[:2]
+        bbox = det.getBoundingBox().denormalize(width, height).getOuterRect()
+        return np.clip(bbox, 0, (width, height, width, height)).astype(int)
 
     @staticmethod
     def _expand_bbox(

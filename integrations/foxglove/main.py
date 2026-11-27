@@ -1,7 +1,5 @@
 import argparse as argparse
 import asyncio
-import math
-import time
 
 import depthai as dai
 from foxglove_websocket import run_cancellable
@@ -9,7 +7,9 @@ from foxglove_websocket.server import FoxgloveServer
 from utils.arguments import initialize_argparser
 from utils.foxglove_utils import (
     Listener,
+    capture_stamp,
     create_channels,
+    host_clock_to_unix_offset_ns,
     process_pointcloud,
     send_frame,
     send_pointcloud,
@@ -37,7 +37,10 @@ async def main():
                 dai.CameraBoardSocket.CAM_A
             )
             color_out = color_cam.requestOutput(
-                resolution, type=dai.ImgFrame.Type.NV12, fps=args.fps_limit
+                resolution,
+                type=dai.ImgFrame.Type.NV12,
+                fps=args.fps_limit,
+                enableUndistortion=args.pointcloud,
             )
             color_q = color_out.createOutputQueue(blocking=False, maxSize=1)
 
@@ -100,24 +103,27 @@ async def main():
                 server, not args.no_color, args.pointcloud, args.left, args.right
             )
 
+            frame_queues = (
+                (color_q, color_channel),
+                (left_q, left_channel),
+                (right_q, right_channel),
+            )
+            offset_ns = host_clock_to_unix_offset_ns()
             while pipeline.isRunning():
-                tmpTime = time.time_ns()
-                sec = math.trunc(tmpTime / 1e9)
-                nsec = tmpTime - sec
-
                 await asyncio.sleep(0.01)
 
-                if color_q is not None and color_q.has():
-                    frame = color_q.get().getCvFrame()
-                    await send_frame(server, frame, sec, nsec, color_channel)
-                if left_q is not None and left_q.has():
-                    frame = left_q.get().getCvFrame()
-                    await send_frame(server, frame, sec, nsec, left_channel)
-                if right_q is not None and right_q.has():
-                    frame = right_q.get().getCvFrame()
-                    await send_frame(server, frame, sec, nsec, right_channel)
+                # Follow wall-clock steps (e.g. NTP) without per-message jitter.
+                current_offset_ns = host_clock_to_unix_offset_ns()
+                if abs(current_offset_ns - offset_ns) > 50_000_000:
+                    offset_ns = current_offset_ns
+                for queue, channel in frame_queues:
+                    if queue is not None and queue.has():
+                        msg = queue.get()
+                        sec, nsec = capture_stamp(msg, offset_ns)
+                        await send_frame(server, msg.getCvFrame(), sec, nsec, channel)
                 if pcl_q is not None and pcl_q.has():
                     pcl_data = pcl_q.get()
+                    sec, nsec = capture_stamp(pcl_data, offset_ns)
                     pcl_processed = process_pointcloud(
                         pcl_data.getPoints(), downsample_pcl
                     )

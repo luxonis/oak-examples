@@ -1,4 +1,4 @@
-import { Slider } from '@luxonis/ui-components';
+import { Flex, Label, Slider } from '@luxonis/ui-components';
 
 type SettingsSliderProps = {
 	id: string;
@@ -23,11 +23,11 @@ export function SettingsSlider({
 	unit = '',
 }: SettingsSliderProps) {
 	return (
-		<div className="slider-control">
-			<label id={`${id}-label`} htmlFor={id}>
-				{label}: {value.toFixed(unit ? 1 : 2)}
-				{unit}
-			</label>
+		<Flex direction="column" gap="xs">
+			<Label
+				id={`${id}-label`}
+				text={`${label} ${value.toFixed(unit ? 1 : 2)}${unit}`}
+			/>
 			<Slider
 				id={id}
 				value={value}
@@ -37,6 +37,6 @@ export function SettingsSlider({
 				step={step}
 				aria-labelledby={`${id}-label`}
 			/>
-		</div>
+		</Flex>
 	);
 }

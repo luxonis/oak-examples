@@ -22,7 +22,13 @@ with dai.Pipeline(device) as pipeline:
         fps=args.fps_limit,
     )
 
-    visualizer.addTopic("Video", cam_out, "images")
+    encoder = pipeline.create(dai.node.VideoEncoder)
+    encoder.setDefaultProfilePreset(
+        args.fps_limit, dai.VideoEncoderProperties.Profile.H264_MAIN
+    )
+    cam_out.link(encoder.input)
+
+    visualizer.addTopic("Video", encoder.out, "images")
     visualizer.addTopic("Camera Configuration", manual_cam_control.output, "images")
 
     print("Pipeline created.")

@@ -42,8 +42,7 @@ This is the repository reference for tracking objects moving toward the camera a
 ## Architecture
 
 - A `SpatialDetectionNetwork` runs on `CAM_A` with depth from `Depth`.
-- `ImgDetectionsFilter` keeps only the `person` label.
-- `ObjectTracker` produces tracklets from the filtered spatial detections.
+- `ObjectTracker` receives spatial detections directly and tracks only people.
 - [utils/collision_avoidance_node.py](utils/collision_avoidance_node.py) derives the “approaching camera” direction/alert stream.
 - [utils/host_bird_eye_view.py](utils/host_bird_eye_view.py) renders the overhead motion view.
 
@@ -56,7 +55,7 @@ This is the repository reference for tracking objects moving toward the camera a
 ## Related Examples
 
 - [neural-networks/object-tracking/kalman](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/kalman): use this when you want smoothing of tracked spatial boxes instead of collision alerts
-- [neural-networks/object-detection/social-distancing](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/social-distancing): use this when you need person distance monitoring rather than motion-toward-camera logic
+- [neural-networks/object-detection/person-distance-bev](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-detection/person-distance-bev): use this for camera-relative person positions and pairwise 3D distances
 - [neural-networks/object-tracking/people-tracker](https://github.com/luxonis/oak-examples/tree/main/neural-networks/object-tracking/people-tracker): use this when you need directional people-flow counts
 
 ## Validation

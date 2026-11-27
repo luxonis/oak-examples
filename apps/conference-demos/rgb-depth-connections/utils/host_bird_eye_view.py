@@ -30,13 +30,18 @@ class BirdsEyeView(dai.node.HostNode):
             x = detection.spatialCoordinates.x
             z = detection.spatialCoordinates.z
 
+            if not (math.isfinite(x) and math.isfinite(z)):
+                continue
+
             y = frame.shape[0] - int(z / (MAX_Z - 10000) * frame.shape[0]) - 20
             x = int(-x / MAX_X * frame.shape[1] + frame.shape[1] / 2)
             cv2.circle(frame, (x, y), 2, (0, 255, 0), thickness=5, lineType=8, shift=0)
 
         output = dai.ImgFrame()
-        output.setTimestamp(detections.getTimestamp())
         output.setCvFrame(frame, dai.ImgFrame.Type.BGR888p)
+        output.setBufferMetadataFrom(detections)
+        # A top-down canvas is not a camera image; describe its own pixel space.
+        output.setTransformation(dai.ImgTransformation(frame.shape[1], frame.shape[0]))
         self.output.send(output)
 
 

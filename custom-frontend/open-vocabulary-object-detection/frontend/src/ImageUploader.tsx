@@ -1,6 +1,6 @@
 import { useDaiConnection } from '@luxonis/depthai-viewer-common';
-import { Button } from '@luxonis/ui-components';
-import { useState } from 'react';
+import { Alert, Button, Flex, Label, SubLabel } from '@luxonis/ui-components';
+import { useRef, useState } from 'react';
 import { useNotifications } from './Notifications.tsx';
 import { postToCustomService } from './services.ts';
 
@@ -19,6 +19,7 @@ export function ImageUploader({
 }: Props) {
 	const connection = useDaiConnection();
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 	const { notify } = useNotifications();
 
 	const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,53 +93,48 @@ export function ImageUploader({
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
-			<h3 className="font-semibold">Update Classes with Image Input:</h3>
-			<span className="text-sm text-muted-foreground">
-				Reset the view before drawing a bounding box.
-			</span>
+		<Flex direction="column" gap="sm">
 			{maxReached && (
-				<span className="text-sm text-destructive">
-					Maximum number of image prompts reached. Please delete or reset image
-					prompts to add more.
-				</span>
+				<Alert
+					intent="warning"
+					variant="light"
+					description="Image prompt limit reached. Delete or reset image prompts to add more."
+				/>
 			)}
 
-			<label
-				htmlFor="fileInput"
-				className={`min-w-0 rounded-md border-2 border-dashed border-muted-foreground/50 bg-muted p-8 text-center break-words ${
-					maxReached
-						? 'cursor-not-allowed opacity-60'
-						: 'cursor-pointer hover:bg-accent'
-				}`}
-			>
-				{selectedFile
-					? selectedFile.name
-					: 'Click here to choose an image file.'}
-			</label>
-
-			<input
-				id="fileInput"
-				type="file"
-				accept="image/*"
-				onChange={handleFileSelect}
-				style={{ display: 'none' }}
-				disabled={maxReached}
-			/>
-
-			<div className="mt-8 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-				<Button
-					className="min-w-0 px-3"
-					onClick={handleUpload}
+			<Flex direction="column" gap="xs">
+				<Label text="Upload an image of the object" />
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="image/*"
+					className="hidden"
+					onChange={handleFileSelect}
 					disabled={maxReached}
-				>
-					Upload Image
-				</Button>
+				/>
+				<div className="grid grid-cols-2 gap-2">
+					<Button
+						variant="outline"
+						intent="gray"
+						onClick={() => fileInputRef.current?.click()}
+						disabled={maxReached}
+					>
+						Choose image
+					</Button>
+					<Button onClick={handleUpload} disabled={maxReached}>
+						Upload image
+					</Button>
+				</div>
+				<SubLabel
+					break="word"
+					text={selectedFile ? selectedFile.name : 'No image chosen.'}
+				/>
+			</Flex>
 
-				<span className="text-center text-sm">or</span>
-
+			<Flex direction="column" gap="xs">
+				<Label text="Or draw a box around it on the stream" />
+				<SubLabel text="Reset the view before drawing a bounding box." />
 				<Button
-					className="min-w-0 px-3"
 					onClick={() => {
 						console.log('[BBox] Button clicked: enabling drawing overlay');
 						onDrawBBox?.();
@@ -149,9 +145,9 @@ export function ImageUploader({
 					}}
 					disabled={maxReached}
 				>
-					Draw Bounding Box
+					Draw bounding box
 				</Button>
-			</div>
-		</div>
+			</Flex>
+		</Flex>
 	);
 }
