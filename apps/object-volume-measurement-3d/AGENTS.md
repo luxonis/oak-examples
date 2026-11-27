@@ -82,6 +82,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - Selection masks and aligned depth must share the undistorted RGB pixel grid.
 - This example is intentionally RVC4 standalone only.
+- The Open3D ARM64 wheel needs `libgfortran5` and `libegl1` installed by [oakapp.toml](oakapp.toml); the current base image already provides `libgl1` and `libgomp1`. Keep the Python-dependent SciPy pins when changing backend dependencies.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
 - Projection uses each native PointCloud cloud’s `ImgTransformation.project3DPoint` and image dimensions, including alignment and undistortion. Cloud coordinates are centimeters in the `CAM_A` optical frame (+X right, +Y down, +Z forward); dimensions/volume are reported in cm/cm³.

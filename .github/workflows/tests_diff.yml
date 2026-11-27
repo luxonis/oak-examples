@@ -11,6 +11,16 @@ on:
         description: 'oakctl version for Linux standalone tests. Leave empty for latest.'
         type: string
         required: false
+      python_version:
+        description: 'Python version for Linux peripheral tests. Use all for 3.10, 3.12 and 3.14.'
+        type: choice
+        options:
+          - "3.12"
+          - "all"
+          - "3.10"
+          - "3.14"
+        default: "3.12"
+        required: false
       log_level:
         description: 'Log level to use for pytest.'
         type: choice
@@ -91,7 +101,7 @@ jobs:
       - id: set-matrix
         env:
           INPUT_PLATFORM: ${{ github.event.inputs.platform || 'all' }}
-          INPUT_PYTHON: "3.10" # Test only on python 3.10
+          INPUT_PYTHON: ${{ github.event.inputs.python_version || '3.12' }}
         run: |
           if [ "$INPUT_PLATFORM" = "all" ]; then
             echo 'platform=["rvc2","rvc4"]' >> $GITHUB_OUTPUT
@@ -100,7 +110,7 @@ jobs:
           fi
 
           if [ "$INPUT_PYTHON" = "all" ]; then
-            echo 'python=["3.8", "3.10", "3.12"]' >> $GITHUB_OUTPUT
+            echo 'python=["3.10", "3.12", "3.14"]' >> $GITHUB_OUTPUT
           else
             echo "python=[\"$INPUT_PYTHON\"]" >> $GITHUB_OUTPUT
           fi
@@ -233,7 +243,7 @@ jobs:
           
           ENV_VARS="\
             --env PLATFORM="rvc4" \
-            --env PYTHON_VERSION_ENV="3.10" \
+            --env PYTHON_VERSION_ENV="3.12" \
             --env LOG_LEVEL=${{ github.event.inputs.log_level || 'INFO' }} \
             --env ROOT_DIR='${{ needs.detect-changes.outputs.example_dirs }}' \
             --env STRICT_MODE=${{ github.event.inputs.strict_mode || 'no' }} \

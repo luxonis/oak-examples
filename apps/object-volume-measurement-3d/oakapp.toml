@@ -4,6 +4,7 @@ app_version = "1.1.0"
 
 storage_dir_name = "storage"
 prepare_container = [
+    { type = "RUN", command = "apt-get update && apt-get install -y --no-install-recommends libgfortran5 libegl1 && rm -rf /var/lib/apt/lists/*" },
  { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
     { type = "RUN", command = "python3.11 -m pip install -r /app/backend/requirements.txt --break-system-packages"},
 ]

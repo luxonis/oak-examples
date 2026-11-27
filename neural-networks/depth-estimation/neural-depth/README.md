@@ -36,7 +36,7 @@ Both backends show depth and disparity in the Visualizer. Native NeuralDepth als
 
 ### Installation
 
-You need to first prepare a **Python >= 3.10** environment with the following packages installed:
+You need to first prepare a **Python 3.12** environment (recommended) with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/),
 - [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).

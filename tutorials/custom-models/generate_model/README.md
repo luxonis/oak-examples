@@ -30,6 +30,8 @@ Uses [torch.sub](https://pytorch.org/docs/stable/generated/torch.sub.html) opera
 
 ## Installation
 
+Use **Python 3.12** for model generation. Python 3.10 and 3.14 are also supported.
+
 The model generation scripts require **Docker** to be installed. You can install Docker by following the instructions [here](https://docs.docker.com/engine/install/). You must also install the required packages specified in `requirements.txt` file:
 
 ```bash
@@ -45,7 +47,7 @@ positional arguments:
   {rvc2,rvc3,rvc4}  Platform to generate NN archive for.
 ```
 
-The generated NN Archives will be available in the `out/shared_with_container/models` directory.
+The generated NN Archives will be available in the `out/models` directory.
 
 #### Examples
 

@@ -63,7 +63,7 @@ brew install zbar
 
 No additional system package is required. If `pyzbar` cannot load its bundled `zbar` DLLs, the example automatically falls back to `zxing-cpp`.
 
-You need to first prepare a **Python >= 3.10** environment with the following packages installed:
+You need to first prepare a **Python 3.12** environment (recommended) with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/),
 - [DepthAI Nodes](https://pypi.org/project/depthai-nodes/).

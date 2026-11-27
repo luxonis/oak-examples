@@ -20,6 +20,12 @@ git clone --depth 1 --branch main https://github.com/luxonis/oak-examples.git
 
 Afterwards, navigate to desired application as listed below
 
+## Python environment
+
+**Python 3.12 is recommended** for running examples on your computer. Create a virtual environment with `python3.12 -m venv .venv`, activate it, and install the selected example's `requirements.txt`.
+
+The Linux peripheral test matrix includes **Python 3.10, 3.12, and 3.14**, with **3.12 as the default**. Some examples have dependency-specific restrictions; see the [testing guide](tests/README.md). Standalone OAK apps use the Python runtime in their `oakapp.toml` base image.
+
 ## Categories
 
 ### [📱 Apps](apps/)
