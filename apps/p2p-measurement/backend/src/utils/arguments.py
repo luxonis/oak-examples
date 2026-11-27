@@ -1,5 +1,7 @@
 import argparse
 
+from utils.frontend_server import DEFAULT_FRONTEND_IP, DEFAULT_FRONTEND_PORT
+
 
 def initialize_argparser():
     """Initialize the argument parser for the script."""
@@ -23,6 +25,60 @@ def initialize_argparser():
         required=False,
         default=None,
         type=int,
+    )
+
+    parser.add_argument(
+        "--no-frontend",
+        help="Disable serving the static frontend bundle from Python (used in standalone oakapp mode or with Vite dev server).",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--frontend-ip",
+        help="IP address to serve the static frontend bundle on in peripheral mode.",
+        required=False,
+        default=DEFAULT_FRONTEND_IP,
+        type=str,
+    )
+
+    parser.add_argument(
+        "--frontend-port",
+        help="Port to serve the static frontend bundle on in peripheral mode.",
+        required=False,
+        default=DEFAULT_FRONTEND_PORT,
+        type=int,
+    )
+
+    parser.add_argument(
+        "--frontend-dir",
+        help="Path to the built static frontend bundle directory (overrides OAKAPP_STATIC_FRONTEND_PATH and default frontend/dist).",
+        required=False,
+        default=None,
+        type=str,
+    )
+
+    parser.add_argument(
+        "--https",
+        "--use-ssl",
+        dest="use_ssl",
+        help="Serve the local peripheral frontend over HTTPS using a self-signed or provided TLS certificate.",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--certificate-path",
+        help="Path to TLS certificate (.crt) file used when --https is enabled.",
+        required=False,
+        default=None,
+        type=str,
+    )
+
+    parser.add_argument(
+        "--key-path",
+        help="Path to TLS private key (.key) file used when --https is enabled.",
+        required=False,
+        default=None,
+        type=str,
     )
 
     args = parser.parse_args()

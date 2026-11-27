@@ -22,13 +22,8 @@ KNOWN_FAILING = {
         },
     },
     "apps/p2p-measurement": {
-        "reason": "Not supported for peripheral; RVC4 only app",
-        "rules": {
-            "and": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 only app",
+        "rules": {"and": [{"platform": ["rvc2"]}]},
     },
     "apps/dino-tracking": {
         "reason": "Not supported for peripheral; RVC4 only app",

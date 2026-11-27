@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the best standalone reference for interactive two-point 3D distance measurement. Use it when you need click-based point selection, aligned RGB-depth visualization, and host-side tracking or remeasurement of selected points without the heavier segmentation and pointcloud logic from the 3D volume app.
+This is the reference app for interactive two-point 3D distance measurement on RVC4 in both peripheral and standalone modes. Use it when you need click-based point selection, aligned RGB-depth visualization, and host-side tracking or remeasurement of selected points without the heavier segmentation and pointcloud logic from the 3D volume app.
 
 ## Use This Example When
 
@@ -15,7 +15,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 - You need segmented pointclouds and object volume.
 - You need a generic depth baseline with no frontend.
-- You need host/peripheral support instead of standalone-only packaging.
+- You need RVC2 device support.
 - You need a polished ROS measurement workflow.
 
 ## Quick Facts
@@ -26,16 +26,17 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 (standalone and peripheral)
 - `Requires:` RVC4 device with RGB and stereo; calibration on device; static frontend build
 - `Input:` RGB camera, unified depth, and frontend point clicks
 - `Output:` `Video`, `Depth`, `Point Annotations`, and service-based distance/tracking state
 - `Models:` none
-- `Visualizer / UI:` custom static frontend
+- `Visualizer / UI:` custom static frontend (served by oakapp in standalone mode, or by [backend/src/utils/frontend_server.py](backend/src/utils/frontend_server.py) in peripheral mode)
 
 ## Read First
 
-- [backend/src/main.py](backend/src/main.py): pipeline, services, and topic publication
+- [backend/src/main.py](backend/src/main.py): pipeline, services, topic publication, and peripheral frontend server lifecycle
+- [backend/src/utils/frontend_server.py](backend/src/utils/frontend_server.py): static bundle HTTP/HTTPS server for peripheral mode (disabled in standalone mode)
 - [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py): point selection, tracking modes, annotations, and distance state
 - [backend/src/utils/distance_calculator.py](backend/src/utils/distance_calculator.py): depth-to-distance logic
 - [backend/src/utils/arguments.py](backend/src/utils/arguments.py): CLI arguments
@@ -52,6 +53,8 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - A colorized depth stream is published for viewing.
 - The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using calibration intrinsics, and emits overlay annotations.
 - The frontend interacts with backend services for point selection, clearing, distance polling, and tracking-mode toggling.
+- In peripheral mode, [backend/src/utils/frontend_server.py](backend/src/utils/frontend_server.py) serves the built static bundle from `frontend/dist` over HTTP (default port `8082`) or optional local HTTPS (`--https`).
+- In standalone mode, [oakapp.toml](oakapp.toml) passes `--no-frontend` (and the runtime sets `OAKAPP_STATIC_FRONTEND_PORT`), so the Python HTTP server is skipped and `oakapp` serves `[static_frontend]` directly.
 
 ## Data Flow
 
@@ -76,7 +79,8 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Constraints
 
-- This example is RVC4 standalone only.
+- This example supports RVC4 only (standalone and peripheral modes).
+- Peripheral mode requires building the static frontend bundle (`cd frontend && npm ci && npm run build`) before running [backend/src/main.py](backend/src/main.py).
 - The backend defaults to `15` FPS when no limit is provided.
 - Measurement quality depends on valid aligned depth for both points.
 - The frontend polls `Get Distance Service` at a high rate, so service responsiveness matters.
@@ -86,6 +90,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - Clearing points is handled through `Selection Service` with `{clear: true}` as well as a separate `Clear Points Service`.
 - The host tracker supports multiple modes internally: tracking, meter, and static.
 - Spacebar and right-click reset are frontend conveniences layered on top of the same backend point-clearing behavior.
+- Standalone mode excludes the Python static web server via both `--no-frontend` in [oakapp.toml](oakapp.toml) and `OAKAPP_STATIC_FRONTEND_PORT` detection in [backend/src/utils/frontend_server.py](backend/src/utils/frontend_server.py).
 
 ## Related Examples
 
@@ -96,6 +101,6 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Validation
 
-- `Run:` `oakctl app run .`
-- `Success looks like:` the frontend shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target
-- `Common failure meaning:` stereo alignment or calibration is missing, invalid depth prevents measurement, or frontend topic/service assumptions drifted from the backend
+- `Run:` standalone: `oakctl app run .`; peripheral: `cd frontend && npm ci && npm run build && cd .. && python3 backend/src/main.py` (or add `--https` for local HTTPS)
+- `Success looks like:` the frontend loads on `http://localhost:8082` (or `https://localhost:8082` with `--https`, or `https://<OAK4_IP>:9000/` in standalone), shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target
+- `Common failure meaning:` missing `frontend/dist` build in peripheral mode, stereo alignment or calibration is missing, invalid depth prevents measurement, or frontend topic/service assumptions drifted from the backend

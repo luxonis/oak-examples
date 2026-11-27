@@ -9,6 +9,9 @@ node_modules/
 # Multimedia files
 media/
 
+# Local HTTPS certificates generated in peripheral mode
+.https/
+
 # Local models
 *.onnx
 
