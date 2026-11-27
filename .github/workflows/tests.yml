@@ -31,8 +31,8 @@ on:
           required: false
           type: string
       platform:
-        description: 'Platform to use for testing. By default both RVC2 and RVC4 are used but you can use only one by passing only `rvc2` or `rvc4`(use lowercase).'
-        default: "all"
+        description: 'Platform to use for testing. This temporary OAK4 Max run defaults to rvc4.'
+        default: "rvc4"
         required: false
       root_dir:
         decription: 'One or more space-separated paths to example directories you want to test. Defaults to "." (all).'
@@ -50,10 +50,10 @@ on:
         required: false
         type: string
       subtests:
-        description: "System OS and type of tests (e.g. os=windows,subtests=peripheral). Each key is optional and defaults to all."
+        description: "System OS and type of tests. This temporary OAK4 Max run defaults to all Linux tests."
         required: false
         type: string
-        default: "os=all,subtests=all"
+        default: "os=linux,subtests=all"
 
 jobs:
   id:
@@ -156,7 +156,7 @@ jobs:
           if [ "${{ matrix.platform }}" = "rvc2" ]; then
             echo "MODEL=oak_d_s2" >> $GITHUB_ENV
           elif [ "${{ matrix.platform }}" = "rvc4" ]; then
-            echo "MODEL=oak4_pro or oak4_d" >> $GITHUB_ENV
+            echo "MODEL=oak4_max" >> $GITHUB_ENV
           fi
           
       - name: Run Test
@@ -186,7 +186,12 @@ jobs:
             ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
           fi
 
-          exec hil_runner --models "$MODEL" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace \
+          SCOPE_OPTION=()
+          if [ "${{ matrix.platform }}" = "rvc4" ]; then
+            SCOPE_OPTION=(--scope 4max)
+          fi
+
+          exec hil_runner --models "$MODEL" "${SCOPE_OPTION[@]}" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --sync-workspace \
               --dockerfile ./tests/Dockerfile_peripheral \
               --docker-build-args "--build-arg PYTHON_VERSION=${{ matrix.python-version }}" \
               --docker-run-args "$ENV_VARS"
@@ -354,7 +359,7 @@ jobs:
             ADDITIONAL_OPTIONS="${{ github.event.inputs.additional_options }}"
           fi
 
-          exec hil_runner --models "oak4_pro or oak4_d" $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --oakctl --sync-workspace \
+          exec hil_runner --models "oak4_max" --scope 4max $RESERVATION_OPTION $HOLD_RESERVATION --wait $ADDITIONAL_OPTIONS --oakctl --sync-workspace \
               --dockerfile ./tests/Dockerfile_standalone \
               --docker-build-args "--build-arg PYTHON_VERSION=3.12 --build-arg OAKCTL_VERSION=$OAKCTL_VERSION" \
               --docker-run-args "$ENV_VARS"
