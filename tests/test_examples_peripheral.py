@@ -210,6 +210,13 @@ def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int =
         env_dict = dict(item.split("=") for item in env_vars.split())
         env.update(env_dict)
 
+    # Run the example as if its venv were activated. Programs that packages
+    # install into the venv must be found on PATH (e.g. rerun-sdk >= 0.16
+    # spawns the `rerun` viewer from PATH).
+    scripts_dir = env_exe.parent
+    env["VIRTUAL_ENV"] = str(scripts_dir.parent)
+    env["PATH"] = os.pathsep.join(filter(None, [str(scripts_dir), env.get("PATH")]))
+
     # Disable telemetry for every tested pipeline, including retries.
     env["DEPTHAI_TELEMETRY"] = "0"
 
@@ -318,14 +325,61 @@ def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int =
 
 
 def stop_process_tree(process: subprocess.Popen):
-    """Kills the example and everything it spawned (they share its process group on POSIX)."""
+    """Kills the example and everything it spawned.
+
+    Some helpers leave the example's process group (e.g. the Rerun viewer starts
+    its own session). They are found by parent PID while the example still runs.
+    """
     if os.name == "nt":
+        try:
+            # /T also kills the child processes, detached ones included.
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError:
+            pass
         process.kill()
         return
+    descendants = get_descendant_pids(process.pid)
     try:
         os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:
         pass
+    for pid in descendants:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def get_descendant_pids(root_pid: int) -> List[int]:
+    """Returns the PIDs of all descendants of root_pid (POSIX only, uses `ps`)."""
+    try:
+        output = subprocess.run(
+            ["ps", "-A", "-o", "pid=", "-o", "ppid="],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        logger.warning(
+            f"Cannot list processes ({e}); helpers outside the process group may keep running."
+        )
+        return []
+    children: Dict[int, List[int]] = {}
+    for line in output.split("\n"):
+        fields = line.split()
+        if len(fields) == 2 and fields[0].isdigit() and fields[1].isdigit():
+            children.setdefault(int(fields[1]), []).append(int(fields[0]))
+    descendants = []
+    stack = [root_pid]
+    while stack:
+        for child in children.get(stack.pop(), []):
+            descendants.append(child)
+            stack.append(child)
+    return descendants
 
 
 def filter_warnings(output: List[str], ignored_warnings: List[str]):
