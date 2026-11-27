@@ -132,8 +132,8 @@ KNOWN_FAILING = {
         "rules": {"and": [{"os": ["win"]}]},
     },
     "integrations/rerun": {
-        "reason": "No matching distribution found for rerun-sdk==0.15.1 on Windows",
-        "rules": {"and": [{"os": ["win"]}]},
+        "reason": "rerun-sdk 0.44 requires Python 3.11 or newer",
+        "rules": {"and": [{"python_version": ["3.10"]}]},
     },
     "apps/data-collection": {
         "reason": "Not supported for peripheral; RVC4 only app",
