@@ -1,6 +1,7 @@
 """Measure boxes seen by one or more OAK devices, with the support plane found automatically."""
 
 import logging
+from datetime import timedelta
 
 import depthai as dai
 from depthai_nodes.node import AutoSupportPlane, AutoSupportPlaneConfig, BoxMeasurer
@@ -47,7 +48,19 @@ def main():
         calibration = None
         logger.info(
             "One device: no multi-device calibration is needed; "
-            "--calibrate and --calibration are ignored."
+            "--calibrate, --calibration and --ptp are ignored."
+        )
+
+    # Without PTP, the devices capture at unrelated times, so views are grouped
+    # within half a frame period. With PTP, all devices capture at the same time
+    # and the default sync threshold applies.
+    ptp = multi_device and args.ptp
+    sync_threshold = None
+    if multi_device and not args.ptp:
+        sync_threshold = timedelta(seconds=0.5 / args.fps_limit)
+        logger.info(
+            "Capturing without PTP: only static boxes are measured correctly. "
+            "Pass --ptp to measure moving boxes."
         )
 
     # One pipeline spans all devices; every node is created on the device it runs on.
@@ -59,6 +72,8 @@ def main():
         # The support plane is found in the depth of all devices, merged in millimeters.
         scene_cloud = pipeline.create(dai.node.PointCloud)
         scene_cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
+        if sync_threshold is not None:
+            scene_cloud.sync.setSyncThreshold(sync_threshold)
 
         devices = []
         device_ids = []
@@ -72,13 +87,12 @@ def main():
             # The IR dot pattern gives plain box faces texture, so their depth is less noisy.
             device.setIrLaserDotProjectorIntensity(1)
 
-            # BoxMeasurer needs the frames of all devices captured at the same time.
             color = create_camera(
                 pipeline,
                 device,
                 dai.CameraBoardSocket.CAM_A,
                 args.fps_limit,
-                multi_device,
+                ptp,
             )
             color_out = color.requestOutput(
                 SIZE,
@@ -89,7 +103,7 @@ def main():
             )
             # The Depth node uses the stereo cameras that already exist on its device.
             for socket in STEREO_SOCKETS:
-                create_camera(pipeline, device, socket, args.fps_limit, multi_device)
+                create_camera(pipeline, device, socket, args.fps_limit, ptp)
             depth = pipeline.create(dai.node.Depth, device).build(
                 dai.node.Depth.Algorithm.AUTO, args.fps_limit, SIZE
             )
@@ -100,7 +114,9 @@ def main():
             device_ids.append(device_id)
             views.append((color_out, depth.depth))
 
-        measurer = pipeline.create(BoxMeasurer).build(views)
+        measurer = pipeline.create(BoxMeasurer).build(
+            views, syncThreshold=sync_threshold
+        )
         for view, (device_id, (color_out, _)) in enumerate(zip(device_ids, views)):
             overlay = pipeline.create(BoxOverlay).build(measurer.out, view)
             visualizer.addTopic(f"Color - {device_id}", color_out, group=device_id)

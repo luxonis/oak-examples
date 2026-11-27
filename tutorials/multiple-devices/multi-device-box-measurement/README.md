@@ -5,7 +5,7 @@ This example measures the length, width and height of boxes seen by one or more 
 How it works:
 
 1. **Multi-device calibration**: with two or more devices, the `MultiDeviceCalibration` node estimates the pose of every device relative to one origin device (first run only). One device needs no multi-device calibration.
-2. **Per device**: a color camera and a `Depth` node aligned to it are created on the device. With two or more devices, all cameras capture on the PTP clock, so the frames of all devices are taken at the same time.
+2. **Per device**: a color camera and a `Depth` node aligned to it are created on the device. With two or more devices, the devices capture at unrelated times, and the frames of all devices are grouped within half a frame period. With `--ptp`, all cameras capture on the PTP clock, so the frames of all devices are taken at the same time.
 3. **Support plane**: one host `PointCloud` node merges the depth of all devices in millimeters. The [`AutoSupportPlane`](https://github.com/luxonis/depthai-nodes/tree/main/depthai_nodes/node/support_plane_calibrator) node from depthai-nodes fits planes to it and keeps the one that is perpendicular to the gravity from the first device's IMU. It checks the plane again about every 0.5 s and finds it again when it no longer fits, for example after a device moves.
 4. **Measurement**: the `BoxMeasurer` node from depthai-nodes detects boxes on each device with the `luxonis/box-instance-segmentation` model, joins the views of the same box and measures it against the support plane.
 
@@ -19,8 +19,8 @@ Running this example requires one or more **OAK 4** devices with a color camera 
 
 With two or more devices, also make sure that:
 
-- The devices are on an Ethernet network that supports PTP, and run Luxonis OS 1.35.0 or newer. Refer to the [PTP documentation](https://docs.luxonis.com/hardware/platform/deploy/data-sync/ptp-sync). Without PTP the devices' frames do not arrive together and no box is measured.
 - The devices see a shared, textured, static scene for the multi-device calibration.
+- To measure moving boxes, for example on a conveyor, pass `--ptp`. The devices must then be on an Ethernet network that supports PTP, and run Luxonis OS 1.35.0 or newer. Refer to the [PTP documentation](https://docs.luxonis.com/hardware/platform/deploy/data-sync/ptp-sync). Without PTP, only static boxes are measured correctly: a moving box is at a different position in each view, and it can be split into two boxes or measured too large.
 
 You can run the example using your computer as host ([`PERIPHERAL` mode](#peripheral-mode)).
 
@@ -47,6 +47,9 @@ Here is a list of all available parameters:
 --calibrate           Run the multi-device calibration again even if the calibration file exists
 -n, --sample-count SAMPLE_COUNT
                       Number of synchronized image groups collected for the multi-device calibration (default: 10)
+--ptp                 Capture on the PTP clock, so that moving boxes are measured correctly.
+                      Without it, the frames of all devices are grouped within half a frame
+                      period, and only static boxes are measured correctly. (default: False)
 --fps_limit FPS_LIMIT FPS limit of the cameras. (default: 10)
 ```
 
@@ -71,7 +74,13 @@ pip install -r requirements.txt
 python main.py --devices 192.168.1.10 192.168.1.11
 ```
 
-This will calibrate the two named devices on the first run and then start measuring.
+This will calibrate the two named devices on the first run and then start measuring static boxes.
+
+```bash
+python main.py --devices 192.168.1.10 192.168.1.11 --ptp
+```
+
+This will measure with two devices on the PTP clock, so that moving boxes are measured correctly.
 
 ```bash
 python main.py --devices 192.168.1.10

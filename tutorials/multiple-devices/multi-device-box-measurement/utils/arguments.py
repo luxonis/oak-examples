@@ -59,6 +59,14 @@ def initialize_argparser():
     )
 
     parser.add_argument(
+        "--ptp",
+        action="store_true",
+        help="Capture on the PTP clock, so that moving boxes are measured correctly. "
+        "Without it, the frames of all devices are grouped within half a frame "
+        "period, and only static boxes are measured correctly.",
+    )
+
+    parser.add_argument(
         "--fps_limit",
         help="FPS limit of the cameras.",
         required=False,
