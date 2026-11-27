@@ -22,14 +22,6 @@ HTTP_PORT = 8082
 SIZE = (640, 400)  # Color and depth size per device, in the box model's aspect ratio
 
 
-def create_camera(pipeline, device, socket, fps, ptp):
-    """Create a camera that captures on the PTP clock when ptp is set."""
-    camera = pipeline.create(dai.node.Camera, device).build(socket, sensorFps=fps)
-    if ptp:
-        camera.initialControl.setFrameSyncMode(dai.CameraControl.FrameSyncMode.TIME_PTP)
-    return camera
-
-
 def main():
     _, args = initialize_argparser()
     device_infos = select_devices(args.devices, args.include_ip, args.max_devices)
@@ -84,23 +76,27 @@ def main():
             # The IR dot pattern gives plain box faces texture, so their depth is less noisy.
             device.setIrLaserDotProjectorIntensity(1)
 
-            color = create_camera(
-                pipeline,
-                device,
-                dai.CameraBoardSocket.CAM_A,
-                args.fps_limit,
-                ptp,
-            )
-            color_out = color.requestOutput(
+            # The Depth node uses the stereo cameras that already exist on its device,
+            # so all cameras are created first and capture on the PTP clock with --ptp.
+            cameras = {
+                socket: pipeline.create(dai.node.Camera, device).build(
+                    socket, sensorFps=args.fps_limit
+                )
+                for socket in (dai.CameraBoardSocket.CAM_A, *STEREO_SOCKETS)
+            }
+            if ptp:
+                for camera in cameras.values():
+                    camera.initialControl.setFrameSyncMode(
+                        dai.CameraControl.FrameSyncMode.TIME_PTP
+                    )
+
+            color_out = cameras[dai.CameraBoardSocket.CAM_A].requestOutput(
                 SIZE,
                 type=dai.ImgFrame.Type.RGB888i,
                 fps=args.fps_limit,
                 resizeMode=dai.ImgResizeMode.CROP,
                 enableUndistortion=True,
             )
-            # The Depth node uses the stereo cameras that already exist on its device.
-            for socket in STEREO_SOCKETS:
-                create_camera(pipeline, device, socket, args.fps_limit, ptp)
             depth = pipeline.create(dai.node.Depth, device).build(
                 dai.node.Depth.Algorithm.AUTO, args.fps_limit, SIZE
             )
