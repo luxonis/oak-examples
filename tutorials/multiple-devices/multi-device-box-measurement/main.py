@@ -19,10 +19,7 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 HTTP_PORT = 8082
-SIZE = (
-    640,
-    400,
-)  # Color and depth size per device, in the aspect ratio of the box model
+SIZE = (640, 400)  # Color and depth size per device, in the box model's aspect ratio
 
 
 def create_camera(pipeline, device, socket, fps, ptp):
@@ -125,6 +122,8 @@ def main():
         # Gravity from the first device's IMU tells the support plane apart from walls.
         imu = pipeline.create(dai.node.IMU, devices[0])
         imu.enableIMUSensor(dai.IMUSensor.ACCELEROMETER_RAW, 100)
+        imu.setBatchReportThreshold(10)
+        imu.setMaxBatchReports(10)
         support_plane = pipeline.create(AutoSupportPlane).build(
             scene_cloud.outputPointCloud,
             imu.out,

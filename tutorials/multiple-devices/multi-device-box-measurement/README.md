@@ -11,7 +11,7 @@ How it works:
 
 ## Demo
 
-The Visualizer shows the color stream of every device with an outline on each box. The label shows the box ID, the measurement status and, when measured, the dimensions in cm. A box seen by several devices has the same ID on all of them.
+<!-- TODO: Add a compact screenshot or GIF of the Visualizer with measured boxes from two devices, stored in media/. -->
 
 ## Usage
 
@@ -49,7 +49,7 @@ Here is a list of all available parameters:
                       Number of synchronized image groups collected for the multi-device calibration (default: 10)
 --ptp                 Capture on the PTP clock, so that moving boxes are measured correctly.
                       Without it, the frames of all devices are grouped within half a frame
-                      period, and only static boxes are measured correctly. (default: False)
+                      period, and only static boxes are measured correctly.
 --fps_limit FPS_LIMIT FPS limit of the cameras. (default: 10)
 ```
 
@@ -60,7 +60,7 @@ You can find more information about the supported devices and the set up instruc
 Moreover, you need to prepare a **Python >= 3.10** environment with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/)
-- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/) with the `box-measurement` extra
+- [DepthAI Nodes](https://pypi.org/project/depthai-nodes/) with the `box-measurement` extra (installs open3d)
 
 You can simply install them by running:
 
@@ -74,7 +74,13 @@ pip install -r requirements.txt
 python main.py --devices 192.168.1.10 192.168.1.11
 ```
 
-This will calibrate the two named devices on the first run and then start measuring static boxes.
+This will calibrate the two named devices on the first run and then start measuring static boxes. Prefer `--devices` on a network with many cameras.
+
+```bash
+python main.py --include-ip --max-devices 2
+```
+
+This will discover USB and TCP/IP cameras and use the first 2 discovered devices. OAK 4 devices connect over TCP/IP, so discovery without `--include-ip` does not find them.
 
 ```bash
 python main.py --devices 192.168.1.10 192.168.1.11 --ptp
