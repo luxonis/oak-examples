@@ -11,13 +11,13 @@ from depthai_nodes.node import (
     SupportPlaneCalibrator,
 )
 
+from geometry import DEPTH_SIZE
 from nodes import BenchmarkLogger, MeasurementController
 from preview import PreviewRendererNode
 from storage_node import StorageHostNode
 
 RGB_SIZE = (2000, 1500)
 MONO_SIZE = (1280, 800)
-DEPTH_SIZE = (768, 480)
 DEFAULT_FPS = 10
 
 

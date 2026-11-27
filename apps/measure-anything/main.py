@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 from pathlib import Path
 import signal
@@ -13,7 +14,15 @@ from history import MeasurementStore
 from pipeline import DEFAULT_FPS, init_pipeline
 
 
+logger = logging.getLogger(__name__)
+
+
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
     parser = argparse.ArgumentParser(description="Measure anything with an OAK4.")
     parser.add_argument("-d", "--device", help="OAK4 IP or device ID")
     parser.add_argument("--host", default="127.0.0.1")
@@ -50,16 +59,13 @@ def main():
         try:
             if device.getIrDrivers():
                 if device.setIrLaserDotProjectorIntensity(1.0):
-                    print(
-                        "IR laser dot projector enabled at full intensity (1.0).",
-                        flush=True,
+                    logger.info(
+                        "IR laser dot projector enabled at full intensity (1.0)."
                     )
                 else:
-                    print(
-                        "Warning: Failed to enable IR laser dot projector.", flush=True
-                    )
+                    logger.warning("Failed to enable IR laser dot projector.")
             else:
-                print("No IR driver detected; skipping the dot projector.", flush=True)
+                logger.info("No IR driver detected; skipping the dot projector.")
             store = MeasurementStore(args.storage)
             controller = init_pipeline(
                 pipeline, fps=args.fps, evidence=args.evidence, store=store
@@ -84,23 +90,21 @@ def main():
                 remote.registerService(name, handler)
 
             pipeline.start()
-            print("Pipeline started.", flush=True)
+            logger.info("Pipeline started.")
             remote.registerPipeline(pipeline)
-            print(
+            logger.info(
+                "%s",
                 json.dumps({"capture_profile": controller.get_state({})["capture"]}),
-                flush=True,
             )
             if os.environ.get("OAKAPP_STATIC_FRONTEND_PATH"):
                 port = int(os.environ.get("OAKAPP_STATIC_FRONTEND_PORT", "8000"))
                 urls = frontend_urls(args.host, port)
                 for url in urls:
-                    print(f"Measure anything frontend at {url}", flush=True)
+                    logger.info("Measure anything frontend at %s", url)
                 if not urls:
-                    print(f"Open the OAK4's HTTPS address on port {port}.", flush=True)
+                    logger.info("Open the OAK4's HTTPS address on port %s.", port)
             else:
-                print(
-                    "Start the frontend with npm --prefix frontend run dev.", flush=True
-                )
+                logger.info("Start the frontend with npm --prefix frontend run dev.")
 
             while pipeline.isRunning() and not stopped.is_set():
                 pipeline.processTasks()

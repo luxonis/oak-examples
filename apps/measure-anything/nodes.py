@@ -2,6 +2,7 @@ from collections import OrderedDict, deque
 from copy import deepcopy
 from datetime import timedelta
 import json
+import logging
 from pathlib import Path
 import sqlite3
 import threading
@@ -32,6 +33,9 @@ from rendering import (
 )
 from snapshot import measurement_snapshot
 from storage_node import SaveMessage
+
+
+logger = logging.getLogger(__name__)
 
 
 class Command(dai.Buffer):
@@ -194,12 +198,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
             track_id = self._track_id(payload)
             if self.store is None:
                 raise ValueError("Measurement storage is unavailable.")
-            record = self.store.detail(track_id)
-            if record is None:
-                raise ValueError(
-                    "This measurement is no longer in the latest 20 objects."
-                )
-            return {"measurement": record}
+            return {"measurement": self.store.detail(track_id)}
         except (
             KeyError,
             ValueError,
@@ -330,7 +329,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
         self.latest_scene = frame
         self.axial_correction = frame.axial_correction
         if first:
-            print(json.dumps({"depth_correction": self.axial_correction}), flush=True)
+            logger.info("%s", json.dumps({"depth_correction": self.axial_correction}))
         self.calibration_cloud.send(frame.cloud)
         self.frames[frame.sequence] = frame
         while len(self.frames) > 24:
@@ -424,11 +423,11 @@ class MeasurementController(dai.node.ThreadedHostNode):
             for index, candidate in enumerate(result.candidates)
             if reference is not None
         }
-        print(
+        logger.info(
+            "%s",
             json.dumps(
                 {"calibration": self.session.phase.value, "candidates": self.candidates}
             ),
-            flush=True,
         )
 
     def _detections(self, batch):
@@ -472,7 +471,7 @@ class MeasurementController(dai.node.ThreadedHostNode):
             "on_plane_ratio": result.on_plane_ratio,
             "sequence": result.getSequenceNum(),
         }
-        print(json.dumps({"support_plane_verification": self.verification}), flush=True)
+        logger.info("%s", json.dumps({"support_plane_verification": self.verification}))
         if result.accepted:
             return
         self.session.invalidate(
@@ -707,6 +706,6 @@ class BenchmarkLogger(dai.node.ThreadedHostNode):
                     )
                 stats = windows[name].report(time.monotonic())
                 if stats is not None:
-                    print(
-                        json.dumps({"measurement_benchmark": name, **stats}), flush=True
+                    logger.info(
+                        "%s", json.dumps({"measurement_benchmark": name, **stats})
                     )

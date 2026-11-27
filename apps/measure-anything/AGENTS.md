@@ -73,9 +73,9 @@ The React frontend uses the same Luxonis viewer, service hooks, static build pat
 ## Constraints
 
 - Import only names exported by `depthai_nodes.node` and `depthai_nodes.message` at runtime. Do not import frozen algorithms or node implementation internals.
-- Standalone packaging uses `luxonis/oakapp-base:1.3.0` and Python 3.12. Keep `/entrypoint.sh` and the `static_frontend` build so the base image serves the frontend. Do not restore a bespoke Python HTTP server or JPEG video WebSocket path.
+- Standalone packaging uses `luxonis/oakapp-base:1.3.0` and Python 3.12. Keep `/entrypoint.sh` and the `static_frontend` build so the base image serves the frontend.
 - Keep `libgfortran5` and `libegl1` in the container dependencies; the ARM64 Open3D wheel requires them even without a GUI.
-- Keep the DepthAI 3.12.0 pin aligned with the pinned depthai-nodes revision. The OAK4 visibility implementation has no custom native kernels; do not restore the old `build_native` step or compiler dependency.
+- Keep the DepthAI 3.12.0 pin aligned with the pinned depthai-nodes revision. The commit pin is for development; switch to a compatible released depthai-nodes version before merging this example.
 - MeasureAnythingDetection messages stay in one host process. They have no XLink or RemoteConnection serialization. Publish native encoded frames and annotations instead.
 - Keep PointCloud's explicit CAM_A RGB coordinates, millimeters, calibrated translation, identity custom transform, and organized output. Check that raw image and cloud metadata share the CAM_A reference. Do not apply the source optical pose again.
 - Keep ImageAlign's target branch undistorted and separate from raw detector RGB. Its target input reuses the latest geometry and stays nonblocking. Keep the correction node's aligned and exact source-passthrough streams lossless. Do not substitute a left camera image or apply correction twice.

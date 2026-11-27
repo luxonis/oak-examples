@@ -7,9 +7,7 @@ import cv2
 import depthai as dai
 import numpy as np
 
-from geometry import CameraProjection, reference_key
-
-DEPTH_SIZE = (768, 480)
+from geometry import DEPTH_SIZE, CameraProjection, reference_key
 
 
 @dataclass

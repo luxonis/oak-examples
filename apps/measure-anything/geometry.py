@@ -5,6 +5,9 @@ import depthai as dai
 import numpy as np
 
 
+DEPTH_SIZE = (768, 480)
+
+
 @dataclass(frozen=True)
 class CameraProjection:
     size: tuple[int, int]

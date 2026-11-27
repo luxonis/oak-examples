@@ -18,9 +18,11 @@ oakctl app run .
 
 Open the `Measure anything frontend at https://<OAK4-IP>:<port>` address printed in the app logs from a computer on the same network. `OAKAPP_STATIC_FRONTEND_PORT` controls the port. The base image defaults to 8000; oakctl can assign another port, such as 9000.
 
-The container builds the React frontend and serves its static files through the base image's `/entrypoint.sh` and HTTPS proxy. `RemoteConnection` supplies the video topics and control services. The app does not start a separate Python frontend server.
+The container builds the React frontend and serves its static files through the base image's `/entrypoint.sh` and HTTPS proxy. `RemoteConnection` supplies the video topics and control services.
 
-The container uses `luxonis/oakapp-base:1.3.0` and Python 3.12. The pinned depthai-nodes revision requires DepthAI 3.12.0 and uses the OAK4 visibility baseline. It has no custom native-kernel build step.
+The container uses `luxonis/oakapp-base:1.3.0` and Python 3.12. The pinned depthai-nodes revision requires DepthAI 3.12.0 and uses the OAK4 visibility baseline.
+
+The depthai-nodes commit pin is a development dependency. Before merging this example, replace it with a released version that exports `MeasureAnythingDetector`, `MeasureAnythingDimensioner`, and `ImageAlignDepthCorrection`. Published depthai-nodes 0.8.1 does not contain these APIs.
 
 ## Calibrate and measure objects
 
@@ -36,7 +38,7 @@ RGB reaches the frontend as H.264, with native annotations for boxes and labels.
 
 The frontend distinguishes capture FPS from measurement throughput. Capture defaults to 10 FPS. Detection and measurement use the CPU of the machine running the backend, including the OAK4 CPU in standalone mode. Their rate depends on the scene and CPU.
 
-The logs print a `measurement_benchmark` JSON report for `MeasureAnythingDetector` and `MeasureAnythingDimensioner` every ten seconds. FPS counts actual output batches, including failures. `failed_messages` counts failed batches, and `latency_samples` counts native benchmark samples. `source_to_output_latency_ms` averages capture-to-stage latency, including queues and upstream processing. Idle windows report zero FPS and no latency.
+Operational messages use configured INFO logging with timestamps, levels, and module names. The logs include a `measurement_benchmark` JSON report for `MeasureAnythingDetector` and `MeasureAnythingDimensioner` every ten seconds. FPS counts actual output batches, including failures. `failed_messages` counts failed batches, and `latency_samples` counts native benchmark samples. `source_to_output_latency_ms` averages capture-to-stage latency, including queues and upstream processing. Idle windows report zero FPS and no latency.
 
 ## Inspect saved measurements
 
@@ -60,7 +62,7 @@ The app asks `SupportPlaneCalibrator` to verify the selected plane every five se
 
 The app limits the Python OpenCV worker pool to one thread so preview conversions leave CPU capacity for detection and measurement. The normal RGB path decodes no BGR image. Optional previews use active NV12 planes and keep the original frame identity when producing encoded output.
 
-## Run on your computer
+## Peripheral Mode
 
 Use Python 3.12 and Node.js 24. Install the backend dependencies in an isolated environment and start the backend.
 
