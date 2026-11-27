@@ -5,10 +5,9 @@ app_version = "1.0.0"
 prepare_container = [
     { type = "RUN", command = "apt-get update" },
     { type = "RUN", command = "apt-get install -y libgfortran5 libegl1" },
-    # The base image ships pip 24.0. Upgrade pip so it can resume interrupted wheel downloads.
     { type = "RUN", command = "python3.11 -m pip install --break-system-packages 'pip>=25.2'" },
     { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
-    { type = "RUN", command = "python3.11 -m pip install -r /app/backend/requirements.txt --break-system-packages --resume-retries 2" },
+    { type = "RUN", command = "python3.11 -m pip install -r /app/backend/requirements.txt --break-system-packages" },
 ]
 
 prepare_build_container = [{type = "RUN", command = "bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && . \"$HOME/.nvm/nvm.sh\" && nvm install 24'"}]
