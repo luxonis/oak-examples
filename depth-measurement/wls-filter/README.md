@@ -34,6 +34,18 @@ Use the following keyboard controls in the visualizer to adjust WLS filtering pa
 - **Lambda** controls the amount of smoothing (higher = smoother).
 - **Sigma** controls the edge sensitivity (higher = more edge-aware).
 
+## Holistic replay
+
+Replay is optional. The host WLS filter stays. The archive must contain `CAM_B` and `CAM_C`, so both the device disparity and the filtered view are computed from the same recorded pair. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 main.py
+```
+
+Stop the recording with `q`. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. A device that can run `StereoDepth` is still required. `camera_info.json` replaces the device calibration for that run, including the baseline this example reads. On RVC2 the recording is replayed on the host. On RVC4 each camera is replayed on the device. `oakctl app run` does not see these host environment variables.
+
 ## Peripheral Mode
 
 ### Installation

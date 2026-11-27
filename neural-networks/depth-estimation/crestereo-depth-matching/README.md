@@ -68,6 +68,22 @@ DEPTHAI_PLATFORM=RVC4 python3 main.py
 
 This will run the CREStereo example only on device who's platform is `RVC4`.
 
+## Holistic replay
+
+Replay is optional. The live path is unchanged, and this example has no media flag. Both matchers must see the same calibrated pair, so a single `ReplayVideo` file is the wrong input.
+
+Record while the example is running, then replay that archive with the same model and FPS. The archive must contain `CAM_B` and `CAM_C`. Extra streams are ignored. If one of those cameras is missing, replay is disabled and the script uses the live cameras. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 main.py
+```
+
+Stop the recording with `q`. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. A device that can run `StereoDepth` and the CREStereo model is still required. `camera_info.json` replaces the device calibration for that run, including the baseline this example reads. On RVC2 the recording is replayed on the host. On RVC4 each camera is replayed on the device. `oakctl app run` does not see these host environment variables.
+
+The default recording is H.264, so replayed depth can differ slightly from the live run. Sequence numbers and device timestamps on the first pass are the recorded ones. Compare `Depth` and `CREStereo Depth` on that same pass.
+
 ## Standalone Mode (RVC4 only)
 
 Running the example in the standalone mode, app runs entirely on the device.

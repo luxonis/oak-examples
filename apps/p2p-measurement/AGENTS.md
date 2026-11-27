@@ -76,7 +76,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Constraints
 
-- This example is RVC4 standalone only.
+- This example is RVC4 standalone only. A host run of [backend/src/main.py](backend/src/main.py) can still set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY`. The archive must contain `CAM_A` and the stereo cameras `Depth` opens. `oakctl app run` does not see those host variables. See the README.
 - The backend defaults to `15` FPS when no limit is provided.
 - Measurement quality depends on valid aligned depth for both points.
 - The frontend polls `Get Distance Service` at a high rate, so service responsiveness matters.
@@ -98,5 +98,6 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 - `Hardware check:` Measure a known distance at the image center and corners, then repeat with another output aspect ratio.
 - `Run:` `oakctl app run .`
+- `Replay:` on a host attached to the RVC4, `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 backend/src/main.py` after recording that backend with `DEPTHAI_RECORD`. A failed setup warns `Replay disabled`. `Replay enabled` is an info line. Clicks still come from the frontend.
 - `Success looks like:` the frontend shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target
 - `Common failure meaning:` stereo alignment or calibration is missing, invalid depth prevents measurement, or frontend topic/service assumptions drifted from the backend

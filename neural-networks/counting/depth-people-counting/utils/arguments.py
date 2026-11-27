@@ -19,7 +19,11 @@ def initialize_argparser():
     parser.add_argument(
         "-media",
         "--media_path",
-        help="Path to the media files you aim to run the model on. If not set, the model will run on the camera input.",
+        help=(
+            "Holistic recording from record.py (.tar.gz or the extracted directory). "
+            "Live cameras are used when this is omitted. "
+            "The old left.mp4/right.mp4/calib.json folder is not accepted."
+        ),
         required=False,
         default=None,
         type=str,

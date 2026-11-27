@@ -52,7 +52,7 @@ This example runs native Luxonis `NeuralDepth` or Model Zoo Lite Any Stereo V2 o
 ## Constraints
 
 - [main.py](main.py) explicitly raises on non-RVC4 platforms.
-- This example is live-camera only; there is no replay input path.
+- There is no single-file `ReplayVideo` path. Holistic replay of one `CAM_B`/`CAM_C` archive through either backend is in the README. [`host_eval`](host_eval/) stays the dataset evaluator.
 - Native runtime behavior depends on [utils/manual_camera_control.py](utils/manual_camera_control.py).
 - Native model choices are derived from `DeviceModelZoo.__members__`; retain legacy aliases. LAS2 choices are the published variants in [utils/arguments.py](utils/arguments.py).
 - LAS2 model downloads require internet on first use. Output processing runs on the host in peripheral mode and locally in the OAK App in standalone mode.
@@ -66,5 +66,6 @@ This example runs native Luxonis `NeuralDepth` or Model Zoo Lite Any Stereo V2 o
 ## Validation
 
 - `Run:` `python3 main.py -d <IP>` and `python3 main.py --backend las2 -d <IP>`
+- `Replay:` record with `DEPTHAI_RECORD`, then run each backend with the same `DEPTHAI_REPLAY` archive. A failed setup warns `Replay disabled`. `Replay enabled` is an info line. Do not use this in place of `host_eval`.
 - `Success looks like:` both backends show colorized depth and disparity; native additionally shows confidence, edge, and responsive controls
 - `Common failure meaning:` the device is not RVC4, stereo cameras are unavailable, or the chosen NeuralDepth model is incompatible with the hardware

@@ -61,6 +61,22 @@ The backend publishes:
 - Plane status (HG only)
 - Dimensions and volume measurements with the Detections Overlay
 
+## Holistic replay
+
+Replay is optional. The packaged app is still live RVC4. The height-grid method needs the IMU as well as RGB and depth, so a single `ReplayVideo` file is the wrong input.
+
+From this directory, on a computer attached to the RVC4, record and replay the backend with the same arguments. The archive must contain `CAM_A`, the stereo cameras `Depth` opens (`CAM_B` and `CAM_C` on an OAK-D), and `IMU`. A recording made by a pipeline that does not create the IMU will not replay here. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 backend/src/main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 backend/src/main.py
+```
+
+Stop the recording by stopping the process. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. `camera_info.json` replaces the device calibration for that run. On RVC4, cameras are replayed on the device and the IMU is replayed from its `.mcap`. `oakctl app run` does not see these host environment variables.
+
+The default recording is H.264, so a replayed volume can differ slightly from the live run. Sequence numbers and device timestamps on the first pass are the recorded ones. Click the same object during replay to compare the two measurement methods on that scene.
+
 ## Standalone Mode (RVC4 only)
 
 Running the example in the standalone mode, app runs entirely on the device.

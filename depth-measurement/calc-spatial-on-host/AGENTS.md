@@ -77,6 +77,7 @@ This is the host-side spatial ROI measurement reference in the repo. Use it when
 
 - The README recommends using at least a `10x10` ROI for reasonable measurements.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
+- Holistic replay is `DEPTHAI_RECORD` / `DEPTHAI_REPLAY`. `Depth` opens those cameras. The host ROI math stays. See the README.
 - Spatial coordinates use each depth frame’s native inverse intrinsic matrix. Depth and XYZ are millimeters in optical coordinates: +X right, +Y down, +Z forward; the overlay displays meters.
 - Every movement or resize key sends a new ROI message to the measurement node.
 
@@ -97,6 +98,7 @@ This is the host-side spatial ROI measurement reference in the repo. Use it when
 
 - `Hardware check:` Check ROI coordinates at the center and corners against known target positions, then repeat with another output aspect ratio.
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after `DEPTHAI_RECORD`. A failed setup warns `Replay disabled`. `Replay enabled` is an info line.
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `Depth` plus `Spatial Calculations`, and the overlay displays X/Y/Z values for the current ROI
 - `Common failure meaning:` the device lacks a stereo pair, calibration is missing, or ROI updates are not propagating as expected

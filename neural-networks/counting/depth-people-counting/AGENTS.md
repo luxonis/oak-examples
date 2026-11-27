@@ -14,7 +14,7 @@ This is the repository reference for privacy-preserving people counting from dis
 
 - You need semantic person detections.
 - You need generic stereo depth visualization rather than counting.
-- You need a single video-file replay path; this example expects stereo-pair replay assets.
+- You need a single RGB video replay path. Replay here is a holistic stereo recording.
 
 ## Quick Facts
 
@@ -25,8 +25,8 @@ This is the repository reference for privacy-preserving people counting from dis
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` none
 - `Runs on:` stereo-capable devices with `CAM_B` and `CAM_C`; standalone packaging also exists
-- `Requires:` stereo pair, or replay assets with `left.mp4`, `right.mp4`, and `calib.json`
-- `Input:` live stereo mono cameras or replayed stereo pair
+- `Requires:` stereo pair, or a holistic recording from `record.py` (`recording_<time>.tar.gz`)
+- `Input:` live `CAM_B` and `CAM_C`, or the same sockets replayed from a holistic archive
 - `Output:` `Disparity` and `Count`
 - `Models:` none
 - `Visualizer / UI:` DepthAI Visualizer via `dai.RemoteConnection`
@@ -37,18 +37,20 @@ This is the repository reference for privacy-preserving people counting from dis
 - [main.py](main.py)
 - [utils/disparity_to_dets.py](utils/disparity_to_dets.py)
 - [utils/annotation_node.py](utils/annotation_node.py)
-- [utils/frame_editor.py](utils/frame_editor.py)
+- [record.py](record.py)
 
 ## Architecture
 
-- Live mode uses stereo mono cameras on `CAM_B` and `CAM_C`.
-- Replay mode injects stereo calibration and replays left/right mono files separately.
+- Live mode uses stereo mono cameras on `CAM_B` and `CAM_C` at 640x400 `GRAY8`.
+- Replay mode calls `pipeline.enableHolisticReplay` on a `record.py` archive, then builds those same camera nodes. The archive's `camera_info.json` supplies calibration. Recorded sequence numbers and device timestamps are kept on the first pass. Do not rebuild the pair with `ReplayVideo` plus a host timestamp editor.
 - `StereoDepth` produces disparity, which [utils/disparity_to_dets.py](utils/disparity_to_dets.py) converts into pseudo-detections inside a fixed ROI.
 - `ObjectTracker` tracks those pseudo-detections, and [utils/annotation_node.py](utils/annotation_node.py) counts line crossings.
 
 ## Constraints
 
-- Replay mode expects a folder-style stereo dataset, not a single video file.
+- Replay expects `recording_<time>.tar.gz` (or that archive extracted, with `camera_info.json`, `CameraCAM_B`, and `CameraCAM_C`). `recordings/demo` is the old renamed-MP4 layout and is rejected.
+- `record.py` requests 640x400. The SDK may store a larger aligned sensor mode inside the archive. Replay resizes back to 640x400 through the camera node.
+- The recording is H.264. Replayed disparity can differ slightly from the live frames. FFV1 AVI is rejected by `ReplayVideo` on this library.
 - The detection ROI is hardcoded in [main.py](main.py) to `(50, 50, 550, 350)`.
 - This example counts moving disparity blobs; it does not know object classes.
 
@@ -61,6 +63,7 @@ This is the repository reference for privacy-preserving people counting from dis
 ## Validation
 
 - `Run:` `python3 main.py`
-- `Replay run:` point `--media_path` at a folder containing `left.mp4`, `right.mp4`, and `calib.json`
-- `Success looks like:` the Visualizer shows `Disparity` and `Count`, and tracked disparity blobs increment counts when they cross the configured line
-- `Common failure meaning:` the replay folder is missing stereo assets, stereo quality is poor, or the fixed ROI does not match the walkway scene
+- `Record:` `python3 record.py --output recordings`
+- `Replay run:` `python3 main.py --media_path recordings/recording_<time>.tar.gz`
+- `Success looks like:` the Visualizer shows `Disparity` and `Count`, and tracked disparity blobs increment counts when they cross the configured line. `Replay enabled` is an info line. A failed setup warns `Replay disabled` or `Could not set up holistic replay`.
+- `Common failure meaning:` the path is not a holistic archive, the archive is missing `CAM_B` or `CAM_C`, stereo quality is poor, or the fixed ROI does not match the walkway scene

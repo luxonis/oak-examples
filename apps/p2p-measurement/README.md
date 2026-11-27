@@ -24,6 +24,22 @@ The frontend, built using the @luxonis/depthai-viewer-common package, provides r
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
 
+## Holistic replay
+
+Replay is optional. The packaged app is still live RVC4. A single `ReplayVideo` file would not carry RGB, the stereo pair, and calibration together.
+
+From this directory, on a computer attached to the RVC4, record and replay the backend with the same arguments. The archive must contain `CAM_A` and the stereo cameras `Depth` opens (`CAM_B` and `CAM_C` on an OAK-D). A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level. The frontend is still how you click the two points. Replay repeats the frames so the same clicks measure the same scene.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 backend/src/main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 backend/src/main.py
+```
+
+Stop the recording with `q` from the visualizer connection, or stop the process. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. `camera_info.json` replaces the device calibration for that run. Camera replay on RVC4 runs on the device. `oakctl app run` does not see these host environment variables.
+
+The default recording is H.264, so a replayed distance can differ slightly from the live run. Sequence numbers and device timestamps on the first pass are the recorded ones.
+
 ## Standalone Mode (RVC4 only)
 
 Running the example in the standalone mode, app runs entirely on the device.

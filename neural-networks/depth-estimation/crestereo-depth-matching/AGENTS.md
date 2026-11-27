@@ -51,7 +51,7 @@ This is the repository reference for comparing CREStereo neural stereo matching 
 
 - `RectifiedColor` runs on the host because RVC4 `ImageManip` cannot convert StereoDepth RAW8 to the model color format. This adds a host round trip, while retaining geometry and metadata.
 - Supported model slugs are hardcoded by platform in [main.py](main.py).
-- There is no media replay path; this example is stereo-camera only.
+- There is no single-file `ReplayVideo` path. Holistic replay of `CAM_B` and `CAM_C` is in the README. Both matchers and the host color adapter stay.
 - Default FPS is intentionally low, especially on RVC2.
 
 ## Related Examples
@@ -63,6 +63,7 @@ This is the repository reference for comparing CREStereo neural stereo matching 
 ## Validation
 
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after recording with `DEPTHAI_RECORD` and the same model and FPS. A failed setup warns `Replay disabled`. `Replay enabled` is an info line.
 - `Success looks like:` the Visualizer shows `Depth` and `CREStereo Depth`, and both streams update from the stereo pair
 - `Common failure meaning:` the chosen model is unsupported for the platform, the device lacks stereo cameras, or the requested FPS/model size is too heavy for the hardware
 - Confirm both metric-depth streams and rectified previews update. Inspect vertical residuals and validate scale against known distances and off-axis points before claiming accuracy. The model must emit horizontal disparity in input-pixel units at the input resolution.

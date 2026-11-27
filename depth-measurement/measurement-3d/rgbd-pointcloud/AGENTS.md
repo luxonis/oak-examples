@@ -78,6 +78,7 @@ This is the minimal colored point-cloud reference in the repo. Use it when you n
 ## Constraints
 
 - This example assumes a stereo mono pair on `CAM_B` and `CAM_C`.
+- Holistic replay is `DEPTHAI_RECORD` / `DEPTHAI_REPLAY` with the same `--mono` choice. See the README. RGB needs `CAM_A` in the archive. `--mono` does not.
 - RGB mode assumes the color camera is on `CAM_A`.
 - The IR dot projector is optional. The script skips it when no IR driver is detected and reports a failed enable attempt without stopping the point-cloud pipeline.
 - The point cloud is published directly from `PointCloud.outputPointCloud`; there is no host-side filtering or resampling layer here.
@@ -99,6 +100,7 @@ This is the minimal colored point-cloud reference in the repo. Use it when you n
 ## Validation
 
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after `DEPTHAI_RECORD` with the same `--mono` choice. A failed setup warns `Replay disabled`. `Replay enabled` is an info line.
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows `preview` plus `pointcloud`, and the point cloud follows the selected color source
 - `Common failure meaning:` the device lacks the required camera topology, calibration is missing, or RGB/depth alignment assumptions do not match the hardware

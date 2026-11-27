@@ -21,6 +21,18 @@ Here is a list of all available parameters:
                       Optional name, DeviceID or IP of the camera to connect to. (default: None)
 ```
 
+## Holistic replay
+
+Replay is optional. The live path and the host triangulation lesson are unchanged. The archive must contain `CAM_B` and `CAM_C`. A face still has to be in the recording for a measurement to appear. A failed setup warns `Replay disabled` or `Could not set up holistic replay`. `Replay enabled` is an info line and stays hidden at the default log level.
+
+```bash
+mkdir -p recordings
+DEPTHAI_RECORD="$PWD/recordings" python3 main.py
+DEPTHAI_REPLAY="$PWD/recordings/recording_<time>.tar.gz" python3 main.py
+```
+
+Stop the recording with `q`. Do not set `DEPTHAI_RECORD` and `DEPTHAI_REPLAY` together. A device that can run stereo and YuNet is still required. `camera_info.json` replaces the device calibration for that run. On RVC2 the recording is replayed on the host. On RVC4 each camera is replayed on the device. `oakctl app run` does not see these host environment variables.
+
 ## Peripheral Mode
 
 ### Installation

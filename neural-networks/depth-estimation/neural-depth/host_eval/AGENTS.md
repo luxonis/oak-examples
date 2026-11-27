@@ -49,6 +49,7 @@ This is the repository reference for offline NeuralDepth evaluation on stereo da
 ## Constraints
 
 - This is not a Visualizer example; it writes files and prints metrics.
+- Holistic device replay belongs to the parent example. Do not replace this dataset evaluator with `DEPTHAI_REPLAY`.
 - The CLI uses `--device_ip`, not the usual `--device`.
 - Dataset layout is opinionated and effectively Middlebury-style.
 - Metric computation is only available when ground-truth disparity exists.

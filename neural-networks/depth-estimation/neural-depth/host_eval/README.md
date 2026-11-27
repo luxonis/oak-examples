@@ -2,6 +2,8 @@
 
 This pipeline evaluates NeuralDepth models on stereo datasets by sending image pairs from the host to an OAK device and computing disparity accuracy metrics.
 
+This is the dataset evaluator. Replaying a device recording through the live native or LAS2 pipeline is documented in the parent [README](../README.md) and does not replace this tool.
+
 > **Note:** RVC4 peripheral mode only.
 
 **Eval Notes:**

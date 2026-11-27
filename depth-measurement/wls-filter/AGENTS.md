@@ -77,6 +77,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 - Metric conversion uses the produced disparity frame’s focal length and calibrated baseline in millimeters for the configured `CAM_C` alignment. Rectified-right metadata doesn't match disparity (different grid after RVC2 decimation/alignment, different timestamps on RVC4), so take output metadata from `disparity`. Changing alignment or using unaligned decimated disparity requires revisiting the relationship between matcher pixel units and output intrinsics.
 - [utils/disparity_units.py](utils/disparity_units.py) includes RVC2 post-processing normalization in the encoded units per pixel. The scale is derived from the stereo config (enabled filters, filtering order, disparity range). Companded disparity is unsupported. Update the conversion scale if changing stereo configuration at runtime.
 - The example assumes stereo cameras on `CAM_B` and `CAM_C`.
+- Holistic replay is `DEPTHAI_RECORD` / `DEPTHAI_REPLAY` of those two cameras. The host WLS filter stays. See the README.
 
 ## Non-Obvious Repo Conventions
 
@@ -95,6 +96,7 @@ This is the host-side WLS disparity post-processing reference in the repo. Use i
 
 - `Hardware check:` Compare filtered depth with a known target distance and repeat after changing the configured subpixel precision.
 - `Run:` `python3 main.py`
+- `Replay:` `DEPTHAI_REPLAY=recordings/recording_<time>.tar.gz python3 main.py` after `DEPTHAI_RECORD`. A failed setup warns `Replay disabled`. `Replay enabled` is an info line.
 - `Standalone run:` `oakctl app run .`
 - `Success looks like:` the Visualizer shows raw disparity, filtered disparity, and WLS annotations, and `l/L/s/S` visibly changes the filtered output
 - `Common failure meaning:` the device lacks a stereo pair, OpenCV contrib is unavailable, or the host disparity/depth assumptions no longer match the stereo configuration
