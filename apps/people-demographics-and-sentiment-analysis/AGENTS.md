@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the strongest standalone reference in the repo for multi-stage people analytics: face detection, age/gender, emotion, re-identification, people tracking, and a frontend that polls a summarized backend state. Use it when you need a user-facing analytics app rather than a single-task face example.
+This is the strongest frontend/backend reference in the repo for multi-stage people analytics: face detection, age/gender, emotion, re-identification, people tracking, and a frontend that polls a summarized backend state. Use it when you need a user-facing analytics app rather than a single-task face example.
 
 ## Use This Example When
 
@@ -26,7 +26,7 @@ This is the strongest standalone reference in the repo for multi-stage people an
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` intended RVC4 standalone path only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RVC4 device; static frontend build; bundled and Zoo-downloaded face/people models
 - `Input:` one RGB camera stream
 - `Output:` `Video`, `Annotations`, and `Get Faces` service payloads for the face strip and stats panel
@@ -52,12 +52,20 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - A camera source node produces preview and encoded video.
+
 - Face detection finds candidate faces.
+
 - Cropping logic creates face crops for second-stage models.
+
 - Separate second-stage NNs estimate emotions, age/gender, and re-id embeddings.
+
 - A people tracker runs on the full frame.
+
 - Join logic associates face features with tracked people.
+
 - Visualization nodes render annotations and export the last-seen face cards plus aggregate stats through a service.
 
 ## Data Flow
@@ -83,7 +91,7 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 ## Constraints
 
-- The intended runtime is RVC4 standalone only.
+- The intended runtime is RVC4 peripheral and standalone.
 - The backend defaults to `15` FPS if no limit is provided.
 - Face features are joined by position; all three model branches must preserve crop count and order.
 - The frontend updates the face strip and stats by polling `Get Faces` once per second.
@@ -91,7 +99,6 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 ## Non-Obvious Repo Conventions
 
-- [backend/src/config/arguments.py](backend/src/config/arguments.py) still exposes `--device` for development, but the indexed and documented path for this example is standalone-only.
 - The frontend does not derive face metadata from stream topics; it depends on the `Get Faces` service from [backend/src/visualization/monitor_node.py](backend/src/visualization/monitor_node.py).
 - The static frontend path is active here, unlike the partially wired frontend tree in [apps/focused-vision](https://github.com/luxonis/oak-examples/tree/main/apps/focused-vision).
 
@@ -104,6 +111,12 @@ This is the strongest standalone reference in the repo for multi-stage people an
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+
 - `Run:` `oakctl app run .`
+
 - `Success looks like:` the frontend shows the annotated stream, the face strip updates as people appear, and aggregate stats change over time
+
 - `Common failure meaning:` the app is not running on RVC4, one of the second-stage models is unavailable, or the `Get Faces` service payload no longer matches the frontend expectation

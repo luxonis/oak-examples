@@ -5,7 +5,7 @@ On the DepthAI backend, it runs **YOLOE** model on-device, with configurable cla
 The custom frontend lets you click a detected object in the Video stream, the backend then segments that instance, builds a segmented point cloud, and computes dimensions and volume in real time. Users can switch between two measurement methods: Object-Oriented Bounding Box and Ground-plane Height Grid.\
 The frontend is built with `@luxonis/depthai-viewer-common` package, and combined with the [default oakapp docker image](https://hub.docker.com/r/luxonis/oakapp-base), enabling remote access via WebRTC.
 
-> **Note:** This example works only on RVC4 in standalone mode.
+> **Note:** This example works on RVC4 in peripheral or standalone mode.
 
 ## Demo
 
@@ -60,6 +60,36 @@ The backend publishes:
 - Measurements Overlay (OBB / HG wireframe from the object dimensions on the Video Stream)
 - Plane status (HG only)
 - Dimensions and volume measurements with the Detections Overlay
+
+## Peripheral Mode (RVC4)
+
+> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+
+Use Python 3.11 and Node.js 22 or newer. From this example directory:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python backend/src/main.py --device <DEVICE_IP>
+```
+
+Open `http://localhost:8082` on the host computer. Python serves the built custom
+frontend and runs the backend; streams and controls use `RemoteConnection` on
+port 8765. The frontend directory is resolved relative to the entrypoint.
+Rebuild the frontend after changing its source.
+
+Use `--frontend-dir` for another build directory, `--frontend-port` for another
+HTTP port, or `--no-frontend` with a separate development server. The default
+bind address is `127.0.0.1`; `--frontend-host` overrides it. Access from another
+computer requires a separate HTTPS/WebSocket proxy.
+
+Standalone mode keeps the existing oakapp frontend server. The Python helper
+automatically skips its listener when that server is configured.
 
 ## Standalone Mode (RVC4 only)
 

@@ -1,26 +1,23 @@
 import logging
 import signal
+from pathlib import Path
 
 import depthai as dai
-
+from camera.camera_source import CameraSourceNode
 from config.arguments import initialize_argparser
 from config.system_configuration import build_configuration
-
-from camera.camera_source import CameraSourceNode
-
+from depthai_nodes.runtime import serve_frontend
+from faces.cropping.face_crops_node import FaceCropsNode
+from faces.face_detection import FaceDetectionNode
+from faces.features.face_features_node import FaceFeaturesNode
 from nn.nn_archive_loader import NNArchiveLoader
 from nn.second_stage_nn import SecondStageNNNode
-
-from faces.face_detection import FaceDetectionNode
-from faces.cropping.face_crops_node import FaceCropsNode
-from faces.features.face_features_node import FaceFeaturesNode
-
-from people.people_tracking import PeopleTrackingNode
 from people.joiner.people_faces_join import PeopleJoinNode
-
-from visualization.monitor_node import MonitorFacesNode
+from people.people_tracking import PeopleTrackingNode
 from visualization.annotation_node import AnnotationNode
+from visualization.monitor_node import MonitorFacesNode
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 shutdown_requested = False
 
@@ -35,8 +32,7 @@ signal.signal(signal.SIGINT, _handle_shutdown_signal)
 signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 
-def main():
-    _, args = initialize_argparser()
+def main(args):
     device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
     visualizer = dai.RemoteConnection(serveFrontend=False)
 
@@ -137,4 +133,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _, args = initialize_argparser()
+    with serve_frontend(
+        args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+        host=args.frontend_host,
+        port=args.frontend_port,
+        enabled=not args.no_frontend,
+    ):
+        main(args)

@@ -1,6 +1,6 @@
 # QR Tiling Detection
 
-This application demonstrates high-resolution QR code detection using dynamic image tiling, running fully on-device with a live frontend for configuring the tiling grid.
+This application demonstrates high-resolution QR code detection using dynamic image tiling, with a live frontend for configuring the tiling grid.
 
 **It runs QR detection on the DepthAI backend with dynamic tiling, and exposes controls in the UI for:**
 
@@ -10,7 +10,7 @@ This application demonstrates high-resolution QR code detection using dynamic im
 - Enabling global detection (full-frame pass)
 - Real-time tile grid visualization overlay
 
-> **Note:** RVC4 standalone mode only.
+> **Note:** Supports RVC4 in peripheral and standalone modes. The bundled model requires RVC4.
 
 ![](media/demo.gif)
 
@@ -74,6 +74,35 @@ Refer to the [documentation](https://docs.luxonis.com/software-v3/) to set up yo
 
 ______________________________________________________________________
 
+## Peripheral Mode (RVC4 only)
+
+> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+
+Use Python 3.10 or newer and Node.js 22 or newer. From this example directory:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python backend/src/main.py --device <DEVICE>
+```
+
+QR decoding also requires the system `libzbar` library (on Debian/Ubuntu: `sudo apt-get install libzbar0`). Use the RVC4 IP as `<DEVICE>`.
+
+Open `http://localhost:8082` on the host computer. The Python process serves the built
+frontend and runs the backend; `RemoteConnection` carries streams and service calls
+on port 8765. Paths are resolved relative to the Python file, so launching from
+another directory also works. Rebuild the frontend after changing its source.
+
+Use `--frontend-dir` for another build directory, `--frontend-port` to change the
+HTTP port, or `--no-frontend` when running a separate frontend development server.
+The default bind address is `127.0.0.1`; `--frontend-host` changes it. Remote browser
+access requires separate HTTPS/WebSocket proxy configuration.
+
 ## Standalone Mode (RVC4)
 
 To run the example in standalone mode, first install the `oakctl` tool using the instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
@@ -85,7 +114,7 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:8082/` in your browser (the exact URL will be shown in the terminal output).
+Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
 ### Remote Access
 

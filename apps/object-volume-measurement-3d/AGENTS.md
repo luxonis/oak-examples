@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the strongest standalone reference for interactive 3D object measurement from segmented point clouds. Use it when you need detections, object selection, pointcloud generation, and real-time dimension or volume estimation in one frontend/backend app.
+This is the strongest frontend/backend reference for interactive 3D object measurement from segmented point clouds. Use it when you need detections, object selection, pointcloud generation, and real-time dimension or volume estimation in one frontend/backend app.
 
 ## Use This Example When
 
@@ -15,7 +15,6 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 - You only need point-to-point distance measurement.
 - You need a lightweight pointcloud example without segmentation and measurement logic.
-- You need host/peripheral support rather than standalone-only RVC4 packaging.
 - You need a mature image-prompt workflow; the current backend only supports class text updates.
 
 ## Quick Facts
@@ -26,7 +25,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RVC4 device with RGB, stereo, and IMU; static frontend build; bundled YOLOE model
 - `Input:` RGB camera, unified depth, IMU, frontend object clicks, class labels, confidence threshold, and measurement-method selection
 - `Output:` `Video`, `Detections`, `Pointclouds`, `Measurement Overlay`, and `Plane Status`
@@ -49,13 +48,22 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - RGB from `CAM_A` is resized and aligned with depth from `dai.node.Depth`.
+
 - A YOLOE parsing NN consumes the RGB input and a text-embedding tensor input for class control.
+
 - Detection filtering applies the active classes and frontend confidence threshold. Runtime config updates must preserve both settings.
+
 - The annotation node handles segmentation, selection, and display overlays.
+
 - A `PointCloud` node (organized mode, `setLengthUnit(CENTIMETER)`) creates colored pointcloud output for the segmented region from the masked depth and RGB frames, so the measurement code works in centimeters end to end with no unit conversion.
+
 - The point cloud explicitly targets `CAM_A` coordinates; the measurement overlay projects box corners with the cloud's own frame transformation, so no separate intrinsics are read.
+
 - The measurement node estimates dimensions and volume, either by oriented bounding box or height-grid over a captured support plane.
+
 - The frontend controls selection, classes, threshold, and measurement method through services.
 
 ## Data Flow
@@ -81,11 +89,10 @@ This is the strongest standalone reference for interactive 3D object measurement
 ## Constraints
 
 - Selection masks and aligned depth must share the undistorted RGB pixel grid.
-- This example is intentionally RVC4 standalone only.
+- This example is intentionally RVC4 peripheral and standalone.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
 - Projection uses each native PointCloud cloud’s `ImgTransformation.project3DPoint` and image dimensions, including alignment and undistortion. Cloud coordinates are centimeters in the `CAM_A` optical frame (+X right, +Y down, +Z forward); dimensions/volume are reported in cm/cm³.
-- [backend/src/utils/arguments.py](backend/src/utils/arguments.py) parses `--ip` and `--port`, but the current backend runtime does not use those values.
 
 ## Non-Obvious Repo Conventions
 
@@ -103,7 +110,14 @@ This is the strongest standalone reference for interactive 3D object measurement
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+
 - `Hardware check:` Check fitted dimensions against an object of known size at the image center and edges.
+
 - `Run:` `oakctl app run .`
+
 - `Success looks like:` the frontend shows the stream and pointclouds, clicking an object selects it, and measurements appear with the chosen method
+
 - `Common failure meaning:` the device lacks the required stereo or IMU capabilities, the RVC4-only model/runtime assumptions were violated, or frontend code expected services that the backend does not expose

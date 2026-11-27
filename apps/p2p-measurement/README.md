@@ -5,7 +5,7 @@ The backend processes video and depth streams to calculate precise 3D Euclidean 
 
 The frontend, built using the @luxonis/depthai-viewer-common package, provides real-time video streams with interactive point selection. The backend uses DepthAI's depth estimation capabilities to calculate accurate 3D distances between selected points.
 
-> **Note:** This example works only on RVC4 in standalone mode.
+> **Note:** Peripheral mode supports RVC2 and RVC4; standalone mode requires RVC4.
 
 ## Demo
 
@@ -23,6 +23,35 @@ The frontend, built using the @luxonis/depthai-viewer-common package, provides r
 ## Usage
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+
+## Peripheral Mode (RVC2 or RVC4)
+
+> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+
+Use Python 3.10 or newer and Node.js 22 or newer. From this example directory:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python backend/src/main.py --device <DEVICE>
+```
+
+Use the USB device ID for RVC2 or the device IP for RVC4.
+
+Open `http://localhost:8082` on the host computer. The Python process serves the built
+frontend and runs the backend; `RemoteConnection` carries streams and service calls
+on port 8765. Paths are resolved relative to the Python file, so launching from
+another directory also works. Rebuild the frontend after changing its source.
+
+Use `--frontend-dir` for another build directory, `--frontend-port` to change the
+HTTP port, or `--no-frontend` when running a separate frontend development server.
+The default bind address is `127.0.0.1`; `--frontend-host` changes it. Remote browser
+access requires separate HTTPS/WebSocket proxy configuration.
 
 ## Standalone Mode (RVC4 only)
 

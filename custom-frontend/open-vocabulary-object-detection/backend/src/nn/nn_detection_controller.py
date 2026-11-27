@@ -7,7 +7,7 @@ import numpy as np
 import depthai as dai
 
 from depthai_nodes.node import ParsingNeuralNetwork
-from depthai.beta.node import ImgDetectionsFilter
+from depthai.node import ImgDetectionsFilter
 from .label_mapper_node import DetectionsLabelMapper
 from prompting import TextualPromptEncoder
 from prompting import VisualPromptEncoder
@@ -327,8 +327,8 @@ class NNDetectionController:
             raise ValueError("label_offset must be >= 0")
 
         labels = list(range(label_offset, label_offset + len(label_names)))
-        config = dai.beta.ImgDetectionsFilterConfig()
-        config.confidenceThreshold = 0.0
+        config = dai.ImgDetectionsFilterConfig()
+        config.minConfidence = 0.0
         config.labelsToKeep = labels
         self._filter_config_q.send(config)
 

@@ -3,10 +3,12 @@
 import logging
 import signal
 import threading
+from pathlib import Path
 
 import depthai as dai
-
 from api.request_handler import EmptyBody, add_request_handler
+from arguments import initialize_argparser
+from depthai_nodes.runtime import serve_frontend
 from depthai_pipeline.init_pipeline import init_pipeline
 from settings.settings import Settings
 
@@ -16,12 +18,13 @@ log = logging.getLogger(__name__)
 class App:
     """Own the live pipeline and settings service."""
 
-    def __init__(self) -> None:
+    def __init__(self, device: str | None = None) -> None:
+        self._device = device
         self._settings = Settings()
         self._settings_lock = threading.Lock()
         self._changed = threading.Event()
         self._stop = threading.Event()
-        self._visualizer = dai.RemoteConnection(httpPort=8082)
+        self._visualizer = dai.RemoteConnection(serveFrontend=False)
         self._pipeline: dai.Pipeline | None = None
         self._topics: tuple[str, ...] = ()
         add_request_handler(self._visualizer, "getSettings", self._get_settings)
@@ -55,7 +58,10 @@ class App:
     def _start_pipeline(self) -> None:
         settings = self._get_settings(EmptyBody())
         log.info("Proximity alert settings: %s", settings.model_dump(mode="json"))
-        pipeline = dai.Pipeline()
+        device = (
+            dai.Device(dai.DeviceInfo(self._device)) if self._device else dai.Device()
+        )
+        pipeline = dai.Pipeline(device)
         topics = init_pipeline(pipeline, settings, self._visualizer)
         pipeline.start()
         self._visualizer.registerPipeline(pipeline)
@@ -85,5 +91,12 @@ class App:
 
 
 if __name__ == "__main__":
+    _, args = initialize_argparser()
     logging.basicConfig(level=logging.INFO)
-    App().run()
+    with serve_frontend(
+        args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+        host=args.frontend_host,
+        port=args.frontend_port,
+        enabled=not args.no_frontend,
+    ):
+        App(device=args.device).run()

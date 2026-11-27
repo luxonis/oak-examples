@@ -13,7 +13,6 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 ## Do Not Use This Example When
 
-- You need a host/peripheral custom frontend example.
 - You need a minimal service demo without prompt encoders or model switching.
 - You need a generic single-model baseline with no custom UI.
 - You need a finished multi-app pattern for snapping, tracking, or measurement instead of prompt-driven detection.
@@ -26,7 +25,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RVC4 device running Luxonis OS 1.40 or newer; static frontend build; prompt encoder dependencies from [backend/requirements.txt](backend/requirements.txt)
 - `Input:` live camera by default, or media file via `--media_path`; text classes, uploaded images, or drawn bounding boxes from the frontend
 - `Output:` `Video` and `Detections`
@@ -54,13 +53,22 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - The backend creates a `dai.Device` and a `dai.RemoteConnection` with `serveFrontend=False`.
+
 - `CameraSourceNode` provides the source frames.
+
 - `NNDetectionNode` wraps the prompt-driven detector, filter, label mapper, and runtime controller.
+
 - `FrameCacheNode` stores the latest frame so bbox/image prompt services can derive embeddings from current video content.
+
 - `PromptingFEServices` exposes text prompt updates, confidence changes, image uploads, bbox prompts, image-prompt rename, and image-prompt delete.
+
 - `GetCurrentParamsService` exports the current text classes, image prompt labels, and confidence threshold back to the frontend.
+
 - When the configured model is `yoloe`, [backend/src/visualization/segmentation_overlay_node.py](backend/src/visualization/segmentation_overlay_node.py) publishes an encoded segmentation overlay as `Video`.
+
 - When the configured model is `yolo-world`, the backend publishes the encoded camera stream as `Video` and sends detections separately.
 
 ## Data Flow
@@ -87,10 +95,10 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 ## Constraints
 
-- This example is intentionally RVC4 standalone only.
+- This example is intentionally RVC4 peripheral and standalone.
 - Luxonis OS 1.40 or newer is required for the device NPU runtime.
-- The backend only supports the CLI arguments defined in [backend/src/config/arguments.py](backend/src/config/arguments.py): `--fps_limit`, `--media_path`, `--model`, and `--semantic_seg`.
-- The current backend does not parse `--precision`, `--ip`, or `--port`.
+- The backend only supports the CLI arguments defined in [backend/src/config/arguments.py](backend/src/config/arguments.py): `--fps_limit`, `--media_path`, `--model`, `--semantic_seg`, `--device`, and the frontend options below.
+- Use `--frontend-host` and `--frontend-port` for serving options; the backend does not parse `--precision`.
 - `config.yaml` currently fixes precision to `fp16`, and [backend/src/config/system_configuration.py](backend/src/config/system_configuration.py) only maps `yoloe` to an `fp16` YAML while `yolo-world` supports `fp16` and `int8`.
 - `max_image_prompts` is `5` in both prompt YAMLs, and the frontend assumes the same limit.
 - `--semantic_seg` only affects the YOLOE visualization branch.
@@ -111,6 +119,12 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+
 - `Run:` `oakctl app run .`
+
 - `Success looks like:` the frontend loads, current params are restored from the backend, text or image prompts change the active detections, and bbox drawing produces a new image prompt label
+
 - `Common failure meaning:` frontend/backend service contracts drifted, the static frontend build failed, model assets or prompt encoders are unavailable, or the README instructions were followed instead of the actual current CLI/config code

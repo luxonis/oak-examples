@@ -3,6 +3,7 @@ import logging
 import signal
 
 import depthai as dai
+from depthai_nodes.runtime import serve_frontend
 from depthai_nodes.node import (
     FrameCropper,
     ImgDetectionsFilter,
@@ -13,6 +14,7 @@ from tiling import Tiling, TileGridOverlay
 
 from fps_control import FPSController, PipelineHealthMonitor
 from params_service import CurrentParamsService
+from arguments import initialize_argparser
 from qr_scan import QRConfigService, QRDecoder
 from tiling import TilingConfigService
 from tiling.merge_img_detections import MergeImgDetections
@@ -42,154 +44,165 @@ def _handle_shutdown_signal(_signum, _frame):
 signal.signal(signal.SIGINT, _handle_shutdown_signal)
 signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
-visualizer = dai.RemoteConnection(httpPort=8082)
-device = dai.Device()
+_, args = initialize_argparser()
 
-with dai.Pipeline(device) as pipeline:
-    logger.info("Creating pipeline...")
+with serve_frontend(
+    args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+    host=args.frontend_host,
+    port=args.frontend_port,
+    enabled=not args.no_frontend,
+):
+    visualizer = dai.RemoteConnection(serveFrontend=False)
+    device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+    if device.getPlatform() != dai.Platform.RVC4:
+        raise ValueError("QR tiling requires an RVC4 device and its bundled model.")
 
-    platform = device.getPlatform()
-    nn_archive = dai.NNArchive(
-        dai.getModelFromZoo(
-            dai.NNModelDescription.fromYamlFile(
-                MODEL_DIR / f"qrdet_nano.{platform.name}.yaml"
+    with dai.Pipeline(device) as pipeline:
+        pipeline.enablePipelineDebugging()
+        logger.info("Creating pipeline...")
+
+        platform = device.getPlatform()
+        nn_archive = dai.NNArchive(
+            dai.getModelFromZoo(
+                dai.NNModelDescription.fromYamlFile(
+                    MODEL_DIR / f"qrdet_nano.{platform.name}.yaml"
+                )
             )
         )
-    )
-    camera = pipeline.create(dai.node.Camera).build()
+        camera = pipeline.create(dai.node.Camera).build()
 
-    rgb_nn = camera.requestOutput(TILING_SIZE, type=dai.ImgFrame.Type.BGR888i)
-    rgb_display = camera.requestOutput(OUT_SIZE, type=dai.ImgFrame.Type.NV12)
+        rgb_nn = camera.requestOutput(TILING_SIZE, type=dai.ImgFrame.Type.BGR888i)
+        rgb_display = camera.requestOutput(OUT_SIZE, type=dai.ImgFrame.Type.NV12)
 
-    fps_controller = pipeline.create(FPSController).build(
-        nn_frames=rgb_nn, display_frames=rgb_display
-    )
-
-    tiling = pipeline.create(Tiling).build(
-        overlap=DEFAULT_TILING_PARAMS["overlap"],
-        gridSize=(DEFAULT_TILING_PARAMS["cols"], DEFAULT_TILING_PARAMS["rows"]),
-        canvasShape=TILING_SIZE,
-        resizeShape=nn_archive.getInputSize(),
-        resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
-        globalDetection=DEFAULT_TILING_PARAMS["global_detection"],
-        gridMatrix=DEFAULT_TILING_PARAMS["grid_matrix"],
-    )
-    print(f"tiling ID: {tiling.id=}")
-
-    nn_input_size = nn_archive.getInputSize()
-    tiling_cropper = (
-        pipeline.create(FrameCropper)
-        .fromManipConfigs(
-            inputManipConfigs=tiling.out,
-            maxOutputFrameSize=nn_input_size[0] * nn_input_size[1] * 3,
-            waitForConfig=False,
+        fps_controller = pipeline.create(FPSController).build(
+            nn_frames=rgb_nn, display_frames=rgb_display
         )
-        .build(
-            inputImage=fps_controller.rgb_nn,
+
+        tiling = pipeline.create(Tiling).build(
+            overlap=DEFAULT_TILING_PARAMS["overlap"],
+            gridSize=(DEFAULT_TILING_PARAMS["cols"], DEFAULT_TILING_PARAMS["rows"]),
+            canvasShape=TILING_SIZE,
+            resizeShape=nn_archive.getInputSize(),
+            resizeMode=dai.ImageManipConfig.ResizeMode.STRETCH,
+            globalDetection=DEFAULT_TILING_PARAMS["global_detection"],
+            gridMatrix=DEFAULT_TILING_PARAMS["grid_matrix"],
         )
-    )
-    print(f"tiling_cropper ID: {tiling_cropper.id=}")
+        print(f"tiling ID: {tiling.id=}")
 
-    nn = pipeline.create(ParsingNeuralNetwork).build(
-        input=tiling_cropper.out, nnSource=nn_archive
-    )
-
-    detections_in_display_space = pipeline.create(dai.node.Align)
-    detections_in_display_space.input.setBlocking(True)
-    detections_in_display_space.inputAlignTo.setWaitForMessage(False)
-    nn.out.link(detections_in_display_space.input)
-    fps_controller.rgb_nn.link(detections_in_display_space.inputAlignTo)
-
-    collected_detections = pipeline.create(MessageCollector).build(
-        inputData=detections_in_display_space.outputAligned,
-        cameraFps=300000,
-    )
-    print(f"collected_detections ID: {collected_detections.id=}")
-
-    print(f"detections_in_display_space ID: {detections_in_display_space.id=}")
-
-    merged_detections = pipeline.create(MergeImgDetections).build(
-        input=collected_detections.out
-    )
-    print(f"merged_detections ID: {merged_detections.id=}")
-
-    filtered_detections = (
-        pipeline.create(ImgDetectionsFilter)
-        .useNms(
-            confThresh=0.3,
-            iouThresh=0.2,
+        nn_input_size = nn_archive.getInputSize()
+        tiling_cropper = (
+            pipeline.create(FrameCropper)
+            .fromManipConfigs(
+                inputManipConfigs=tiling.out,
+                maxOutputFrameSize=nn_input_size[0] * nn_input_size[1] * 3,
+                waitForConfig=False,
+            )
+            .build(
+                inputImage=fps_controller.rgb_nn,
+            )
         )
-        .build(input=merged_detections.out)
-    )
-    print(f"filtered_detections ID: {filtered_detections.id=}")
+        print(f"tiling_cropper ID: {tiling_cropper.id=}")
 
-    qr_decoder = pipeline.create(QRDecoder).build(
-        input_frame=fps_controller.rgb_nn,
-        input_detections=filtered_detections.out,
-    )
-    print(f"qr_decoder ID: {qr_decoder.id=}")
+        nn = pipeline.create(ParsingNeuralNetwork).build(
+            input=tiling_cropper.out, nnSource=nn_archive
+        )
 
-    pipeline_health_monitor = pipeline.create(PipelineHealthMonitor).build(
-        pipeline=pipeline,
-        initial_tile_count=tiling.tileCount,
-    )
-    print(f"pipeline_health_monitor ID: {pipeline_health_monitor.id=}")
-    pipeline_health_monitor.out.link(fps_controller.target_fps)
+        detections_in_display_space = pipeline.create(dai.node.Align)
+        detections_in_display_space.input.setBlocking(True)
+        detections_in_display_space.inputAlignTo.setWaitForMessage(False)
+        nn.out.link(detections_in_display_space.input)
+        fps_controller.rgb_nn.link(detections_in_display_space.inputAlignTo)
 
-    tiling_service = TilingConfigService(
-        tiling=tiling,
-        canvas_shape=TILING_SIZE,
-        resize_shape=nn_archive.getInputSize(),
-        resize_mode=dai.ImageManipConfig.ResizeMode.STRETCH,
-        adjust_fps_from_tile_count=pipeline_health_monitor.adjust_fps_from_tile_count,
-        initial_params=DEFAULT_TILING_PARAMS,
-    )
-    visualizer.registerService(tiling_service.NAME, tiling_service)
+        collected_detections = pipeline.create(MessageCollector).build(
+            inputData=detections_in_display_space.outputAligned,
+            cameraFps=300000,
+        )
+        print(f"collected_detections ID: {collected_detections.id=}")
 
-    grid_overlay = pipeline.create(TileGridOverlay).build(
-        input_frame=fps_controller.rgb_display,
-        get_tile_positions=tiling_service.get_tile_positions,
-        source_frame=fps_controller.rgb_nn,
-    )
-    print(f"grid_overlay ID: {grid_overlay.id=}")
+        print(f"detections_in_display_space ID: {detections_in_display_space.id=}")
 
-    grid_manip = pipeline.create(dai.node.ImageManip)
-    grid_manip.initialConfig.setOutputSize(OUT_SIZE[0], OUT_SIZE[1])
-    grid_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
-    grid_manip.setMaxOutputFrameSize(int(OUT_SIZE[0] * OUT_SIZE[1] * 3))
-    grid_overlay.out.link(grid_manip.inputImage)
+        merged_detections = pipeline.create(MergeImgDetections).build(
+            input=collected_detections.out
+        )
+        print(f"merged_detections ID: {merged_detections.id=}")
 
-    encoder = pipeline.create(dai.node.VideoEncoder)
-    encoder.setDefaultProfilePreset(
-        fps=30,
-        profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
-    )
-    grid_manip.out.link(encoder.input)
+        filtered_detections = (
+            pipeline.create(ImgDetectionsFilter)
+            .useNms(
+                confThresh=0.3,
+                iouThresh=0.2,
+            )
+            .build(input=merged_detections.out)
+        )
+        print(f"filtered_detections ID: {filtered_detections.id=}")
 
-    visualizer.addTopic("Video", encoder.out, "images")
-    visualizer.addTopic("Visualizations", qr_decoder.out, "images")
+        qr_decoder = pipeline.create(QRDecoder).build(
+            input_frame=fps_controller.rgb_nn,
+            input_detections=filtered_detections.out,
+        )
+        print(f"qr_decoder ID: {qr_decoder.id=}")
 
-    qr_service = QRConfigService(qr_decoder=qr_decoder)
-    visualizer.registerService(qr_service.NAME, qr_service)
+        pipeline_health_monitor = pipeline.create(PipelineHealthMonitor).build(
+            pipeline=pipeline,
+            initial_tile_count=tiling.tileCount,
+        )
+        print(f"pipeline_health_monitor ID: {pipeline_health_monitor.id=}")
+        pipeline_health_monitor.out.link(fps_controller.target_fps)
 
-    params_service = CurrentParamsService(
-        current_tiling_params=lambda: tiling_service.current_params,
-        qr_decoder=qr_decoder,
-    )
-    visualizer.registerService(params_service.NAME, params_service)
+        tiling_service = TilingConfigService(
+            tiling=tiling,
+            canvas_shape=TILING_SIZE,
+            resize_shape=nn_archive.getInputSize(),
+            resize_mode=dai.ImageManipConfig.ResizeMode.STRETCH,
+            adjust_fps_from_tile_count=pipeline_health_monitor.adjust_fps_from_tile_count,
+            initial_params=DEFAULT_TILING_PARAMS,
+        )
+        visualizer.registerService(tiling_service.NAME, tiling_service)
 
-    logger.info("Pipeline created.")
-    pipeline.start()
-    logger.info("Pipeline started.")
-    visualizer.registerPipeline(pipeline)
-    logger.info("Pipeline running!")
+        grid_overlay = pipeline.create(TileGridOverlay).build(
+            input_frame=fps_controller.rgb_display,
+            get_tile_positions=tiling_service.get_tile_positions,
+            source_frame=fps_controller.rgb_nn,
+        )
+        print(f"grid_overlay ID: {grid_overlay.id=}")
 
-    while pipeline.isRunning():
-        if shutdown_requested:
-            pipeline.stop()
-            break
-        pipeline.processTasks()
-        key = visualizer.waitKey(1)
-        if key == ord("q"):
-            logger.info("Got 'q' key. Exiting...")
-            break
+        grid_manip = pipeline.create(dai.node.ImageManip)
+        grid_manip.initialConfig.setOutputSize(OUT_SIZE[0], OUT_SIZE[1])
+        grid_manip.initialConfig.setFrameType(dai.ImgFrame.Type.NV12)
+        grid_manip.setMaxOutputFrameSize(int(OUT_SIZE[0] * OUT_SIZE[1] * 3))
+        grid_overlay.out.link(grid_manip.inputImage)
+
+        encoder = pipeline.create(dai.node.VideoEncoder)
+        encoder.setDefaultProfilePreset(
+            fps=30,
+            profile=dai.VideoEncoderProperties.Profile.H264_MAIN,
+        )
+        grid_manip.out.link(encoder.input)
+
+        visualizer.addTopic("Video", encoder.out, "images")
+        visualizer.addTopic("Visualizations", qr_decoder.out, "images")
+
+        qr_service = QRConfigService(qr_decoder=qr_decoder)
+        visualizer.registerService(qr_service.NAME, qr_service)
+
+        params_service = CurrentParamsService(
+            current_tiling_params=lambda: tiling_service.current_params,
+            qr_decoder=qr_decoder,
+        )
+        visualizer.registerService(params_service.NAME, params_service)
+
+        logger.info("Pipeline created.")
+        pipeline.start()
+        logger.info("Pipeline started.")
+        visualizer.registerPipeline(pipeline)
+        logger.info("Pipeline running!")
+
+        while pipeline.isRunning():
+            if shutdown_requested:
+                pipeline.stop()
+                break
+            pipeline.processTasks()
+            key = visualizer.waitKey(1)
+            if key == ord("q"):
+                logger.info("Got 'q' key. Exiting...")
+                break

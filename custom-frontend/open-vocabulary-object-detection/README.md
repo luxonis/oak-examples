@@ -3,7 +3,7 @@
 This example demonstrates an advanced use of a custom frontend. On the DepthAI backend, it runs either **YOLOE** (default) or **YOLO-World** on-device, with configurable class labels and confidence threshold — both controllable via the frontend.
 The frontend, built using the `@luxonis/depthai-viewer-common` package, displays a real-time video stream with detections.
 
-> **Note:** This example works only on RVC4 in standalone mode and requires Luxonis OS 1.40 or newer.
+> **Note:** This example works on RVC4 in peripheral or standalone mode and requires Luxonis OS 1.40 or newer.
 
 ## Demo
 
@@ -27,7 +27,7 @@ Here is a list of all available parameters:
 
 Notes:
 
-- The backend CLI currently supports `--fps_limit`, `--media_path`, `--model`, and `--semantic_seg`.
+- The backend CLI currently supports `--fps_limit`, `--media_path`, `--model`, `--semantic_seg`, `--device`, and the frontend options below.
 - Frontend serving is handled by the packaged oakapp container stack, so there are no active `--ip` or `--port` CLI options here.
 - Model precision is currently controlled by the backend configuration files, not by a CLI flag.
 
@@ -41,6 +41,36 @@ This example supports two YOLO models:
 Notes:
 
 - Backend function `extract_image_prompt_embeddings(image, max_num_classes=80, model_name, mask_prompt=None)` accepts an optional `mask_prompt` of shape `(80,80)` or `(1,1,80,80)` for `yoloe`. When `None`, a default central mask is used.
+
+## Peripheral Mode (RVC4)
+
+> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+
+Use Python 3.12 and Node.js 22 or newer. From this example directory:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python backend/src/main.py --device <DEVICE_IP>
+```
+
+Open `http://localhost:8082` on the host computer. Python serves the built custom
+frontend and runs the backend; streams and controls use `RemoteConnection` on
+port 8765. The frontend directory is resolved relative to the entrypoint.
+Rebuild the frontend after changing its source.
+
+Use `--frontend-dir` for another build directory, `--frontend-port` for another
+HTTP port, or `--no-frontend` with a separate development server. The default
+bind address is `127.0.0.1`; `--frontend-host` overrides it. Access from another
+computer requires a separate HTTPS/WebSocket proxy.
+
+Standalone mode keeps the existing oakapp frontend server. The Python helper
+automatically skips its listener when that server is configured.
 
 ## Standalone Mode (RVC4 only)
 

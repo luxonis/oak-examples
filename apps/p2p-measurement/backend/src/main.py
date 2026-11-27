@@ -1,7 +1,9 @@
+from pathlib import Path
 import logging
 import signal
 
 import depthai as dai
+from depthai_nodes.runtime import serve_frontend
 from depthai_nodes.node import ApplyDepthColormap
 import cv2
 
@@ -21,123 +23,130 @@ def _handle_shutdown_signal(_signum, _frame):
 signal.signal(signal.SIGINT, _handle_shutdown_signal)
 signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
+logging.basicConfig(level=logging.INFO)
+
 _, args = initialize_argparser()
 
-visualizer = dai.RemoteConnection(serveFrontend=False)
-device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+with serve_frontend(
+    args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+    host=args.frontend_host,
+    port=args.frontend_port,
+    enabled=not args.no_frontend,
+):
+    visualizer = dai.RemoteConnection(serveFrontend=False)
+    device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
-platform = device.getPlatformAsString()
+    platform = device.getPlatformAsString()
 
-if platform != "RVC4":
-    raise ValueError("This example is supported only on RVC4 platform")
+    if args.fps_limit is None:
+        args.fps_limit = 15
+        print(
+            f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
+        )
 
-if args.fps_limit is None:
-    args.fps_limit = 15
-    print(
-        f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
-    )
+    FRAME_WIDTH = 640
+    FRAME_HEIGHT = 400
 
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 400
+    with dai.Pipeline(device) as pipeline:
+        print("Creating pipeline...")
 
-with dai.Pipeline(device) as pipeline:
-    print("Creating pipeline...")
+        cam = pipeline.create(dai.node.Camera).build(
+            boardSocket=dai.CameraBoardSocket.CAM_A
+        )
+        cam_out = cam.requestOutput(
+            size=(FRAME_WIDTH, FRAME_HEIGHT),
+            type=dai.ImgFrame.Type.RGB888i,
+            fps=args.fps_limit,
+            enableUndistortion=True,
+        )
 
-    cam = pipeline.create(dai.node.Camera).build(
-        boardSocket=dai.CameraBoardSocket.CAM_A
-    )
-    cam_out = cam.requestOutput(
-        size=(FRAME_WIDTH, FRAME_HEIGHT),
-        type=dai.ImgFrame.Type.RGB888i,
-        fps=args.fps_limit,
-        enableUndistortion=True,
-    )
+        depth = pipeline.create(dai.node.Depth)
+        depth.build(
+            dai.node.Depth.Algorithm.AUTO,
+            fps=args.fps_limit,
+            size=(FRAME_WIDTH, FRAME_HEIGHT),
+        )
+        depth.setAlignTo(cam_out)
 
-    depth = pipeline.create(dai.node.Depth)
-    depth.build(
-        dai.node.Depth.Algorithm.AUTO,
-        fps=args.fps_limit,
-        size=(FRAME_WIDTH, FRAME_HEIGHT),
-    )
-    depth.setAlignTo(cam_out)
+        coloredDepth = pipeline.create(ApplyDepthColormap).build(depth.depth)
+        coloredDepth.setColormap(cv2.COLORMAP_JET)
 
-    coloredDepth = pipeline.create(ApplyDepthColormap).build(depth.depth)
-    coloredDepth.setColormap(cv2.COLORMAP_JET)
+        point_tracker = pipeline.create(
+            PointTracker, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT
+        ).build(cam_out, depth.depth)
 
-    point_tracker = pipeline.create(
-        PointTracker, frame_width=FRAME_WIDTH, frame_height=FRAME_HEIGHT
-    ).build(cam_out, depth.depth)
+        def point_selection_service(clicks: dict):
+            if clicks.get("clear"):
+                point_tracker.clear_points()
+                return {"ok": True, "cleared": True, "point_count": 0}
 
-    def point_selection_service(clicks: dict):
-        if clicks.get("clear"):
+            try:
+                x = float(clicks["x"])
+                y = float(clicks["y"])
+            except Exception as e:
+                return {"ok": False, "error": f"bad payload: {e}"}
+
+            point_tracker.add_point(x, y)
+            return {"ok": True}
+
+        def clear_points_service(data: dict):
             point_tracker.clear_points()
-            return {"ok": True, "cleared": True, "point_count": 0}
+            return {"ok": True, "cleared": True}
 
-        try:
-            x = float(clicks["x"])
-            y = float(clicks["y"])
-        except Exception as e:
-            return {"ok": False, "error": f"bad payload: {e}"}
+        def get_distance_service(data: dict):
+            distance_data = point_tracker.get_latest_distance()
+            return {"ok": True, **distance_data}
 
-        point_tracker.add_point(x, y)
-        return {"ok": True}
+        def toggle_tracking_service(data: dict):
+            """Toggle tracking mode on/off"""
+            current_mode = point_tracker.mode["name"]
+            if current_mode == "tracking":
+                point_tracker.set_mode(3)  # Switch to static mode
+                new_mode = "static"
+            else:
+                point_tracker.set_mode(1)  # Switch to tracking mode
+                new_mode = "tracking"
 
-    def clear_points_service(data: dict):
-        point_tracker.clear_points()
-        return {"ok": True, "cleared": True}
+            return {
+                "ok": True,
+                "mode": new_mode,
+                "tracking_enabled": new_mode == "tracking",
+            }
 
-    def get_distance_service(data: dict):
-        distance_data = point_tracker.get_latest_distance()
-        return {"ok": True, **distance_data}
+        def get_tracking_status_service(data: dict):
+            """Get current tracking status"""
+            return {
+                "ok": True,
+                "mode": point_tracker.mode["name"],
+                "tracking_enabled": point_tracker.mode["name"] == "tracking",
+            }
 
-    def toggle_tracking_service(data: dict):
-        """Toggle tracking mode on/off"""
-        current_mode = point_tracker.mode["name"]
-        if current_mode == "tracking":
-            point_tracker.set_mode(3)  # Switch to static mode
-            new_mode = "static"
-        else:
-            point_tracker.set_mode(1)  # Switch to tracking mode
-            new_mode = "tracking"
+        visualizer.registerService("Selection Service", point_selection_service)
+        visualizer.registerService("Clear Points Service", clear_points_service)
+        visualizer.registerService("Get Distance Service", get_distance_service)
+        visualizer.registerService("Toggle Tracking Service", toggle_tracking_service)
+        visualizer.registerService(
+            "Get Tracking Status Service", get_tracking_status_service
+        )
 
-        return {
-            "ok": True,
-            "mode": new_mode,
-            "tracking_enabled": new_mode == "tracking",
-        }
+        visualizer.addTopic("Video", cam_out, "images")
+        visualizer.addTopic("Depth", coloredDepth.out, "images")
+        visualizer.addTopic(
+            "Point Annotations", point_tracker.output_annotations, "images"
+        )
 
-    def get_tracking_status_service(data: dict):
-        """Get current tracking status"""
-        return {
-            "ok": True,
-            "mode": point_tracker.mode["name"],
-            "tracking_enabled": point_tracker.mode["name"] == "tracking",
-        }
+        print("Pipeline created.")
+        pipeline.start()
+        print("Pipeline started.")
 
-    visualizer.registerService("Selection Service", point_selection_service)
-    visualizer.registerService("Clear Points Service", clear_points_service)
-    visualizer.registerService("Get Distance Service", get_distance_service)
-    visualizer.registerService("Toggle Tracking Service", toggle_tracking_service)
-    visualizer.registerService(
-        "Get Tracking Status Service", get_tracking_status_service
-    )
+        visualizer.registerPipeline(pipeline)
 
-    visualizer.addTopic("Video", cam_out, "images")
-    visualizer.addTopic("Depth", coloredDepth.out, "images")
-    visualizer.addTopic("Point Annotations", point_tracker.output_annotations, "images")
-
-    print("Pipeline created.")
-    pipeline.start()
-    print("Pipeline started.")
-
-    visualizer.registerPipeline(pipeline)
-
-    while pipeline.isRunning():
-        if shutdown_requested:
-            pipeline.stop()
-            break
-        pipeline.processTasks()
-        key = visualizer.waitKey(1)
-        if key == ord("q"):
-            print("Got q key. Exiting...")
-            break
+        while pipeline.isRunning():
+            if shutdown_requested:
+                pipeline.stop()
+                break
+            pipeline.processTasks()
+            key = visualizer.waitKey(1)
+            if key == ord("q"):
+                print("Got q key. Exiting...")
+                break

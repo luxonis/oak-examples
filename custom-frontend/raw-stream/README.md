@@ -1,6 +1,6 @@
 # Raw Stream
 
-This example project demonstrates how to use the `@luxonis/depthai-viewer-common` package to build a simple custom frontend application for DepthAIv3. It showcases how to stream data to a custom UI that includes a text input, allowing two-way communication between the frontend and the backend application. It uses a simple internal Python-based web server. For scenarios involving remote access via WebRTC and support for stream encoding, which requires HTTPS access, it is recommended to use the advanced example [open-vocabulary-object-detection](../open-vocabulary-object-detection/README.md).
+This example project demonstrates how to use the `@luxonis/depthai-viewer-common` package to build a simple custom frontend application for DepthAIv3. It showcases how to stream data to a custom UI that includes a text input, allowing two-way communication between the frontend and the backend application. In peripheral mode, `depthai_nodes.runtime.serve_frontend` serves the built frontend on the host. In standalone mode, oakapp serves it through its HTTPS proxy. For scenarios involving remote access via WebRTC and support for stream encoding, which requires HTTPS access, it is recommended to use the advanced example [open-vocabulary-object-detection](../open-vocabulary-object-detection/README.md).
 
 ## Demo
 
@@ -19,11 +19,15 @@ Here is a list of all available parameters:
 					Optional name, DeviceID or IP of the camera to connect to. (default: None)
 -fps FPS_LIMIT, --fps-limit FPS_LIMIT
 					FPS limit. (default: None)
--ip IP, --ip IP       IP address to serve the frontend on. (default: None)
--p PORT, --port PORT  Port to serve the frontend on. (default: None)
+-ip IP, --ip IP       IP address to serve the frontend on. (default: 127.0.0.1)
+-p PORT, --port PORT  Port to serve the frontend on. (default: 8082)
+--frontend-dir PATH  Override the built frontend directory.
+--no-frontend        Use a separate frontend server.
 ```
 
 ## Peripheral Mode
+
+> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
 
 ### Installation
 
@@ -42,12 +46,12 @@ pip install -r requirements.txt
 
 #### Front End
 
-You need to have [Node.js](https://nodejs.org/en/download/) installed (version 24 or higher is recommended).
+You need to have [Node.js](https://nodejs.org/en/download/) installed (version 22 or higher).
 
 Then, navigate to the `frontend` folder and install the dependencies by running:
 
 ```bash
-npm install
+npm ci
 ```
 
 and build the frontend with:
@@ -60,14 +64,16 @@ Running in peripheral mode requires a host computer and there will be communicat
 
 ### Examples
 
-To run in peripheral mode, please set environment variable `OAKAPP_STATIC_FRONTEND_PATH` to point the path to build FE files.
+The backend finds `frontend/dist` relative to `main.py`; no frontend environment variables are needed.
 From the root of the example folder, run:
 
 ```bash
 python3 main.py
 ```
 
-This will run the example, and you’ll be able to access the frontend in your browser at `http://localhost:8082`.
+Open `http://localhost:8082` on the host computer. The same Python process serves the built frontend and runs the backend. `RemoteConnection` carries streams and service calls on port 8765. Both RVC2 and RVC4 are supported; select one with `--device <DEVICE_ID_OR_IP>`.
+
+Use `--frontend-dir` for another build directory, or `--no-frontend` when using a separate frontend development server. Rebuild the frontend after changing its source. The server binds to `127.0.0.1` by default; `--ip` and `--port` override the HTTP listener. Remote browser access requires separate HTTPS/WebSocket proxy configuration.
 
 ## Standalone Mode (RVC4 only)
 
@@ -82,3 +88,5 @@ oakctl app run .
 ```
 
 This will run the example with default argument values. If you want to change these values you need to edit the `oakapp.toml` file (refer [here](https://docs.luxonis.com/software-v3/oak-apps/configuration/) for more information about this configuration file).
+
+Open the frontend URL reported by `oakctl` (normally `https://<DEVICE_IP>:9000`). The oakapp runtime serves the frontend; the Python HTTP helper stays disabled automatically.

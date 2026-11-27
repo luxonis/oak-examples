@@ -1,4 +1,4 @@
 depthai==3.12.1
-depthai-nodes==0.8.0
-opencv-contrib-python==4.12.0.88
+depthai-nodes @ https://github.com/luxonis/depthai-nodes/archive/5df28b8a65943eaf9fad74691e6cfc544728b189.tar.gz
+opencv-contrib-python-headless==4.10.0.84
 numpy>=1.22

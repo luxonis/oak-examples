@@ -44,6 +44,39 @@ Settings reset when the app restarts. Every pipeline start, including after appl
 
 Connect an RVC4 OAK with RGB, stereo, and IMU sensors. Install [`oakctl`](https://docs.luxonis.com/software-v3/oak-apps/oakctl) if needed.
 
+## Peripheral Mode (RVC4)
+
+> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+
+Use Python 3.11 and Node.js 22 or newer. From this example directory:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python backend/src/main.py --device <DEVICE_IP>
+```
+
+Open `http://localhost:8082` on the host computer. Python serves the built custom
+frontend and runs the backend; streams and controls use `RemoteConnection` on
+port 8765. The frontend directory is resolved relative to the entrypoint.
+Rebuild the frontend after changing its source.
+
+Use `--frontend-dir` for another build directory, `--frontend-port` for another
+HTTP port, or `--no-frontend` with a separate development server. The default
+bind address is `127.0.0.1`; `--frontend-host` overrides it. Access from another
+computer requires a separate HTTPS/WebSocket proxy.
+
+Standalone mode keeps the existing oakapp frontend server. The Python helper
+automatically skips its listener when that server is configured.
+
+The host also needs the system libraries required by Open3D (`libegl1` and
+`libgfortran5` on Debian/Ubuntu). RGB, stereo and IMU hardware remain required.
+
 ## Standalone Mode (RVC4 only)
 
 From this directory, connect to the device and run the app:

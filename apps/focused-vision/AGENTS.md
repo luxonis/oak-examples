@@ -9,11 +9,10 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - You need a two-stage detector pipeline that crops from a higher-resolution source.
 - You want a reference for comparing naive inference against crop-based or tiling-based approaches.
 - You need custom host nodes for selecting detections, switching outputs, and merging tiled results.
-- You want a standalone-only RVC4 pipeline that stays close to the default Visualizer runtime.
+- You want a RVC4 pipeline with the same custom UI in peripheral and standalone modes.
 
 ## Do Not Use This Example When
 
-- You need host/peripheral support on RVC2.
 - You need a finished custom frontend as the primary runtime path.
 - You need generic object detection rather than a detail-preserving face pipeline comparison.
 - You need a minimal example without multiple branches and custom host nodes.
@@ -26,12 +25,12 @@ This example is the best RVC4 reference for preserving detail when the target ob
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` static frontend packaged from [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RVC4 device with RGB camera; high-resolution RGB throughput; bundled models in [backend/src/depthai_models/](backend/src/depthai_models/)
 - `Input:` one RGB camera stream split into high-resolution and low-resolution branches
 - `Output:` `640x640 RGB`, `NN detections`, `Non-Focus Head Crops`, `Focused Vision Head Crops`, and `Focused with Tiling`
 - `Models:` [scrfd-person-detection.yaml](backend/src/depthai_models/scrfd-person-detection.yaml) and [yunet.yaml](backend/src/depthai_models/yunet.yaml)
-- `Visualizer / UI:` packaged custom frontend backed by default DepthAI Visualizer topics
+- `Visualizer / UI:` custom frontend backed by RemoteConnection topics
 
 ## Read First
 
@@ -47,10 +46,16 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - The backend builds one RGB camera source and splits it into high-resolution and low-resolution outputs.
+
 - The naive branch runs face detection directly on low-resolution RGB and crops the largest detected face.
+
 - The 2-stage branch runs person detection, crops a high-resolution person region, runs face detection, then aligns face detections to high-resolution RGB.
+
 - The tiling branch slices the high-resolution image into overlapping tiles, runs face detection on each tile, aligns and merges detections, and crops the largest face result.
+
 - Custom host nodes provide black fallback frames when no detections exist so the comparison layout remains stable.
 
 ## Data Flow
@@ -76,7 +81,7 @@ This example is the best RVC4 reference for preserving detail when the target ob
 ## Constraints
 
 - The backend exits on RVC2; this is intentionally RVC4-only.
-- The default FPS limit is forced to `13` if not provided.
+- The default FPS is `3` in peripheral mode and `13` under oakapp; higher peripheral rates can overrun the five-tile branch and its gather deadline.
 - [backend/src/arguments.py](backend/src/arguments.py) defines `--media_path` and `--api_key`, but the current backend does not use either argument.
 - [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) still references a `Custom Service` that the backend does not register.
 
@@ -95,6 +100,12 @@ This example is the best RVC4 reference for preserving detail when the target ob
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+
 - `Run:` `oakctl app run .`
+
 - `Success looks like:` the Visualizer shows the RGB preview plus three comparison outputs for naive, 2-stage, and tiling approaches
+
 - `Common failure meaning:` the app is running on a non-RVC4 platform, the expected bundled models are missing, or the frontend topic expectations no longer match the backend outputs

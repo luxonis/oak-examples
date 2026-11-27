@@ -4,7 +4,7 @@ This app measures box dimensions (L × W × H) and volume live on an RVC4 device
 
 The backend runs the box-measurement nodes from [depthai-nodes](https://github.com/luxonis/depthai-nodes) on neural stereo depth. The frontend, built on `@luxonis/depthai-viewer-common`, guides you through support plane calibration and then shows the measurements.
 
-> **Note:** This example works only on RVC4 in standalone mode, and requires an **OAK 4 D** (Pro or non-Pro): box dimensions are computed from a stereo camera pair, so single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is enabled automatically when present.
+> **Note:** This example works on RVC4 in peripheral or standalone mode, and requires an **OAK 4 D** (Pro or non-Pro): box dimensions are computed from a stereo camera pair, so single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is enabled automatically when present.
 
 ## Demo
 
@@ -95,6 +95,39 @@ If measured heights are consistently too high or too low, add a distance offset 
 3. Press **Clear offset** to remove the offset right away.
 
 Positive values move the support plane farther from the camera, so boxes measure taller. The offset mainly affects the height. It is cleared when you run support plane calibration again or restart the app.
+
+## Peripheral Mode (RVC4)
+
+> Requirements pin depthai-nodes commit [`5df28b8`](https://github.com/luxonis/depthai-nodes/commit/5df28b8a65943eaf9fad74691e6cfc544728b189) for `serve_frontend`. Replace this pin with a release containing the helper before merging.
+
+Use Python 3.11 and Node.js 22 or newer. From this example directory:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python backend/src/main.py --device <DEVICE_IP>
+```
+
+Open `http://localhost:8082` on the host computer. Python serves the built custom
+frontend and runs the backend; streams and controls use `RemoteConnection` on
+port 8765. The frontend directory is resolved relative to the entrypoint.
+Rebuild the frontend after changing its source.
+
+Use `--frontend-dir` for another build directory, `--frontend-port` for another
+HTTP port, or `--no-frontend` with a separate development server. The default
+bind address is `127.0.0.1`; `--frontend-host` overrides it. Access from another
+computer requires a separate HTTPS/WebSocket proxy.
+
+Standalone mode keeps the existing oakapp frontend server. The Python helper
+automatically skips its listener when that server is configured.
+
+The host also needs the system libraries required by Open3D (`libegl1` and
+`libgfortran5` on Debian/Ubuntu). RGB, stereo and IMU hardware remain required.
 
 ## Standalone Mode (RVC4 only)
 

@@ -2,21 +2,21 @@
 
 ## Summary
 
-This is the best standalone reference for high-resolution tiled QR detection with runtime tiling control and adaptive FPS backpressure handling. Use it when you need a live UI for changing tile layout instead of a fixed tiling pipeline.
+This is the reference for high-resolution tiled QR detection with runtime tiling control and adaptive FPS backpressure handling. Use it when you need a live UI for changing tile layout instead of a fixed tiling pipeline.
 
 ## Use This Example When
 
 - You need QR detection over a high-resolution frame by splitting it into tiles.
 - You want runtime control over rows, columns, overlap, merged regions, and optional global detection.
 - You need a reference for adjusting FPS in response to pipeline load as tile count changes.
-- You want a frontend/backend standalone app with service-driven configuration.
+- You want a frontend/backend app with service-driven configuration.
 
 ## Do Not Use This Example When
 
 - You only need a fixed tiled QR example without a frontend.
 - You need general object detection rather than QR detection and decode.
 - You need a custom frontend with two-way arbitrary services unrelated to tiling.
-- You need host/peripheral support instead of standalone-only RVC4 packaging.
+- You need RVC2 support; the bundled QR detector targets RVC4.
 
 ## Quick Facts
 
@@ -26,7 +26,7 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RVC4 device; static frontend build; bundled QR detector; `libzbar` for decode support
 - `Input:` high-resolution RGB camera frames and frontend tiling/decode controls
 - `Output:` `Video` and `Visualizations`
@@ -50,13 +50,24 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` hosts `frontend/dist` on localhost in peripheral mode and defers to oakapp when `OAKAPP_STATIC_FRONTEND_PORT` is set.
+
+- `RemoteConnection(serveFrontend=False)` supplies streams and services on port 8765.
+
 - One RGB camera produces a high-resolution NN stream and a lower-resolution display stream.
+
 - `FPSController` gates the frame rate for both paths.
+
 - `Tiling` generates manip configs for tiled crops over the high-resolution image.
+
 - `FrameCropper` extracts the tiles.
+
 - A parsing NN runs QR detection per tile.
+
 - `Align` maps tile detections to high-resolution RGB before collection, merging, NMS, and optional decoding.
-- `PipelineHealthMonitor` feeds safe FPS targets back into the controller as tile count changes.
+
+- `PipelineHealthMonitor` feeds safe FPS targets back into the controller as tile count changes. The entrypoint enables pipeline debugging in both modes so the monitor can read node state.
+
 - A tile-grid overlay is rendered onto the display stream, then encoded for frontend viewing.
 
 ## Data Flow
@@ -82,7 +93,7 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Constraints
 
-- This example is RVC4 standalone only.
+- This example is RVC4 peripheral and standalone.
 - `libzbar-dev` is installed in [oakapp.toml](oakapp.toml) because QR decoding depends on it.
 - Tile count directly affects throughput, so the frontend may change FPS behavior when configuration changes.
 - The frontend displays only the `Video` topic by default even though the backend also publishes `Visualizations`.
@@ -103,6 +114,6 @@ This is the best standalone reference for high-resolution tiled QR detection wit
 
 ## Validation
 
-- `Run:` `oakctl app run .`
+- `Run:` standalone: `oakctl app run .`; peripheral: install backend requirements, build `frontend` with `npm ci && npm run build`, then run `python backend/src/main.py --device <DEVICE>`.
 - `Success looks like:` the frontend loads current tiling settings, changing rows or columns updates the backend, and QR detections remain stable while FPS adjusts under higher load
 - `Common failure meaning:` the static frontend was not built, `libzbar` or model assets are unavailable, or the tiling/state service contract drifted

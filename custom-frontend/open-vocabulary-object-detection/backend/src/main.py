@@ -1,10 +1,11 @@
 import logging as log
+from pathlib import Path
 
 import depthai as dai
-
-from config import parse_args, build_configuration
 from app_config_service import GetCurrentParamsService
 from camera import CameraSourceNode
+from config import build_configuration, parse_args
+from depthai_nodes.runtime import serve_frontend
 from nn import NNDetectionNode
 from prompting import FrameCacheNode, PromptingFEServices
 from visualization import SegmentationOverlayNode
@@ -13,8 +14,8 @@ log.basicConfig(level=log.INFO)
 logger = log.getLogger(__name__)
 
 
-def main():
-    device = dai.Device()
+def main(args):
+    device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
     visualizer = dai.RemoteConnection(serveFrontend=False)
 
     platform = device.getPlatformAsString()
@@ -23,7 +24,6 @@ def main():
     if platform != "RVC4":
         raise ValueError("This example is supported only on RVC4 platform")
 
-    args = parse_args()
     config = build_configuration(platform, args)
 
     with dai.Pipeline(device) as pipeline:
@@ -110,4 +110,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    with serve_frontend(
+        args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+        host=args.frontend_host,
+        port=args.frontend_port,
+        enabled=not args.no_frontend,
+    ):
+        main(args)

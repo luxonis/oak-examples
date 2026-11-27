@@ -1,18 +1,18 @@
 import logging
 import signal
 from datetime import timedelta
+from pathlib import Path
 from threading import Lock
 
 import depthai as dai
-
 from depthai_nodes.node import ParsingNeuralNetwork
-
-from utils.helper_functions import extract_text_embeddings
-
-from utils.arguments import initialize_argparser
+from depthai_nodes.runtime import serve_frontend
 from utils.annotation_node import AnnotationNode
+from utils.arguments import initialize_argparser
+from utils.helper_functions import extract_text_embeddings
 from utils.measurement_node import MeasurementNode
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 shutdown_requested = False
 
@@ -28,239 +28,252 @@ signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 _, args = initialize_argparser()
 
-IP = args.ip or "localhost"
-PORT = args.port or 8080
-
 CLASS_NAMES = ["person", "chair", "TV"]
 MAX_NUM_CLASSES = 80
 CONFIDENCE_THRESHOLD = 0.15
 
-visualizer = dai.RemoteConnection(serveFrontend=False)
-device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+with serve_frontend(
+    args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+    host=args.frontend_host,
+    port=args.frontend_port,
+    enabled=not args.no_frontend,
+):
+    visualizer = dai.RemoteConnection(serveFrontend=False)
+    device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
 
-platform = device.getPlatformAsString()
+    platform = device.getPlatformAsString()
 
-if platform != "RVC4":
-    raise ValueError("This example is supported only on RVC4 platform")
+    if platform != "RVC4":
+        raise ValueError("This example is supported only on RVC4 platform")
 
-if device.getIrDrivers():
-    if not device.setIrLaserDotProjectorIntensity(1.0):
-        logger.warning("Failed to enable IR laser dot projector.")
-    if not device.setIrFloodLightIntensity(1):
-        logger.warning("Failed to enable IR flood light.")
+    if device.getIrDrivers():
+        if not device.setIrLaserDotProjectorIntensity(1.0):
+            logger.warning("Failed to enable IR laser dot projector.")
+        if not device.setIrFloodLightIntensity(1):
+            logger.warning("Failed to enable IR flood light.")
 
-frame_type = dai.ImgFrame.Type.BGR888i
-text_features = extract_text_embeddings(
-    class_names=CLASS_NAMES, max_num_classes=MAX_NUM_CLASSES
-)
-
-if args.fps_limit is None:
-    args.fps_limit = 8
-    print(
-        f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
+    frame_type = dai.ImgFrame.Type.BGR888i
+    text_features = extract_text_embeddings(
+        class_names=CLASS_NAMES, max_num_classes=MAX_NUM_CLASSES
     )
 
-with dai.Pipeline(device) as pipeline:
-    print("Creating pipeline...")
-
-    model_description = dai.NNModelDescription.fromYamlFile(
-        f"yoloe_v8_l.{platform}.yaml"
-    )
-    model_description.platform = platform
-    model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
-    model_w, model_h = model_nn_archive.getInputSize()
-
-    cam = pipeline.create(dai.node.Camera).build(
-        boardSocket=dai.CameraBoardSocket.CAM_A
-    )
-    cam_out = cam.requestOutput(
-        size=(640, 400),
-        type=dai.ImgFrame.Type.RGB888i,
-        fps=args.fps_limit,
-        enableUndistortion=True,
-    )
-
-    depth = pipeline.create(dai.node.Depth)
-    depth.build(dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=(640, 400))
-    depth.setAlignTo(cam_out)
-
-    imu = pipeline.create(dai.node.IMU)
-    imu.enableIMUSensor(dai.IMUSensor.ACCELEROMETER_RAW, 100)
-    imu.setBatchReportThreshold(10)
-    imu.setMaxBatchReports(10)
-
-    manip = pipeline.create(dai.node.ImageManip)
-    manip.initialConfig.setOutputSize(
-        model_w, model_h, dai.ImageManipConfig.ResizeMode.LETTERBOX
-    )
-    manip.initialConfig.setFrameType(frame_type)
-    manip.setMaxOutputFrameSize(model_w * model_h * 3)
-
-    cam_out.link(manip.inputImage)
-
-    input_node = manip.out
-
-    nn_with_parser = pipeline.create(ParsingNeuralNetwork)
-    nn_with_parser.setNNArchive(model_nn_archive)
-    nn_with_parser.setBackend("snpe")
-    nn_with_parser.setBackendProperties(
-        {"runtime": "dsp", "performance_profile": "default"}
-    )
-    nn_with_parser.setNumInferenceThreads(1)
-
-    input_node.link(nn_with_parser.inputs["images"])
-
-    textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
-    nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
-
-    det_process_filter = pipeline.create(dai.node.ImgDetectionsFilter)
-    filter_config = det_process_filter.initialConfig
-    filter_config.labelsToKeep = list(range(len(CLASS_NAMES)))
-    filter_config.setConfidenceRange(CONFIDENCE_THRESHOLD, float("inf"))
-    nn_with_parser.out.link(det_process_filter.inputs["detections"])
-    filter_config_queue = det_process_filter.inputConfig.createInputQueue()
-    filter_config_lock = Lock()
-
-    sync = pipeline.create(dai.node.Sync)
-    sync.setRunOnHost(True)
-    sync.setTimestampSource(dai.node.Sync.TimestampSource.DEVICE)
-    sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
-    det_process_filter.out.link(sync.inputs["detections"])
-    cam_out.link(sync.inputs["rgb"])
-    depth.depth.link(sync.inputs["depth"])
-
-    # Annotation node
-    annotation_node = pipeline.create(AnnotationNode).build(
-        sync.out,
-        label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
-    )
-
-    pcl_seg = pipeline.create(dai.node.PointCloud)
-    pcl_seg.initialConfig.setOrganized(True)
-    pcl_seg.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
-    pcl_seg.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
-    # Its internal Sync must accept the same pairs and clock as the upstream Sync.
-    pcl_seg.sync.setSyncThreshold(sync.getSyncThreshold())
-    pcl_seg.sync.setTimestampSource(sync.getTimestampSource())
-    annotation_node.out_segm_depth.link(pcl_seg.inputDepth)
-    annotation_node.out_segm.link(pcl_seg.inputColor)
-
-    # Measurement node
-    measurement_node = pipeline.create(MeasurementNode).build(
-        pcl_seg.outputPointCloud, annotation_node.out_selection, imu.out
-    )
-    measurement_node.out_result.link(annotation_node.in_meas_result)
-
-    measurement_node.an_node = annotation_node
-
-    # Service functions for all functionalities of the frontend
-    def class_update_service(new_classes: list[str]):
-        """Changes classes to detect based on the user input"""
-        global filter_config
-        if len(new_classes) == 0:
-            print("List of new classes empty, skipping.")
-            return
-        if len(new_classes) > MAX_NUM_CLASSES:
-            print(
-                f"Number of new classes ({len(new_classes)}) exceeds maximum number of classes ({MAX_NUM_CLASSES}), skipping."
-            )
-            return
-        CLASS_NAMES = new_classes
-
-        text_features = extract_text_embeddings(
-            class_names=CLASS_NAMES,
-            max_num_classes=MAX_NUM_CLASSES,
+    if args.fps_limit is None:
+        args.fps_limit = 8
+        print(
+            f"\nFPS limit set to {args.fps_limit} for {platform} platform. If you want to set a custom FPS limit, use the --fps_limit flag.\n"
         )
+
+    with dai.Pipeline(device) as pipeline:
+        print("Creating pipeline...")
+
+        model_description = dai.NNModelDescription.fromYamlFile(
+            Path(__file__).resolve().parent
+            / "depthai_models"
+            / f"yoloe_v8_l.{platform}.yaml"
+        )
+        model_description.platform = platform
+        model_nn_archive = dai.NNArchive(dai.getModelFromZoo(model_description))
+        model_w, model_h = model_nn_archive.getInputSize()
+
+        cam = pipeline.create(dai.node.Camera).build(
+            boardSocket=dai.CameraBoardSocket.CAM_A
+        )
+        cam_out = cam.requestOutput(
+            size=(640, 400),
+            type=dai.ImgFrame.Type.RGB888i,
+            fps=args.fps_limit,
+            enableUndistortion=True,
+        )
+
+        depth = pipeline.create(dai.node.Depth)
+        depth.build(dai.node.Depth.Algorithm.AUTO, fps=args.fps_limit, size=(640, 400))
+        depth.setAlignTo(cam_out)
+
+        imu = pipeline.create(dai.node.IMU)
+        imu.enableIMUSensor(dai.IMUSensor.ACCELEROMETER_RAW, 100)
+        imu.setBatchReportThreshold(10)
+        imu.setMaxBatchReports(10)
+
+        manip = pipeline.create(dai.node.ImageManip)
+        manip.initialConfig.setOutputSize(
+            model_w, model_h, dai.ImageManipConfig.ResizeMode.LETTERBOX
+        )
+        manip.initialConfig.setFrameType(frame_type)
+        manip.setMaxOutputFrameSize(model_w * model_h * 3)
+
+        cam_out.link(manip.inputImage)
+
+        input_node = manip.out
+
+        nn_with_parser = pipeline.create(ParsingNeuralNetwork)
+        nn_with_parser.setNNArchive(model_nn_archive)
+        nn_with_parser.setBackend("snpe")
+        nn_with_parser.setBackendProperties(
+            {"runtime": "dsp", "performance_profile": "default"}
+        )
+        nn_with_parser.setNumInferenceThreads(1)
+
+        input_node.link(nn_with_parser.inputs["images"])
+
+        textInputQueue = nn_with_parser.inputs["texts"].createInputQueue()
+        nn_with_parser.inputs["texts"].setReusePreviousMessage(True)
+
+        det_process_filter = pipeline.create(dai.node.ImgDetectionsFilter)
+        filter_config = det_process_filter.initialConfig
+        filter_config.labelsToKeep = list(range(len(CLASS_NAMES)))
+        filter_config.setConfidenceRange(CONFIDENCE_THRESHOLD, float("inf"))
+        nn_with_parser.out.link(det_process_filter.inputs["detections"])
+        filter_config_queue = det_process_filter.inputConfig.createInputQueue()
+        filter_config_lock = Lock()
+
+        sync = pipeline.create(dai.node.Sync)
+        sync.setRunOnHost(True)
+        sync.setTimestampSource(dai.node.Sync.TimestampSource.DEVICE)
+        sync.setSyncThreshold(timedelta(seconds=0.5 / args.fps_limit))
+        det_process_filter.out.link(sync.inputs["detections"])
+        cam_out.link(sync.inputs["rgb"])
+        depth.depth.link(sync.inputs["depth"])
+
+        # Annotation node
+        annotation_node = pipeline.create(AnnotationNode).build(
+            sync.out,
+            label_encoding={k: v for k, v in enumerate(CLASS_NAMES)},
+        )
+
+        pcl_seg = pipeline.create(dai.node.PointCloud)
+        pcl_seg.initialConfig.setOrganized(True)
+        pcl_seg.initialConfig.setLengthUnit(dai.LengthUnit.CENTIMETER)
+        pcl_seg.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
+        # Its internal Sync must accept the same pairs and clock as the upstream Sync.
+        pcl_seg.sync.setSyncThreshold(sync.getSyncThreshold())
+        pcl_seg.sync.setTimestampSource(sync.getTimestampSource())
+        annotation_node.out_segm_depth.link(pcl_seg.inputDepth)
+        annotation_node.out_segm.link(pcl_seg.inputColor)
+
+        # Measurement node
+        measurement_node = pipeline.create(MeasurementNode).build(
+            pcl_seg.outputPointCloud, annotation_node.out_selection, imu.out
+        )
+        measurement_node.out_result.link(annotation_node.in_meas_result)
+
+        measurement_node.an_node = annotation_node
+
+        # Service functions for all functionalities of the frontend
+        def class_update_service(new_classes: list[str]):
+            """Changes classes to detect based on the user input"""
+            global filter_config
+            if len(new_classes) == 0:
+                print("List of new classes empty, skipping.")
+                return
+            if len(new_classes) > MAX_NUM_CLASSES:
+                print(
+                    f"Number of new classes ({len(new_classes)}) exceeds maximum number of classes ({MAX_NUM_CLASSES}), skipping."
+                )
+                return
+            CLASS_NAMES = new_classes
+
+            text_features = extract_text_embeddings(
+                class_names=CLASS_NAMES,
+                max_num_classes=MAX_NUM_CLASSES,
+            )
+            inputNNData = dai.NNData()
+            inputNNData.addTensor(
+                "texts", text_features, dataType=dai.TensorInfo.DataType.FP16
+            )
+            textInputQueue.send(inputNNData)
+
+            with filter_config_lock:
+                config = dai.ImgDetectionsFilterConfig()
+                config.labelsToKeep = list(range(len(CLASS_NAMES)))
+                config.setConfidenceRange(filter_config.minConfidence, float("inf"))
+                filter_config_queue.send(config)
+                filter_config = config
+            annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
+            print(f"Classes set to: {CLASS_NAMES}")
+
+        def conf_threshold_update_service(new_conf_threshold: float):
+            """Changes confidence threshold based on the user input"""
+            global filter_config
+            CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
+            with filter_config_lock:
+                config = dai.ImgDetectionsFilterConfig()
+                config.labelsToKeep = filter_config.labelsToKeep
+                # The native range must have min < max, including at threshold 1.0.
+                config.setConfidenceRange(CONFIDENCE_THRESHOLD, float("inf"))
+                filter_config_queue.send(config)
+                filter_config = config
+            print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
+
+        def selection_service(clicks: dict):
+            """Changes selected object based on the user click"""
+            if clicks.get("clear"):
+                annotation_node.clearSelection()
+                return {"ok": True, "cleared": True}
+            try:
+                x = float(clicks["x"])
+                y = float(clicks["y"])
+            except Exception as e:
+                return {"ok": False, "error": f"bad payload: {e}"}
+
+            annotation_node.setSelectionPoint(x, y)
+            annotation_node.setKeepTopOnly(True)
+
+            measurement_node.reset_measurements()
+            annotation_node.clearCachedMeasurements()
+            print(f"Selection point set to ({x:.3f}, {y:.3f})")
+            return {"ok": True}
+
+        def measurement_method_service(payload: dict):
+            """
+            Changes measurement method based on the user input
+            Expects: {"method": "obb"|"heightgrid"}
+            """
+            method = str(payload.get("method", "")).lower()
+            if method not in ("obb", "heightgrid"):
+                return {"ok": False, "error": f"unknown method '{method}'"}
+            measurement_node.set_measurement_mode(method)
+            print("Selected method: ", method)
+            return {
+                "ok": True,
+                "method": method,
+                "have_plane": measurement_node.have_plane,
+            }
+
+        # Connect the services in the frontend to functions in the backend
+        visualizer.registerService("Selection Service", selection_service)
+        visualizer.registerService("Class Update Service", class_update_service)
+        visualizer.registerService(
+            "Threshold Update Service", conf_threshold_update_service
+        )
+        visualizer.registerService(
+            "Measurement Method Service", measurement_method_service
+        )
+
+        visualizer.addTopic("Video", cam_out, "images")
+        visualizer.addTopic("Detections", annotation_node.out_ann, "images")
+        visualizer.addTopic("Pointclouds", pcl_seg.outputPointCloud, "point_clouds")
+        visualizer.addTopic("Measurement Overlay", measurement_node.out_ann, "images")
+        visualizer.addTopic("Plane Status", measurement_node.out_plane_status, "images")
+
+        print("Pipeline created.")
+        pipeline.start()
+        print("Pipeline started.")
+        visualizer.registerPipeline(pipeline)
+
         inputNNData = dai.NNData()
         inputNNData.addTensor(
             "texts", text_features, dataType=dai.TensorInfo.DataType.FP16
         )
         textInputQueue.send(inputNNData)
 
-        with filter_config_lock:
-            config = dai.ImgDetectionsFilterConfig()
-            config.labelsToKeep = list(range(len(CLASS_NAMES)))
-            config.setConfidenceRange(filter_config.minConfidence, float("inf"))
-            filter_config_queue.send(config)
-            filter_config = config
-        annotation_node.setLabelEncoding({k: v for k, v in enumerate(CLASS_NAMES)})
-        print(f"Classes set to: {CLASS_NAMES}")
+        print("Press 'q' to stop")
 
-    def conf_threshold_update_service(new_conf_threshold: float):
-        """Changes confidence threshold based on the user input"""
-        global filter_config
-        CONFIDENCE_THRESHOLD = max(0, min(1, new_conf_threshold))
-        with filter_config_lock:
-            config = dai.ImgDetectionsFilterConfig()
-            config.labelsToKeep = filter_config.labelsToKeep
-            # The native range must have min < max, including at threshold 1.0.
-            config.setConfidenceRange(CONFIDENCE_THRESHOLD, float("inf"))
-            filter_config_queue.send(config)
-            filter_config = config
-        print(f"Confidence threshold set to: {CONFIDENCE_THRESHOLD}:")
-
-    def selection_service(clicks: dict):
-        """Changes selected object based on the user click"""
-        if clicks.get("clear"):
-            annotation_node.clearSelection()
-            return {"ok": True, "cleared": True}
-        try:
-            x = float(clicks["x"])
-            y = float(clicks["y"])
-        except Exception as e:
-            return {"ok": False, "error": f"bad payload: {e}"}
-
-        annotation_node.setSelectionPoint(x, y)
-        annotation_node.setKeepTopOnly(True)
-
-        measurement_node.reset_measurements()
-        annotation_node.clearCachedMeasurements()
-        print(f"Selection point set to ({x:.3f}, {y:.3f})")
-        return {"ok": True}
-
-    def measurement_method_service(payload: dict):
-        """
-        Changes measurement method based on the user input
-        Expects: {"method": "obb"|"heightgrid"}
-        """
-        method = str(payload.get("method", "")).lower()
-        if method not in ("obb", "heightgrid"):
-            return {"ok": False, "error": f"unknown method '{method}'"}
-        measurement_node.set_measurement_mode(method)
-        print("Selected method: ", method)
-        return {"ok": True, "method": method, "have_plane": measurement_node.have_plane}
-
-    # Connect the services in the frontend to functions in the backend
-    visualizer.registerService("Selection Service", selection_service)
-    visualizer.registerService("Class Update Service", class_update_service)
-    visualizer.registerService(
-        "Threshold Update Service", conf_threshold_update_service
-    )
-    visualizer.registerService("Measurement Method Service", measurement_method_service)
-
-    visualizer.addTopic("Video", cam_out, "images")
-    visualizer.addTopic("Detections", annotation_node.out_ann, "images")
-    visualizer.addTopic("Pointclouds", pcl_seg.outputPointCloud, "point_clouds")
-    visualizer.addTopic("Measurement Overlay", measurement_node.out_ann, "images")
-    visualizer.addTopic("Plane Status", measurement_node.out_plane_status, "images")
-
-    print("Pipeline created.")
-    pipeline.start()
-    print("Pipeline started.")
-    visualizer.registerPipeline(pipeline)
-
-    inputNNData = dai.NNData()
-    inputNNData.addTensor("texts", text_features, dataType=dai.TensorInfo.DataType.FP16)
-    textInputQueue.send(inputNNData)
-
-    print("Press 'q' to stop")
-
-    while pipeline.isRunning():
-        if shutdown_requested:
-            pipeline.stop()
-            break
-        pipeline.processTasks()
-        key = visualizer.waitKey(1)
-        if key == ord("q"):
-            print("Got q key. Exiting...")
-            break
+        while pipeline.isRunning():
+            if shutdown_requested:
+                pipeline.stop()
+                break
+            pipeline.processTasks()
+            key = visualizer.waitKey(1)
+            if key == ord("q"):
+                print("Got q key. Exiting...")
+                break

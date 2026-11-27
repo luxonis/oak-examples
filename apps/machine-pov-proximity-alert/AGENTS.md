@@ -24,12 +24,12 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RGB, stereo, and IMU sensors; a built static frontend; bundled person segmentation model
 - `Input:` RGB preview, depth selected by the Depth node, 50 Hz raw accelerometer, and frontend settings
 - `Output:` H.264 `Video` preview and its `Annotations` overlay; optional `Occupancy Grid`, `Support Plane Status`, and `Point Cloud` topics
 - `Models:` bundled Zoo `luxonis/yolov8-instance-segmentation-nano:coco-512x288`, filtered to person class
-- `Visualizer / UI:` custom HTTPS frontend built on `@luxonis/depthai-viewer-common` and `@luxonis/ui-components` with Tailwind, with raw DepthAI Visualizer on port 8082
+- `Visualizer / UI:` custom HTTPS frontend built on `@luxonis/depthai-viewer-common` and `@luxonis/ui-components` with Tailwind, served on localhost:8082 in peripheral mode
 
 ## Read First
 
@@ -42,10 +42,16 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - RGB passes through a bundled instance segmentation model and native `ImgDetectionsFilter` to keep people. DepthAI's `ObjectTracker` assigns track IDs; `TrackletSegmentationMatcher` attaches the corresponding masks.
+
 - The `Depth` node selects the backend automatically. Its depth output is aligned to person masks. `SegmentationDangerEvaluator` uses the IMU to rotate depth points into a gravity-aligned frame before testing warning and danger zones.
+
 - Pipeline initialisation builds an RGBD point cloud from a 640 × 360 RGB camera output and aligned depth and passes it, with the IMU stream, into `PointCloudObjectDetectionNode`. That composite node runs depthai-nodes `AutoSupportPlane` in continuous mode, which finds the support plane automatically and keeps re-verifying it against gravity. `SupportPlaneSegmenter` turns each `AutoSupportPlaneResult` into per-frame data: it splits every frame's points into support plane and obstacle points at 45 mm, rotates them into a frame built from the support plane's normal, and publishes a `SupportPlaneStatus`. A result with `passed=False` means no valid support plane, so obstacle assessment stops. The occupancy grid groups obstacle points in a polar grid and evaluates obstacles against the same zones. The composite node publishes obstacles, the support plane point cloud, bird's-eye view, and support plane status annotations.
+
 - `DangerClassifier` combines available assessments and applies temporal alert transitions. `DangerVisualizer` publishes person and alert annotations.
+
 - The frontend calls `getSettings` and `updateSettings`. Applying settings rebuilds the pipeline.
 
 ## Data Flow
@@ -70,7 +76,7 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 
 ## Constraints
 
-- This app is intended for RVC4 standalone mode with RGB, stereo, and IMU hardware. On any other platform, `init_pipeline()` raises `RuntimeError` at startup, before it creates any node.
+- This app supports RVC4 peripheral and standalone modes with RGB, stereo, and IMU hardware. On any other platform, `init_pipeline()` raises `RuntimeError` at startup, before it creates any node.
 - Preserve alignment between segmentation masks and depth, and preserve sequence and timestamp metadata passed between host nodes.
 - RVC4 permits at most three outputs per camera. With generic object detection enabled, CAM_A already uses three: the 1080p model and tracker input, the NV12 preview for the H.264 encoder, and the RGB output for the point cloud. Reuse one of them rather than adding another `Camera.requestOutput()`.
 - Settings are process-local; alerts and video are not recorded.
@@ -94,6 +100,12 @@ Machine-Mounted Person Proximity Alert is an RVC4 example. Camera-relative zones
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+
 - `Run:` `oakctl app run .` from this directory with an RVC4 device connected. To check the frontend without a device, run `npm ci && npm run build && npm run lint` in `frontend/`.
+
 - `Success looks like:` `Pipeline started.` appears in the log, the HTTPS frontend shows the `Video` stream with its `Annotations` overlay, and applying settings restarts the pipeline with the new values. With generic object detection enabled, `Occupancy Grid`, `Support Plane Status`, and `Point Cloud` appear, and the support plane turns valid once the floor is in view.
+
 - `Common failure meaning:` a `RuntimeError` at startup means the device is not RVC4; a settings panel stuck on "Loading settings" means the backend crashed or never registered its services; a blank `Video` stream means the page is not in a secure context; a support plane that stays invalid means the floor is out of view or failed the gravity check.
