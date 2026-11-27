@@ -1,115 +1,158 @@
 # Measure anything with an OAK4
 
-This example shows RGB object boxes labeled with tracking IDs and `L: value x W: value x H: value` in millimeters. The frontend starts support-plane calibration, lets you select a candidate surface, and retains the latest 20 saved object measurements.
+This app automatically segments objects from a point cloud and measures their length, width, and height without a neural-network object detector. Calibrate the supporting surface, view tracked objects over RGB video, and inspect saved measurements as interactive 3D point clouds.
 
-The app uses public `MeasureAnythingDetector`, `MeasureAnythingDimensioner`, and `SupportPlaneCalibrator` nodes from the pinned revision of [depthai-nodes PR 348](https://github.com/luxonis/depthai-nodes/pull/348). Capture defaults to 10 FPS with unrectified RGB at 2000 × 1500, unrectified left and right images at 1280 × 800, and the unified `Depth` node at 10 FPS using its default algorithm and configuration. The aligned depth and point cloud use a 768 × 480 grid.
+Works best with larger, box-like objects that are separated, fully visible, and well lit on a fixed, flat support surface. The app requires an OAK4 with RGB, a stereo camera pair, and an accelerometer. Single-camera devices and RVC2 are not supported. The IR dot projector is enabled at full intensity when the device has one.
 
-`Depth.build(fps=10)` leaves algorithm, model, and source resolution at SDK defaults. Its output feeds `ImageAlign`, which targets a separate undistorted 768 × 480 RGB branch. Public `ImageAlignDepthCorrection` then converts aligned source-camera Z values into RGB-camera Z before PointCloud generation. The raw detector images retain their original grids.
+Physical measurement accuracy has not been validated against reference dimensions. The pinned algorithm has a documented historical failure against a synthetic example's 5 mm dimension tolerance. See [depthai-nodes PR 348](https://github.com/luxonis/depthai-nodes/pull/348) for the implementation and verification limits.
 
-When the device reports an IR driver, the app enables the laser dot projector at full normalized intensity (`1.0`) on startup. Devices without IR drivers skip this step. Startup logs report whether enabling the projector succeeded.
+## Demo
 
-## Run as an OAK App
+![Support-plane calibration and RGB preview overlays](media/demo.gif)
 
-Use an OAK4 with RGB, stereo, and an IMU. From this directory, run the packaged app.
+## Architecture
 
-```bash
-oakctl app run .
+```mermaid
+flowchart LR
+    UI["Frontend<br/>Calibration, Measurements, Configuration"]
+
+    subgraph Capture["OAK4 capture"]
+        RGB["RGB camera<br/>2000 × 1500 · 10 FPS"]
+        Target["Undistorted RGB branch<br/>768 × 480"]
+        Stereo["Stereo cameras<br/>1280 × 800 · 10 FPS"]
+        IMU["Accelerometer"]
+        Depth["Depth<br/>SDK default algorithm and configuration"]
+        Align["ImageAlign and axial depth correction"]
+        Cloud["Organized point cloud<br/>RGB camera coordinates · millimeters"]
+        Encoder["H.264 encoder"]
+        RGB --> Target
+        Stereo --> Depth
+        Depth --> Align
+        Target --> Align
+        Align --> Cloud
+    end
+
+    subgraph Backend["Backend on host or OAK4"]
+        Scene["Synchronized scene<br/>RGB, stereo, corrected depth, cloud"]
+        Calibration["Support-plane calibration and verification"]
+        Controller["Measurement controller<br/>Scene admission, tracking, result pairing"]
+        Detector["Automatic object segmentation<br/>MeasureAnythingDetector"]
+        Dimensioner["Cuboid fitting<br/>MeasureAnythingDimensioner"]
+        Preview["RGB overlays and native annotations"]
+        Storage["Background snapshot writer<br/>SQLite · latest 20 measurements"]
+    end
+
+    RGB --> Scene
+    Stereo --> Scene
+    Align --> Scene
+    Cloud --> Scene
+    Scene --> Controller
+    Controller -->|"Cloud and transformed gravity"| Calibration
+    IMU --> Controller
+    Calibration -->|"Candidates and verification"| Controller
+    UI -->|"Calibrate and select a plane"| Controller
+    Controller -->|"Scene and selected plane"| Detector
+    Detector --> Dimensioner
+    Detector --> Controller
+    Dimensioner --> Controller
+    Controller --> Preview
+    Preview --> Encoder
+    Encoder -->|"Color stream"| UI
+    Preview -->|"Object annotations"| UI
+    Controller --> Storage
+    Storage -->|"Saved snapshots"| UI
+    UI -->|"Inspect, update, choose overlays"| Controller
 ```
 
-Open the `Measure anything frontend at https://<OAK4-IP>:<port>` address printed in the app logs from a computer on the same network. `OAKAPP_STATIC_FRONTEND_PORT` controls the port. The base image defaults to 8000; oakctl can assign another port, such as 9000.
+Object segmentation and dimensioning use the selected support plane and the scene's point cloud. They do not use a neural-network object detector. Stereo depth uses the unified `Depth` node's SDK defaults, which can include neural depth inference.
 
-The container builds the React frontend and serves its static files through the base image's `/entrypoint.sh` and HTTPS proxy. `RemoteConnection` supplies the video topics and control services.
+The backend pairs measurements with their source RGB frame before encoding. Video follows measurement throughput after calibration and live capture before calibration. The **Processing** section reports capture and measurement rates separately. Capture defaults to 10 FPS; measurement throughput depends on the scene and the backend CPU.
 
-The container uses `luxonis/oakapp-base:1.3.0` and Python 3.12. The pinned depthai-nodes revision requires DepthAI 3.12.0 and uses the OAK4 visibility baseline.
+## Usage
 
-The depthai-nodes commit pin is a development dependency. Before merging this example, replace it with a released version that exports `MeasureAnythingDetector`, `MeasureAnythingDimensioner`, and `ImageAlignDepthCorrection`. Published depthai-nodes 0.8.1 does not contain these APIs.
+Start the app using either mode below. Keep the camera fixed while measuring and leave an uncluttered view of the support surface.
 
-## Calibrate and measure objects
+### Calibrate the support plane
 
-1. Keep the camera fixed and show the horizontal surface supporting the objects.
-2. Click **Find support planes**.
-3. Inspect the candidate previews. Green pixels mark projected plane inliers. Select the supporting table or floor rather than a object top.
+1. Open **Calibration** and click **Find support planes**.
+2. Inspect the candidate previews. Green pixels mark each candidate surface.
+3. Select the supporting table or floor rather than an object's top.
 4. Click **Use this support plane**.
-5. Keep objects separated and fully in view. Eligible objects receive boxes with tracking IDs and dimensions.
+5. Keep separated objects fully in view. Confirmed objects receive tracking IDs and dimensions in millimeters over the RGB stream.
 
-Recalibrate after moving the camera or changing the support surface. Unknown heights appear as `?`. Failed frames show a failure reason instead of fabricated dimensions.
+An object must appear in 10 consecutive processed frames before its box appears or its measurement is saved. Unknown heights appear as `?`. Failed frames show an explanation without moving the tabs.
 
-RGB reaches the frontend as H.264, with native annotations for boxes and labels. The app pairs each measured result with its source RGB frame before encoding. During measurement, the displayed video follows measurement throughput. Before calibration, it shows the live capture stream.
+Recalibrate after moving the camera or changing the support surface. The app verifies the selected plane every five seconds. If verification fails, measurement pauses and the frontend returns to **Calibration**.
 
-The frontend distinguishes capture FPS from measurement throughput. Capture defaults to 10 FPS. Detection and measurement use the CPU of the machine running the backend, including the OAK4 CPU in standalone mode. Their rate depends on the scene and CPU.
+### Inspect and update saved measurements
 
-Operational messages use configured INFO logging with timestamps, levels, and module names. The logs include a `measurement_benchmark` JSON report for `MeasureAnythingDetector` and `MeasureAnythingDimensioner` every ten seconds. FPS counts actual output batches, including failures. `failed_messages` counts failed batches, and `latency_samples` counts native benchmark samples. `source_to_output_latency_ms` averages capture-to-stage latency, including queues and upstream processing. Idle windows report zero FPS and no latency.
+Open **Measurements** and click an object's card to view its RGB thumbnail, segmented point cloud, fitted cuboid, and saved metadata. The camera-to-cuboid-center distance is the straight-line distance from the RGB camera's optical center. Drag to orbit, right-drag to pan, scroll to zoom, or click **Reset view**.
 
-## Inspect saved measurements
+Click **Update Measurement** to replace the saved snapshot with a fresh observation of the same tracking ID. Temporary tracking loss keeps a pending update through the two-second tracking grace period. After a track expires, recalibration, or an app restart, the object needs a new tracking ID. The app does not recognize physical objects across restarts.
 
-Open the **Measurements** tab and select an object using its RGB thumbnail and tracking ID. The thumbnail comes from the same frame as its saved measurement. The detail modal shows the segmented object point cloud, fitted cuboid, camera-to-cuboid-center distance, source sequence, capture time, algorithm, and support-plane metadata. The distance is the straight-line range from the RGB camera's optical center to the cuboid's geometric center. It is calculated from saved coordinates and is available for historical records. Drag to orbit, right-drag to pan, scroll to zoom, or click **Reset view**.
+History retains the latest 20 saved measurements and survives app restarts. Standalone runs store the database in `OAKAGENT_STORAGE_APP/measure-anything.sqlite3`. Peripheral runs use this example's `data/measure-anything.sqlite3`. Use `--storage <database-path>` to choose another location.
 
-Processing reserves a fixed-height status area for failed frames. It shows the failure code and explanation, then clears on a healthy frame without moving the tabs. Ordinary detection-count messages stay hidden.
+A failed first save retries automatically while its track remains active. If updating an existing record fails, click **Update Measurement** again. Records saved before thumbnail support show **No preview** until updated.
 
-An object must appear in 10 consecutive processed frames before its box appears or its measurement is saved. A missing observation resets an unconfirmed track's count. Confirmed tracks retain confirmation during the tracking grace period, but appear live only while observed. Tracks that never reach 10 observations are never displayed or saved.
+### Choose RGB overlays
 
-The app saves one snapshot per confirmed, measured tracking ID. **Update Measurement** requests a fresh snapshot and replaces the previous cloud, cuboid, and RGB thumbnail on the next measured observation of that ID. A temporarily lost track stays active during the two-second tracking grace period; the button remains available and pending updates wait for reacquisition. The modal shows **Object not in frame** only after the track is removed, including after recalibration or app restart. Reappearance after removal receives a new ID. If an object's first snapshot fails to save, the app retries a fresh measured frame after a one-second cooldown while that track remains active. Other objects can save during the cooldown. Failed updates to existing records wait for another **Update Measurement** request. The list retains the 20 most recently saved objects, including explicit updates. Records saved before thumbnail support show **No preview** until updated.
-
-A storage host node writes snapshots sequentially without blocking the measurement controller. Only one object from one sequence is submitted, and another save waits for its acknowledgement and a newer sequence. Unsaved visible tracks keep their waiting order. Point-cloud encoding, RGB crop decoding, JPEG encoding, and disk writes run in the storage node. Thumbnails are at most 160 × 120 pixels and fetched once per saved revision; history polls carry only thumbnail availability.
-
-History lives in `OAKAGENT_STORAGE_APP/measure-anything.sqlite3` on the OAK4. Host runs use `data/measure-anything.sqlite3` beside the script. Use `--storage <database-path>` to choose another location. Saved history survives app restarts. New live tracks start above the persisted ID high-water mark; the app does not identify the same physical object across restarts.
-
-## Choose RGB overlays
-
-The **Processing** section stays above the tabs while their content scrolls. Open the **Configuration** tab to control RGB overlays. Enable **Colorized depth over RGB** to blend the public `ApplyDepthColormap` node's colors into RGB at 50% opacity. Colors use the node's 2nd–98th depth percentiles, rather than a fixed metric scale. Invalid depth stays transparent. After selecting a support plane, enable **Show selected support plane** to highlight only its visible inliers in green; objects and background keep their RGB colors. Enabling either overlay switches the other off. Both default off. A separate preview node caches the calibrated remap and blends textures without blocking measurements. Boxes and labels remain native annotations over the H.264 stream.
-
-The app asks `SupportPlaneCalibrator` to verify the selected plane every five seconds against the current cloud and gravity. If verification fails, measurements pause, the frontend opens **Calibration**, and a warning prompts recalibration. Keep the camera fixed, click **Recalibrate**, and select the supporting surface again.
-
-The app limits the Python OpenCV worker pool to one thread so preview conversions leave CPU capacity for detection and measurement. The normal RGB path decodes no BGR image. Optional previews use active NV12 planes and keep the original frame identity when producing encoded output.
+Open **Configuration** to select an overlay. **Colorized depth over RGB** blends depth colors at 50% opacity. Invalid depth stays transparent. **Show selected support plane** highlights the selected surface in green after calibration. Enabling either overlay switches the other off; both default off.
 
 ## Peripheral Mode
 
-Use Python 3.12 and Node.js 24. Install the backend dependencies in an isolated environment and start the backend.
+Use Python 3.12 and Node.js 24. Run the following commands from this directory to install dependencies and build the frontend.
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-oakctl run-script .venv/bin/python main.py --device <OAK4-IP>
-```
-
-In another terminal, start the standard Vite development server.
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-Open the URL printed by Vite. The backend binds to loopback by default. The packaged OAK App binds its remote connection to the device interfaces.
-
-## Inspect and save evidence
-
-Start the backend with `--evidence evidence` to save delivered metadata, the selected plane, RGB, an annotated image, and structured results locally.
-
-```bash
-oakctl run-script .venv/bin/python main.py --device <OAK4-IP> --evidence evidence
-oakctl inspect topics
-```
-
-The published topics are **Color stream** and **Object annotations**. Depth remains inside the measurement pipeline. The frontend reads calibration state and rates through `getMeasurementState`. Candidate previews are still JPEG images requested through `getSupportPlanePreview`; they are separate from the H.264 RGB stream.
-
-## Geometry and tracking
-
-The unified `Depth` node reuses the pipeline's stereo cameras with its default configuration and the requested FPS. The startup capture profile records its requested and resolved algorithm and configuration. ImageAlign's aligned output and exact depth passthrough feed `ImageAlignDepthCorrection` with the explicit source-axial correction policy. Native PointCloud consumes its corrected output and produces an organized 768 × 480 cloud in CAM_A RGB optical coordinates and millimeters. Zero, saturated depth, and nonfinite XYZ become zero organized rows before calibration and are excluded from detector inputs. The app preserves native metadata and stores the matching depth-correction provenance with each new measurement.
-
-One pipeline creates all nodes before startup. Host nodes handle scene admission, IMU conversion, calibration results, object results, preview rendering, snapshot storage, and timed benchmark logging. The main loop manages pipeline lifetime. Up to two measurement scenes can remain in flight to absorb timing jitter. Storage still allows only one snapshot job. The first selected plane and later selections reach the detector through `MeasureAnythingDetectorConfig` before the next admitted scene.
-
-Raw images and the cloud retain their independent sequence counters and timestamps. Boxes project through the delivered RGB intrinsics, distortion, and pose. Video and annotations carry matching RGB metadata.
-
-Tracking belongs to this app. The node's candidate IDs are frame-local. The app associates centers and box overlap, expires tracks after two seconds, and clears associations after recalibration. IDs can change after occlusion or fast motion.
-
-The detector can miss objects or classify background clutter as eligible. Use an uncluttered measurement area. This example does not claim metrology accuracy or persistent identity.
-
-## Check the app logic
-
-```bash
-python3 -m unittest discover -s tests -v
+.venv/bin/python -m pip install -r backend/requirements.txt
+npm --prefix frontend ci
 npm --prefix frontend run build
 ```
 
-Physical measurement accuracy has not been validated against reference dimensions. The pinned baseline has a documented historical failure against a synthetic example's 5 mm dimension tolerance; see [depthai-nodes PR 348](https://github.com/luxonis/depthai-nodes/pull/348) for implementation and verification limits.
+Start the backend with an OAK4 connected to your computer or available on the network.
+
+```bash
+oakctl run-script .venv/bin/python backend/src/main.py --device <OAK4-IP>
+```
+
+Open the complete frontend URL printed in the app logs, including its `ws_url` query parameter. The backend serves the compiled frontend on loopback port 8082 and supplies its connection address in that URL. Use `--frontend-port` to choose another HTTP port.
+
+## Standalone Mode (RVC4 only)
+
+Install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), select the OAK4, and run the app from this directory.
+
+```bash
+oakctl connect <OAK4-IP>
+oakctl app run .
+```
+
+The first run builds the container and frontend. Open the `Measure anything frontend at https://<OAK4-IP>:<port>` URL printed in the app logs. The base image serves the frontend and proxies its connection to the backend. The default port is 8000; oakctl can assign another port, such as 9000.
+
+The container uses the Python 3.12 `quay.io/luxonis/oakapp-base:1.5.2` image. The `depthai-nodes` commit pin in [backend/requirements.txt](backend/requirements.txt) is a development dependency. Replace it with a compatible release containing the measurement and depth-correction APIs before merging.
+
+## Validation
+
+Run the backend tests and frontend checks from this directory.
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+npm --prefix frontend run build
+npm --prefix frontend run lint
+```
+
+For a peripheral run with detailed diagnostics and local scene evidence, use:
+
+```bash
+oakctl run-script .venv/bin/python backend/src/main.py --device <OAK4-IP> --log-level DEBUG --evidence evidence
+oakctl inspect topics
+```
+
+INFO logs report startup and operational changes. DEBUG logs include periodic measurement benchmarks and successful support-plane verification details. A rejected plane remains visible as a warning. The published topics are **Color stream** and **Object annotations**. Depth remains internal.
+
+To replay a matching holistic recording, set `DEPTHAI_REPLAY` to its `.tar` path when starting the backend. The recording must contain RGB, both stereo cameras, IMU data, and the matching calibration. Replayed scenes can validate the workflow but do not establish physical dimension accuracy.
+
+```bash
+DEPTHAI_REPLAY=/absolute/path/recording.tar oakctl run-script .venv/bin/python backend/src/main.py --device <OAK4-IP> --storage data/replay.sqlite3
+```
+
+When replaying a recording from another camera, the app loads its recorded calibration and camera reference for point-cloud generation. Keep replay checks bounded to the first recording cycle. DepthAI can drift the camera timestamps independently across loops, which can stall synchronized processing. Restart the backend to repeat a bounded check.

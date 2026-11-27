@@ -6,8 +6,8 @@ import unittest
 import depthai as dai
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-geometry = import_module("geometry")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+geometry = import_module("depthai_pipeline.geometry")
 CameraProjection = geometry.CameraProjection
 transformed_imu = geometry.transformed_imu
 

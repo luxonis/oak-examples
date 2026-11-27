@@ -1,6 +1,6 @@
 import numpy as np
 
-from history import SaveRequest
+from measurement.history import SaveRequest
 
 
 def measurement_snapshot(

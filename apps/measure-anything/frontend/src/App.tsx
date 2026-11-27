@@ -169,13 +169,42 @@ function App() {
 			}
 		>
 			<div className="measurement-controls">
-				<Label text="Measure objects on a fixed, flat support surface. Objects appear after 10 consecutive observations." />
+				<div className="flex flex-col gap-2">
+					<Label text="Automatically segment objects from the point cloud and measure their dimensions on a fixed, flat support surface." />
+					<SubLabel
+						color="label"
+						text="Works best with larger, box-like objects that are separated, fully visible, and well lit. Keep the camera fixed."
+					/>
+					<details className="measurement-instructions">
+						<summary className="cursor-pointer rounded font-semibold focus-visible:outline-2 focus-visible:outline-primary">
+							How to use
+						</summary>
+						<ol className="mt-2 list-decimal space-y-1 pl-5">
+							<li>
+								<Label text="In Calibration, find and select the surface supporting your objects." />
+							</li>
+							<li>
+								<Label text="Open Measurements to view saved objects. Select a card to inspect its point cloud and dimensions." />
+							</li>
+							<li>
+								<Label text="Open Configuration to choose a depth or support-plane overlay." />
+							</li>
+						</ol>
+						<p className="mt-2">
+							<SubLabel
+								color="label"
+								text="Objects appear after 10 consecutive observations. Recalibrate if the camera or support surface moves."
+							/>
+						</p>
+					</details>
+				</div>
 				<section aria-label="Processing">
 					<Card
 						title="Processing"
 						variant="outline"
 						intent="white"
-						contentClassName="flex flex-col gap-3"
+						headerClassName="p-3"
+						contentClassName="flex flex-col gap-2 p-3"
 					>
 						<div className="flex justify-between gap-2">
 							<Label text="Capture" />
@@ -185,18 +214,24 @@ function App() {
 							<Label text="Measurements" />
 							<Label text={rate(state?.rates.measurement_fps)} />
 						</div>
-						<Label
-							text={`Capture is configured at ${state?.capture.configured_fps ?? 10} FPS. Measurement throughput depends on the scene and CPU. Video follows the matching measured frame.`}
-						/>
-						<Label
-							role="status"
-							aria-live="polite"
-							aria-atomic="true"
-							color="error"
-							className="processing-frame-status"
-							text={frameError}
-							title={frameError || undefined}
-						/>
+						<div className="processing-frame-note">
+							{!frameError ? (
+								<SubLabel
+									color="label"
+									className="processing-frame-status"
+									text={`Capture is configured at ${state?.capture.configured_fps ?? 10} FPS. Measurement speed depends on the scene and CPU.`}
+								/>
+							) : null}
+							<SubLabel
+								role="status"
+								aria-live="polite"
+								aria-atomic="true"
+								color="error"
+								className="processing-frame-status"
+								text={frameError}
+								title={frameError || undefined}
+							/>
+						</div>
 					</Card>
 				</section>
 
@@ -348,6 +383,10 @@ function App() {
 							aria-label="RGB overlays"
 							className="flex flex-col gap-2 rounded-lg border border-border p-3"
 						>
+							<SubLabel
+								color="label"
+								text="One overlay is shown at a time. Selecting an overlay turns the other off."
+							/>
 							<label className="flex items-center gap-2">
 								<input
 									type="checkbox"
@@ -366,12 +405,6 @@ function App() {
 								/>
 								<Label text="Colorized depth over RGB" />
 							</label>
-							{state?.overlays.depth ? (
-								<SubLabel
-									color="label"
-									text="Depth colors are blended at 50% opacity. One overlay is shown at a time."
-								/>
-							) : null}
 							<label className="flex items-center gap-2">
 								<input
 									type="checkbox"

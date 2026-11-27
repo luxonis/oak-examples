@@ -12,7 +12,7 @@ import logging
 from typing import Optional, Dict, List
 
 from utils import is_valid, change_and_restore_dir
-from constants import KNOWN_FAILING, IGNORED_WARNINGS
+from constants import KNOWN_FAILING, IGNORED_WARNINGS, PERIPHERAL_SCRIPT_ARGUMENTS
 
 
 logger = logging.getLogger()
@@ -43,6 +43,9 @@ def test_example_runs_in_peripheral(example_dir, test_args):
     main_script = example_dir / "main.py"
     requirements_path = example_dir / "requirements.txt"
     if not main_script.exists():
+        main_script = example_dir / "backend" / "src" / "main.py"
+        requirements_path = example_dir / "backend" / "requirements.txt"
+    if not main_script.exists():
         pytest.skip(f"Skipping {example_dir}, no main.py found.")
     if not requirements_path.exists():
         pytest.skip(f"Skipping {example_dir}, no requirements.txt found.")
@@ -68,6 +71,7 @@ def test_example_runs_in_peripheral(example_dir, test_args):
             env_exe=env_exe,
             example_dir=example_dir,
             args=test_args,
+            main_script=main_script,
         )
         shutil.rmtree(venv_dir, ignore_errors=True)
 
@@ -195,15 +199,29 @@ def setup_virtual_env(
         )
 
 
-def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int = 3):
-    """Runs the main.py script for the given timeout duration."""
+def run_example(
+    env_exe: Path,
+    example_dir: Path,
+    args: Dict,
+    max_retries: int = 3,
+    main_script: Optional[Path] = None,
+):
+    """Run the entrypoint with configured peripheral arguments for the timeout duration."""
     timeout = args["timeout"]
     env_vars = args["environment_variables"]
     virtual_env = args["virtual_display"]
     device = args["device"]
     logger.debug(f"Running {example_dir} with timeout {timeout}s...")
 
-    main_script = "main.py"
+    main_script = main_script or example_dir / "main.py"
+    script_arguments = next(
+        (
+            arguments
+            for path, arguments in PERIPHERAL_SCRIPT_ARGUMENTS.items()
+            if example_dir.as_posix().endswith(path)
+        ),
+        [],
+    )
 
     env = os.environ.copy()
     if env_vars:
@@ -224,7 +242,7 @@ def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int =
             # Start subprocess using Popen (in its own process group, so that
             # helpers it spawns, e.g. a viewer, can be killed together with it)
             process = subprocess.Popen(
-                [env_exe, str(main_script)],
+                [env_exe, str(main_script), *script_arguments],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,

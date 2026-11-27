@@ -13,10 +13,15 @@
 	min-height: 0;
 }
 
+.processing-frame-note {
+	display: grid;
+	flex-shrink: 0;
+}
+
 .processing-frame-status {
+	grid-area: 1 / 1;
 	display: -webkit-box;
 	height: 2lh;
-	flex-shrink: 0;
 	overflow: hidden;
 	overflow-wrap: anywhere;
 	-webkit-box-orient: vertical;

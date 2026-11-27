@@ -1,3 +1,8 @@
+PERIPHERAL_SCRIPT_ARGUMENTS = {
+    "apps/measure-anything": ["--no-frontend"],
+}
+
+
 KNOWN_FAILING = {
     "apps/measure-anything": {
         "reason": "Requires an OAK4 with RGB, stereo depth, and an accelerometer",

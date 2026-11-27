@@ -9,8 +9,8 @@ from unittest.mock import patch
 import depthai as dai
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-rendering = import_module("rendering")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+rendering = import_module("depthai_pipeline.rendering")
 
 
 class CorrectedSceneTests(unittest.TestCase):
@@ -83,6 +83,54 @@ class CorrectedSceneTests(unittest.TestCase):
         self.assertEqual(
             scene.axial_correction["output_axial_convention"], "target_camera_axial_z"
         )
+
+    def test_replayed_nv12_stereo_uses_active_luma_and_keeps_frame_identity(self):
+        group = self.scene()
+        left = group["color"].clone()
+        left.setStride(8)
+        left.fb.p1Offset = 16
+        left.fb.p2Offset = 48
+        left.fb.p3Offset = 48
+        data = np.full(64, 255, dtype=np.uint8)
+        pixels = np.arange(16, dtype=np.uint8).reshape(4, 4)
+        np.ndarray((4, 4), np.uint8, buffer=data, offset=16, strides=(8, 1))[:] = pixels
+        left.setData(data)
+        left.setSequenceNum(91)
+        left.setTimestamp(timedelta(seconds=7))
+        left.setTimestampDevice(timedelta(seconds=6))
+        group["left"] = left
+        group["right"] = left
+        with patch.object(rendering, "DEPTH_SIZE", (2, 2)):
+            scene = rendering.read_scene(group, 1)
+        for delivered in (scene.left, scene.right):
+            self.assertEqual(delivered.getType(), dai.ImgFrame.Type.GRAY8)
+            np.testing.assert_array_equal(delivered.getCvFrame(), pixels)
+            self.assertEqual(delivered.getSequenceNum(), 91)
+            self.assertEqual(delivered.getTimestamp(), left.getTimestamp())
+            self.assertEqual(delivered.getTimestampDevice(), left.getTimestampDevice())
+            self.assertEqual(delivered.getTransformation().getSize(), (4, 4))
+            np.testing.assert_array_equal(
+                delivered.getTransformation().getIntrinsicMatrix(),
+                left.getTransformation().getIntrinsicMatrix(),
+            )
+            self.assertEqual(
+                rendering.reference_key(delivered), rendering.reference_key(left)
+            )
+        self.assertEqual(left.getType(), dai.ImgFrame.Type.NV12)
+        np.testing.assert_array_equal(left.getData(), data)
+
+    def test_native_stereo_is_retained_without_copying_or_decoding(self):
+        for frame_type in (dai.ImgFrame.Type.GRAY8, dai.ImgFrame.Type.RAW8):
+            with self.subTest(frame_type=frame_type):
+                group = self.scene()
+                left = group["color"].clone()
+                left.setCvFrame(np.arange(16, dtype=np.uint8).reshape(4, 4), frame_type)
+                group["left"] = left
+                group["right"] = left
+                with patch.object(rendering, "DEPTH_SIZE", (2, 2)):
+                    scene = rendering.read_scene(group, 1)
+                self.assertIs(scene.left, left)
+                self.assertIs(scene.right, left)
 
     def test_provenance_from_a_different_depth_frame_is_rejected(self):
         group = self.scene()

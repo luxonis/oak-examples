@@ -14,8 +14,8 @@ import cv2
 import depthai as dai
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-history = import_module("history")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+history = import_module("measurement.history")
 MeasurementStore = history.MeasurementStore
 SaveRequest = history.SaveRequest
 SaveScheduler = history.SaveScheduler
@@ -216,7 +216,7 @@ class MeasurementStoreTests(unittest.TestCase):
     def test_blocked_worker_leaves_history_cache_and_admission_gate_nonblocking(self):
         import depthai as dai
 
-        from storage_node import SaveMessage, StorageHostNode
+        from measurement.storage_node import SaveMessage, StorageHostNode
 
         started, release = threading.Event(), threading.Event()
         original = self.store._read_summaries
@@ -347,7 +347,7 @@ class SaveSchedulerTests(unittest.TestCase):
         self.assertEqual(scheduler.choose(12, {8: request(8, 12)}).track_id, 8)
 
     def test_initial_save_retries_after_cooldown_without_blocking_other_objects(self):
-        with patch("history.time.monotonic", return_value=100) as clock:
+        with patch("measurement.history.time.monotonic", return_value=100) as clock:
             scheduler = SaveScheduler()
             first = scheduler.choose(10, {1: request(1, 10)})
             scheduler.complete(first, "Storage temporarily unavailable")
@@ -368,7 +368,7 @@ class SaveSchedulerTests(unittest.TestCase):
             self.assertFalse(scheduler.needs_snapshot(1))
 
     def test_persistent_initial_failure_waits_again_and_stops_on_track_removal(self):
-        with patch("history.time.monotonic", return_value=100) as clock:
+        with patch("measurement.history.time.monotonic", return_value=100) as clock:
             scheduler = SaveScheduler()
             first = scheduler.choose(1, {1: request(1)})
             scheduler.complete(first, "Disk full")
@@ -388,7 +388,7 @@ class SaveSchedulerTests(unittest.TestCase):
         scheduler.retain_tracks(set())
         scheduler.complete(first, "Storage unavailable")
         scheduler.retain_tracks(set())
-        with patch("history.time.monotonic", return_value=float("inf")):
+        with patch("measurement.history.time.monotonic", return_value=float("inf")):
             self.assertFalse(scheduler.needs_snapshot(1))
             self.assertIsNone(scheduler.choose(2, {1: request(1, 2)}))
 
@@ -397,7 +397,7 @@ class SaveSchedulerTests(unittest.TestCase):
         scheduler.request_update(1, 10)
         first = scheduler.choose(11, {1: request(1, 11)})
         scheduler.complete(first, "Disk full")
-        with patch("history.time.monotonic", return_value=float("inf")):
+        with patch("measurement.history.time.monotonic", return_value=float("inf")):
             self.assertFalse(scheduler.needs_snapshot(1))
             self.assertIsNone(scheduler.choose(12, {1: request(1, 12)}))
         scheduler.request_update(1, 12)

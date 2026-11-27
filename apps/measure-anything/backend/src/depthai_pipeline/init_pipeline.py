@@ -1,4 +1,5 @@
 from datetime import timedelta
+import os
 
 import cv2
 import depthai as dai
@@ -11,10 +12,11 @@ from depthai_nodes.node import (
     SupportPlaneCalibrator,
 )
 
-from geometry import DEPTH_SIZE
-from nodes import BenchmarkLogger, MeasurementController
-from preview import PreviewRendererNode
-from storage_node import StorageHostNode
+from depthai_pipeline.geometry import DEPTH_SIZE
+from depthai_pipeline.nodes import BenchmarkLogger, MeasurementController
+from depthai_pipeline.preview import PreviewRendererNode
+from measurement.storage_node import StorageHostNode
+from util.replay import load_replay_calibration
 
 RGB_SIZE = (2000, 1500)
 MONO_SIZE = (1280, 800)
@@ -22,6 +24,7 @@ DEFAULT_FPS = 10
 
 
 def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
+    replay_calibration = load_replay_calibration(os.environ.get("DEPTHAI_REPLAY"))
     profile = {
         "configured_fps": fps,
         "rgb": RGB_SIZE,
@@ -79,6 +82,11 @@ def init_pipeline(pipeline, fps=DEFAULT_FPS, evidence=None, store=None):
     cloud.initialConfig.setOrganized(True)
     cloud.initialConfig.setLengthUnit(dai.LengthUnit.MILLIMETER)
     cloud.initialConfig.setTargetCoordinateSystem(dai.CameraBoardSocket.CAM_A)
+    if replay_calibration is not None:
+        cloud.setRunOnHost(True)
+        cloud.setDeviceCalibration(
+            replay_calibration.device_id, replay_calibration.calibration
+        )
     correction.out.link(cloud.inputDepth)
     streams["depth"] = correction.out
     streams["axialCorrection"] = correction.result

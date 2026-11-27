@@ -15,15 +15,15 @@ from depthai_nodes.message import (
 )
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-nodes = import_module("nodes")
-domain = import_module("domain")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+nodes = import_module("depthai_pipeline.nodes")
+domain = import_module("measurement.domain")
 
 
 class AdmissionTests(unittest.TestCase):
     def test_failed_first_snapshot_recovers_without_a_saved_history_entry(self):
         from test_history import MeasurementStore, request
-        from storage_node import SaveAck
+        from measurement.storage_node import SaveAck
 
         with TemporaryDirectory() as folder, dai.Pipeline(False) as pipeline:
             controller = self.setup_controller(pipeline)
@@ -35,7 +35,9 @@ class AdmissionTests(unittest.TestCase):
                 cuboid=SimpleNamespace(length_mm=100, width_mm=80, height_mm=60),
             )
             with (
-                patch("nodes.time.monotonic", return_value=100) as clock,
+                patch(
+                    "depthai_pipeline.nodes.time.monotonic", return_value=100
+                ) as clock,
                 patch.object(nodes, "object_boxes") as boxes,
                 patch.object(
                     nodes,

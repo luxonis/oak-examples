@@ -17,12 +17,12 @@ from depthai_nodes.message import (
     SupportPlaneCalibrationControl,
 )
 
-from benchmarks import BenchmarkWindow
-from domain import CalibrationPhase, CalibrationSession, ObjectTracker
-from geometry import transformed_imu
-from history import SaveScheduler
-from preview import PreviewRequest
-from rendering import (
+from depthai_pipeline.benchmarks import BenchmarkWindow
+from measurement.domain import CalibrationPhase, CalibrationSession, ObjectTracker
+from depthai_pipeline.geometry import transformed_imu
+from measurement.history import SaveScheduler
+from depthai_pipeline.preview import PreviewRequest
+from depthai_pipeline.rendering import (
     annotated_image,
     candidate_preview,
     metadata_record,
@@ -31,8 +31,8 @@ from rendering import (
     read_scene,
     stamp,
 )
-from snapshot import measurement_snapshot
-from storage_node import SaveMessage
+from measurement.snapshot import measurement_snapshot
+from measurement.storage_node import SaveMessage
 
 
 logger = logging.getLogger(__name__)
@@ -471,9 +471,14 @@ class MeasurementController(dai.node.ThreadedHostNode):
             "on_plane_ratio": result.on_plane_ratio,
             "sequence": result.getSequenceNum(),
         }
-        logger.info("%s", json.dumps({"support_plane_verification": self.verification}))
+        logger.debug(
+            "%s", json.dumps({"support_plane_verification": self.verification})
+        )
         if result.accepted:
             return
+        logger.warning(
+            "Support plane verification failed. Measurements paused; recalibrate."
+        )
         self.session.invalidate(
             "The support plane no longer matches the scene or gravity. "
             "Measurements are paused. Keep the camera fixed and recalibrate the support surface."
@@ -706,6 +711,6 @@ class BenchmarkLogger(dai.node.ThreadedHostNode):
                     )
                 stats = windows[name].report(time.monotonic())
                 if stats is not None:
-                    logger.info(
+                    logger.debug(
                         "%s", json.dumps({"measurement_benchmark": name, **stats})
                     )

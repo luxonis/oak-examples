@@ -7,7 +7,7 @@ import cv2
 import depthai as dai
 import numpy as np
 
-from geometry import DEPTH_SIZE, CameraProjection, reference_key
+from depthai_pipeline.geometry import DEPTH_SIZE, CameraProjection, reference_key
 
 
 @dataclass
@@ -57,6 +57,23 @@ def jpeg(image):
     return base64.b64encode(encoded).decode("ascii")
 
 
+def mono_frame(frame):
+    if frame.getType() != dai.ImgFrame.Type.NV12:
+        return frame
+    pixels = np.ndarray(
+        (frame.getHeight(), frame.getWidth()),
+        np.uint8,
+        buffer=frame.getData(),
+        offset=frame.fb.p1Offset,
+        strides=(frame.getStride(), 1),
+    )
+    result = dai.ImgFrame()
+    result.setCvFrame(pixels.copy(), dai.ImgFrame.Type.GRAY8)
+    result.setBufferMetadataFrom(frame)
+    result.setTransformation(frame.getTransformation())
+    return result
+
+
 def read_scene(group, generation):
     cloud, color, left, right = (
         group[name] for name in ("pointCloud", "color", "left", "right")
@@ -97,8 +114,8 @@ def read_scene(group, generation):
     return SceneFrame(
         cloud=filtered_cloud,
         color=color,
-        left=left,
-        right=right,
+        left=mono_frame(left),
+        right=mono_frame(right),
         depth=depth,
         points=points,
         projection=CameraProjection.from_frame(color),

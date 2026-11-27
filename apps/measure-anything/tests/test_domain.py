@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-domain = import_module("domain")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend" / "src"))
+domain = import_module("measurement.domain")
 CalibrationPhase = domain.CalibrationPhase
 CalibrationSession = domain.CalibrationSession
 ObjectTracker = domain.ObjectTracker
