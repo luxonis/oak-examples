@@ -133,7 +133,7 @@ KNOWN_FAILING = {
     },
     "integrations/rerun": {
         "reason": "rerun-sdk 0.44 requires Python 3.11 or newer",
-        "rules": {"and": [{"python_version": ["3.8", "3.10"]}]},
+        "rules": {"and": [{"python_version": ["3.10"]}]},
     },
     "apps/data-collection": {
         "reason": "Not supported for peripheral; RVC4 only app",
