@@ -15,7 +15,7 @@ RVC4 peripheral and standalone app for live box dimensioning on a support plane,
 
 - You only need a minimal box-measurement script with the DepthAI Visualizer; use `depth-measurement/measurement-3d/box-measurement`.
 - You need to store, record or export measurements.
-- You need RVC2, peripheral mode, or a single-camera device such as OAK 4 S.
+- You need RVC2 or a single-camera device such as OAK 4 S.
 - You need to measure arbitrary click-selected objects rather than boxes on a plane.
 
 ## Quick Facts

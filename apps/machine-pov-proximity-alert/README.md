@@ -4,7 +4,7 @@ This example demonstrates proximity alerting from a camera mounted on a machine 
 
 The example uses person instance segmentation, native object tracking, automatically selected depth, and IMU gravity alignment. An optional point-cloud path detects generic obstacles above a support plane found with depthai-nodes `AutoSupportPlane`. The frontend shows the live camera and alert annotations, optional obstacle views, and controls for the detection areas.
 
-> **Note:** This example runs on an RVC4 device in standalone mode and requires RGB, stereo, and IMU sensors. It is an example of visual alerting, not a certified safety system.
+> **Note:** This example runs on an RVC4 device in peripheral or standalone mode and requires RGB, stereo, and IMU sensors. It is an example of visual alerting, not a certified safety system.
 
 ## Architecture
 
