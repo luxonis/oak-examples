@@ -1,5 +1,5 @@
 depthai==3.12.1
-depthai-nodes[box-measurement] @ https://github.com/luxonis/depthai-nodes/archive/5df28b8a65943eaf9fad74691e6cfc544728b189.tar.gz
+depthai-nodes[box-measurement] @ https://github.com/luxonis/depthai-nodes/archive/598f8559218733a1861534324490481c4373e453.tar.gz
 numpy>=1.22
 opencv-python-headless
 pydantic==2.12.5

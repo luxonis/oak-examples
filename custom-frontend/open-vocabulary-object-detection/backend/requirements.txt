@@ -1,5 +1,5 @@
 depthai==3.12.1
-depthai-nodes @ https://github.com/luxonis/depthai-nodes/archive/5df28b8a65943eaf9fad74691e6cfc544728b189.tar.gz
+depthai-nodes @ https://github.com/luxonis/depthai-nodes/archive/598f8559218733a1861534324490481c4373e453.tar.gz
 opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0

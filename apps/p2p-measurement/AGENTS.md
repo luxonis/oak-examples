@@ -45,7 +45,7 @@ This is the reference for interactive two-point 3D distance measurement. Use it 
 
 ## Architecture
 
-- `depthai_nodes.runtime.serve_frontend` hosts `frontend/dist` on localhost in peripheral mode and defers to oakapp when `OAKAPP_STATIC_FRONTEND_PORT` is set.
+- `depthai_nodes.runtime.serve_frontend` hosts `frontend/dist` on localhost in peripheral mode. The entrypoint disables the helper when `OAKAPP_STATIC_FRONTEND_PORT` is set because this app uses oakapp-base/nginx in standalone mode.
 
 - `RemoteConnection(serveFrontend=False)` supplies streams and services on port 8765.
 

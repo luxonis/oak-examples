@@ -39,17 +39,17 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 
 ## Architecture
 
-- [main.py](main.py) resolves `frontend/dist` relative to its own path and serves it through `depthai_nodes.runtime.serve_frontend`. The helper defers to oakapp when `OAKAPP_STATIC_FRONTEND_PORT` is set.
-- `dai.RemoteConnection(serveFrontend=False)` exposes DepthAI topics/services while the local HTTP server handles frontend files.
+- [main.py](main.py) resolves `frontend/dist` relative to its own path and serves it through `depthai_nodes.runtime.serve_frontend`. In standalone mode it uses `OAKAPP_STATIC_FRONTEND_PATH` and `OAKAPP_STATIC_FRONTEND_PORT`; CLI directory and port options take precedence.
+- `dai.RemoteConnection(serveFrontend=False)` exposes DepthAI topics/services while the local HTTP server handles frontend files. `DepthAIContext` connects directly to `ws://<page-host>:8765`, independent of the HTTP port.
 - The backend publishes one topic named `Raw Stream`.
 - The backend registers `Message Service`; [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) posts text to the same service name.
-- [oakapp.toml](oakapp.toml) builds `frontend/dist` and starts the backend through oakapp-base in standalone mode.
+- [oakapp.toml](oakapp.toml) builds `frontend/dist` and starts Python directly in the default Debian container, binding HTTP to the device IP in standalone mode.
 
 ## Modification Guide
 
 - `Safe to change:` frontend layout, labels, service payload/response shape, stream topic name, host/port defaults
 - `Requires care:` keeping service names aligned, preserving static frontend path handling, changing frontend build paths, changing topic names consumed by the UI
-- `Likely to break if changed blindly:` disabling the oakapp frontend proxy, switching `serveFrontend`, renaming `Message Service` in only backend or frontend
+- `Likely to break if changed blindly:` dropping the standalone frontend path/port settings, switching `serveFrontend`, renaming `Message Service` in only backend or frontend
 
 ## Common Adaptations
 
@@ -61,7 +61,7 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 ## Constraints
 
 - Peripheral mode supports RVC2 and RVC4 and needs built frontend assets. Standalone mode requires RVC4.
-- The peripheral HTTP listener binds to loopback; remote browser access needs separate HTTPS/WebSocket proxy configuration.
+- Peripheral HTTP binds to loopback; standalone HTTP binds to the device IP. This example has no HTTPS proxy or Hub WebRTC service.
 - This example intentionally avoids inference, encoded streaming, and advanced backend state.
 
 ## Related Examples

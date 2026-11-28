@@ -1,4 +1,5 @@
 import logging
+import os
 import depthai as dai
 from pathlib import Path
 from depthai_nodes.runtime import serve_frontend
@@ -9,9 +10,13 @@ logging.basicConfig(level=logging.INFO)
 _, args = initialize_argparser()
 
 with serve_frontend(
-    args.frontend_dir or Path(__file__).resolve().parent / "frontend" / "dist",
+    args.frontend_dir
+    or os.environ.get("OAKAPP_STATIC_FRONTEND_PATH")
+    or Path(__file__).resolve().parent / "frontend" / "dist",
     host=args.ip or "127.0.0.1",
-    port=args.port or 8082,
+    port=args.port
+    if args.port is not None
+    else int(os.environ.get("OAKAPP_STATIC_FRONTEND_PORT") or 8082),
     enabled=not args.no_frontend,
 ):
     device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()

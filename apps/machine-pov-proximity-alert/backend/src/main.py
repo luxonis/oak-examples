@@ -1,5 +1,6 @@
 """Run machine-mounted proximity alerts with live controls."""
 
+import os
 import logging
 import signal
 import threading
@@ -97,6 +98,7 @@ if __name__ == "__main__":
         args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
         host=args.frontend_host,
         port=args.frontend_port,
-        enabled=not args.no_frontend,
+        enabled=not args.no_frontend
+        and not os.environ.get("OAKAPP_STATIC_FRONTEND_PORT"),
     ):
         App(device=args.device).run()

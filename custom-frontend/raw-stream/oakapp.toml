@@ -1,5 +1,5 @@
 identifier = "com.example.custom-frontend.raw-stream"
-entrypoint = ["/entrypoint.sh", "python3", "-u", "/app/main.py"]
+entrypoint = ["bash", "-c", "python3 -u /app/main.py --ip $(hostname -I | awk '{print $1}')"]
 app_version = "0.1.0"
 
 prepare_container = [
@@ -18,12 +18,3 @@ dist_path = "./frontend/dist"
 [static_frontend.build]
 source_path = "./frontend"
 steps = ["bash -c 'cd /app/frontend/src && export NODE_OPTIONS=--max-old-space-size=4096 && . $HOME/.nvm/nvm.sh && npm install && npm run build'"]
-
-[base_image]
-api_url = "https://quay.io"
-service = "quay.io"
-oauth_url = "https://quay.io/v2/auth"
-auth_type = "repository"
-auth_name = "luxonis/oakapp-base"
-image_name = "luxonis/oakapp-base"
-image_tag = "1.5.2-py311"
