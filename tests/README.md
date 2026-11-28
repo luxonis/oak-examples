@@ -4,11 +4,17 @@ We can test every example in a way where we verify that it is running for a cert
 
 ## Installation
 
-To install the requirements you can do:
+Use **Python 3.12** by default. From the repository root:
 
 ```bash
-pip install -r requirements.txt
+python3.12 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m pip install -r tests/requirements.txt
 ```
+
+## CI Python versions
+
+Both workflows default to **Python 3.12**. Set `python_version` to `3.10`, `3.12`, `3.14`, or `all` for Linux peripheral tests. PR tests, Windows/macOS jobs, and standalone runners use 3.12; standalone app runtimes are defined in `oakapp.toml`.
 
 ## Usage
 
@@ -38,8 +44,8 @@ You can also pass other custom options to the pytest command. Here is a list of 
   --virtual-display     Enable virtual display (sets DISPLAY=':99'). Only used for peripheral tests.
   --platform={rvc2,rvc4}
                         Specify a platform this is tested on (rvc2 or rvc4). Only used for filtering test examples.
-  --python-version={3.8,3.10,3.12}
-                        Specify a python version this is tested with (3.8, 3.10 or 3.12). Only used for filtering test examples.
+  --python-version={3.10,3.12,3.14}
+                        Specify a python version this is tested with (3.10, 3.12 or 3.14; default: 3.12). Only used for filtering test examples.
   --strict-mode={yes,no}
                         If set to 'yes', tests will fail on DepthAI warnings.
   --device=DEVICE       Device to perform standalone tests on. If testing just peripheral then not required.
@@ -109,7 +115,7 @@ Supported condition names and values:
 | ----------------- | -------------------------------------------------- | ------------------------------------------ |
 | `mode`            | `"all"` or `["peripheral"]`, `["standalone"]`      | Test mode fails under these values         |
 | `platform`        | `"all"` or `["rvc2"]`, `["rvc4"]`                  | Hardware platform conditions               |
-| `python_version`  | `"all"` or `["3.8"]`, `["3.10"]`, `["3.12"]`       | Python versions that are failing           |
+| `python_version`  | `"all"` or `["3.10"]`, `["3.12"]`, `["3.14"]`      | Python versions that are failing           |
 | `depthai_version` | `"all"` or version spec: `">3.0.0rc1"`, `"<3.1.0"` | Fails if DepthAI version matches condition |
 | `os`              | `"all"` or `["mac"]`, `["win"]`, `["linux"]`       | Operating system where this fails          |
 

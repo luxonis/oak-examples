@@ -41,13 +41,18 @@ with dai.Pipeline(device) as pipeline:
     else:
         visualizer.addTopic("Video", video_enc.out, "images")
 
-    print("Pipeline created.")
-    pipeline.start()
-    print("Pipeline started.")
-    visualizer.registerPipeline(pipeline)
+    try:
+        print("Pipeline created.")
+        pipeline.start()
+        print("Pipeline started.")
+        visualizer.registerPipeline(pipeline)
 
-    while pipeline.isRunning():
-        key = visualizer.waitKey(1)
-        if key == ord("q"):
-            print("Got q key from the remote connection!")
-            break
+        while pipeline.isRunning():
+            key = visualizer.waitKey(1)
+            if key == ord("q"):
+                print("Got q key from the remote connection!")
+                break
+    finally:
+        pipeline.stop()
+        pipeline.wait()
+        video_saver.output_container.close()

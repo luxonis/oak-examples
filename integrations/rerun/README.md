@@ -35,7 +35,7 @@ The 3D model of the device is downloaded once from [depthai-ros](https://github.
 
 ### Installation
 
-You need to first prepare a **Python >= 3.11** environment with the following packages installed:
+You need to first prepare a **Python 3.12** environment (recommended; Python 3.11 or newer is required) with the following packages installed:
 
 - [DepthAI](https://pypi.org/project/depthai/)
 - [Rerun](https://pypi.org/project/rerun-sdk/)

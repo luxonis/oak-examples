@@ -33,7 +33,7 @@ Here is a list of all available parameters:
 
 ### Installation
 
-You need to first prepare a **Python >= 3.10** environment and install the
+You need to first prepare a **Python 3.12** environment (recommended) and install the
 required packages:
 
 ```bash

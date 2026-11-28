@@ -57,7 +57,7 @@ if %errorlevel%==0 (
 )
 
 echo Creating virtual environment...
-python -m venv .venv
+py -%PYTHON_VERSION_ENV% -m venv .venv
 
 if errorlevel 1 (
     echo Failed to create virtual environment

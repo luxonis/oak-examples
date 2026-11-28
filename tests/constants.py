@@ -127,10 +127,6 @@ KNOWN_FAILING = {
         "reason": "Not supported for peripheral",
         "rules": {"and": [{"mode": ["peripheral"]}]},
     },
-    "integrations/foxglove": {
-        "reason": "No matching distribution found for open3d~=0.18 on Windows",
-        "rules": {"and": [{"os": ["win"]}]},
-    },
     "integrations/rerun": {
         "reason": "rerun-sdk 0.44 requires Python 3.11 or newer",
         "rules": {"and": [{"python_version": ["3.10"]}]},
@@ -158,8 +154,13 @@ KNOWN_FAILING = {
         "rules": {"and": [{"platform": "all"}]},
     },
     "integrations/roboflow-workflow": {
-        "reason": "Can't run without arguments Roboflow arguments",
-        "rules": {"and": [{"platform": "all"}]},
+        "reason": "Requires Roboflow credentials and workflow configuration; pinned Inference dependencies do not support Python 3.14",
+        "rules": {
+            "or": [
+                {"platform": "all"},
+                {"python_version": ["3.14"]},
+            ],
+        },
     },
     "neural-networks/speech-recognition/whisper-tiny-en": {
         "reason": "Complex example, works only on RVC4",
@@ -200,10 +201,6 @@ KNOWN_FAILING = {
     "depth-measurement/triangulation": {
         "reason": "Can't sync outputs inside Triangulation node",
         "rules": {"and": [{"platform": ["rvc4"]}]},
-    },
-    "depth-measurement/measurement-3d/box-measurement": {
-        "reason": "No matching distribution found for open3d~=0.18 on Windows",
-        "rules": {"and": [{"os": ["win"]}]},
     },
     "streaming/on-device-encoding": {
         "reason": "Cannot open include file: 'libavutil/mathematics.h'",

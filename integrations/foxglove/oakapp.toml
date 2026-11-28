@@ -3,7 +3,7 @@ app_version = "1.0.0"
 
 prepare_container = [
     { type = "RUN", command = "apt-get update" },
-    { type = "RUN", command = "apt-get install -y python3-pip libgl1" },
+    { type = "RUN", command = "apt-get install -y python3-pip libgl1 libgfortran5 libegl1" },
     { type = "COPY", source = "requirements.txt", target = "requirements.txt" },
     { type = "RUN", command = "pip3 install -r /app/requirements.txt --break-system-packages --default-timeout=100" }, # increase in timeout because of open3d
 ]
