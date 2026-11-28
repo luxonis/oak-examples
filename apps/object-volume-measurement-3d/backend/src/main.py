@@ -35,8 +35,6 @@ CONFIDENCE_THRESHOLD = 0.15
 
 with serve_frontend(
     args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
-    host=args.frontend_host,
-    port=args.frontend_port,
     enabled=not args.no_frontend and not os.environ.get("OAKAPP_STATIC_FRONTEND_PORT"),
 ):
     visualizer = dai.RemoteConnection(serveFrontend=False)

@@ -45,7 +45,7 @@ RVC4 peripheral and standalone app for live box dimensioning on a support plane,
 
 ## Architecture
 
-- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp serves it in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
 
 - `BoxMeasurer` and `SupportPlaneCalibrator` come from depthai-nodes (`depthai_nodes.node`, messages in `depthai_nodes.message`), not app code. `BoxMeasurer` downloads and runs the segmentation model, tracks boxes and fits cuboids against the active support plane. `SupportPlaneCalibrator` finds support plane candidates in the organized point cloud and checks them against gravity from the IMU.
 
@@ -111,7 +111,7 @@ RVC4 peripheral and standalone app for live box dimensioning on a support plane,
 
 - `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
 
-- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+- `Frontend options:` `--frontend-dir` selects the build directory; `--no-frontend` uses a separate frontend server.
 
 - `Run:` `oakctl app run .`
 

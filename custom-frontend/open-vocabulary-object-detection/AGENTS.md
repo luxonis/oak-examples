@@ -53,7 +53,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 ## Architecture
 
-- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp serves it in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
 
 - The backend creates a `dai.Device` and a `dai.RemoteConnection` with `serveFrontend=False`.
 
@@ -98,7 +98,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 - This example is intentionally RVC4 peripheral and standalone.
 - Luxonis OS 1.40 or newer is required for the device NPU runtime.
 - The backend only supports the CLI arguments defined in [backend/src/config/arguments.py](backend/src/config/arguments.py): `--fps_limit`, `--media_path`, `--model`, `--semantic_seg`, `--device`, and the frontend options below.
-- Use `--frontend-host` and `--frontend-port` for serving options; the backend does not parse `--precision`.
+- The backend does not parse `--precision`.
 - `config.yaml` currently fixes precision to `fp16`, and [backend/src/config/system_configuration.py](backend/src/config/system_configuration.py) only maps `yoloe` to an `fp16` YAML while `yolo-world` supports `fp16` and `int8`.
 - `max_image_prompts` is `5` in both prompt YAMLs, and the frontend assumes the same limit.
 - `--semantic_seg` only affects the YOLOE visualization branch.
@@ -121,7 +121,7 @@ This is the strongest custom-frontend reference in the repository for open-vocab
 
 - `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
 
-- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+- `Frontend options:` `--frontend-dir` selects the build directory; `--no-frontend` uses a separate frontend server.
 
 - `Run:` `oakctl app run .`
 

@@ -48,7 +48,7 @@ This is the strongest frontend/backend reference for interactive 3D object measu
 
 ## Architecture
 
-- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` in peripheral mode; oakapp retains frontend hosting in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp serves it in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
 
 - RGB from `CAM_A` is resized and aligned with depth from `dai.node.Depth`.
 
@@ -112,7 +112,7 @@ This is the strongest frontend/backend reference for interactive 3D object measu
 
 - `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
 
-- `Frontend options:` `--frontend-dir`, `--frontend-host`, `--frontend-port`, and `--no-frontend`; missing frontend builds produce an actionable startup error.
+- `Frontend options:` `--frontend-dir` selects the build directory; `--no-frontend` uses a separate frontend server.
 
 - `Hardware check:` Check fitted dimensions against an object of known size at the image center and edges.
 

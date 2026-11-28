@@ -12,11 +12,5 @@ def initialize_argparser():
     parser.add_argument(
         "--frontend-dir", help="Directory containing the built frontend index.html."
     )
-    parser.add_argument(
-        "--frontend-host", default="127.0.0.1", help="Frontend bind address."
-    )
-    parser.add_argument(
-        "--frontend-port", type=int, default=8082, help="Frontend HTTP port."
-    )
 
     return parser, parser.parse_args()
