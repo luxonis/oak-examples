@@ -45,7 +45,7 @@ This is the strongest standalone reference for interactive 3D object measurement
 - [frontend/src/ClickOverlay.tsx](frontend/src/ClickOverlay.tsx): click-to-select behavior
 - [frontend/src/ClassSelector.tsx](frontend/src/ClassSelector.tsx): class updates
 - [frontend/src/MeasurementMethodSelector.tsx](frontend/src/MeasurementMethodSelector.tsx): OBB versus height-grid selection
-- [oakapp.toml](oakapp.toml): static frontend build and Python 3.11 standalone base image
+- [oakapp.toml](oakapp.toml): static frontend build and Python 3.12 standalone base image
 
 ## Architecture
 
