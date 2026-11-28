@@ -1,10 +1,11 @@
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork, DepthMerger
+from depthai_nodes.node import ParsingNeuralNetwork
 
 from utils.host_bird_eye_view import BirdsEyeView
 from utils.measure_object_distance import MeasureObjectDistance
 from utils.host_distance_annotations import DistanceAnnotations
 from utils.arguments import initialize_argparser
+from utils.spatial_calculator import create_spatial_calculator
 
 _, args = initialize_argparser()
 
@@ -55,14 +56,10 @@ with dai.Pipeline(device) as pipeline:
     if platform == "RVC2":
         nn_parser.setNNArchive(det_model_nn_archive, numShaves=6)
 
-    # produce spatial detections
-    depth_merger = pipeline.create(DepthMerger).build(
-        output2d=nn_parser.out,
-        outputDepth=depth.depth,
-        calibData=device.readCalibration2(),
-        depthAlignmentSocket=dai.CameraBoardSocket.CAM_A,
-        shrinkingFactor=0.1,
-    )
+    # Attach depth, then keep a stable ID for each person.
+    spatial_calculator = create_spatial_calculator(pipeline)
+    nn_parser.out.link(spatial_calculator.inputDetections)
+    depth.depth.link(spatial_calculator.inputDepth)
 
     tracker = pipeline.create(dai.node.ObjectTracker)
     tracker.setDetectionLabelsToTrack([0])
@@ -74,7 +71,7 @@ with dai.Pipeline(device) as pipeline:
     tracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.UNIQUE_ID)
     nn_parser.passthrough.link(tracker.inputTrackerFrame)
     nn_parser.passthrough.link(tracker.inputDetectionFrame)
-    depth_merger.output.link(tracker.inputDetections)
+    spatial_calculator.outputDetections.link(tracker.inputDetections)
 
     # Measure tracked person pairs once, then show their IDs in both views.
     measure_obj_dist = pipeline.create(MeasureObjectDistance).build(tracker.out)

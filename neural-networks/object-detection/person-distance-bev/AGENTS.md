@@ -38,12 +38,13 @@ Visualize camera-relative person positions in a bird's-eye view and measure pair
 - [utils/measure_object_distance.py](utils/measure_object_distance.py)
 - [utils/host_distance_annotations.py](utils/host_distance_annotations.py)
 - [utils/host_bird_eye_view.py](utils/host_bird_eye_view.py)
+- [utils/spatial_calculator.py](utils/spatial_calculator.py): depth attached to each person detection
 
 ## Architecture
 
 - A color camera on `CAM_A` feeds the SCRFD person detector.
 - `Depth.Algorithm.AUTO` selects the device's depth backend; `setAlignTo(rgb)` aligns its output to the color stream.
-- `DepthMerger` attaches depth to the 2D person detections. `ObjectTracker` assigns persistent IDs to the spatial detections.
+- Aligned depth gives each person detection a 3D position. `ObjectTracker` assigns persistent IDs so the same person can be followed across frames.
 - `MeasureObjectDistance` keeps active tracks, filters invalid coordinates for distance measurement, and computes every valid pair's 3D Euclidean distance.
 - `DistanceAnnotations` displays active track IDs and all valid pair distances on the camera image. `BirdsEyeView` plots valid person positions and the same IDs on a 960 × 720 camera-relative X/Z view, with only the closest visible pair connected and both IDs and distance in the header.
 

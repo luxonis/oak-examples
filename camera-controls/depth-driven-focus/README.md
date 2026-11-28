@@ -1,6 +1,6 @@
 # Depth Driven Focus
 
-This example demonstrates how to continuously focus on the first detected face. It will determine the distance to the face and adjust the lens position accordingly. The example requires a device with an auto-focus color camera and a stereo camera pair to function properly. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
+This example demonstrates how to continuously focus on the closest detected face. It determines the distance to that face and adjusts the lens position accordingly. The distance and the lens position are drawn on the preview. The example requires a device with an auto-focus color camera and a stereo camera pair to function properly. The example uses [YuNet](https://models.luxonis.com/luxonis/yunet/5d635f3c-45c0-41d2-8800-7ca3681b1915) model to detect faces.
 
 ## Demo
 
