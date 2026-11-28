@@ -210,6 +210,8 @@ def run_example(env_exe: Path, example_dir: Path, args: Dict, max_retries: int =
         env_dict = dict(item.split("=") for item in env_vars.split())
         env.update(env_dict)
 
+    env["PATH"] = str(env_exe.parent) + os.pathsep + env.get("PATH", "")
+
     # Disable telemetry for every tested pipeline, including retries.
     env["DEPTHAI_TELEMETRY"] = "0"
 
