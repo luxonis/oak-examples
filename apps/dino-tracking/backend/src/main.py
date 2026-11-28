@@ -1,12 +1,9 @@
+import os
 import logging
 import signal
 from pathlib import Path
 
 import depthai as dai
-from depthai_nodes.node import ParsingNeuralNetwork
-from depthai.beta.node import FastSAMParser
-from dotenv import load_dotenv
-
 from annotations.detections_annotation_overlay_node import DetectionsAnnotationOverlay
 from annotations.FE_annotations_control_services.annotation_mode_service import (
     AnnotationMode,
@@ -15,7 +12,11 @@ from annotations.FE_annotations_control_services.outlines_trigger_service import
     OutlinesTrigger,
 )
 from annotations.outlines_overlay_node import OutlinesOverlay
+from arguments import initialize_argparser
 from constants.yml_constants_loader import YamlFilesLoader
+from depthai.beta.node import FastSAMParser
+from depthai_nodes.node import ParsingNeuralNetwork
+from depthai_nodes.runtime import serve_frontend
 from detections_tracking.heatmap_to_detections_node import HeatmapToDetections
 from detections_tracking.threshold_service import ThresholdUpdate
 from detections_tracking.tracker import Tracker
@@ -27,6 +28,7 @@ from dino_similarity.reference_vectors.reference_vector_from_selection_node impo
     ReferenceVectorFromSelection,
 )
 from dino_similarity.similarity_heatmap_node import SimilarityHeatmap
+from dotenv import load_dotenv
 from encoder import Encoder
 from FE_state_synchronization_service import FEStateSynchronization
 from object_selection.FE_prompt_services.clear_selection_prompt_service import (
@@ -37,6 +39,7 @@ from object_selection.FE_prompt_services.object_selection_prompt_service import 
 )
 from object_selection.mask_selection_node import MaskSelection
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 shutdown_requested = False
 
@@ -53,13 +56,13 @@ signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 load_dotenv(override=True)
 
 
-def main():
+def main(args):
     constants = YamlFilesLoader(Path(__file__).parent / "constants")
     constants.load_all()
 
-    visualizer = dai.RemoteConnection(httpPort=8082)
+    visualizer = dai.RemoteConnection(serveFrontend=False)
 
-    device = dai.Device()
+    device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
     platform = device.getPlatformAsString()
     print(f"Platform: {platform}")
 
@@ -199,4 +202,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _, args = initialize_argparser()
+    with serve_frontend(
+        args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+        enabled=not args.no_frontend
+        and not os.environ.get("OAKAPP_STATIC_FRONTEND_PORT"),
+    ):
+        main(args)

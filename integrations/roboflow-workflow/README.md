@@ -71,12 +71,30 @@ For richer or customized visual outputs, consider:
 - Adding `Visualization` blocks directly inside your workflow and ensuring the resulting output name contains `visualization`.
 - Extending the [AnnotationNode](./backend/src/core/annotation_node.py) with custom logic tailored to your data type.
 
+## Peripheral Mode (RVC4)
+
+Requires Python 3.12 and Node.js 22+.
+
+Configure the workspace, workflow and API key in `backend/src/config/yaml_configs/config.yaml` before starting. Workflow inference runs on the host CPU and requires the workflow-specific dependencies.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+EP=cpu USE_INFERENCE_MODELS=False python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
 ## Standalone Mode (RVC4 only)
 
-Running the example in the standalone mode, app runs entirely on the device.
-To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
-
-The app can then be run with:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>

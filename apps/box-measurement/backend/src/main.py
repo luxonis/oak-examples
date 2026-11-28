@@ -1,15 +1,25 @@
+import os
 import logging
 import sys
+from pathlib import Path
 
 from app import App
+from arguments import initialize_argparser
+from depthai_nodes.runtime import serve_frontend
 from util.device_support import UnsupportedDeviceError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    try:
-        App().run()
-    except UnsupportedDeviceError as error:
-        logger.error(str(error))
-        sys.exit(1)
+    _, args = initialize_argparser()
+    with serve_frontend(
+        args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+        enabled=not args.no_frontend
+        and not os.environ.get("OAKAPP_STATIC_FRONTEND_PORT"),
+    ):
+        try:
+            App(device=args.device).run()
+        except UnsupportedDeviceError as error:
+            logger.error(str(error))
+            sys.exit(1)

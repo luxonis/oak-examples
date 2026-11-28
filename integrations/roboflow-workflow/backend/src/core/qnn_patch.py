@@ -22,9 +22,10 @@ import threading
 from pathlib import Path
 from time import perf_counter
 
-import onnxruntime
-
+# Load DepthAI before ONNX Runtime to retain Python HostNode subclass methods.
 from depthai_nodes.runtime import onnx_qnn_session
+
+import onnxruntime
 
 # Must be set before `inference.core.env` is imported (this module is imported
 # first in main.py): the stock default lists CUDA/OpenVINO/CoreML, which only

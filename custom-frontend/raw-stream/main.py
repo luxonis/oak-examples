@@ -1,40 +1,46 @@
+import logging
 import os
 import depthai as dai
 from pathlib import Path
-from frontend_server import FrontendServer
+from depthai_nodes.runtime import serve_frontend
 from utils.arguments import initialize_argparser
+
+logging.basicConfig(level=logging.INFO)
 
 _, args = initialize_argparser()
 
-FRONTEND_DIRECTORY = Path(os.environ["OAKAPP_STATIC_FRONTEND_PATH"])
-IP = args.ip or "localhost"
-PORT = args.port or 8082
+with serve_frontend(
+    args.frontend_dir
+    or os.environ.get("OAKAPP_STATIC_FRONTEND_PATH")
+    or Path(__file__).resolve().parent / "frontend" / "dist",
+    host=args.ip or "127.0.0.1",
+    port=args.port
+    if args.port is not None
+    else int(os.environ.get("OAKAPP_STATIC_FRONTEND_PORT") or 8082),
+    enabled=not args.no_frontend,
+):
+    device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
+    visualizer = dai.RemoteConnection(serveFrontend=False)
 
-frontend_server = FrontendServer(IP, PORT, FRONTEND_DIRECTORY)
-print(f"Serving frontend at http://{IP}:{PORT}")
-frontend_server.start()
+    with dai.Pipeline(device) as pipeline:
+        cam = pipeline.create(dai.node.Camera).build()
+        raw_stream = cam.requestOutput(
+            (640, 400), dai.ImgFrame.Type.NV12, fps=args.fps_limit or 30
+        )
+        visualizer.addTopic("Raw Stream", raw_stream)
 
-device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
-visualizer = dai.RemoteConnection(serveFrontend=False)
+        def custom_service(message):
+            print("Received message:", message)
+            return {"response": "Message received"}
 
-with dai.Pipeline(device) as pipeline:
-    cam = pipeline.create(dai.node.Camera).build()
-    raw_stream = cam.requestOutput(
-        (640, 400), dai.ImgFrame.Type.NV12, fps=30 or args.fps_limit
-    )
-    visualizer.addTopic("Raw Stream", raw_stream)
+        visualizer.registerService("Message Service", custom_service)
+        pipeline.start()
+        print("Pipeline started.")
+        print("Running pipeline...")
 
-    def custom_service(message):
-        print("Received message:", message)
-        return {"response": "Message received"}
+        while pipeline.isRunning():
+            key_pressed = visualizer.waitKey(1)
+            if key_pressed == ord("q"):
+                break
 
-    visualizer.registerService("Message Service", custom_service)
-    pipeline.start()
-    print("Running pipeline...")
-
-    while pipeline.isRunning():
-        key_pressed = visualizer.waitKey(1)
-        if key_pressed == ord("q"):
-            break
-
-    pipeline.stop()
+        pipeline.stop()

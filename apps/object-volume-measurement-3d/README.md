@@ -5,7 +5,7 @@ On the DepthAI backend, it runs **YOLOE** model on-device, with configurable cla
 The custom frontend lets you click a detected object in the Video stream, the backend then segments that instance, builds a segmented point cloud, and computes dimensions and volume in real time. Users can switch between two measurement methods: Object-Oriented Bounding Box and Ground-plane Height Grid.\
 The frontend is built with `@luxonis/depthai-viewer-common` package, and combined with the [default oakapp docker image](https://hub.docker.com/r/luxonis/oakapp-base), enabling remote access via WebRTC.
 
-> **Note:** This example works only on RVC4 in standalone mode.
+> **Note:** This example works on RVC4 in peripheral or standalone mode.
 
 ## Demo
 
@@ -61,12 +61,28 @@ The backend publishes:
 - Plane status (HG only)
 - Dimensions and volume measurements with the Detections Overlay
 
+## Peripheral Mode (RVC4)
+
+Requires Python 3.11 and Node.js 22+.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
 ## Standalone Mode (RVC4 only)
 
-Running the example in the standalone mode, app runs entirely on the device.
-To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
-
-The app can then be run with:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>

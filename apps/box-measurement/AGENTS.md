@@ -2,7 +2,7 @@
 
 ## Summary
 
-RVC4 standalone app for live box dimensioning on a support plane, built on depthai-nodes box-measurement nodes, with a support plane calibration and measurement frontend. Uses stereo depth, segmentation, tracking, IMU.
+RVC4 peripheral and standalone app for live box dimensioning on a support plane, built on depthai-nodes box-measurement nodes, with a support plane calibration and measurement frontend. Uses stereo depth, segmentation, tracking, IMU.
 
 ## Use This Example When
 
@@ -15,7 +15,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 - You only need a minimal box-measurement script with the DepthAI Visualizer; use `depth-measurement/measurement-3d/box-measurement`.
 - You need to store, record or export measurements.
-- You need RVC2, peripheral mode, or a single-camera device such as OAK 4 S.
+- You need RVC2 or a single-camera device such as OAK 4 S.
 - You need to measure arbitrary click-selected objects rather than boxes on a plane.
 
 ## Quick Facts
@@ -26,7 +26,7 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only (OAK 4 D)
+- `Runs on:` RVC4 peripheral and standalone (OAK 4 D)
 - `Requires:` CAM_A, CAM_B and CAM_C; IMU; static frontend build; internet on first start for the model download
 - `Input:` color camera, stereo pair, accelerometer
 - `Output:` `Color stream`, `Detections` and `Support plane preview` topics; nothing is written to device storage
@@ -45,14 +45,24 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp serves it in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - `BoxMeasurer` and `SupportPlaneCalibrator` come from depthai-nodes (`depthai_nodes.node`, messages in `depthai_nodes.message`), not app code. `BoxMeasurer` downloads and runs the segmentation model, tracks boxes and fits cuboids against the active support plane. `SupportPlaneCalibrator` finds support plane candidates in the organized point cloud and checks them against gravity from the IMU.
+
 - `SupportPlaneController` runs `SEARCHING → AWAITING_CONFIRMATION → CONFIRMED` and pushes the confirmed support plane, shifted by the distance offset, into `BoxMeasurer`.
+
 - The `SupportPlanePreview` host node publishes the point cloud with a grid on the highlighted support plane, only while the support plane calibration view asks for it.
+
 - [backend/src/api/request_handler.py](backend/src/api/request_handler.py) registers services with pydantic-validated requests and responses; failures become `{"error": "..."}`.
+
 - One pipeline runs for the app's lifetime; it stops on pipeline stop, `SIGINT`/`SIGTERM`, or `q` from the remote connection.
+
 - The frontend picks its view from the polled support plane calibration state: the support plane calibration view until a support plane is confirmed, then the measurement view. There is no routing.
+
 - Both views use `AppLayout`, which passes the stream and controls to the shared [frontend/src/AppShell.tsx](frontend/src/AppShell.tsx). The page title sits above the stream and a scrolling 24rem control panel; narrow screens stack the panes. Connection feedback stays in the stream viewer.
+
 - The right panel's controls are `PanelSection`s. The support plane calibration view has one, **Support plane calibration**; the measurement view has **Support plane** (camera distance and **Recalibrate**), **Distance offset** and **Detection settings**, always visible.
+
 - Service calls go through TanStack Query + zod in [frontend/src/backend/](frontend/src/backend/).
 
 ## Data Flow
@@ -77,11 +87,10 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 ## Constraints
 
-- RVC4 standalone only; the app exits with `UnsupportedDeviceError` if CAM_A, CAM_B or CAM_C is missing.
+- RVC4 peripheral and standalone; the app exits with `UnsupportedDeviceError` if CAM_A, CAM_B or CAM_C is missing.
 - `BoxMeasurer` hardcodes and downloads its model at runtime, so there is no `depthai_models` YAML.
 - Support plane calibration runs after every start and nothing is measured until a support plane is confirmed. The support plane is not saved, so repeat support plane calibration after moving the camera.
 - The distance offset can be set only after confirmation and resets on support plane calibration and restart. The detection confidence threshold resets on restart.
-- Pins: `depthai==3.11.0` and `depthai-nodes[box-measurement]==0.8.0`, which pulls in open3d; the container apt-installs `libgfortran5 libegl1` for the open3d wheel.
 
 ## Non-Obvious Repo Conventions
 
@@ -100,6 +109,12 @@ RVC4 standalone app for live box dimensioning on a support plane, built on depth
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir` selects the build directory; `--no-frontend` uses a separate frontend server.
+
 - `Run:` `oakctl app run .`
+
 - `Success looks like:` the frontend opens on the support plane calibration view with the `Support plane preview` on the left and the calibration controls in the right panel; after confirming a support plane the stream switches to the color stream, the panel to the measurement sections, and boxes passing the camera get L × W × H and volume overlaid
+
 - `Common failure meaning:` a non-stereo device (`UnsupportedDeviceError`), no support plane confirmed yet, the static frontend was not built, or the model download failed on first start

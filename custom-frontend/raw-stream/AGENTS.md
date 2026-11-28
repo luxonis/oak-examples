@@ -21,7 +21,7 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 - `Entrypoint:` [main.py](main.py)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
 - `Message service:` [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) \<-> [main.py](main.py)
-- `Frontend server:` [frontend_server.py](frontend_server.py)
+- `Frontend server:` `depthai_nodes.runtime.serve_frontend`
 - `Standalone config:` [oakapp.toml](oakapp.toml)
 - `Input:` camera stream plus text entered in the frontend
 - `Output:` `Raw Stream` topic plus JSON response from `Message Service`
@@ -39,17 +39,17 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 
 ## Architecture
 
-- [main.py](main.py) requires `OAKAPP_STATIC_FRONTEND_PATH` and serves those built frontend assets through [frontend_server.py](frontend_server.py).
-- `dai.RemoteConnection(serveFrontend=False)` exposes DepthAI topics/services while the local HTTP server handles frontend files.
+- [main.py](main.py) resolves `frontend/dist` relative to its own path and serves it through `depthai_nodes.runtime.serve_frontend`. In standalone mode it uses `OAKAPP_STATIC_FRONTEND_PATH` and `OAKAPP_STATIC_FRONTEND_PORT`; CLI directory and port options take precedence.
+- `dai.RemoteConnection(serveFrontend=False)` exposes DepthAI topics/services while the local HTTP server handles frontend files. `DepthAIContext` connects directly to `ws://<page-host>:8765`, independent of the HTTP port.
 - The backend publishes one topic named `Raw Stream`.
 - The backend registers `Message Service`; [frontend/src/MessageInput.tsx](frontend/src/MessageInput.tsx) posts text to the same service name.
-- [oakapp.toml](oakapp.toml) builds `frontend/dist` and starts the backend with the device IP in standalone mode.
+- [oakapp.toml](oakapp.toml) builds `frontend/dist` and starts Python directly in the default Debian container, binding HTTP to the device IP in standalone mode.
 
 ## Modification Guide
 
 - `Safe to change:` frontend layout, labels, service payload/response shape, stream topic name, host/port defaults
 - `Requires care:` keeping service names aligned, preserving static frontend path handling, changing frontend build paths, changing topic names consumed by the UI
-- `Likely to break if changed blindly:` removing `OAKAPP_STATIC_FRONTEND_PATH`, switching `serveFrontend`, renaming `Message Service` in only backend or frontend
+- `Likely to break if changed blindly:` dropping the standalone frontend path/port settings, switching `serveFrontend`, renaming `Message Service` in only backend or frontend
 
 ## Common Adaptations
 
@@ -60,8 +60,8 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 
 ## Constraints
 
-- Peripheral mode needs built frontend assets and `OAKAPP_STATIC_FRONTEND_PATH` pointing to them.
-- The frontend is served by [frontend_server.py](frontend_server.py), not by `dai.RemoteConnection`.
+- Peripheral mode supports RVC2 and RVC4 and needs built frontend assets. Standalone mode requires RVC4.
+- Peripheral HTTP binds to loopback; standalone HTTP binds to the device IP. This example has no HTTPS proxy or Hub WebRTC service.
 - This example intentionally avoids inference, encoded streaming, and advanced backend state.
 
 ## Related Examples
@@ -73,6 +73,6 @@ Minimal custom frontend/backend example with a live raw camera stream and one fr
 
 ## Validation
 
-- `Run:` build the frontend, set `OAKAPP_STATIC_FRONTEND_PATH` to `frontend/dist`, then run `python3 main.py`
+- `Run:` build the frontend with `npm ci && npm run build`, then run `python3 main.py`
 - `Success looks like:` terminal prints the served URL, the browser shows a live stream, and `Send` triggers a backend response
-- `Common failure meaning:` missing built frontend assets, missing `OAKAPP_STATIC_FRONTEND_PATH`, or backend/frontend service naming drift
+- `Common failure meaning:` missing built frontend assets, an occupied frontend port, or backend/frontend service naming drift

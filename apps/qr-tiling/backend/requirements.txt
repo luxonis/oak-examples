@@ -1,5 +1,5 @@
 depthai==3.12.1
-depthai-nodes==0.8.0
+depthai-nodes @ https://github.com/luxonis/depthai-nodes/archive/598f8559218733a1861534324490481c4373e453.tar.gz
 numpy>=1.22
 pyzbar==0.1.9
 pydantic

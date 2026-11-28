@@ -3,8 +3,8 @@ import logging
 
 
 class VisualizerWrapper:
-    def __init__(self, port=8082):
-        self._rc = dai.RemoteConnection(httpPort=port)
+    def __init__(self):
+        self._rc = dai.RemoteConnection(serveFrontend=False)
         self._topics = []
         self._logger = logging.getLogger(self.__class__.__name__)
 

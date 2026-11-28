@@ -42,8 +42,9 @@ class SetSupportPlanePreviewActiveRequest(BaseModel):
 
 
 class App:
-    def __init__(self) -> None:
-        self.visualizer = dai.RemoteConnection(httpPort=8082)
+    def __init__(self, device: str | None = None) -> None:
+        self._device = device
+        self.visualizer = dai.RemoteConnection(serveFrontend=False)
         self._detection_confidence_threshold = DEFAULT_DETECTION_CONFIDENCE_THRESHOLD
         self._shutdown_event = threading.Event()
         self._pipeline: dai.Pipeline | None = None
@@ -137,7 +138,10 @@ class App:
         return EmptyBody()
 
     def _create_pipeline(self) -> dai.Pipeline:
-        pipeline = dai.Pipeline()
+        device = (
+            dai.Device(dai.DeviceInfo(self._device)) if self._device else dai.Device()
+        )
+        pipeline = dai.Pipeline(device)
         self._support_plane, self._box_measurer = init_pipeline(
             pipeline=pipeline,
             confidence_threshold=self._detection_confidence_threshold,

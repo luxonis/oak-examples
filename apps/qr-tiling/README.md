@@ -1,6 +1,6 @@
 # QR Tiling Detection
 
-This application demonstrates high-resolution QR code detection using dynamic image tiling, running fully on-device with a live frontend for configuring the tiling grid.
+This application demonstrates high-resolution QR code detection using dynamic image tiling, with a live frontend for configuring the tiling grid.
 
 **It runs QR detection on the DepthAI backend with dynamic tiling, and exposes controls in the UI for:**
 
@@ -10,7 +10,7 @@ This application demonstrates high-resolution QR code detection using dynamic im
 - Enabling global detection (full-frame pass)
 - Real-time tile grid visualization overlay
 
-> **Note:** RVC4 standalone mode only.
+> **Note:** Supports RVC4 in peripheral and standalone modes. The bundled model requires RVC4.
 
 ![](media/demo.gif)
 
@@ -74,6 +74,27 @@ Refer to the [documentation](https://docs.luxonis.com/software-v3/) to set up yo
 
 ______________________________________________________________________
 
+## Peripheral Mode (RVC4 only)
+
+Requires Python 3.10+ and Node.js 22+.
+
+QR decoding also requires `libzbar` (`sudo apt-get install libzbar0` on Debian/Ubuntu).
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
 ## Standalone Mode (RVC4)
 
 To run the example in standalone mode, first install the `oakctl` tool using the instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
@@ -85,7 +106,7 @@ oakctl connect <DEVICE_IP>
 oakctl app run .
 ```
 
-Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:8082/` in your browser (the exact URL will be shown in the terminal output).
+Once the app is built and running you can access the DepthAI Viewer locally by opening `https://<OAK4_IP>:9000/` in your browser (the exact URL will be shown in the terminal output).
 
 ### Remote Access
 

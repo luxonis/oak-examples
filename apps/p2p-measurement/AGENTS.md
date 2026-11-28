@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the best standalone reference for interactive two-point 3D distance measurement. Use it when you need click-based point selection, aligned RGB-depth visualization, and host-side tracking or remeasurement of selected points without the heavier segmentation and pointcloud logic from the 3D volume app.
+This is the reference for interactive two-point 3D distance measurement. Use it when you need click-based point selection, aligned RGB-depth visualization, and host-side tracking or remeasurement of selected points without the heavier segmentation and pointcloud logic from the 3D volume app.
 
 ## Use This Example When
 
@@ -15,7 +15,6 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 - You need segmented pointclouds and object volume.
 - You need a generic depth baseline with no frontend.
-- You need host/peripheral support instead of standalone-only packaging.
 - You need a polished ROS measurement workflow.
 
 ## Quick Facts
@@ -26,8 +25,8 @@ This is the best standalone reference for interactive two-point 3D distance meas
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
-- `Requires:` RVC4 device with RGB and stereo; calibration on device; static frontend build
+- `Runs on:` RVC2/RVC4 peripheral and RVC4 standalone
+- `Requires:` RVC2 or RVC4 device with RGB and stereo; calibration on device; static frontend build
 - `Input:` RGB camera, unified depth, and frontend point clicks
 - `Output:` `Video`, `Depth`, `Point Annotations`, and service-based distance/tracking state
 - `Models:` none
@@ -46,11 +45,20 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` hosts `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp-base/nginx serves it in standalone mode.
+
+- `RemoteConnection(serveFrontend=False)` supplies streams and services on port 8765.
+
 - `CAM_A` provides RGB frames.
+
 - `Depth` owns depth-source selection and stereo camera setup when stereo is selected.
+
 - `Depth.setAlignTo(...)` aligns depth to RGB.
+
 - A colorized depth stream is published for viewing.
+
 - The custom [backend/src/utils/point_tracker.py](backend/src/utils/point_tracker.py) host node tracks selected points, computes 3D distance using the current aligned depth frame’s native inverse intrinsic matrix, and emits overlay annotations.
+
 - The frontend interacts with backend services for point selection, clearing, distance polling, and tracking-mode toggling.
 
 ## Data Flow
@@ -76,7 +84,7 @@ This is the best standalone reference for interactive two-point 3D distance meas
 
 ## Constraints
 
-- This example is RVC4 standalone only.
+- This example is RVC2/RVC4 peripheral and RVC4 standalone.
 - The backend defaults to `15` FPS when no limit is provided.
 - Measurement quality depends on valid aligned depth for both points.
 - The frontend polls `Get Distance Service` at a high rate, so service responsiveness matters.
@@ -97,6 +105,6 @@ This is the best standalone reference for interactive two-point 3D distance meas
 ## Validation
 
 - `Hardware check:` Measure a known distance at the image center and corners, then repeat with another output aspect ratio.
-- `Run:` `oakctl app run .`
+- `Run:` standalone: `oakctl app run .`; peripheral: install backend requirements, build `frontend` with `npm ci && npm run build`, then run `python backend/src/main.py --device <DEVICE>`.
 - `Success looks like:` the frontend shows RGB or depth, two clicks create a measurement, and toggling tracking changes whether the selected points continue to move with the target
 - `Common failure meaning:` stereo alignment or calibration is missing, invalid depth prevents measurement, or frontend topic/service assumptions drifted from the backend

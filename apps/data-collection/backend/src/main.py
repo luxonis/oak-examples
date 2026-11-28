@@ -1,15 +1,17 @@
+import os
 import logging as log
 import signal
+from pathlib import Path
 
 import depthai as dai
-
-from config import parse_args, build_configuration
 from app_config_service import GetAppConfigService
 from camera import CameraSourceNode
+from config import build_configuration, parse_args
+from depthai_nodes.runtime import serve_frontend
 from nn import NNDetectionNode
-from tracking import build_tracker_node
 from prompting import FrameCacheNode, PromptingFEServices
 from snapping import SnappingNode
+from tracking import build_tracker_node
 
 log.basicConfig(level=log.INFO)
 logger = log.getLogger(__name__)
@@ -26,8 +28,8 @@ signal.signal(signal.SIGINT, _handle_shutdown_signal)
 signal.signal(signal.SIGTERM, _handle_shutdown_signal)
 
 
-def main():
-    device = dai.Device()
+def main(args):
+    device = dai.Device(dai.DeviceInfo(args.device)) if args.device else dai.Device()
     visualizer = dai.RemoteConnection(serveFrontend=False)
 
     platform = device.getPlatformAsString()
@@ -36,7 +38,6 @@ def main():
     if platform != "RVC4":
         raise ValueError("This example is supported only on RVC4 platform")
 
-    args = parse_args()
     config = build_configuration(platform, args)
 
     with dai.Pipeline(device) as pipeline:
@@ -125,4 +126,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    with serve_frontend(
+        args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+        enabled=not args.no_frontend
+        and not os.environ.get("OAKAPP_STATIC_FRONTEND_PORT"),
+    ):
+        main(args)

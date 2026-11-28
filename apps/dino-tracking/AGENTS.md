@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the best standalone reference for class-free interactive tracking based on segmentation plus DINO similarity. Use it when you need click-to-select tracking without predefined classes and want the backend to own the tracking state while the frontend controls visualization.
+This is the best frontend/backend reference for class-free interactive tracking based on segmentation plus DINO similarity. Use it when you need click-to-select tracking without predefined classes and want the backend to own the tracking state while the frontend controls visualization.
 
 ## Use This Example When
 
@@ -15,7 +15,6 @@ This is the best standalone reference for class-free interactive tracking based 
 
 - You need predefined-class object detection.
 - You need dataset snapping or measurement rather than tracking.
-- You need host/peripheral support instead of standalone-only RVC4 packaging.
 - You need a minimal tracker without custom services and custom host-side logic.
 
 ## Quick Facts
@@ -26,7 +25,7 @@ This is the best standalone reference for class-free interactive tracking based 
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RVC4 device; static frontend build; model downloads for FastSAM and DINO
 - `Input:` live RGB camera plus click prompts from the frontend
 - `Output:` one encoded `Video` stream with overlays
@@ -52,12 +51,20 @@ This is the best standalone reference for class-free interactive tracking based 
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp serves it in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - One RGB camera feeds three branches: display, segmentation, and DINO embedding extraction.
+
 - FastSAM segmentation produces masks.
+
 - A frontend click chooses the target mask.
+
 - DINO grid features plus the selected mask produce a reference vector.
+
 - An adaptive-reference node updates that target representation over time.
+
 - Similarity heatmaps are converted into detections, tracked, and rendered as overlays.
+
 - The frontend controls annotation mode, threshold, and outline visibility through services.
 
 ## Data Flow
@@ -84,7 +91,7 @@ This is the best standalone reference for class-free interactive tracking based 
 ## Constraints
 
 - Both model inputs must preserve the preview's field of view; click and feature-grid indexing share normalized coordinates.
-- This example is RVC4 standalone only.
+- This example is RVC4 peripheral and standalone.
 - Initial startup may take longer because model assets must become available before the `Video` topic appears.
 - The frontend intentionally waits for the `Video` topic before enabling stream interaction.
 - Backend state is authoritative; the frontend restores state from `BE State Service` rather than owning it locally.
@@ -104,6 +111,12 @@ This is the best standalone reference for class-free interactive tracking based 
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir` selects the build directory; `--no-frontend` uses a separate frontend server.
+
 - `Run:` `oakctl app run .`
+
 - `Success looks like:` the frontend shows the video stream, clicks select a target, and switching between heatmap and bbox views changes the backend-rendered overlay
+
 - `Common failure meaning:` the `Video` topic never becomes available, model assets are unavailable, or service names drifted between backend and frontend

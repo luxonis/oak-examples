@@ -1,6 +1,9 @@
+import os
 import logging
 import time
+from pathlib import Path
 
+from arguments import initialize_argparser
 from config.config import load_config
 
 # Must be imported before any module that imports `inference` (it sets the
@@ -14,18 +17,20 @@ from core.roboflow_runner import (
     parse_workflow_interface,
 )
 from core.visualizer_wrapper import VisualizerWrapper
+from depthai_nodes.runtime import serve_frontend
 
 logging.basicConfig(level=logging.INFO, force=True)
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main(args):
     # Route the ONNX sessions `inference` creates to the DSP (QNN EP) when
     # available; a no-op on non-RVC4 hosts or with EP=cpu.
     qnn_patch.install()
 
     config = load_config()
-    logger.info(f"Init config: {config}")
+    if args.device:
+        config.pipeline.device = args.device
 
     # Discover workflow outputs and tunable parameters through the Roboflow API
     specification = fetch_workflow_specification(
@@ -40,7 +45,7 @@ def main():
     )
 
     # Create visualizer
-    visualizer = VisualizerWrapper(port=8082)
+    visualizer = VisualizerWrapper()
 
     # Create DepthAI pipeline
     dai_pipeline = DepthAIPipeline(
@@ -103,4 +108,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _, args = initialize_argparser()
+    with serve_frontend(
+        args.frontend_dir or Path(__file__).resolve().parents[2] / "frontend" / "dist",
+        enabled=not args.no_frontend
+        and not os.environ.get("OAKAPP_STATIC_FRONTEND_PORT"),
+    ):
+        main(args)

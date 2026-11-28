@@ -4,7 +4,7 @@ This example demonstrates proximity alerting from a camera mounted on a machine 
 
 The example uses person instance segmentation, native object tracking, automatically selected depth, and IMU gravity alignment. An optional point-cloud path detects generic obstacles above a support plane found with depthai-nodes `AutoSupportPlane`. The frontend shows the live camera and alert annotations, optional obstacle views, and controls for the detection areas.
 
-> **Note:** This example runs on an RVC4 device in standalone mode and requires RGB, stereo, and IMU sensors. It is an example of visual alerting, not a certified safety system.
+> **Note:** This example runs on an RVC4 device in peripheral or standalone mode and requires RGB, stereo, and IMU sensors. It is an example of visual alerting, not a certified safety system.
 
 ## Architecture
 
@@ -44,9 +44,30 @@ Settings reset when the app restarts. Every pipeline start, including after appl
 
 Connect an RVC4 OAK with RGB, stereo, and IMU sensors. Install [`oakctl`](https://docs.luxonis.com/software-v3/oak-apps/oakctl) if needed.
 
+## Peripheral Mode (RVC4)
+
+Requires Python 3.11 and Node.js 22+.
+
+The host also needs Open3D system libraries (`libegl1` and `libgfortran5` on Debian/Ubuntu). The device must have RGB, stereo and IMU sensors.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
 ## Standalone Mode (RVC4 only)
 
-From this directory, connect to the device and run the app:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>

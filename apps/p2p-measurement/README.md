@@ -5,7 +5,7 @@ The backend processes video and depth streams to calculate precise 3D Euclidean 
 
 The frontend, built using the @luxonis/depthai-viewer-common package, provides real-time video streams with interactive point selection. The backend uses DepthAI's depth estimation capabilities to calculate accurate 3D distances between selected points.
 
-> **Note:** This example works only on RVC4 in standalone mode.
+> **Note:** Peripheral mode supports RVC2 and RVC4; standalone mode requires RVC4.
 
 ## Demo
 
@@ -23,6 +23,25 @@ The frontend, built using the @luxonis/depthai-viewer-common package, provides r
 ## Usage
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to setup your device if you haven't done it already.
+
+## Peripheral Mode (RVC2 or RVC4)
+
+Requires Python 3.10+ and Node.js 22+.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
 
 ## Standalone Mode (RVC4 only)
 

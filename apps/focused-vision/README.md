@@ -7,7 +7,7 @@ of the image - whether because it is physically small, relatively far from the c
 This application compares a naive face-detection approach with two **Focused Vision** approaches
 using person detection and tiling.
 
-> **Note:** This example works only on RVC4 in standalone mode.
+> **Note:** This example works on RVC4 in peripheral or standalone mode.
 
 ## Demo
 
@@ -61,11 +61,32 @@ neural network to process **4× the number of frames**, greatly increasing proce
 
 Running this example requires a **Luxonis device** connected to your computer. Refer to the [documentation](https://docs.luxonis.com/software-v3/) to set up your device if you haven't already.
 
+## Peripheral Mode (RVC4)
+
+Requires Python 3.12 and Node.js 22+.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
+Peripheral mode defaults to 3 FPS; standalone uses 13 FPS. Adjust `--fps_limit`
+for your host and connection. Excessive rates can leave tile groups incomplete
+and the tiling view missing.
+
 ## Standalone Mode (RVC4 only)
 
-To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
-
-The app can then be run with:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>

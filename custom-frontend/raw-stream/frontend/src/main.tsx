@@ -22,6 +22,10 @@ createRoot(rootElement).render(
 	<StrictMode>
 		<BrowserRouter basename={getBasePath()}>
 			<DepthAIContext
+				connectionConfig={{
+					type: 'ws',
+					wsUrl: `ws://${window.location.hostname}:8765`,
+				}}
 				activeServices={
 					// @ts-ignore - We're using an example service here which isn't part of the DAI services enum
 					['Message Service']

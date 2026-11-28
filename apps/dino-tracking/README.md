@@ -9,7 +9,7 @@ This application demonstrates interactive, similarity-based object tracking usin
 - Adjusting confidence threshold for similarity-based detections
 - Toggling segmentation outlines for inspection and debugging
 
-> **Note:** RVC4 standalone mode only.
+> **Note:** RVC4 peripheral or standalone mode.
 
 ![](media/DinoDemo.gif)
 
@@ -65,11 +65,28 @@ Refer to the [documentation](https://docs.luxonis.com/software-v3/) to set up yo
 
 ______________________________________________________________________
 
+## Peripheral Mode (RVC4)
+
+Requires Python 3.12 and Node.js 22+.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
 ## Standalone Mode (RVC4)
 
-To run the example in standalone mode, first install the `oakctl` tool using the instructions [here:](https://docs.luxonis.com/software-v3/oak-apps/oakctl)
-
-The app can then be run with:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>

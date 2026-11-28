@@ -26,18 +26,10 @@ def initialize_argparser():
     )
 
     parser.add_argument(
-        "-ip",
-        "--ip",
-        help="IP address to serve the frontend on.",
-        required=False,
-        type=str,
+        "--no-frontend", action="store_true", help="Use a separate frontend server."
     )
     parser.add_argument(
-        "-p",
-        "--port",
-        help="Port to serve the frontend on.",
-        required=False,
-        type=int,
+        "--frontend-dir", help="Directory containing the built frontend index.html."
     )
 
     args = parser.parse_args()

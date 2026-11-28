@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the strongest integration reference in the repository for running Roboflow Workflows against live DepthAI camera frames with a custom frontend. Use it when you need a standalone-only frontend/backend app where external inference owns the detections and the local backend owns stream delivery, workflow-output discovery, and frontend parameter updates.
+This is the strongest integration reference in the repository for running Roboflow Workflows against live DepthAI camera frames with a custom frontend. Use it when you need a frontend/backend app where external inference owns the detections and the local backend owns stream delivery, workflow-output discovery, and frontend parameter updates.
 
 ## Use This Example When
 
@@ -13,7 +13,6 @@ This is the strongest integration reference in the repository for running Robofl
 
 ## Do Not Use This Example When
 
-- You need a peripheral-mode custom frontend example.
 - You need dataset export rather than live workflow inference.
 - You need a device-side NN baseline with repo-local models.
 
@@ -25,7 +24,7 @@ This is the strongest integration reference in the repository for running Robofl
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` documented as RVC4 standalone only
+- `Runs on:` documented as RVC4 peripheral and standalone
 - `Requires:` RVC4 device running Luxonis OS 1.40 or newer; valid Roboflow workflow config in [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml); the `inference` package; and static frontend assets
 - `Input:` live camera frames from the device plus optional parameter-update payloads from the frontend
 - `Output:` `passthrough` plus any workflow-derived `*visualization*` or `*predictions*` topics that the schema exposes
@@ -50,15 +49,24 @@ This is the strongest integration reference in the repository for running Robofl
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp serves it in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - Backend startup loads [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml) into a Pydantic config object.
+
 - `RoboflowRunner` wraps `InferencePipeline.init_with_workflow(...)` and drives it with `start(use_main_thread=False)` / `terminate()` / `join()`.
+
 - Before the live app starts, `fetch_workflow_output_names()` downloads the workflow definition through the Roboflow API (`get_workflow_specification`) to discover the output names.
+
 - `DepthAIPipeline` creates a local camera pipeline, registers topics based on the discovered output names, and exposes `create_frame_producer()` - a `VideoFrameProducer` factory passed to `InferencePipeline` as `video_reference` (no `cv2.VideoCapture` patching).
+
 - `AnnotationNode` classifies Roboflow outputs by name:
+
   - keys containing `visualization` become image topics
   - keys containing `predictions` become detection topics
   - everything else is ignored
+
 - `RoboflowManager` registers the `Roboflow Parameter Update Service` and decides whether an update only restarts the Roboflow runner or fully rebuilds the DepthAI pipeline and topics.
+
 - The frontend renders `Streams` and posts update payloads back to the backend service.
 
 ## Data Flow
@@ -83,7 +91,7 @@ This is the strongest integration reference in the repository for running Robofl
 
 ## Constraints
 
-- This example is documented and packaged as RVC4 standalone only.
+- This example is documented and packaged as RVC4 peripheral and standalone.
 - Use Python 3.12 for the backend; the pinned Inference dependencies do not support Python 3.14.
 - Workflow outputs whose names contain neither `visualization` nor `predictions` are ignored by the backend.
 - The current frontend/backend update path only supports `api_key`, `workspace_name`, `workflow_id`, and `workflow_parameters`; it does not update `device`, `output_size`, or `fps`.
@@ -108,6 +116,12 @@ This is the strongest integration reference in the repository for running Robofl
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir` selects the build directory; `--no-frontend` uses a separate frontend server.
+
 - `Run:` populate [backend/src/config/yaml_configs/config.yaml](backend/src/config/yaml_configs/config.yaml), then run `oakctl app run .`
+
 - `Success looks like:` the frontend loads, `passthrough` plus recognized workflow outputs appear as streams/topics, and submitting the form updates Roboflow workflow settings without breaking the connection
+
 - `Common failure meaning:` the initial Roboflow config is invalid, the workflow output names do not match the backend naming rules, the frontend/backend service contract drifted, or the current static frontend build path issues in [oakapp.toml](oakapp.toml) and [frontend/package.json](frontend/package.json) were not accounted for

@@ -4,7 +4,7 @@ This app measures box dimensions (L × W × H) and volume live on an RVC4 device
 
 The backend runs the box-measurement nodes from [depthai-nodes](https://github.com/luxonis/depthai-nodes) on neural stereo depth. The frontend, built on `@luxonis/depthai-viewer-common`, guides you through support plane calibration and then shows the measurements.
 
-> **Note:** This example works only on RVC4 in standalone mode, and requires an **OAK 4 D** (Pro or non-Pro): box dimensions are computed from a stereo camera pair, so single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is enabled automatically when present.
+> **Note:** This example works on RVC4 in peripheral or standalone mode, and requires an **OAK 4 D** (Pro or non-Pro): box dimensions are computed from a stereo camera pair, so single-camera devices such as the **OAK 4 S** are not supported. The IR dot projector on Pro models is enabled automatically when present.
 
 ## Demo
 
@@ -96,12 +96,30 @@ If measured heights are consistently too high or too low, add a distance offset 
 
 Positive values move the support plane farther from the camera, so boxes measure taller. The offset mainly affects the height. It is cleared when you run support plane calibration again or restart the app.
 
+## Peripheral Mode (RVC4)
+
+Requires Python 3.11 and Node.js 22+.
+
+The host also needs Open3D system libraries (`libegl1` and `libgfortran5` on Debian/Ubuntu). The device must have RGB, stereo and IMU sensors.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
 ## Standalone Mode (RVC4 only)
 
-Running the example in the standalone mode, app runs entirely on the device.
-To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
-
-The app can then be run with:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>

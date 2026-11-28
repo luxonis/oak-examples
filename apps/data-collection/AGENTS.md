@@ -2,7 +2,7 @@
 
 ## Summary
 
-This is the best standalone reference for open-vocabulary detection plus configurable automatic snap collection. Use it when you need a frontend/backend app where the UI changes classes, thresholds, prompt sources, and snapping conditions while the backend remains authoritative over capture logic.
+This is the best frontend/backend reference for open-vocabulary detection plus configurable automatic snap collection. Use it when you need a frontend/backend app where the UI changes classes, thresholds, prompt sources, and snapping conditions while the backend remains authoritative over capture logic.
 
 ## Use This Example When
 
@@ -14,7 +14,6 @@ This is the best standalone reference for open-vocabulary detection plus configu
 ## Do Not Use This Example When
 
 - You only need a plain single-model inference example without UI.
-- You need host/peripheral support on RVC2 or RVC4 as the main path.
 - You need 3D measurement or pointcloud workflows.
 - You need similarity tracking rather than open-vocabulary prompting.
 
@@ -26,7 +25,7 @@ This is the best standalone reference for open-vocabulary detection plus configu
 - `Entrypoint:` [backend/src/main.py](backend/src/main.py)
 - `Standalone path:` [oakapp.toml](oakapp.toml)
 - `Frontend:` [frontend/src/App.tsx](frontend/src/App.tsx)
-- `Runs on:` RVC4 standalone only
+- `Runs on:` RVC4 peripheral and standalone
 - `Requires:` RVC4 device running Luxonis OS 1.40 or newer; static frontend build; bundled YOLOE model; backend YAML configs in [backend/src/config/yaml_configs/](backend/src/config/yaml_configs/)
 - `Input:` live RGB camera by default, or media input via `--media_path`; text prompt, image prompt, or bbox prompt from the frontend
 - `Output:` encoded `Video`, `Annotations`, and saved snaps with metadata controlled by backend snapping logic
@@ -51,12 +50,20 @@ This is the best standalone reference for open-vocabulary detection plus configu
 
 ## Architecture
 
+- `depthai_nodes.runtime.serve_frontend` serves the built `frontend/dist` at `http://localhost:8082` in peripheral mode; oakapp serves it in standalone mode. `RemoteConnection(serveFrontend=False)` carries topics and services.
+
 - The backend builds config from CLI args plus YAML files.
+
 - `CameraSourceNode` provides frames.
+
 - `NNDetectionNode` runs the open-vocabulary detector.
+
 - A tracker is built from [backend/src/tracking/tracker_builder.py](backend/src/tracking/tracker_builder.py).
+
 - `SnappingNode` decides when snaps should be emitted based on detections and tracklets.
+
 - `FrameCacheNode` stores the latest frame for image-prompt workflows.
+
 - The backend registers services for class updates, threshold updates, image upload, bbox prompting, snap-condition updates, and config export.
 
 ## Data Flow
@@ -81,7 +88,7 @@ This is the best standalone reference for open-vocabulary detection plus configu
 
 ## Constraints
 
-- This example is intentionally RVC4 standalone only.
+- This example is intentionally RVC4 peripheral and standalone.
 - Luxonis OS 1.40 or newer is required for the device NPU runtime.
 - The backend uses `serveFrontend=False`, so the app depends on the static frontend build declared in [oakapp.toml](oakapp.toml).
 - Runtime behavior is split across CLI args and YAML config files, so changing only one side may not do what you expect.
@@ -102,6 +109,12 @@ This is the best standalone reference for open-vocabulary detection plus configu
 
 ## Validation
 
+- `Peripheral run:` build with `npm ci && npm run build` in `frontend`, install backend requirements, then run `python backend/src/main.py --device <DEVICE_IP>` from this example directory. Open `http://localhost:8082`.
+
+- `Frontend options:` `--frontend-dir` selects the build directory; `--no-frontend` uses a separate frontend server.
+
 - `Run:` `oakctl app run .`
+
 - `Success looks like:` the frontend shows live video, class and threshold updates work, bbox/image prompts reach the backend, and snap-condition state restores correctly after reconnect
+
 - `Common failure meaning:` the static frontend was not built, the RVC4-only model/runtime assumptions were violated, or frontend/backend service contracts drifted

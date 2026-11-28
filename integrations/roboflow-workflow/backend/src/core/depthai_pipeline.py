@@ -71,7 +71,7 @@ class DepthAIPipeline:
 
     def start(self):
         self._pipeline.start()
-        self._logger.info("DepthAI pipeline started")
+        self._logger.info("Pipeline started.")
 
     def stop(self):
         # HostNode callbacks can race pipeline teardown.  Quiesce annotation

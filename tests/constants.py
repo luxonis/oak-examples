@@ -1,61 +1,31 @@
 KNOWN_FAILING = {
     "apps/focused-vision": {
-        "reason": "RVC4 only app",
-        "rules": {"and": [{"platform": ["rvc2"]}]},
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "apps/object-volume-measurement-3d": {
-        "reason": "Not supported for peripheral; RVC4 only app",
-        "rules": {
-            "and": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "apps/people-demographics-and-sentiment-analysis": {
-        "reason": "Not supported for peripheral; RVC4 only app",
-        "rules": {
-            "and": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
-    },
-    "apps/p2p-measurement": {
-        "reason": "Not supported for peripheral; RVC4 only app",
-        "rules": {
-            "and": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "apps/machine-pov-proximity-alert": {
-        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
-        "rules": {
-            "or": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "apps/dino-tracking": {
-        "reason": "Not supported for peripheral; RVC4 only app",
-        "rules": {
-            "and": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
+    },
+    "apps/p2p-measurement": {
+        "reason": "Peripheral test runner does not build frontend/dist.",
+        "rules": {"and": [{"mode": ["peripheral"]}]},
     },
     "apps/qr-tiling": {
-        "reason": "Not supported for peripheral; RVC4 only app",
-        "rules": {
-            "and": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 model required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "apps/llamacpp-vlm": {
         "reason": "Not supported for peripheral; RVC4 only app",
@@ -120,34 +90,24 @@ KNOWN_FAILING = {
         "rules": {"and": [{"platform": "all"}]},
     },
     "custom-frontend/raw-stream": {
-        "reason": "Failed to start the HTTP server on peripheral.",
-        "rules": {"and": [{"mode": "all"}]},
+        "reason": "Peripheral runner does not build the custom frontend; build frontend/dist first.",
+        "rules": {"and": [{"mode": ["peripheral"]}]},
     },
     "custom-frontend/open-vocabulary-object-detection": {
-        "reason": "Not supported for peripheral",
-        "rules": {"and": [{"mode": ["peripheral"]}]},
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "integrations/rerun": {
         "reason": "rerun-sdk 0.44 requires Python 3.11 or newer",
         "rules": {"and": [{"python_version": ["3.10"]}]},
     },
     "apps/data-collection": {
-        "reason": "Not supported for peripheral; RVC4 only app",
-        "rules": {
-            "and": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "apps/box-measurement": {
-        "reason": "RVC4 standalone only; peripheral mode and RVC2 are unsupported",
-        "rules": {
-            "or": [
-                {"mode": ["peripheral"]},
-                {"platform": ["rvc2"]},
-            ],
-        },
+        "reason": "RVC4 models required; peripheral test runner does not build frontend/dist.",
+        "rules": {"or": [{"platform": ["rvc2"]}, {"mode": ["peripheral"]}]},
     },
     "integrations/roboflow-dataset": {
         "reason": "Can't run without arguments (e.g. roboflow api-key)",

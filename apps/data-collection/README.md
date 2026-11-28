@@ -7,7 +7,7 @@ It runs **YOLOE** on the DepthAI backend, and exposes controls in the UI for:
 - Adjusting **confidence threshold**
 - Enabling **snap conditions** (timed, no detections, low confidence, lost-in-middle)
 
-> **Note:** RVC4 standalone mode only. Requires Luxonis OS 1.40 or newer.
+> **Note:** RVC4 peripheral or standalone mode. Requires Luxonis OS 1.40 or newer.
 
 ![](media/data_collection_app_demo.gif)
 
@@ -42,11 +42,28 @@ Running this example requires a **Luxonis RVC4 device** connected to your comput
 
 ______________________________________________________________________
 
+## Peripheral Mode (RVC4)
+
+Requires Python 3.12 and Node.js 22+.
+
+From this example directory:
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+cd frontend
+npm ci
+npm run build
+cd ..
+python3 backend/src/main.py
+```
+
+Open http://localhost:8082 on the host computer. Python runs the backend
+and serves `frontend/dist` automatically; streams and controls use port 8765.
+Rebuild with `npm run build` in `frontend/` after frontend changes.
+
 ## Standalone Mode (RVC4)
 
-To run the example in this mode, first install the `oakctl` tool using the installation instructions [here](https://docs.luxonis.com/software-v3/oak-apps/oakctl).
-
-The app can then be run with:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>
