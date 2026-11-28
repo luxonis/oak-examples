@@ -29,19 +29,15 @@ Here is a list of all available parameters:
 
 Requires Python 3.10+ and Node.js 22+.
 
-Use the USB device ID for RVC2 or the device IP for RVC4 as `<DEVICE>`.
-
 From this example directory:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 cd frontend
 npm ci
 npm run build
 cd ..
-python main.py --device <DEVICE>
+python3 main.py
 ```
 
 Open http://localhost:8082 on the host computer. Python runs the backend

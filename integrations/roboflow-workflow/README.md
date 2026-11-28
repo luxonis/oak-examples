@@ -78,14 +78,12 @@ Configure the workspace, workflow and API key in `backend/src/config/yaml_config
 From this example directory:
 
 ```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r backend/src/requirements.txt
+python3 -m pip install -r backend/src/requirements.txt
 cd frontend
 npm ci
 npm run build
 cd ..
-EP=cpu USE_INFERENCE_MODELS=False python backend/src/main.py --device <DEVICE_IP>
+EP=cpu USE_INFERENCE_MODELS=False python3 backend/src/main.py
 ```
 
 Open http://localhost:8082 on the host computer. Python runs the backend

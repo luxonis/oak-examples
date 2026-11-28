@@ -49,14 +49,12 @@ Requires Python 3.12 and Node.js 22+.
 From this example directory:
 
 ```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r backend/requirements.txt
+python3 -m pip install -r backend/requirements.txt
 cd frontend
 npm ci
 npm run build
 cd ..
-python backend/src/main.py --device <DEVICE_IP>
+python3 backend/src/main.py
 ```
 
 Open http://localhost:8082 on the host computer. Python runs the backend

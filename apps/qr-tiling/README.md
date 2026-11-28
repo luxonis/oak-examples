@@ -78,19 +78,17 @@ ______________________________________________________________________
 
 Requires Python 3.10+ and Node.js 22+.
 
-QR decoding also requires `libzbar` (`sudo apt-get install libzbar0` on Debian/Ubuntu). Use the RVC4 IP as `<DEVICE>`.
+QR decoding also requires `libzbar` (`sudo apt-get install libzbar0` on Debian/Ubuntu).
 
 From this example directory:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r backend/requirements.txt
+python3 -m pip install -r backend/requirements.txt
 cd frontend
 npm ci
 npm run build
 cd ..
-python backend/src/main.py --device <DEVICE>
+python3 backend/src/main.py
 ```
 
 Open http://localhost:8082 on the host computer. Python runs the backend

@@ -28,19 +28,15 @@ Running this example requires a **Luxonis device** connected to your computer. R
 
 Requires Python 3.10+ and Node.js 22+.
 
-Use the USB device ID for RVC2 or the device IP for RVC4 as `<DEVICE>`.
-
 From this example directory:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r backend/requirements.txt
+python3 -m pip install -r backend/requirements.txt
 cd frontend
 npm ci
 npm run build
 cd ..
-python backend/src/main.py --device <DEVICE>
+python3 backend/src/main.py
 ```
 
 Open http://localhost:8082 on the host computer. Python runs the backend
