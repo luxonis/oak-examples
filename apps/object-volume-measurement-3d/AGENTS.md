@@ -44,7 +44,7 @@ This is the strongest frontend/backend reference for interactive 3D object measu
 - [frontend/src/ClickOverlay.tsx](frontend/src/ClickOverlay.tsx): click-to-select behavior
 - [frontend/src/ClassSelector.tsx](frontend/src/ClassSelector.tsx): class updates
 - [frontend/src/MeasurementMethodSelector.tsx](frontend/src/MeasurementMethodSelector.tsx): OBB versus height-grid selection
-- [oakapp.toml](oakapp.toml): static frontend build and Python 3.11 standalone base image
+- [oakapp.toml](oakapp.toml): static frontend build and Python 3.12 standalone base image
 
 ## Architecture
 
@@ -90,6 +90,7 @@ This is the strongest frontend/backend reference for interactive 3D object measu
 
 - Selection masks and aligned depth must share the undistorted RGB pixel grid.
 - This example is intentionally RVC4 peripheral and standalone.
+- The Open3D ARM64 wheel needs `libgfortran5` and `libegl1` installed by [oakapp.toml](oakapp.toml); the current base image already provides `libgl1` and `libgomp1`. Keep the Python-dependent SciPy pins when changing backend dependencies.
 - The backend defaults to `8` FPS when no limit is provided.
 - Height-grid measurement depends on a valid support-plane capture and IMU-assisted plane validation.
 - Projection uses each native PointCloud cloud’s `ImgTransformation.project3DPoint` and image dimensions, including alignment and undistortion. Cloud coordinates are centimeters in the `CAM_A` optical frame (+X right, +Y down, +Z forward); dimensions/volume are reported in cm/cm³.

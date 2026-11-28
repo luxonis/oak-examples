@@ -4,8 +4,9 @@ opencv-python-headless~=4.10.0
 numpy>=1.22
 tokenizers~=0.21.0
 onnxruntime
-open3d==0.18.0
-scipy==1.11.4
+open3d==0.20.0
+scipy==1.15.3; python_version < "3.11"
+scipy==1.16.3; python_version >= "3.11"
 # onnxruntime-gpu # if you want to use CUDAExecutionProvider
 requests
 tqdm

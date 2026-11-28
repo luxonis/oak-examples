@@ -1,4 +1,4 @@
 depthai==3.11.0
 depthai-nodes==0.7.0
-av==12.3.0
+av==17.0.1
 numpy>=1.22

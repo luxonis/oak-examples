@@ -27,7 +27,7 @@ Here is a list of all available parameters:
 
 ## Peripheral Mode
 
-Requires Python 3.10+ and Node.js 22+.
+Use Python 3.12 (recommended) and Node.js 22+.
 
 From this example directory:
 

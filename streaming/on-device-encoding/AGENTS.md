@@ -44,6 +44,7 @@ This is the repository reference for encoding video on the OAK device and muxing
 - [main.py](main.py) captures `CAM_A` as `640x480` NV12 frames.
 - `dai.node.VideoEncoder` runs on-device using the selected codec profile.
 - [utils/video_saver.py](utils/video_saver.py) receives already-encoded packets and muxes them directly into the requested container file with PyAV.
+- Shutdown stops and joins the pipeline before closing the container, so pending writes finish and the file trailer is written.
 - The preview path is separate from the saved stream: `Video` shows raw frames for `h265` or any RVC4 run, because encoded visualizer support is limited there.
 
 ## Constraints

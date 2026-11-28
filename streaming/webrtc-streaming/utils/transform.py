@@ -32,11 +32,7 @@ class VideoTransform(VideoStreamTrack):
         return new_frame
 
     async def parse_frame(self):
-        frame = (
-            self.preview.get().getFrame()
-            if self.depth_flag
-            else self.preview.get().getCvFrame()
-        )
+        frame = self.preview.get().getCvFrame()
         dets = self.nn.get().detections if self.nn is not None else []
 
         for detection in dets:
@@ -75,8 +71,7 @@ class VideoTransform(VideoStreamTrack):
             )
             cv2.rectangle(frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
 
-        if not self.depth_flag:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Output the frame
         return frame

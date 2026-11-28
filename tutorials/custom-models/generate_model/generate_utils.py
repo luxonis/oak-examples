@@ -24,58 +24,40 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def create_container_dirs():
-    script_dir = Path(os.path.realpath(__file__)).parent
-    os.makedirs(script_dir / "out/shared_with_container/archives", exist_ok=True)
-    os.makedirs(
-        script_dir / "out/shared_with_container/calibration_data", exist_ok=True
-    )
-    os.makedirs(script_dir / "out/shared_with_container/models", exist_ok=True)
-    os.makedirs(script_dir / "out/shared_with_container/outputs", exist_ok=True)
-    os.makedirs(script_dir / "out/shared_with_container/configs", exist_ok=True)
-
-
 def generate_nn_archive(
     cfg_dict: dict, path_to_onnx: str, out_path: str, platform: dai.Platform
 ):
-    create_container_dirs()
     script_dir = Path(os.path.realpath(__file__)).parent
+    work_dir = script_dir / "out"
+    work_dir.mkdir(exist_ok=True)
 
     # Create NN archive with ONNX model
     generator = ArchiveGenerator(
-        archive_name="nn_archive",
-        save_path=".",
+        archive_name=cfg_dict["model"]["metadata"]["name"],
+        save_path=str(work_dir),
         cfg_dict=cfg_dict,
         executables_paths=[path_to_onnx],
     )
     archive_path = generator.make_archive()
-    shutil.move(
-        archive_path,
-        script_dir / "out/shared_with_container/archives/nn_archive.tar.xz",
-    )
-
-    previous_cwd = os.getcwd()
-    new_cwd = script_dir / "out"
-
     # Convert NN archive to RVC format using modelconverter
-    os.chdir(new_cwd)
     subprocess.run(
         [
             "modelconverter",
             "convert",
             platform.name.lower(),
             "--path",
-            "archives/nn_archive.tar.xz",
+            str(archive_path),
             "--to",
             "nn_archive",
             "--output-dir",
             "nn_archive_out",
         ],
+        cwd=work_dir,
+        check=True,
     )
-    os.chdir(previous_cwd)
     final_model_path = (
-        script_dir
-        / f"out/shared_with_container/outputs/nn_archive_out/{cfg_dict['model']['metadata']['name']}.{platform.name.lower()}.tar.xz"
+        work_dir
+        / f"output/nn_archive_out/{cfg_dict['model']['metadata']['name']}.{platform.name.lower()}.tar.xz"
     )
     shutil.copy(
         final_model_path,
@@ -111,6 +93,7 @@ def generate_model(
         input_tensors,
         onnx_path,
         opset_version=12,
+        dynamo=False,
         do_constant_folding=True,
         input_names=input_names,
         output_names=output_names,

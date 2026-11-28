@@ -41,7 +41,7 @@ RVC4 peripheral and standalone app for live box dimensioning on a support plane,
 - [backend/src/config.py](backend/src/config.py): neural depth model, camera resolutions, frame rate and default detection confidence
 - [frontend/src/App.tsx](frontend/src/App.tsx), [frontend/src/supportPlaneCalibration/SupportPlaneCalibrationView.tsx](frontend/src/supportPlaneCalibration/SupportPlaneCalibrationView.tsx) and [frontend/src/MeasurementView.tsx](frontend/src/MeasurementView.tsx): view selection and the two views
 - [frontend/src/components/AppLayout.tsx](frontend/src/components/AppLayout.tsx) and [frontend/src/components/PanelSection.tsx](frontend/src/components/PanelSection.tsx): the shared side panel layout and its titled sections
-- [oakapp.toml](oakapp.toml): container, frontend build and Python 3.11 base image
+- [oakapp.toml](oakapp.toml): container, frontend build and Python 3.12 base image
 
 ## Architecture
 

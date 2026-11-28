@@ -46,7 +46,7 @@ Available parameters:
 
 ### Installation
 
-Prepare a **Python >= 3.10** environment with the required packages:
+Prepare a **Python 3.12** environment (recommended) with the required packages:
 
 ```bash
 pip install -r requirements.txt

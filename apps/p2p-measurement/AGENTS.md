@@ -41,7 +41,7 @@ This is the reference for interactive two-point 3D distance measurement. Use it 
 - [frontend/src/App.tsx](frontend/src/App.tsx): polling, click handling, tracking toggle, and instructions
 - [frontend/src/ClickOverlay.tsx](frontend/src/ClickOverlay.tsx): click-to-point mapping
 - [frontend/src/DistanceDisplay.tsx](frontend/src/DistanceDisplay.tsx): measurement readout
-- [oakapp.toml](oakapp.toml): static frontend build and Python 3.11 standalone base image
+- [oakapp.toml](oakapp.toml): static frontend build and Python 3.12 standalone base image
 
 ## Architecture
 

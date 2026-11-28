@@ -8,6 +8,8 @@ This application integrates a DepthAI device with `Roboflow Workflow` through `i
 
 ## Usage
 
+Use **Python 3.12** for the backend. Python 3.14 is not supported by the pinned Roboflow Inference dependencies.
+
 Before running this example, you’ll first need to create your own [Roboflow Workflow](https://roboflow.com/workflows/build) in the Roboflow web app ([documentation](https://docs.roboflow.com/workflows/create-a-workflow)).
 
 Once your workflow is ready, populate the initial Roboflow settings in [config.yaml](./backend/src/config/yaml_configs/config.yaml).

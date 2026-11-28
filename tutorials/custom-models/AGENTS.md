@@ -52,6 +52,7 @@ This is the repository reference for running simple custom converted models pack
 
 ## Constraints
 
+- Use Python 3.12 for the separate `generate_model/` environment; Python 3.10 and 3.14 are also supported. Generation requires Docker and writes final archives to `generate_model/out/models/` when run from that directory.
 - [oakapp.toml](oakapp.toml) always runs [main.py](main.py); it does not expose the smaller per-model scripts.
 - The combined demo in [main.py](main.py) requires three cameras because it includes the concat model path.
 - This folder is about loading already-converted model archives; it is not a generic conversion pipeline by itself.

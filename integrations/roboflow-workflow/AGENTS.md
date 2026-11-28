@@ -92,6 +92,7 @@ This is the strongest integration reference in the repository for running Robofl
 ## Constraints
 
 - This example is documented and packaged as RVC4 peripheral and standalone.
+- Use Python 3.12 for the backend; the pinned Inference dependencies do not support Python 3.14.
 - Workflow outputs whose names contain neither `visualization` nor `predictions` are ignored by the backend.
 - The current frontend/backend update path only supports `api_key`, `workspace_name`, `workflow_id`, and `workflow_parameters`; it does not update `device`, `output_size`, or `fps`.
 - Luxonis OS 1.40 or newer is required for the device NPU runtime.

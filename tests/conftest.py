@@ -54,10 +54,10 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--python-version",
-        default="3.10",
+        default="3.12",
         type=str,
-        choices=["3.8", "3.10", "3.12"],
-        help="Specify a python version this is tested with (3.8, 3.10 or 3.12). Only used for filtering test examples.",
+        choices=["3.10", "3.12", "3.14"],
+        help="Specify a python version this is tested with (3.10, 3.12 or 3.14; default: 3.12). Only used for filtering test examples.",
     )
     parser.addoption(
         "--strict-mode",

@@ -83,6 +83,7 @@ This is the strongest reference in the repo for RGB-D box measurement with insta
 - The fitter still requires three perpendicular planes. It removes rejected plane candidates from its search cloud so a parallel residual cannot consume every attempt, but this does not guarantee a valid fit on noisy or incomplete depth.
 - The script assumes `CAM_A` for RGB and `CAM_B/C` for stereo.
 - Masks and organized point clouds must share the undistorted RGB pixel grid. Cuboid overlays use `ImgTransformation.project3DPointTo` from cloud to image coordinates.
+- The Open3D ARM64 wheel requires the `libgl1`, `libgfortran5`, and `libegl1` packages installed by [oakapp.toml](oakapp.toml).
 
 ## Non-Obvious Repo Conventions
 
