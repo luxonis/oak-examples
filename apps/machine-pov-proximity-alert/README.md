@@ -69,9 +69,7 @@ Rebuild with `npm run build` in `frontend/` after frontend changes.
 
 ## Standalone Mode (RVC4 only)
 
-oakapp serves the frontend automatically in standalone mode.
-
-From this directory, connect to the device and run the app:
+In standalone mode, the app runs entirely on the device, with oakapp serving the frontend automatically. To get started, install [oakctl](https://docs.luxonis.com/software-v3/oak-apps/oakctl), then run:
 
 ```bash
 oakctl connect <DEVICE_IP>
