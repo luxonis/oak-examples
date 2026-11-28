@@ -119,6 +119,10 @@ KNOWN_FAILING = {
         "reason": "Test suite doesn't support multi-device testing",
         "rules": {"and": [{"platform": "all"}]},
     },
+    "tutorials/multiple-devices/multi-device-box-measurement": {
+        "reason": "Needs RVC4 devices; discovery skips IP-only devices by default.",
+        "rules": {"and": [{"platform": "all"}]},
+    },
     "custom-frontend/raw-stream": {
         "reason": "Failed to start the HTTP server on peripheral.",
         "rules": {"and": [{"mode": "all"}]},

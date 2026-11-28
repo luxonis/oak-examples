@@ -1,0 +1,3 @@
+depthai==3.12.1
+# TODO: Pin the released depthai-nodes version that includes the BoxMeasurer syncThreshold change before merging.
+depthai-nodes[box-measurement] @ git+https://github.com/luxonis/depthai-nodes.git@feat/box-measurement-multi-device
