@@ -1,0 +1,47 @@
+.measurement-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	min-height: 0;
+}
+
+.measurement-controls > * {
+	flex-shrink: 0;
+}
+
+.measurement-panels {
+	min-height: 0;
+}
+
+.processing-frame-status {
+	display: -webkit-box;
+	height: 2lh;
+	flex-shrink: 0;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+@media (min-width: 48rem) {
+	.app-side:has(> .measurement-controls) {
+		overflow: hidden;
+	}
+
+	.app-side > .measurement-controls {
+		flex: 1;
+		flex-shrink: 1;
+		overflow: hidden;
+	}
+
+	.measurement-controls > .measurement-panels {
+		flex: 1;
+		flex-shrink: 1;
+		overflow-y: auto;
+		padding-right: 0.25rem;
+	}
+}
+
+.measurement-modal::backdrop {
+	background: color-mix(in srgb, var(--lux-foreground) 60%, transparent);
+}
