@@ -80,7 +80,7 @@ Configure the workspace, workflow and API key in `backend/src/config/yaml_config
 From this example directory:
 
 ```bash
-python3 -m pip install -r backend/src/requirements.txt
+python3 -m pip install -r backend/requirements.txt
 cd frontend
 npm ci
 npm run build

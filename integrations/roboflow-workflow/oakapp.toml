@@ -17,11 +17,11 @@ prepare_container = [
     { type = "RUN", command = "bash -lc 'set -e; apt-get update && apt-get install -y --no-install-recommends build-essential cmake ninja-build && rm -rf /var/lib/apt/lists/*'" },
 
     # --- Copy and install requirements ---
-    { type = "COPY", source = "./backend/src/requirements.txt", target = "./backend/src/requirements.txt" },
+    { type = "COPY", source = "./backend/requirements.txt", target = "./backend/requirements.txt" },
     { type = "RUN", command = "bash -lc 'python3.12 -m pip install --upgrade pip setuptools wheel'" },
     # torch/torchvision from the CPU index first - the regular PyPI aarch64 wheels pull in the full CUDA stack (~3 GB of useless deps on RVC4)
     { type = "RUN", command = "bash -lc 'python3.12 -m pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu'" },
-    { type = "RUN", command = "bash -lc 'python3.12 -m pip install --no-cache-dir -r /app/backend/src/requirements.txt'" },
+    { type = "RUN", command = "bash -lc 'python3.12 -m pip install --no-cache-dir -r /app/backend/requirements.txt'" },
     # Restore the ONNX Runtime versions included by the QNN base image after
     # `inference` resolves its older onnxruntime constraint. `onnx` is used by
     # core/qnn_patch.py to fix dynamic batch dims before HTP compilation.
